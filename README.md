@@ -1,139 +1,116 @@
-# Organizational Memory OS
+# Organizational Memory OS｜企業組織記憶作業系統
 
-Enterprise Knowledge SaaS / Organizational Memory platform.
+企業 Knowledge SaaS / Organizational Memory 平台。
 
-> Evidence-first organizational knowledge, governance, retrieval, and capability platform.
+> 以 Evidence 為起點，把公司每天的工作、文件、訊息、決策與執行結果，轉成可治理、可追溯、可檢索、可持續更新的企業知識與能力。
 
-This repository is the canonical handoff/workspace for the company product architecture discussed to date. It is **not** an AI Core clone and must not inherit AI Core's single-developer constraints, implementation depth, parked priorities, or runtime assumptions.
+這個 Repo 是目前 **企業知識 SaaS 的架構、研究、Backlog 與跨機器交接 authority**。它不是 AI Core clone，也不得繼承 AI Core 的單人開發限制、資源假設、parked priority 或 runtime authority。
 
-## Core principles
+## 核心原則
 
-- **Shared Research, Independent Product Priority.** AI Core is a research/engineering donor, not a product ceiling.
-- **Prior-art first. Absorb, don't copy.** Reuse mature engineering, tests, failure handling, adapters and algorithms before writing custom code; preserve Organizational Memory OS authority.
-- **Borrow the engineering, preserve the architecture.** Donors must never replace canonical knowledge authority, identity, permission authority, lifecycle, task model, or mutable runtime truth.
-- **Evidence != Knowledge.** Teams, Outlook, Slack, Jira, documents, user activity, agent output and execution receipts are evidence first.
-- **Candidate != Canonical.** Only reviewed/accepted mutations may reach canonical knowledge.
-- **Permission before Retrieval.** Unauthorized content must never enter retrieval/context and must not be filtered only after the LLM sees it.
-- **Execution != Verification != Acceptance.** Doing work, verifying it, and approving it are different truths.
-- **Knowledge != Procedure/Skill.** Knowing something and knowing how to do something are different resources connected by relationships.
-- **One platform, many scopes.** PERSONAL / TEAM / DEPARTMENT / COMPANY / CLIENT are scopes, not separate AI Core installations.
-- **Capability + Level + Scope.** Every SaaS capability is a complete capability with depth levels; customers can mix levels across capabilities and scopes.
+- **共享研究，產品優先級獨立。** AI Core 是研究/工程 donor，不是產品天花板。
+- **先找先例，吸收成熟工程，不重新發明。** 能直接重用、包 adapter、吸演算法/tests/failure handling，就不要自己重刻。
+- **借工程、保架構。** Donor 不得取代 Knowledge Authority、Identity、Permission Authority、Lifecycle 或 Canonical Truth。
+- **Evidence ≠ Knowledge。** Outlook、Teams、Slack、Jira、文件、人的操作、Agent 輸出與 execution receipt 首先都是 Evidence。
+- **Candidate ≠ Canonical。** 只有通過 Verification 與 Acceptance 的 Mutation Proposal 才能進正式知識。
+- **Permission-before-Retrieval。** 未授權資料不得先被 Search/LLM 看見再過濾。
+- **Execution ≠ Verification ≠ Acceptance。** 做過、驗過、批准過是三件不同的事。
+- **Knowledge ≠ Procedure / Skill。** 知道什麼與怎麼做是不同資源，以 relationship 連結。
+- **一個平台，多種 Scope。** PERSONAL / TEAM / DEPARTMENT / COMPANY / CLIENT 是資料與權限空間，不是每人各一套 AI Core。
+- **Capability + Level + Scope。** 每顆 SaaS Capability 都是完整功能，但有 L1-L4 深度，且可依 Team/User/Client 做 override。
 
-## Canonical Knowledge Spine
+## 核心 Knowledge Spine
 
 ```text
 Evidence Sources
-PDF / Word / Web / Outlook / Teams / Slack / LINE / Jira
-Human Upload / Agent Runtime / System Activity / Git repositories
-        |
-        v
+PDF / Word / Web / Outlook / Teams / Slack / LINE / Jira / Git
+人工上傳 / Agent Runtime / System Activity
+        ↓
 Raw Evidence
-        |
-        v
+        ↓
 Normalize
-        |
-        v
+        ↓
 Atomic Extraction / Object Linking
-        |
-        v
+        ↓
 Work Record Projection / Knowledge Candidate
-        |
-        v
+        ↓
 Knowledge Staging
-        |
-        +--> Permission / Provenance / Conflict / Scope
-        |
-        +--> AI Review / Human Review / Verification
-        |
-        v
+        ↓
+Permission / Provenance / Conflict / Scope
+        ↓
+AI Review / Human Review / Verification
+        ↓
 Acceptance Decision
-        |
-        v
+        ↓
 Canonical Knowledge Writer
-        |
-        v
+        ↓
 Canonical Knowledge
-        +--> Knowledge Graph / Relationships
-        +--> Procedure / Skill relationships
-        +--> Lifecycle / Version / Supersession
-        |
-        v
+        ├─ Knowledge Graph / Relationships
+        ├─ Procedure / Skill Relations
+        └─ Lifecycle / Version / Supersession
+        ↓
 Identity / Permission / Managed Policy Floor
-        |
-        v
+        ↓
 Authorized Retrieval Space
-        |
-        v
+        ↓
 Intent / Domain Classification
-        |
-        v
+        ↓
 Context Budget
-        |
-        v
+        ↓
 Bounded Retrieval
-        |
-        v
+        ↓
 Answer / Action
-        |
-        v
+        ↓
 Usage / Feedback / Evaluation Evidence
-        |
-        +---------------------------> Re-evaluation / Revision Candidate
+        ↺ Re-evaluation / Revision Candidate
 ```
 
-## Read first
+## 接手請先讀
 
-Start with [`START_HERE_FOR_NEXT_MACHINE.md`](START_HERE_FOR_NEXT_MACHINE.md).
+第一份讀：[`下一台電腦從這裡開始.md`](下一台電腦從這裡開始.md)
 
-Then read:
+之後依序：
 
-1. [`docs/ARCHITECTURE_CONSTITUTION.md`](docs/ARCHITECTURE_CONSTITUTION.md)
-2. [`docs/CANONICAL_SPINE.md`](docs/CANONICAL_SPINE.md)
-3. [`docs/MVP_AND_PRIORITY.md`](docs/MVP_AND_PRIORITY.md)
-4. [`docs/PERSONAL_EVIDENCE_AND_WORK_RECORD.md`](docs/PERSONAL_EVIDENCE_AND_WORK_RECORD.md)
-5. [`docs/PERMISSION_POLICY_CONFIG.md`](docs/PERMISSION_POLICY_CONFIG.md)
-6. [`docs/CONTEXT_RETRIEVAL.md`](docs/CONTEXT_RETRIEVAL.md)
-7. [`docs/VERIFICATION_GOVERNANCE.md`](docs/VERIFICATION_GOVERNANCE.md)
-8. [`docs/SAAS_CAPABILITY_LEVELS.md`](docs/SAAS_CAPABILITY_LEVELS.md)
-9. [`docs/PRIOR_ART_DONOR_MAP.md`](docs/PRIOR_ART_DONOR_MAP.md)
-10. [`docs/BACKLOG_RECONCILIATION.md`](docs/BACKLOG_RECONCILIATION.md)
-11. [`docs/AI_CORE_BOUNDARY.md`](docs/AI_CORE_BOUNDARY.md)
-12. [`docs/DO_NOT_REIMPLEMENT.md`](docs/DO_NOT_REIMPLEMENT.md)
+1. [`文件/架構憲章.md`](文件/架構憲章.md)
+2. [`文件/核心知識主幹.md`](文件/核心知識主幹.md)
+3. [`文件/MVP與優先級.md`](文件/MVP與優先級.md)
+4. [`文件/個人證據與工作紀錄.md`](文件/個人證據與工作紀錄.md)
+5. [`文件/權限政策與設定治理.md`](文件/權限政策與設定治理.md)
+6. [`文件/上下文預算與檢索.md`](文件/上下文預算與檢索.md)
+7. [`文件/驗證治理.md`](文件/驗證治理.md)
+8. [`文件/SaaS能力等級.md`](文件/SaaS能力等級.md)
+9. [`文件/SaaS控制平面.md`](文件/SaaS控制平面.md)
+10. [`文件/先例技術來源地圖.md`](文件/先例技術來源地圖.md)
+11. [`文件/待辦重整.md`](文件/待辦重整.md)
+12. [`文件/企業產品能力.md`](文件/企業產品能力.md)
+13. [`文件/AI-Core邊界.md`](文件/AI-Core邊界.md)
+14. [`文件/禁止重刻政策.md`](文件/禁止重刻政策.md)
+15. [`文件/未決問題與已定裁決.md`](文件/未決問題與已定裁決.md)
 
-## Current MVP north star
+## MVP North Star
 
-The MVP is a vertical slice, not the whole product:
+MVP 是一條最小垂直閉環，不是整個產品：
 
 ```text
-Outlook / Teams / Jira / Documents
-        v
-Raw Evidence + Provenance
-        v
-Work Record / Candidate
-        v
-Staging
-        v
-Review / Conflict / Approval
-        v
-Canonical Knowledge
-        v
-Permission-before-Retrieval
-        v
-Context Budget + Bounded Retrieval
-        v
-PM/RD Answer with Citation
-        v
-Machine/Human Evaluation
-        v
-Failure -> Correction -> Re-evaluation
+Outlook / Teams / Jira / 文件
+→ Raw Evidence + Provenance
+→ Work Record / Candidate
+→ Staging
+→ Review / Conflict / Approval
+→ Canonical Knowledge
+→ Permission-before-Retrieval
+→ Context Budget + Bounded Retrieval
+→ PM/RD Answer + Citation
+→ Machine/Human Evaluation
+→ Failure → Correction → Re-evaluation
 ```
 
-Advanced graph UI, achievement systems, skill marketplace, blackboard and multi-agent runtime are not MVP blockers.
+Advanced Graph UI、Achievement、Skill Marketplace、Shared Blackboard、Multi-Agent Runtime 都不是 MVP blocker。
 
-## Status dimensions must not be mixed
+## 三個狀態維度不可混用
 
-- **Architecture priority:** P0 / P1 / P2 / Trigger-based
-- **Delivery maturity:** MVP / NEXT / NORTH STAR
-- **Commercial capability level:** L1 / L2 / L3 / L4
+- **架構優先級**：P0 / P1 / P2 / Trigger-based
+- **交付成熟度**：MVP / NEXT / NORTH STAR
+- **商業能力等級**：L1 / L2 / L3 / L4
 
-A capability can be P0 while only shipping an L1 MVP initially.
+一個 Capability 可以是 P0，但第一版只交付 L1。
