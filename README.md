@@ -106,10 +106,15 @@ Usage / Feedback / Evaluation Evidence
 
 ## MVP North Star
 
-MVP 是一條最小垂直閉環，不是整個產品：
+MVP 是一條最小垂直閉環，不是整個產品。來源必須分成兩個維度：
+
+- **Architecture Source Scope**：文件、Jira、Microsoft 365 等來源皆須能接入同一 Raw Evidence Contract。
+- **First Delivery Tranche**：先交付文件 + Jira。
+- **Next Source Tranche**：Outlook + Teams；不是從架構刪除，只是不與第一批同時施工。
 
 ```text
-Jira / 文件為主，Outlook / Teams 作下一步來源
+文件 / Jira（第一交付批次）
+Outlook / Teams（下一來源批次）
 → Raw Evidence + Provenance
 → Object / Work Context / Candidate
 → Staging
@@ -131,3 +136,14 @@ Advanced Graph UI、Achievement、Skill Marketplace、Shared Blackboard、Multi-
 - **商業能力等級**：L1 / L2 / L3 / L4
 
 一個 Capability 可以是 P0，但第一版只交付 L1。
+
+## 目前施工 Frontier
+
+2026-08-26 current truth reconciliation 已完成。下一輪不再重做架構研究，依序封：
+
+1. Raw Evidence Contract
+2. Document Adapter Mapping
+3. Jira Adapter Mapping
+4. Permission / Retention / Deletion Contract
+5. Canonical Direct-Write Audit
+6. 最新繁體中文互動 Architecture Canvas

@@ -8,10 +8,21 @@
 
 三者不可混用。P0 不代表第一版要做到 L4；NORTH STAR 也不代表架構位置不需要先保留。
 
+## MVP 來源範圍裁決
+
+來源能力與實際交付批次不得混成同一件事：
+
+- **Architecture Source Scope**：文件、Jira、Outlook、Teams 等來源都必須收斂到同一 Raw Evidence Contract。
+- **First Delivery Tranche**：文件 + Jira。
+- **Next Source Tranche**：Outlook + Teams。
+
+因此 Microsoft 365 仍屬正式 architecture scope，但不與第一個 vertical slice 同時施工。
+
 ## MVP 垂直閉環
 
 ```text
-Outlook / Teams / Jira / 文件
+文件 / Jira（第一交付批次）
+Outlook / Teams（下一來源批次）
 → Raw Evidence + Provenance
 → Work Record / Candidate
 → Staging
@@ -27,16 +38,19 @@ Outlook / Teams / Jira / 文件
 ## P0：Truth / Security
 
 - Permission-before-Retrieval
+- Raw Evidence Contract
 - Evidence → Candidate → Canonical Knowledge
 - Raw Evidence / Derived separation
 - Provenance / source traceability
 - Canonical Knowledge Single Writer
-- Review / Approval Ledger
+- Immutable Governance Decision / Acceptance Audit Trail
 - Conflict / Supersession
 - Evaluation failure → correction → re-evaluation
 - Managed Policy Floor
 - Verification honesty：PARTIAL / NOT_RUN 不得視為 PASS
 - Evidence chronology
+- Permission / Retention / Deletion Contract
+- Canonical direct-write audit
 - 基本 SaaS telemetry：tenant、token、latency、cost、error
 
 ## P1-A：最大效能 / 成本 / 平台槓桿
@@ -48,7 +62,8 @@ Outlook / Teams / Jira / 文件
 - Knowledge Lifecycle
 - Config Scope / Precedence
 - External Capability Admission
-- Outlook / Teams / Jira evidence ingestion
+- Document / Jira adapter mapping（第一交付批次）
+- Outlook / Teams adapter mapping（下一來源批次）
 - Personal / Team / Department / Company / Client scopes
 
 ## P1-B：正式產品競爭力

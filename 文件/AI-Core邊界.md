@@ -34,6 +34,26 @@ AI Core：Agent Governance、Execution Control、Runtime Adapter、Execution Evi
 
 Knowledge SaaS：Organizational Knowledge、Evidence Ingestion、Permission、Retrieval、Review、Lifecycle、Knowledge Delivery。
 
+## Skill / Memory Authority
+
+AI Core 的 Skill / Memory infrastructure 只可以作：
+
+- donor / prior art
+- richer Evidence Producer
+- execution runtime / adapter
+- receipt / telemetry producer
+
+Knowledge SaaS 仍擁有：
+
+- Published Skill identity
+- Knowledge → Skill promotion authority
+- tenant / scope permission
+- version / compatibility / deprecation
+- commercial Capability Level
+- Canonical Knowledge 與 Procedure relationship
+
+因此 AI Core skill、memory 或 execution receipt 都不能直接升為 Company Canonical Knowledge，也不能繞過 Knowledge SaaS 的 Acceptance / Single Writer。
+
 ## 雙向 Integration
 
 ```text
