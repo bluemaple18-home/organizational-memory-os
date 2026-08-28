@@ -1,0 +1,409 @@
+schema:
+  schema_id: urn:omos:schema:common-vocabulary:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  json_schema_dialect: https://json-schema.org/draft/2020-12/schema
+
+contract_families:
+  truth_bearing:
+    - omos.evidence
+    - omos.document
+    - omos.knowledge
+    - omos.procedure
+  adjacent:
+    - omos.object-context
+    - omos.governance
+  derived:
+    - omos.projection
+  platform_control:
+    - omos.source-adapter
+    - omos.authz
+    - omos.retrieval-trace
+    - omos.evaluation
+    - omos.control-plane
+
+document_kinds:
+  - SOURCE_EVIDENCE
+  - NORMALIZED_DOCUMENT
+  - KNOWLEDGE
+  - DECISION
+  - POLICY
+  - PROCEDURE
+  - REFERENCE_PACK
+  - EXECUTABLE_SKILL
+
+resource_kinds:
+  - EVIDENCE_RECORD
+  - NORMALIZED_DOCUMENT
+  - DOCUMENT_BLOCK
+  - SOURCE_ANCHOR
+  - ASSERTION
+  - EVIDENCE_LINK
+  - DECISION_RECORD
+  - POLICY_RECORD
+  - PROCEDURE_RECORD
+  - PROCEDURE_STEP
+  - OBJECT
+  - OBJECT_ALIAS
+  - OBJECT_RELATION
+  - OBJECT_LINK_ASSERTION
+  - WORK_RECORD
+  - RECEIPT
+  - PROJECTION_ARTIFACT
+  - ANSWER_TRACE
+  - EVALUATION_CASE
+
+identifiers:
+  omos_generated:
+    algorithm: UUIDv7
+    id_serialization: lowercase-hyphenated-uuid
+    ref_template: "urn:omos:{resource-kind}:{uuid}"
+    pii_in_identifier: forbidden
+  source_identity_tuple:
+    fields:
+      - tenant_id
+      - source_system
+      - source_instance_id
+      - entity_type
+      - native_id
+    native_id_type: string
+  alias_kinds:
+    - MUTABLE_KEY
+    - URL
+    - DISPLAY_NAME
+    - LEGACY_ID
+    - EXTERNAL_REF
+  identity_separation:
+    - SOURCE_NATIVE_ENTITY_ID
+    - SOURCE_NATIVE_EVENT_ID
+    - TRANSPORT_DELIVERY_ID
+    - INGESTION_ATTEMPT_ID
+    - EVIDENCE_ID
+    - PAYLOAD_DIGEST
+
+source_version:
+  basis:
+    - AUTHORITATIVE_NATIVE
+    - COMPOUND_OBSERVED
+    - CONTENT_ONLY
+    - UNKNOWN
+  kind:
+    - REVISION
+    - ETAG
+    - COMMIT
+    - SEQUENCE
+    - CHANGE_ID
+    - UPDATED_AT_DIGEST
+    - CONTENT_DIGEST
+    - NONE
+  required_fields:
+    - basis
+    - kind
+    - value
+  optional_fields:
+    - secondary_digest
+
+chronology:
+  fields:
+    - occurred_at
+    - observed_at
+    - received_at
+    - persisted_at
+  occurred_at_basis:
+    - SOURCE
+    - PRODUCER_ASSIGNED
+    - OBSERVED
+    - UNKNOWN
+  timestamp_format: RFC3339_UTC
+  canonical_timezone: Z
+  interval_semantics: HALF_OPEN
+
+digests:
+  serialization: "sha256:<64-lowercase-hex>"
+  profiles:
+    raw:
+      input: persisted-source-payload-bytes-before-semantic-normalization
+      required: true
+    canonical:
+      input: RFC8785-JCS-over-I-JSON
+      required: false
+      unavailable_gap_code: CANONICALIZATION_UNAVAILABLE
+    normalized:
+      input: JCS-over-normalized-representation
+      required_when_normalized_document_exists: true
+  raw_digest_must_be_preserved: true
+
+text_and_ranges:
+  encoding: UTF-8
+  text_normalization_profile: OMOS_TEXT_NORM_V1
+  unicode_normalization: NFC
+  newline_normalization: LF
+  whitespace_collapse: false
+  case_folding: false
+  codepoint_range:
+    index_base: 0
+    start: inclusive
+    end: exclusive
+  line_range:
+    index_base: 1
+    start: inclusive
+    end: exclusive
+  time_range:
+    start: inclusive
+    end: exclusive
+  page_and_slide_number:
+    index_base: 1
+  pdf_bbox:
+    coordinate_origin: TOP_LEFT
+    coordinate_space: NORMALIZED_PAGE_0_1
+    fields:
+      - x_min
+      - y_min
+      - x_max
+      - y_max
+    decimal_precision: 6
+
+language_and_media:
+  language_tag: BCP47
+  unknown_language: und
+  multiple_languages: mul
+  media_type: IANA
+  default_text_encoding: UTF-8
+
+common_enums:
+  canonicality:
+    - EVIDENCE
+    - NORMALIZED
+    - CANDIDATE
+    - CANONICAL
+    - PROJECTION
+  lifecycle_state:
+    - ACTIVE
+    - SUPERSEDED
+    - ARCHIVED
+    - INVALIDATED
+  source_availability:
+    - AVAILABLE
+    - NOT_FOUND_UNCONFIRMED
+    - ACCESS_REVOKED
+    - SOURCE_DELETED
+    - UNAVAILABLE_UNKNOWN
+    - REPRESENTATION_UNAVAILABLE
+  payload_retention_state:
+    - RETAINED
+    - LEGAL_HOLD
+    - RETENTION_EXPIRED
+    - TOMBSTONED
+    - PURGED
+  activity_status:
+    - STARTED
+    - RUNNING
+    - COMPLETE
+    - PARTIAL
+    - FAIL
+    - ABORT
+  verification_status:
+    - PASS
+    - FAIL
+    - PARTIAL
+    - NOT_RUN
+    - STATIC_ONLY
+  acceptance_status:
+    - PENDING
+    - ACCEPTED
+    - REJECTED
+    - BLOCKED
+  quality_severity:
+    - INFO
+    - LOW
+    - MEDIUM
+    - HIGH
+    - CRITICAL
+  coverage_status:
+    - COMPLETE
+    - PARTIAL
+    - UNKNOWN
+    - NOT_APPLICABLE
+  assertion_kind:
+    - FACT
+    - DEFINITION
+    - RULE
+    - REQUIREMENT
+    - RECOMMENDATION
+    - DECISION
+    - METRIC
+    - THRESHOLD
+    - EXCEPTION
+    - CONSTRAINT
+    - ASSUMPTION
+    - RISK
+    - UNKNOWN
+  evidence_relation:
+    - SUPPORTS
+    - CONTRADICTS
+    - QUALIFIES
+    - LIMITS
+    - SUPERSEDES
+    - DERIVED_FROM
+    - QUOTED_FROM
+    - PRIMARY_SOURCE
+  conflict_type:
+    - VALUE_MISMATCH
+    - SCOPE_MISMATCH
+    - VERSION_MISMATCH
+    - SOURCE_AUTHORITY_MISMATCH
+    - TEMPORAL_MISMATCH
+    - DEFINITION_MISMATCH
+    - REQUIREMENT_MISMATCH
+    - CLASSIFICATION_ERROR
+  conflict_resolution:
+    - SELECT_ONE
+    - QUALIFY_BY_SCOPE
+    - QUALIFY_BY_TIME
+    - KEEP_MULTIPLE_VALID
+    - SUPERSEDE
+    - RECLASSIFY
+    - INSUFFICIENT_EVIDENCE
+  source_anchor_resolution:
+    - EXACT_MATCH
+    - RELOCATED
+    - CONTENT_CHANGED
+    - MISSING
+    - ACCESS_REVOKED
+    - REPRESENTATION_UNAVAILABLE
+    - AMBIGUOUS
+    - NOT_CHECKED
+  block_type:
+    - title
+    - section_header
+    - paragraph
+    - list
+    - list_item
+    - code
+    - formula
+    - table
+    - image
+    - chart
+    - key_value
+    - form
+    - quote
+    - footnote
+    - header
+    - footer
+    - comment
+    - speaker_note
+    - transcript_segment
+    - unknown
+  object_link_status:
+    - PROPOSED
+    - AUTO_ACCEPTED
+    - ACCEPTED
+    - REJECTED
+    - SUPERSEDED
+    - INVALIDATED
+  object_link_method:
+    - EXPLICIT_NATIVE_ID
+    - EXPLICIT_FOREIGN_KEY
+    - EXPLICIT_URL
+    - THREAD_NATIVE
+    - PARENT_NATIVE
+    - RULE
+    - HEURISTIC
+    - EMBEDDING
+    - MODEL
+    - HUMAN
+    - MIGRATION
+  work_record_status:
+    - OPEN
+    - INACTIVE
+    - CLOSE_PROPOSED
+    - CLOSED
+    - REOPENED
+    - MERGED
+    - SPLIT
+    - ARCHIVED
+  scope_type:
+    - PLATFORM
+    - ORGANIZATION
+    - TENANT
+    - DEPARTMENT
+    - TEAM
+    - GROUP
+    - USER
+    - CLIENT
+    - PROJECT
+    - WORKSPACE
+  quality_gap_code:
+    - PAGE_REQUIRES_OCR
+    - TABLE_STRUCTURE_UNCERTAIN
+    - MULTI_COLUMN_READING_ORDER_RISK
+    - IMAGE_CONTENT_NOT_READ
+    - FORMULA_NOT_PARSED
+    - TRUNCATED_BY_LIMIT
+    - ROBOTS_EXCLUDED
+    - ATTACHMENT_UNREADABLE
+    - UNSUPPORTED_FORMAT
+    - ENCODING_REPLACEMENT_DETECTED
+    - PARSER_FALLBACK_USED
+    - SOURCE_PARTIAL
+    - CANONICALIZATION_UNAVAILABLE
+    - REDELIVERY_PAYLOAD_MISMATCH
+    - CLOCK_SKEW_DETECTED
+    - IDENTITY_FALLBACK_DERIVED
+
+source_anchor_profiles:
+  phase_1:
+    - PDF_REGION_V1
+    - MARKDOWN_TEXT_V1
+    - JIRA_CLOUD_ENTITY_SEGMENT_V1
+
+object_context:
+  object_type_core:
+    - DOCUMENT
+    - JIRA_ISSUE
+    - JIRA_PROJECT
+    - COMMENT_THREAD
+    - PERSON
+    - TEAM
+    - CLIENT
+    - PROJECT
+    - ORDER
+    - WORKSPACE
+    - REPOSITORY
+    - FILE
+    - AGENT_RUN
+  relation_qualifier_core:
+    - ABOUT
+    - PART_OF
+    - ACTOR
+    - PARTICIPANT
+    - OWNER
+    - ASSIGNEE
+    - REQUESTER
+    - CLIENT
+    - PROJECT
+    - ORDER
+    - ISSUE
+    - THREAD
+    - ATTACHMENT_OF
+    - COMMENT_ON
+    - RESULT_OF
+    - DECISION_FOR
+    - BLOCKED_BY
+    - RELATED_TO
+  extension_namespace: "custom:<tenant-id>:<term>"
+  work_record_is_projection: true
+  accepted_link_expands_permission: false
+
+authority_invariants:
+  - RAW_EVIDENCE_NE_KNOWLEDGE
+  - CANDIDATE_NE_CANONICAL
+  - PROPOSAL_NE_CANONICAL_WRITE
+  - EXECUTED_NE_VERIFIED_NE_ACCEPTED
+  - PERMISSION_BEFORE_RETRIEVAL
+  - CHUNK_NE_KNOWLEDGE
+  - EMBEDDING_NE_KNOWLEDGE
+  - GRAPH_NE_CANONICAL_TRUTH
+  - WORK_RECORD_NE_SOURCE_TRUTH
+  - OBJECT_LINK_NE_PERMISSION_EXPANSION
+  - PROJECTION_MUST_BE_REBUILDABLE

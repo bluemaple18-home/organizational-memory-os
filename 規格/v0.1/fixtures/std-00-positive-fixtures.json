@@ -1,0 +1,241 @@
+{
+  "fixture_set": "std-00-positive-v0.1",
+  "status": "DRAFT_REVIEW_REQUIRED",
+  "fixtures": [
+    {
+      "name": "pdf-manual-upload",
+      "purpose": "Validate source identity, content-only versioning, four-clock chronology, raw/normalized digest separation, and PDF_REGION_V1.",
+      "observation_kind": "ENTITY_SNAPSHOT",
+      "evidence_id": "0198e6d0-7a2b-7c3d-8e4f-1234567890ab",
+      "evidence_ref": "urn:omos:evidence:0198e6d0-7a2b-7c3d-8e4f-1234567890ab",
+      "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+      "source_identity": {
+        "source_system": "document-upload",
+        "source_instance_id": "tenant-example",
+        "entity_type": "file",
+        "native_id": "upload-20260828-001"
+      },
+      "source_aliases": [
+        {
+          "kind": "DISPLAY_NAME",
+          "value": "產品排查手冊.pdf"
+        }
+      ],
+      "source_version": {
+        "basis": "CONTENT_ONLY",
+        "kind": "CONTENT_DIGEST",
+        "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "secondary_digest": null
+      },
+      "chronology": {
+        "occurred_at": null,
+        "occurred_at_basis": "UNKNOWN",
+        "observed_at": "2026-08-28T06:00:00Z",
+        "received_at": "2026-08-28T06:00:01Z",
+        "persisted_at": "2026-08-28T06:00:02Z"
+      },
+      "digests": {
+        "raw_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "canonical_digest": null,
+        "normalized_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "source_availability": "AVAILABLE",
+      "payload_retention_state": "RETAINED",
+      "anchor": {
+        "profile": "PDF_REGION_V1",
+        "representation_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "page": 7,
+        "bbox": {
+          "x_min": 0.101234,
+          "y_min": 0.203456,
+          "x_max": 0.812345,
+          "y_max": 0.287654
+        },
+        "block_id": "b-000123",
+        "codepoint_range": {
+          "start": 120,
+          "end": 240
+        },
+        "quote": {
+          "exact": "查詢員工薪資前必須先完成權限檢查。",
+          "prefix": "安全要求：",
+          "suffix": "不得先搜尋全公司資料。"
+        },
+        "resolution": "EXACT_MATCH"
+      },
+      "expected_invariants": [
+        "evidence_id is OMOS-generated and not derived from the filename",
+        "raw_digest and normalized_digest remain separate",
+        "page is 1-based",
+        "bbox uses normalized top-left coordinates with 6 decimals",
+        "parser success does not erase quality gaps"
+      ]
+    },
+    {
+      "name": "git-markdown-sop",
+      "purpose": "Validate repository-scoped source identity, commit/blob versioning, Markdown codepoint and line selectors, and alias handling.",
+      "observation_kind": "ENTITY_SNAPSHOT",
+      "evidence_id": "0198e6d0-7a2c-7c3d-8e4f-1234567890ab",
+      "evidence_ref": "urn:omos:evidence:0198e6d0-7a2c-7c3d-8e4f-1234567890ab",
+      "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+      "source_identity": {
+        "source_system": "github",
+        "source_instance_id": "R_kgDOExample",
+        "entity_type": "repository-path",
+        "native_id": "docs/order-spend-zero.md"
+      },
+      "source_aliases": [
+        {
+          "kind": "URL",
+          "value": "https://github.com/example/acme/blob/main/docs/order-spend-zero.md"
+        },
+        {
+          "kind": "DISPLAY_NAME",
+          "value": "訂單花費為 0 排查"
+        }
+      ],
+      "source_version": {
+        "basis": "AUTHORITATIVE_NATIVE",
+        "kind": "COMMIT",
+        "value": "0123456789abcdef0123456789abcdef01234567",
+        "secondary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "chronology": {
+        "occurred_at": "2026-08-28T05:55:00Z",
+        "occurred_at_basis": "SOURCE",
+        "observed_at": "2026-08-28T06:01:00Z",
+        "received_at": "2026-08-28T06:01:01Z",
+        "persisted_at": "2026-08-28T06:01:02Z"
+      },
+      "digests": {
+        "raw_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "canonical_digest": null,
+        "normalized_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "source_availability": "AVAILABLE",
+      "payload_retention_state": "RETAINED",
+      "anchor": {
+        "profile": "MARKDOWN_TEXT_V1",
+        "representation_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "normalization_profile": "OMOS_TEXT_NORM_V1",
+        "codepoint_range": {
+          "start": 520,
+          "end": 684
+        },
+        "line_range": {
+          "start": 18,
+          "end": 24
+        },
+        "heading_path": [
+          "訂單花費為 0 排查",
+          "策略層級"
+        ],
+        "quote": {
+          "exact": "若競標價遠低於市場水位，策略可能無法取得曝光。",
+          "prefix": "確認廣告形式一致後，",
+          "suffix": "再檢查定向交集。"
+        },
+        "resolution": "EXACT_MATCH"
+      },
+      "expected_invariants": [
+        "commit SHA is a source version, not evidence_id",
+        "blob digest is a secondary representation digest",
+        "line numbers are a human-readable fallback, not the sole selector",
+        "path rename requires alias or new source identity disposition"
+      ]
+    },
+    {
+      "name": "jira-cloud-issue-description",
+      "purpose": "Validate numeric Jira identity, mutable issue-key alias, compound observed version, webhook/poll separation, and JIRA_CLOUD_ENTITY_SEGMENT_V1.",
+      "observation_kind": "ENTITY_SNAPSHOT",
+      "evidence_id": "0198e6d0-7a2d-7c3d-8e4f-1234567890ab",
+      "evidence_ref": "urn:omos:evidence:0198e6d0-7a2d-7c3d-8e4f-1234567890ab",
+      "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+      "source_identity": {
+        "source_system": "jira-cloud",
+        "source_instance_id": "11111111-2222-3333-4444-555555555555",
+        "entity_type": "issue",
+        "native_id": "10042"
+      },
+      "source_aliases": [
+        {
+          "kind": "MUTABLE_KEY",
+          "value": "PROJ-123"
+        },
+        {
+          "kind": "URL",
+          "value": "https://example.atlassian.net/browse/PROJ-123"
+        }
+      ],
+      "source_event_id": "webhook-event-789",
+      "transport_delivery": {
+        "profile": "CLOUDEVENTS_1_0",
+        "source": "https://example.atlassian.net",
+        "id": "delivery-456",
+        "type": "com.atlassian.jira.issue.updated.v1"
+      },
+      "source_version": {
+        "basis": "COMPOUND_OBSERVED",
+        "kind": "UPDATED_AT_DIGEST",
+        "value": "2026-08-28T05:58:20Z",
+        "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "chronology": {
+        "occurred_at": "2026-08-28T05:58:20Z",
+        "occurred_at_basis": "SOURCE",
+        "observed_at": "2026-08-28T05:58:22Z",
+        "received_at": "2026-08-28T05:58:23Z",
+        "persisted_at": "2026-08-28T05:58:24Z"
+      },
+      "digests": {
+        "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+      },
+      "source_availability": "AVAILABLE",
+      "payload_retention_state": "RETAINED",
+      "anchor": {
+        "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+        "entity_type": "issue",
+        "entity_id": "10042",
+        "field_path": "fields.description",
+        "content_format": "ADF",
+        "renderer_profile": "JIRA_ADF_RENDERER_VERSION_REQUIRED",
+        "node_path": [
+          1,
+          0,
+          2
+        ],
+        "quote": {
+          "exact": "請先確認訂單開關、素材、走期與預算。",
+          "prefix": "排查順序：",
+          "suffix": "仍無花費再檢查競標價與定向。"
+        },
+        "resolution": "EXACT_MATCH"
+      },
+      "object_links": [
+        {
+          "object_type": "JIRA_ISSUE",
+          "object_native_id": "10042",
+          "relation": "ABOUT",
+          "method": "EXPLICIT_NATIVE_ID",
+          "status": "AUTO_ACCEPTED"
+        },
+        {
+          "object_type": "JIRA_PROJECT",
+          "object_native_id": "10000",
+          "relation": "PART_OF",
+          "method": "EXPLICIT_FOREIGN_KEY",
+          "status": "AUTO_ACCEPTED"
+        }
+      ],
+      "expected_invariants": [
+        "issue numeric id is stable identity and issue key is an alias",
+        "CloudEvents source plus id identifies delivery, not Evidence",
+        "webhook delivery does not prove complete history or deletion truth",
+        "ADF renderer must be versioned",
+        "explicit parent/object links do not expand permission"
+      ]
+    }
+  ]
+}

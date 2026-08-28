@@ -1,0 +1,224 @@
+{
+  "fixture_set": "std-00-negative-v0.1",
+  "status": "DRAFT_REVIEW_REQUIRED",
+  "cases": [
+    {
+      "id": "NEG-001",
+      "name": "same-cloudevent-redelivery",
+      "given": "The same CloudEvents source+id is delivered twice with the same payload digest.",
+      "must_not": [
+        "create a second Evidence record",
+        "treat received_at as source version"
+      ],
+      "required_outcome": [
+        "same idempotency key",
+        "one Evidence record",
+        "two delivery/ingestion attempt receipts are allowed"
+      ]
+    },
+    {
+      "id": "NEG-002",
+      "name": "redelivery-payload-mismatch",
+      "given": "The same native source event or CloudEvents source+id is delivered again with a different raw digest.",
+      "must_not": [
+        "silently overwrite the first payload",
+        "create a normal new revision without a finding"
+      ],
+      "required_outcome": [
+        "retain the first observation",
+        "record REDELIVERY_PAYLOAD_MISMATCH finding",
+        "route for reconciliation"
+      ]
+    },
+    {
+      "id": "NEG-003",
+      "name": "same-source-new-revision",
+      "given": "The same stable source entity has a new authoritative or compound source version.",
+      "must_not": [
+        "deduplicate it as the old Evidence",
+        "mutate the old Evidence payload"
+      ],
+      "required_outcome": [
+        "new Evidence record",
+        "same source identity",
+        "revision/derivation relation to prior Evidence"
+      ]
+    },
+    {
+      "id": "NEG-004",
+      "name": "same-payload-different-sources",
+      "given": "Two source-native entities from different source instances contain identical bytes.",
+      "must_not": [
+        "merge their source identity",
+        "share ACL or deletion state"
+      ],
+      "required_outcome": [
+        "distinct Evidence records",
+        "distinct source identity tuples",
+        "optional exact-duplicate relation only"
+      ]
+    },
+    {
+      "id": "NEG-005",
+      "name": "single-jira-404",
+      "given": "A Jira fetch returns 404 once.",
+      "must_not": [
+        "set source availability to SOURCE_DELETED",
+        "purge projections immediately"
+      ],
+      "required_outcome": [
+        "set NOT_FOUND_UNCONFIRMED or UNAVAILABLE_UNKNOWN",
+        "schedule permission/deletion reconciliation"
+      ]
+    },
+    {
+      "id": "NEG-006",
+      "name": "permission-revoked",
+      "given": "The source still exists but the requester or integration loses permission.",
+      "must_not": [
+        "classify the source as deleted",
+        "continue returning cached or vector results"
+      ],
+      "required_outcome": [
+        "source availability ACCESS_REVOKED",
+        "projection invalidation or filtering",
+        "cache eviction and impact audit"
+      ]
+    },
+    {
+      "id": "NEG-007",
+      "name": "project-deletion-missed-webhooks",
+      "given": "A Jira project disappears without per-issue delete webhooks.",
+      "must_not": [
+        "assume webhook history is complete",
+        "leave affected issues permanently AVAILABLE"
+      ],
+      "required_outcome": [
+        "periodic reconciliation detects the gap",
+        "issue availability transitions through confirmation states"
+      ]
+    },
+    {
+      "id": "NEG-008",
+      "name": "non-i-json-jcs-input",
+      "given": "A structured payload cannot be represented as I-JSON for RFC 8785 canonicalization.",
+      "must_not": [
+        "drop the Evidence",
+        "pretend canonical_digest exists",
+        "replace raw_digest with normalized_digest"
+      ],
+      "required_outcome": [
+        "raw_digest remains required",
+        "canonical_digest is null",
+        "quality gap CANONICALIZATION_UNAVAILABLE"
+      ]
+    },
+    {
+      "id": "NEG-009",
+      "name": "source-event-without-native-event-id",
+      "given": "A source event has no stable native event id.",
+      "must_not": [
+        "use delivery id as source event id",
+        "generate a random idempotency key on each delivery"
+      ],
+      "required_outcome": [
+        "use FALLBACK_DERIVED event identity from stable source identity + event type + occurred_at + raw digest",
+        "mark lower identity confidence"
+      ]
+    },
+    {
+      "id": "NEG-010",
+      "name": "pdf-anchor-parser-risk",
+      "given": "A PDF anchor resolves to exact extracted text on a page flagged MULTI_COLUMN_READING_ORDER_RISK.",
+      "must_not": [
+        "treat anchor resolution as semantic verification PASS"
+      ],
+      "required_outcome": [
+        "anchor may be EXACT_MATCH",
+        "quality gap remains",
+        "high-risk assertion requires visual or alternate verification"
+      ]
+    },
+    {
+      "id": "NEG-011",
+      "name": "jira-key-renamed",
+      "given": "Jira issue PROJ-123 is moved or renamed to NEW-456 while numeric issue id remains 10042.",
+      "must_not": [
+        "create a new Object solely because the key changed",
+        "lose old links"
+      ],
+      "required_outcome": [
+        "same source identity and Object",
+        "new MUTABLE_KEY alias",
+        "old key retained as historical alias"
+      ]
+    },
+    {
+      "id": "NEG-012",
+      "name": "cross-client-object-link",
+      "given": "Embedding or model similarity suggests a link between Evidence for Client A and an Object for Client B.",
+      "must_not": [
+        "auto-accept the link",
+        "broaden visibility",
+        "render a mixed-client WorkRecord globally"
+      ],
+      "required_outcome": [
+        "link remains PROPOSED",
+        "human authority required",
+        "permission intersection enforced"
+      ]
+    },
+    {
+      "id": "NEG-013",
+      "name": "workrecord-global-summary-leak",
+      "given": "A WorkRecord contains Evidence from scopes with different ACLs.",
+      "must_not": [
+        "store one unrestricted summary and show it to every requester",
+        "use union permission"
+      ],
+      "required_outcome": [
+        "requester-specific authorized rendering",
+        "intersection-based visibility",
+        "summary build receipt includes permission decision digest"
+      ]
+    },
+    {
+      "id": "NEG-014",
+      "name": "model-link-confidence",
+      "given": "A model gives 0.99 confidence to an ObjectLink.",
+      "must_not": [
+        "equate confidence with ACCEPTED",
+        "equate ACCEPTED link with Knowledge acceptance"
+      ],
+      "required_outcome": [
+        "confidence remains routing signal",
+        "link decision follows link policy and authority"
+      ]
+    },
+    {
+      "id": "NEG-015",
+      "name": "openlineage-complete",
+      "given": "An extraction run emits OpenLineage COMPLETE.",
+      "must_not": [
+        "set VerificationStatus to PASS",
+        "set AcceptanceStatus to ACCEPTED"
+      ],
+      "required_outcome": [
+        "activity status COMPLETE only",
+        "verification remains independent"
+      ]
+    },
+    {
+      "id": "NEG-016",
+      "name": "projection-deletion",
+      "given": "All RAG chunks, embeddings, graph nodes, and reference packs are deleted.",
+      "must_not": [
+        "lose Evidence or Canonical Knowledge",
+        "treat projection ids as knowledge ids"
+      ],
+      "required_outcome": [
+        "projections can be rebuilt from canonical refs, evidence refs, and build configuration"
+      ]
+    }
+  ]
+}
