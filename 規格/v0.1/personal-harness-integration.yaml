@@ -1,0 +1,344 @@
+schema:
+  schema_id: urn:omos:schema:personal-harness-integration:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-08-30'
+research_basis:
+  organizational_memory_os:
+    repo: bluemaple18-home/organizational-memory-os
+    head: 4926265e983ebd968dbaa827685c33000a47bc80
+  ai_core:
+    repo: bluemaple18-home/aicore
+    head: 87f6a16cf22642513730ea56530a8b5b1ce4ee99
+authority_owners:
+  personal_knowledge_product: Organizational Memory OS
+  work_task_lifecycle: AI Core existing Work contract
+  runtime_native_execution:
+  - Codex
+  - Claude Code
+  - Hermes
+  - DeepSeek Harness
+  cross_runtime_exchange:
+  - ExecutionRequest
+  - NativeEventReceipt
+  - ExecutionReceipt
+maturity_axis:
+  canonical:
+    L1: 基礎
+    L2: 自動化
+    L3: 智慧化
+    L4: 自治化
+  ux_aliases:
+    紀錄: usually L1 personal evidence UX
+    自動化: L2
+    智慧化: L3
+  rejected_alias:
+    協作化: must not replace L4; use collaboration dimension
+collaboration_dimension:
+  scope:
+  - PERSONAL
+  - TEAM
+  - DEPARTMENT
+  - COMPANY
+  - CLIENT
+  mode:
+  - PRIVATE
+  - SHARED_READ
+  - SHARED_PROPOSE
+  - SHARED_REVIEW
+  - SHARED_PUBLISH
+proposal_dispositions:
+- id: PH-LEVEL-01
+  proposal: rename L1-L4 to 紀錄/自動化/智慧化/協作化
+  decision: REJECT_CANONICAL_RENAME
+  replacement: keep 基礎/自動化/智慧化/自治化; collaboration is orthogonal
+- id: PH-DEFAULT-02
+  proposal: all colleagues default to L2
+  decision: AMEND_PRODUCT_PRESET
+  replacement: source-specific L2 after connector, consent, ACL, retention, deletion and capture-health
+    gates
+- id: PH-CARD-03
+  proposal: task-card/v1 YAML schema
+  decision: AMEND_EXISTING_WORK_CARD
+  replacement: validate existing Markdown frontmatter; define a separate immutable ExecutionRequest
+- id: PH-EVENT-04
+  proposal: session.started and task.finished as hook events
+  decision: REJECT_AS_NATIVE_EVENT_NAMES
+  replacement: store native event name then map to neutral semantic receipt
+- id: PH-CLI-05
+  proposal: memctl
+  decision: DEFER_READ_ONLY_FACADE
+  replacement: M1 feasibility for status/doctor/search/show/export --dry-run only
+- id: PH-LOOP-06
+  proposal: Capture/Closeout/Consolidation/Promotion loops
+  decision: ADOPT_AS_DOMAIN_OPERATIONS
+  replacement: map to existing Evidence/WorkRecord/Candidate/Governance; no four services or state
+    machines
+- id: PH-RUNTIME-07
+  proposal: Runtime Provider Interface
+  decision: REJECT_UNIVERSAL_PROVIDER_PLATFORM
+  replacement: thin runtime-native invocation adapter plus request/receipt mapping
+- id: PH-MILESTONE-08
+  proposal: M0-M4
+  decision: AMEND_DELIVERY_MILESTONES
+  replacement: delivery sequence only; not product maturity, Work lifecycle or Knowledge lifecycle
+- id: PH-HERMES-09
+  proposal: Hermes Adapter
+  decision: ADMIT_RESEARCH_SPIKE_ONLY
+  replacement: Codex baseline first; one-shot sandboxed receipt-only Hermes spike later
+task_card_frontmatter_profile:
+  working_name: ai-core.task-card-frontmatter.v1
+  truth_role: validator only; existing Markdown task card remains Work authority
+  required_fields:
+  - id
+  - status
+  - type
+  - priority
+  - role
+  - execution_authorized
+  - implementation_authorized
+  - production_authorized
+  conditional_fields:
+  - parent
+  - chain_id
+  - cycle
+  - thickness
+  - model
+  - reasoning
+  - model_reason
+  rules:
+  - missing authorization never defaults to true
+  - status must map to existing work_lifecycle_contract.v1
+  - runtime events cannot mutate card frontmatter directly
+  - unknown authority-bearing extensions fail closed
+execution_request:
+  working_name: ai_core.execution-request.v1
+  immutable: true
+  minimum_sections:
+  - identity
+  - task_card_ref
+  - runtime
+  - workspace
+  - input
+  - capabilities
+  - limits
+  - authorization
+  - expected_outputs
+  - request_digest
+  forbidden_fields:
+  - acceptance_status
+  - canonical_write_authorized
+  - knowledge_canonicality
+execution_receipt:
+  working_name: ai_core.execution-receipt.v1
+  immutable: true
+  execution_status:
+  - COMPLETE
+  - PARTIAL
+  - FAIL
+  - ABORT
+  - INTERRUPTED
+  - UNKNOWN
+  minimum_fields:
+  - receipt_id
+  - request_ref
+  - runtime_provider
+  - runtime_version
+  - adapter_profile
+  - profile_digest
+  - native_run_refs
+  - started_at
+  - completed_at
+  - execution_status
+  - exit_code
+  - terminal_reason
+  - stdout_artifact_ref
+  - stderr_artifact_ref
+  - result_artifact_refs
+  - changed_paths
+  - candidate_commit
+  - native_event_receipt_refs
+  - tool_versions
+  - environment_digest
+  - errors
+  invariant: COMPLETE != VERIFIED != ACCEPTED
+native_event_receipt:
+  working_name: ai_core.runtime-native-event-receipt.v1
+  preserve_native_event_name: true
+  semantic_events:
+  - RUNTIME_SESSION_OPENED
+  - RUNTIME_TURN_STARTED
+  - RUNTIME_ITEM_COMPLETED
+  - RUNTIME_TOOL_COMPLETED
+  - RUNTIME_RUN_TERMINATED
+  - RUNTIME_TASK_SIGNAL_OBSERVED
+  - RUNTIME_FAILURE_OBSERVED
+  forbidden_semantic_events:
+  - TASK_ACCEPTED
+  - TASK_CLOSED
+  - KNOWLEDGE_VERIFIED
+  minimum_fields:
+  - receipt_id
+  - runtime_provider
+  - runtime_version
+  - native_event_name
+  - native_event_id
+  - native_session_ref
+  - native_turn_ref
+  - native_item_ref
+  - native_task_ref
+  - semantic_event
+  - occurred_at
+  - received_at
+  - ai_core_task_ref
+  - execution_request_ref
+  - payload_ref
+  - raw_digest
+  - sanitized_digest
+  - retention_class
+  - mapping_profile
+  - mapping_version
+  - delivery_id
+  - redelivery_key
+native_event_mappings:
+  codex:
+    thread/started: RUNTIME_SESSION_OPENED
+    turn/started: RUNTIME_TURN_STARTED
+    item/completed: RUNTIME_ITEM_COMPLETED
+    turn/completed: RUNTIME_RUN_TERMINATED
+    thread/tokenUsage/updated: USAGE_OBSERVATION
+  claude_code:
+    SessionStart: RUNTIME_SESSION_OPENED
+    PostToolUse: RUNTIME_TOOL_COMPLETED
+    PostToolUseFailure: RUNTIME_FAILURE_OBSERVED
+    TaskCompleted: RUNTIME_TASK_SIGNAL_OBSERVED
+    Stop: RUNTIME_RUN_TERMINATED
+    StopFailure: RUNTIME_FAILURE_OBSERVED
+    SessionEnd: RUNTIME_RUN_TERMINATED
+  hermes:
+    on_session_start: RUNTIME_SESSION_OPENED
+    post_tool_call: RUNTIME_TOOL_COMPLETED
+    post_llm_call: TURN_OUTPUT_OBSERVATION
+    on_session_end: RUNTIME_RUN_TERMINATED
+    on_session_finalize: SESSION_TEARDOWN_OBSERVATION
+    subagent_stop: CHILD_EXECUTION_OBSERVATION
+    kanban_task_completed: RUNTIME_TASK_SIGNAL_OBSERVED
+loops:
+  Capture: Source -> Evidence Admission -> Raw Evidence -> Capture Health/Gap Receipt
+  Closeout: WorkRecord -> CloseoutProposal -> verification/human confirmation
+  Consolidation: structure/dedup/conflict/freshness -> assertion/procedure/decision Candidate
+  Promotion: Candidate -> Scope Proposal -> Permission -> Verification -> Acceptance -> Canonical
+    Single Writer
+  implementation_rule: domain operations, not four agents/services/queues/databases/state machines
+runtime_invocation_adapter:
+  decision: THIN_ADAPTER_ONLY
+  operations:
+  - preflight(request)->PreflightReceipt
+  - invoke(request)->NativeHandle
+  - collect(handle)->ExecutionReceipt
+  - interrupt(handle)->InterruptReceipt (optional)
+  forbidden:
+  - provider registry
+  - provider database
+  - universal runtime
+  - session truth
+  - task lifecycle authority
+  - verification authority
+  - merge/push/deploy authority
+  - knowledge promotion authority
+  - silent provider fallback
+memctl:
+  status: DEFER_READ_ONLY_FACADE
+  phase_1_commands:
+  - status
+  - doctor
+  - search
+  - show
+  - export --dry-run
+  phase_1_forbidden_commands:
+  - capture
+  - write
+  - promote
+  - publish
+  - delete
+  - purge
+  - sync
+  - approve
+  - canonicalize
+  - install
+  - enable
+  owns_database: false
+  owns_canonical_writer: false
+hermes_spike:
+  status: TRIGGER_AFTER_CODEX_BASELINE
+  repo: NousResearch/hermes-agent
+  release: v2026.8.27
+  tag_object: fcebd62163497e77e5de00d26d2ed86cb4ef8761
+  commit: 5fc308a70719a83cccdbba4c0e39c23f5a8239d5
+  license: MIT
+  candidate_command: hermes chat -q "<bounded-task>"
+  profile:
+  - ONE_SHOT
+  - ASSIGNED_WORKTREE_ONLY
+  - NO_GATEWAY
+  - NO_DESKTOP
+  - NO_MESSAGING
+  - NO_KANBAN
+  - NO_CRON
+  - NO_AUTONOMOUS_SKILL_CREATION
+  - NO_MEMORY_WRITE
+  - NO_MEMORY_PROMOTION
+  - NO_OUTBOUND_WEBHOOK
+  - NO_SHELL_HOOK
+  - NO_SUBAGENT
+  - NO_DYNAMIC_TEAM
+  - NO_PROVIDER_FALLBACK
+  phase_1_evidence:
+  - stdout
+  - stderr
+  - exit_code
+  - timing
+  - runtime_version
+  - profile_digest
+  - task_ref
+  - worktree_ref
+  - artifact_refs
+delivery_milestones:
+  M0: current truth, contracts, mappings, negative fixtures, read-only review
+  M1: read-only personal surface / doctor / search proof; no writes
+  M2: 'Codex native baseline: one task, one worktree, one request, one runtime, one receipt'
+  M3: closeout and consolidation candidate generation; no promotion
+  M4: promotion gate and optional Hermes challenger after baseline
+authority_invariants:
+- PERSONAL_MEMORY_NE_COMPANY_CANONICAL_KNOWLEDGE
+- WORK_RECORD_NE_KNOWLEDGE
+- RUNTIME_COMPLETE_NE_WORK_ACCEPTED
+- RUNTIME_COMPLETE_NE_KNOWLEDGE_VERIFIED
+- NATIVE_TASK_COMPLETED_NE_AI_CORE_CLOSED
+- OBJECT_LINK_NE_PERMISSION_EXPANSION
+- TASK_CARD_NE_EXECUTION_REQUEST
+- EXECUTION_REQUEST_NE_ACCEPTANCE_AUTHORIZATION
+- EXECUTION_RECEIPT_NE_VERIFICATION_RECEIPT
+- FOUNDER_VAULT_NE_ENTERPRISE_CANONICAL_STORE
+- NO_UNIVERSAL_PROVIDER_REGISTRY
+- NO_SILENT_RUNTIME_FALLBACK
+required_negative_fixtures:
+- missing authorization defaults false
+- native event redelivery
+- same native event ID with different payload
+- runtime reconnect event gap
+- TaskCompleted cannot close AI Core work
+- turn/completed cannot accept work
+- exit 0 with verification NOT_RUN
+- stdout says done but process failed
+- timeout leaves child process alive
+- runtime silently falls back
+- worktree outside allowlist
+- profile digest drift
+- private evidence linked to company object
+- mixed-scope WorkRecord summary leak
+- L2 connector loses ACL access
+- model confidence auto-promotion
+- Hermes hook not registered
+- Hermes memory write attempted
+- Hermes kanban/cron/gateway unexpectedly enabled
