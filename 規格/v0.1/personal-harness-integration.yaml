@@ -1,316 +1,438 @@
 schema:
-  schema_id: urn:omos:schema:personal-memory-harness-scope:0.2.0
-  version: 0.2.0
+  schema_id: urn:omos:schema:employee-personal-memory-standard:0.3.0
+  version: 0.3.0
   status: DRAFT_REVIEW_REQUIRED
   date: '2026-08-30'
 
-scope_correction:
-  ai_core_carve_out: false
+purpose:
   statement: >-
-    Personal Memory Harness is a bounded memory capability inside or adjacent to
-    the existing AI Core. It does not replace, fork, or reproduce the complete AI Core.
-  primary_focus: PERSONAL_MEMORY
-  supersedes_overbroad_runtime_scope: true
+    Define one logical personal-memory contract and lifecycle for every employee,
+    independent of role, source tool, model, agent runtime, or deployment mode.
+  company_knowledge_preparation: true
+  ai_core_carve_out: false
+  ai_core_full_clone_per_employee: false
 
-research_basis:
+standardization_model:
+  shared_across_all_employees:
+    - contract families
+    - identifiers and provenance
+    - evidence-to-memory lifecycle
+    - permission and retention floor
+    - correction and supersession
+    - personal-to-shared promotion proposal
+    - recall/context-pack contract
+  configurable_per_role_or_tenant:
+    - source adapters
+    - role profile
+    - capability level
+    - sensitivity defaults
+    - retention defaults
+    - review requirements
+    - context priorities
+  statement: SAME_CORE_CONTRACT_PLUS_ROLE_PROFILE
+
+product_authority:
   organizational_memory_os:
-    repo: bluemaple18-home/organizational-memory-os
-    reviewed_head: 4926265e983ebd968dbaa827685c33000a47bc80
+    owns:
+      - employee personal memory standard
+      - personal memory governance
+      - scope and permission semantics
+      - promotion proposal boundary
+      - organizational canonical knowledge boundary
   ai_core:
-    repo: bluemaple18-home/aicore
-    reviewed_head: 87f6a16cf22642513730ea56530a8b5b1ce4ee99
+    role: DEVELOPER_SPECIFIC_DONOR_AND_ADAPTER
+    owns_its_complete_system: true
+    not_required_for_general_employees: true
+  runtime_and_agents:
+    role: OPTIONAL_EXECUTOR
+    authority_over_memory: false
 
-system_owners:
-  complete_ai_core:
-    owner: AI Core
-    responsibilities:
-      - Work lifecycle
-      - Task cards
-      - Runtime and agents
-      - Review and acceptance
-      - Rules and skills
-      - Git/worktree/branch governance
-  personal_memory_capability:
-    owner: Personal Memory Team
-    responsibilities:
-      - Memory source inventory
-      - Memory evidence admission
-      - Personal memory candidate distillation
-      - Personal memory governance
-      - Personal canonical memory boundary
-      - Founder Vault projections
-      - Recall/context return
-      - Correction/supersession
-  organizational_memory_semantics:
-    owner: Organizational Memory OS
-    role: semantic and governance donor
-    responsibilities:
-      - Raw Evidence vocabulary
-      - Scope and permission
-      - Candidate/canonical separation
-      - Verification/acceptance
-      - Personal-to-team/company promotion proposal
+employee_memory_scope_modes:
+  - EMPLOYEE_PRIVATE
+  - COMPANY_MANAGED_PERSONAL
+  - SHARED_WORK_CONTEXT
+  rule: >-
+    Scope mode, visibility, retention, export, deletion, and offboarding behavior
+    must be explicit; PERSONAL never implies company-wide search authority.
 
-existing_ai_core_memory_surfaces:
-  runtime_memory_log:
-    path: .memory/logs/ai_core_memories.jsonl
-    provisional_role: RUNTIME_OR_HISTORICAL_MEMORY_EVIDENCE
-    authority_status: REQUIRES_PMEM_00_AUDIT
-  source_memory_archive:
-    path: .memory/archive/source_memories.jsonl
-    provisional_role: LEGACY_SOURCE_MEMORY_MATERIAL
-    authority_status: HISTORICAL_NOT_CURRENT_BY_NAME_ALONE
-  legacy_canonical_archive:
-    path: .memory/archive/legacy_canonical_memories.jsonl
-    provisional_role: LEGACY_CANONICAL_MEMORY_ARCHIVE
-    authority_status: HISTORICAL_NOT_CURRENT_BY_NAME_ALONE
-  founder_vault:
-    path: .founder-vault/
-    provisional_role: FOUNDER_CURATED_PERSONAL_SURFACE
-    authority_status: PER_FILE_AUDIT_REQUIRED
-  founder_memory_summary:
-    path: .founder-vault/memory-summary.md
-    role: REBUILDABLE_STARTUP_CONTEXT_PROJECTION
-    canonical_authority: false
-  ai_core_work:
-    paths:
-      - .work/
-      - docs/task_cards/
-      - config/work_lifecycle_contract.json
-    role_for_memory_team: UPSTREAM_REFERENCE_ONLY
-    memory_team_may_mutate: false
+capability_levels:
+  L1:
+    name: 基礎
+    behavior:
+      - manual evidence capture or marking
+      - candidate generation
+      - employee confirmation
+      - basic recall with citation
+  L2:
+    name: 自動化
+    behavior:
+      - automatic source ingestion
+      - deterministic dedup/version/ACL/retention handling
+      - automatic candidate queue
+  L3:
+    name: 智慧化
+    behavior:
+      - cross-source object linking
+      - WorkRecord correlation
+      - conflict/freshness/gap suggestions
+      - context-aware recall
+      - promotion suggestions
+  L4:
+    name: 自治化
+    behavior:
+      - continuous stale/conflict/gap monitoring
+      - correction and promotion proposals
+      - projection rebuild and regression evaluation
+    authority_gate_required: true
+  same_contract_all_levels: true
 
-in_scope:
-  - AI Core memory surface and authority inventory
-  - Memory source/provenance mapping
-  - Personal memory candidate taxonomy
-  - Personal memory support/conflict/freshness/correction
-  - Personal memory acceptance and single-writer boundary
-  - Founder Vault and memory-summary projection contract
-  - Permission-aware bounded recall/context pack
-  - Personal-to-team/company promotion proposal semantics
-  - Legacy memory translation mapping without destructive migration
+core_pipeline:
+  - SOURCE
+  - RAW_EVIDENCE
+  - OBJECT_LINKING
+  - WORK_RECORD_PROJECTION
+  - PERSONAL_MEMORY_CANDIDATE
+  - VERIFICATION
+  - PERSONAL_ACCEPTANCE
+  - PERSONAL_MEMORY_RECORD
+  - RECALL_OR_CORRECTION
+  - OPTIONAL_PROMOTION_PROPOSAL
 
-out_of_scope:
-  - Complete AI Core extraction or replacement
-  - AI Core Work lifecycle redesign
-  - Task card schema replacement
-  - Runtime Provider Interface or provider registry
-  - ExecutionRequest platform
-  - Runtime-native event normalization platform
-  - Codex/Claude Code/Hermes/DeepSeek Harness adapter implementation
-  - Global hook registration
-  - Agent Teams or multi-agent runtime
-  - Worktree/branch/reservation management
-  - Review/merge/push/deploy governance
-  - New memory database before authority audit
+core_invariants:
+  - RAW_EVIDENCE_NE_PERSONAL_MEMORY
+  - WORK_RECORD_NE_PERSONAL_MEMORY
+  - CANDIDATE_NE_ACCEPTED_PERSONAL_MEMORY
+  - PERSONAL_CANONICAL_MEMORY_IS_PERSONAL_SCOPE_ONLY
+  - PERSONAL_MEMORY_NE_COMPANY_CANONICAL_KNOWLEDGE
+  - CAPTURED_NE_REMEMBERED
+  - MODEL_CONFIDENCE_NE_VERIFICATION
+  - OBJECT_LINK_NE_PERMISSION_EXPANSION
+  - CORRECTION_CREATES_REVISION_NOT_HISTORY_ERASURE
+  - PROMOTION_REQUIRES_PROPOSAL_REVIEW_AND_SINGLE_WRITER
+  - GENERAL_EMPLOYEE_NEEDS_NO_AI_CORE
+  - ROLE_PROFILE_NE_CORE_SCHEMA_AUTHORITY
 
-memory_pipeline:
-  - stage: CAPTURE
-    flow: AI Core or human source -> OMOS RawEvidence semantics -> Memory Evidence
-  - stage: CONSOLIDATE
-    flow: Memory Evidence -> classify/deduplicate/conflict/freshness -> Personal Memory Candidate
-  - stage: GOVERN_AND_PROMOTE
-    flow: Candidate -> review requirement -> acceptance -> Personal Memory Single Writer -> Personal Canonical Memory
-  - stage: RECALL_AND_CORRECT
-    flow: Intent -> bounded memory context -> AI Core use -> correction evidence -> amend/invalidate/supersede
+contract_registry:
+  reuse_existing:
+    - RawEvidenceEnvelope
+    - SourceAnchor
+    - Object
+    - ObjectLinkAssertion
+    - WorkRecord
+    - VerificationReceipt
+    - AcceptanceReceipt
+    - CanonicalWriteReceipt
+  define_for_employee_memory:
+    EmployeeMemoryProfile:
+      purpose: employee identity, role/source configuration, policy, level
+    PersonalMemoryCandidate:
+      purpose: unaccepted durable-memory proposal
+    PersonalMemoryRecord:
+      purpose: accepted memory inside PERSONAL scope
+    MemorySupportLink:
+      purpose: exact evidence and source-anchor support
+    MemoryConflictSet:
+      purpose: contradictory or scope/time-qualified memories
+    MemoryCorrectionProposal:
+      purpose: employee/model correction request with evidence
+    MemorySupersessionReceipt:
+      purpose: immutable history of replace/invalidate/amend decision
+    MemoryContextPack:
+      purpose: permission-aware bounded recall result
+    MemoryPromotionProposal:
+      purpose: PERSONAL to TEAM/DEPARTMENT/COMPANY/CLIENT proposal
+    MemoryProjectionManifest:
+      purpose: rebuildable human-readable views and summaries
+
+employee_memory_profile_minimum:
+  identity:
+    - tenant_id
+    - employee_id
+    - role_profile
+  source_policy:
+    - connector_grants
+    - consent_or_notice_ref
+    - capture_scope
+  memory_policy:
+    - capability_level
+    - personal_scope_mode
+    - sensitivity_policy_ref
+    - retention_policy_ref
+    - promotion_policy_ref
+    - context_budget_policy_ref
 
 memory_kinds_phase_1:
-  - PREFERENCE
+  - WORK_PREFERENCE
   - WORKING_STYLE
-  - PRINCIPLE
-  - LESSON
+  - DOMAIN_FACT
+  - DEFINITION
+  - RULE
   - DECISION
-  - PROJECT_CONTEXT
-  - PERSON_CONTEXT
+  - LESSON
   - PROCEDURE
+  - PROJECT_CONTEXT
+  - RELATIONSHIP_CONTEXT
   - LONG_LIVED_CONSTRAINT
 
 not_long_lived_memory_by_default:
-  - current_task_status
-  - one_off_command_output
-  - transient_open_loop
-  - temporary_branch_or_worktree_state
-  - unverified_model_suggestion
-  - runtime_completion_message
+  - CURRENT_TASK_STATUS
+  - ONE_OFF_COMMAND_OUTPUT
+  - TRANSIENT_OPEN_LOOP
+  - TEMPORARY_BRANCH_OR_WORKTREE_STATE
+  - RUNTIME_COMPLETION_MESSAGE
+  - UNVERIFIED_MODEL_SUGGESTION
+  - SHORT_LIVED_SCHEDULE
 
-personal_memory_contract_candidates:
-  - MemoryEvidenceRef
-  - PersonalMemoryCandidate
-  - PersonalMemoryRecord
-  - MemorySupportLink
-  - MemoryCorrection
-  - MemorySupersession
-  - MemoryPromotionProposal
-  - MemoryProjectionManifest
-  - MemoryContextPack
-
-memory_record_minimum_semantics:
+personal_memory_record_minimum:
   identity:
     - memory_id
-    - owner_scope
+    - tenant_id
+    - employee_owner_ref
     - memory_kind
   content:
-    - statement
+    - statement_or_structured_content
     - applicability
-    - validity
+    - validity_interval
   support:
     - evidence_refs
-    - source_anchors
+    - source_anchor_refs
     - provenance
   governance:
-    - confidence
     - verification_status
     - acceptance_status
     - sensitivity
+    - acl_ref
     - freshness
+    - review_due_at
     - conflict_refs
     - supersedes
-    - retention
+    - superseded_by
+    - retention_state
   chronology:
     - created_at
     - effective_from
     - effective_to
     - reviewed_at
 
-ai_core_to_memory_intake:
-  uses_existing_contract: OMOS RawEvidenceEnvelope
-  new_runtime_contract_required: false
-  allowed_source_kinds:
-    - AI_CORE_MEMORY_LOG_ENTRY
-    - AI_CORE_WORK_RECEIPT_REF
-    - AI_CORE_ACCEPTED_RESULT_REF
-    - AI_CORE_TASK_CARD_REF
-    - GIT_COMMIT_REF
-    - HANDOFF_OR_DECISION_REF
-    - FOUNDER_MANUAL_NOTE
-    - USER_CORRECTION
-  required_fields:
-    - source_identity
-    - source_version_or_digest
-    - occurred_at
-    - observed_at
+source_profiles:
+  universal_examples:
+    - OUTLOOK_EMAIL
+    - TEAMS_MESSAGE
+    - JIRA_ENTITY
+    - DOCUMENT
+    - MEETING
+    - WEB
+    - MANUAL_NOTE
+  advanced_examples:
+    - GIT_ARTIFACT
+    - CODEX_RECEIPT
+    - AI_CORE_ACCEPTED_RESULT
+    - CLAUDE_CODE_RECEIPT
+  rule: ALL_SOURCES_MAP_TO_SAME_RAW_EVIDENCE_CONTRACT
+
+role_profiles:
+  PM_PROFILE:
+    likely_sources:
+      - OUTLOOK_EMAIL
+      - TEAMS_MESSAGE
+      - JIRA_ENTITY
+      - DOCUMENT
+      - MEETING
+  RD_PROFILE:
+    likely_sources:
+      - JIRA_ENTITY
+      - DOCUMENT
+      - GIT_ARTIFACT
+      - CODEX_RECEIPT
+      - AI_CORE_ACCEPTED_RESULT
+  MD_PROFILE:
+    likely_sources:
+      - DOCUMENT
+      - TEAMS_MESSAGE
+      - CLIENT_FEEDBACK
+  SALES_PROFILE:
+    likely_sources:
+      - CRM_ENTITY
+      - OUTLOOK_EMAIL
+      - MEETING
+      - CLIENT_DOCUMENT
+  rules:
+    - role profile may configure but not redefine lifecycle
+    - extensions must be namespaced
+    - role profile cannot bypass promotion review
+
+work_record:
+  role: REBUILDABLE_PROJECTION
+  answers: what happened in this work
+  does_not_answer: what should be remembered long term
+  may_generate_candidates: '0..N'
+
+personal_memory_governance:
+  required_dimensions:
+    - source support
     - scope
     - sensitivity
-    - payload_or_artifact_ref
-    - provenance
-  optional_fields:
-    - work_state_ref
-    - verification_receipt_ref
-    - acceptance_receipt_ref
-  invariants:
-    - Work state remains AI Core authority
-    - Runtime event remains runtime or AI Core evidence
-    - Memory team never closes AI Core work
-    - Memory capture never implies memory acceptance
-
-founder_vault_projection:
-  folders:
-    - identity
-    - context
-    - memory
-    - sop
-    - operations
-    - projects
-    - people
-    - archive
-  memory_summary:
-    role: STARTUP_CONTEXT_PROJECTION
-    rebuildable: true
-    source_refs_required: true
-    direct_model_overwrite_is_canonical: false
-  folder_taxonomy_is_schema_authority: false
-  mixed_scope_global_summary_forbidden: true
+    - applicability
+    - validity
+    - freshness
+    - confidence
+    - conflict
+    - correction
+    - supersession
+    - retention
+    - verification
+    - acceptance
 
 recall_context_pack:
-  inputs:
-    - task_or_query_intent
+  input:
+    - intent
+    - requester_identity
     - requester_scope
     - context_budget
-  outputs:
+  output:
     - selected_memory_refs
     - source_refs
-    - freshness
     - applicability
-    - omission_or_gap_notice
+    - freshness
+    - permission_decision_ref
+    - omitted_or_gap_notice
+    - budget_usage
   permission_strategy: INTERSECTION
-  unrestricted_global_summary_forbidden: true
+  unrestricted_global_personal_memory_search: forbidden
 
-loops:
-  Capture:
-    owner: Personal Memory Team
-  Consolidate:
-    owner: Personal Memory Team
-  GovernPromote:
-    owner: Personal Memory Team with existing OMOS governance semantics
-  RecallCorrect:
-    owner: Personal Memory Team
-  WorkCloseout:
-    owner: AI Core
-    memory_role: upstream signal only
+correction_flow:
+  - USER_OR_SYSTEM_CORRECTION_EVIDENCE
+  - CORRECTION_PROPOSAL
+  - VERIFY
+  - ACCEPT
+  - AMEND_INVALIDATE_OR_SUPERSEDE
+  history_erasure: forbidden
+
+promotion_flow:
+  source:
+    - PersonalMemoryCandidate
+    - PersonalMemoryRecord
+  target_scopes:
+    - TEAM
+    - DEPARTMENT
+    - COMPANY
+    - CLIENT
+  required_steps:
+    - PromotionProposal
+    - permission_and_scope_check
+    - evidence_support_check
+    - verification
+    - review
+    - canonical_single_writer
+  direct_copy_to_shared_canonical: forbidden
+
+projection_views:
+  examples:
+    - memory-summary
+    - identity-view
+    - project-memory-view
+    - people-context-view
+    - procedure-view
+    - role-home
+  rebuildable: true
+  folder_taxonomy_is_schema_authority: false
+
+ai_core_donor_mapping:
+  absorb:
+    - memory distillation failure cases
+    - preference and working-style patterns
+    - lesson decision procedure patterns
+    - correction supersession provenance patterns
+    - bounded recall and context budget
+    - founder-vault projection experience
+  do_not_make_universal:
+    - task card state
+    - branch worktree reservation
+    - runtime session or thread
+    - model or provider routing
+    - code review merge deploy state
+    - developer workflow canonical rules
+    - physical .memory or .founder-vault layout
+  product_position: DEVELOPER_ROLE_SOURCE_ADAPTER
+
+runtime_policy:
+  per_employee_local_runtime_required: false
+  central_or_on_prem_service_allowed: true
+  optional_executors:
+    - deterministic_worker
+    - bounded_model_worker
+    - Codex
+    - Claude Code
+    - Hermes
+    - DeepSeek Harness
+  executor_authority_over_memory: false
+
+phase_1_pilot:
+  target: product_department
+  first_sources:
+    - JIRA_ENTITY
+    - DOCUMENT
+  next_sources_if_policy_ready:
+    - TEAMS_MESSAGE
+    - OUTLOOK_EMAIL
+  slice:
+    - Personal Raw Evidence
+    - Object Linking and WorkRecord
+    - Personal Memory Candidate
+    - employee review and acceptance
+    - personal recall with citation
+    - correction
+    - shared promotion proposal
 
 backlog:
-  PMEM_00:
-    title: AI Core Memory Surface and Authority Audit
-    status: READY_FOR_READ_ONLY_DESIGN
-    writes_allowed: false
-  PMEM_01:
-    title: Personal Memory Contract v0.1
-    status: BLOCKED_BY_PMEM_00
-  PMEM_02:
-    title: Legacy Memory Translation Mapping
-    status: BLOCKED_BY_PMEM_00_PMEM_01
-  PMEM_03:
-    title: Founder Vault Projection Contract
-    status: BLOCKED_BY_PMEM_01
-  PMEM_04:
-    title: Recall and Context Pack Contract
-    status: BLOCKED_BY_PMEM_01
-  PMEM_05:
-    title: Minimal Read-only Capture Adapter
-    status: BLOCKED_BY_PMEM_01_PMEM_02
-  PMEM_06:
-    title: Personal-to-Team/Company Promotion Proposal
-    status: DEFER_UNTIL_PERSONAL_MEMORY_STABLE
-  PMEM_07:
-    title: Memory Evaluation and Regression
-    status: BLOCKED_BY_PMEM_01_PMEM_04
+  EMEM_00:
+    title: Employee Personal Memory Scope and Ownership Contract
+    status: READY_FOR_REVIEW
+  EMEM_01:
+    title: Personal Memory Candidate and Record Schema
+    status: BLOCKED_BY_EMEM_00
+  EMEM_02:
+    title: Personal Evidence Profile and Source Mapping
+    status: BLOCKED_BY_STD_00_AND_RAW_EVIDENCE
+  EMEM_03:
+    title: Recall and MemoryContextPack Contract
+    status: BLOCKED_BY_EMEM_01
+  EMEM_04:
+    title: Personal-to-Shared Promotion Proposal
+    status: BLOCKED_BY_EMEM_01_AND_GOVERNANCE
+  EMEM_05:
+    title: Product Department Vertical Slice
+    status: BLOCKED_BY_EMEM_01_TO_04
+  EMEM_06:
+    title: Role Profiles
+    status: DEFER_UNTIL_CORE_CONTRACT_STABLE
+  EMEM_07:
+    title: AI Core Developer Adapter
+    status: DEFER_OPTIONAL
 
-superseded_or_removed_from_memory_backlog:
-  task_card_frontmatter_profile: AI_CORE_OWNED_OUT_OF_SCOPE
-  execution_request_receipt_platform: AI_CORE_OR_RUNTIME_OWNED_OUT_OF_SCOPE
-  runtime_native_event_mapping_platform: OUT_OF_SCOPE
-  codex_runtime_baseline: OUT_OF_SCOPE
-  hermes_adapter: OUT_OF_SCOPE
-  deepseek_harness_adapter: OUT_OF_SCOPE
-  universal_provider_interface: REJECTED
-  memctl_write_commands: REJECTED
-  memctl_read_only_view: OPTIONAL_DEFERRED
-
-authority_invariants:
-  - AI_CORE_REMAINS_COMPLETE
-  - PERSONAL_MEMORY_HARNESS_NE_AI_CORE_REPLACEMENT
-  - WORK_RECORD_NE_MEMORY
-  - WORK_STATE_NE_MEMORY_STATE
-  - RUNTIME_COMPLETE_NE_MEMORY_VERIFIED
-  - CAPTURED_NE_ACCEPTED_MEMORY
-  - PERSONAL_MEMORY_NE_COMPANY_CANONICAL_KNOWLEDGE
-  - FOUNDER_VAULT_TAXONOMY_NE_CANONICAL_SCHEMA
-  - MEMORY_SUMMARY_IS_REBUILDABLE_PROJECTION
-  - USER_CORRECTION_CREATES_EVIDENCE_NOT_DIRECT_OVERWRITE
-  - NO_RUNTIME_PROVIDER_PLATFORM_IN_MEMORY_SLICE
-  - NO_AUTOMATIC_SCOPE_PROMOTION
+hard_stops:
+  - no full AI Core clone per employee
+  - no AI Core requirement for general employees
+  - no folder taxonomy as company schema
+  - no task branch worktree state auto-promoted to memory
+  - no role-specific lifecycle fork
+  - no personal memory direct write to company canonical knowledge
+  - no search-all-personal-memory-before-permission
+  - no model-confidence auto-acceptance or auto-promotion
+  - no correction history erasure
+  - no WorkRecord and memory conflation
+  - no mass automatic capture before ownership/privacy policy
 
 required_negative_fixtures:
-  - runtime says done but memory verification is NOT_RUN
-  - current task status incorrectly promoted as long-lived memory
-  - same fact changes over time without supersession
-  - founder vault summary loses source references
-  - legacy file named canonical is treated as current authority without audit
-  - personal preference leaks into company scope
-  - private person context appears in mixed-scope global summary
-  - model confidence auto-promotes memory
-  - deleted source leaves stale founder-vault projection
-  - user correction overwrites history instead of creating revision
-  - memory team mutates AI Core task status
-  - runtime adapter work enters the memory backlog
+  - private Teams message auto-promoted to COMPANY
+  - employee A memory visible to employee B without permission
+  - company admin searches EMPLOYEE_PRIVATE memory by default
+  - L2 connector enabled without consent/notice or ACL propagation
+  - current Jira task status promoted as long-lived memory
+  - temporary branch/worktree state promoted as memory
+  - model confidence auto-accepts PersonalMemoryCandidate
+  - correction overwrites old memory without supersession receipt
+  - stale memory returned without freshness warning
+  - role profile redefines core evidence identity
+  - AI Core folder layout treated as universal schema
+  - personal-to-company promotion bypasses review
