@@ -1,4 +1,4 @@
-# DeepSeek Harness 整合裁決｜Current Truth 修正
+# DeepSeek Harness 整合裁決｜Current Truth 與 Personal Memory 範圍補正
 
 日期：2026-08-30
 
@@ -6,56 +6,71 @@
 
 ```text
 CURRENT_TRUTH_AMENDMENT
-SUPERSEDES_SEAM_ONLY
-DRAFT_COMPLETE
-REVIEW_REQUIRED
-NOT_CANONICAL
+OUT_OF_SCOPE_FOR_PERSONAL_MEMORY_HARNESS
+SEPARATE_RUNTIME_RESEARCH
+IMPLEMENTATION_DEFERRED
 NO_IMPLEMENTATION_AUTHORIZATION
 NO_INSTALL_AUTHORIZATION
 NO_RUNTIME_EXECUTION_AUTHORIZATION
 ```
 
-被修正文件：
+---
+
+# 0. Scope correction
+
+DeepSeek Harness不是Personal Memory Harness的施工項目。
+
+正式關係：
 
 ```text
-文件/DeepSeek-Harness整合裁決與施工切片.md
-```
-
-Cross-repo基準：
-
-```text
-Organizational Memory OS
-HEAD: 4926265e983ebd968dbaa827685c33000a47bc80
-
 AI Core
-reviewed HEAD: 87f6a16cf22642513730ea56530a8b5b1ce4ee99
+= 保持完整，擁有Work／Task／Runtime／Review
+
+Personal Memory Harness
+= 只承接記憶Evidence、Candidate、Governance、Projection、Recall
+
+DeepSeek Harness
+= AI Core未來可能評估的optional runtime executor
 ```
 
-本文件只修正一件事：
+即使未來AI Core使用DSH：
 
-> 舊 DSH 整合文件引用的 AI Core `Execution Provider Extension` seam 已被正式移除；未來 DSH若獲准，只能透過 runtime-native thin adapter＋immutable request／receipt接入。
+```text
+DSH run／receipt／artifact
+→ 可能成為Personal Memory的一種上游Evidence來源
+```
 
-它不推翻 DSH 的 donor價值，也不授權重新啟動 DSH施工。
+也不代表Personal Memory Team要建立：
+
+```text
+DSH adapter
+provider registry
+runtime router
+session bridge
+hook
+Agent Teams
+Creator Mode
+```
 
 ---
 
-## 1. 仍然有效的裁決
+# 1. Still-valid DSH authority boundary
 
-以下全部維持：
+以下裁決維持有效：
 
 ```text
 DeepSeek Harness
-= Optional Runtime Executor
 != Knowledge Authority
 != Permission Authority
 != Canonical Writer
 != AI Core Work Authority
 ```
 
-第一個候選 profile仍必須至少：
+如果未來另案獲准，第一個候選profile仍至少：
 
 ```text
-HEADLESS / ONE_SHOT
+HEADLESS
+ONE_SHOT
 ASSIGNED_WORKTREE_ONLY
 TELEMETRY_DISABLED
 NO_WEB_UI
@@ -66,29 +81,20 @@ NO_DYNAMIC_WORKFLOW
 NO_NESTED_CODEX_OR_CLAUDE_SUBAGENTS
 ```
 
-第一階段仍採：
+並維持：
 
 ```text
-process receipt first
-sanitized event bridge only if proven necessary
+Runtime completed
+!= AI Core accepted
+!= Memory verified
+!= Knowledge accepted
 ```
-
-仍禁止：
-
-- DSH Session DB作AI Core或OMOS truth。
-- Trajectory存在就推導Verification PASS。
-- Agent Teams作預設query／execution topology。
-- Creator Mode自動production enable。
-- model-generated JavaScript無真實sandbox執行。
-- DSH telemetry raw transcript預設外送。
-- DSH plugin擴張Managed Policy Floor。
-- DSH exit 0直接關閉AI Core工作或promote Knowledge。
 
 ---
 
-## 2. 已失效的 seam
+# 2. Current AI Core seam correction
 
-AI Core曾有：
+AI Core舊有 generic provider extension四檔：
 
 ```text
 scripts/execution_provider_extension.py
@@ -97,353 +103,115 @@ docs/execution-provider-extension.md
 tests/test_execution_provider_extension.py
 ```
 
-這四檔已由 accepted removal commit：
+已由 accepted removal commit：
 
 ```text
 38f7f7e6d95d4e77fbd426a458d7aa83a82dddb5
 ```
 
-移除，且移除已進目前AI Core HEAD ancestry。
+移除，且已在reviewed AI Core HEAD ancestry中。
 
-所以舊文件中任何將下列視為 current integration seam 的敘述：
-
-```text
-execution_provider_extensions.json
-execution_provider_extension.py
-execution-provider-extension.md
-provider extension registry
-```
-
-一律改讀為：
-
-```text
-SUPERSEDED_BY_AI_CORE_RUNTIME_NATIVE_BOUNDARY
-```
-
-禁止按舊文件重新建立同名或等價：
+因此禁止依舊文件重建同名或等價：
 
 ```text
 provider registry
-provider metadata DB
+provider metadata database
 universal runtime API
-formal dispatcher platform
 provider lifecycle FSM
+formal dispatcher platform
 ```
+
+未來若AI Core另案評估DSH，只能採runtime-native bounded execution seam；該工作由AI Core擁有，不由Personal Memory Harness擁有。
 
 ---
 
-## 3. 新 current seam
+# 3. Personal Memory only needs the evidence boundary
 
-唯一合法的候選方向：
+對Personal Memory Team唯一相關的未來介面是：
 
 ```text
-AI Core Markdown Task Card
+AI Core accepted／bounded runtime artifact or receipt ref
         ↓
-AI Core existing authorization
+OMOS RawEvidence semantics
         ↓
-Immutable ExecutionRequest
+Personal Memory Candidate（若內容值得長期沉澱）
         ↓
-DSH runtime-native one-shot adapter
-        ↓
-dsh / DeepSeek Harness native process
-        ↓
-Process result + optional sanitized native events
-        ↓
-Immutable ExecutionReceipt
-        ↓
-AI Core existing Work lifecycle
-        ↓
-Review / Verification / Acceptance
-        ↓
-Optional OMOS AGENT_RUNTIME RawEvidence Adapter
+Memory Governance／Acceptance
 ```
 
-每一層責任：
-
-| Layer | Owns | Does not own |
-|---|---|---|
-| AI Core Task Card | intent、scope、authorization、acceptance path | runtime-native session |
-| ExecutionRequest | one invocation的bounded parameters | Work state、Knowledge authority |
-| DSH adapter | preflight、invoke、collect、interrupt | routing priority、review、merge |
-| DSH | native agent execution | AI Core Work、OMOS Knowledge |
-| ExecutionReceipt | what executed / produced | correctness / acceptance |
-| AI Core Work lifecycle | delivery/review/acceptance/integration | OMOS canonical knowledge |
-| OMOS adapter | execution evidence admission | direct promotion |
-
----
-
-## 4. Thin adapter contract
-
-不再使用 provider extension platform。
-
-DSH adapter最多只實作：
+Personal Memory端不需要知道或管理：
 
 ```text
-preflight(request) -> PreflightReceipt
-invoke(request) -> ProcessRef
-collect(process_ref) -> ExecutionReceipt
-interrupt(process_ref) -> InterruptReceipt
-```
-
-### Preflight必須檢查
-
-```text
-dsh executable
-exact DSH version
-Node version
-effective profile
-profile / patch digest
-assigned worktree
-main checkout rejection
-tool/bundle allowlist
+DSH Session
+Profile／Bundle／Patch
+Node process
 credential route
-telemetry disabled
-network policy
-timeout / process tree strategy
+runtime interruption
+subagent lifecycle
+workflow script
 ```
 
-任一不符：
-
-```text
-BLOCKED
-```
-
-不得：
-
-- 自動安裝。
-- 自動 `npx`／`pnpm add`。
-- 自動登入。
-- 自動改credentials。
-- 自動改 `$DSH_HOME`。
-- DSH不可用時fallback Codex／Claude。
-- 在DSH內再nested route到Codex／Claude。
+除非它們是追溯某一Evidence不可缺少的bounded provenance metadata。
 
 ---
 
-## 5. ExecutionRequest
+# 4. Backlog disposition
 
-DSH不取得自己的task truth。
-
-Request至少引用：
+原本：
 
 ```text
-AI Core task card
-Work ID
-repository / worktree
-base commit
-root question
-bounded context
-allowed write paths
-denied capabilities
-profile digest
-timeout / cost / token budget
-credential route
-sandbox policy
-expected artifacts
-verification commands
+OMOS-DSH runtime adapter／trajectory／capability admission
 ```
 
-Request不得包含：
+對Personal Memory Harness全部改為：
 
 ```text
-acceptance_status
-canonical_write_authorized
-knowledge canonicality
+OUT_OF_SCOPE
+AI_CORE_OR_PLATFORM_OWNED
+NOT_A_MEMORY_FRONTIER
 ```
+
+Personal Memory目前唯一下一步仍是：
+
+```text
+PMEM-00
+AI Core Memory Surface／Authority Audit
+```
+
+DSH不得阻塞：
+
+- Memory surface audit。
+- Personal Memory Contract。
+- Founder Vault projection contract。
+- Recall／Context Pack contract。
 
 ---
 
-## 6. ExecutionReceipt
+# 5. Hard stops
 
-第一階段只收：
+禁止：
 
-```text
-request ref
-provider / runtime version
-profile digest
-start / end
-exit code
-terminal reason
-stdout artifact
-stderr artifact
-result artifacts
-changed paths
-candidate commit
-environment digest
-errors
-```
-
-Formal invariant：
-
-```text
-DSH_EXIT_0
-!=
-WORK_VERIFIED
-!=
-WORK_ACCEPTED
-!=
-KNOWLEDGE_VERIFIED
-!=
-KNOWLEDGE_ACCEPTED
-```
-
-若verification未跑：
-
-```text
-verification = NOT_RUN
-```
+- 因Personal Memory需要Evidence就重建DSH integration platform。
+- 讓DSH session／trajectory成Personal Canonical Memory。
+- 將DSH exit 0當Memory Verification PASS。
+- 將DSH hook或tool event直接promotion。
+- 把DSH memory／team／workflow功能搬進Personal Memory Harness。
+- 讓Personal Memory Team擁有runtime install、credential、sandbox或provider fallback。
 
 ---
 
-## 7. Sanitized event bridge
-
-只有process receipt不能回答以下問題時，才可另開Stage B：
-
-- tool provenance。
-- nested child relation。
-- token／usage attribution。
-- failure reconstruction。
-- interruption原因。
-
-Stage B只能用out-of-tree、可卸載bridge，白名單輸出：
+# 6. Final disposition
 
 ```text
-native session id
-sequence / time
-event type
-turn / step
-provider / model
-usage
-tool name / outcome
-terminal reason
-parent / child relation
-payload digest / artifact ref
-```
+DSH research value
+= retained
 
-預設禁止：
+DSH runtime work
+= AI Core／runtime-owned separate future card
 
-```text
-full system prompt
-raw user / assistant transcript
-raw reasoning
-full tool arguments / results
-file contents
-credentials
-host absolute paths
-```
+Personal Memory relationship
+= optional upstream Evidence source only
 
-Native event仍是execution evidence，不是Work state。
-
----
-
-## 8. DSH current backlog disposition
-
-| Slice | Current status |
-|---|---|
-| donor pin | COMPLETE |
-| authority diff | COMPLETE |
-| RawEvidence AGENT_RUNTIME fixture | MERGE_INTO_EXISTING_CONTRACT |
-| Capability Admission fixture | MERGE_INTO_EXISTING_CONTRACT |
-| AI Core provider adapter | BLOCKED / NOT_CURRENT_FRONTIER |
-| Process receipt spike | BLOCKED_BY_EXECUTION_REQUEST_RECEIPT |
-| Sanitized event bridge | DEFER |
-| Dynamic Workflow | DEFER / TRIGGER |
-| Agent Teams | REFERENCE_ONLY |
-| Creator Mode | CANDIDATE_PRODUCER_ONLY |
-| Nested Codex／Claude | BLOCKED |
-
-存在本文件不代表任何卡已授權施工。
-
----
-
-## 9. Cross-runtime consistency
-
-DSH、Codex、Claude Code、Hermes共用的不是provider registry，而是：
-
-```text
-ExecutionRequest vocabulary
-ExecutionReceipt vocabulary
-RuntimeNativeEventReceipt vocabulary
-```
-
-各runtime保持native contract：
-
-```text
-Codex    → Thread / Turn / Item
-Claude   → Session / Hook / Tool / Task signal
-Hermes   → Session / Tool / LLM / optional Kanban signals
-DSH      → SessionEvent / process / workflow / subagent native records
-```
-
-禁止強迫所有runtime假裝有相同：
-
-```text
-session
-task
-turn
-worker
-team
-```
-
----
-
-## 10. Required amendments in future AI Core work
-
-本輪不修改AI Core。
-
-未來若Owner明示授權，AI Core DSH相關文件只需做bounded amendment：
-
-1. 將舊provider-extension refs標為superseded。
-2. 指向Task Card→ExecutionRequest→runtime-native adapter→ExecutionReceipt。
-3. 保留BLOCKED／no-install／no-runtime boundary。
-4. 不復活已刪四檔。
-5. 不新增provider registry／DB／platform。
-6. 加入negative tests：
-   - silent fallback。
-   - profile drift。
-   - main checkout execution。
-   - nested runtime。
-   - exit 0 but verification NOT_RUN。
-   - telemetry unexpectedly enabled。
-
----
-
-## 11. Hard stops
-
-發現下列任一需求即停止：
-
-- 需要重建provider extension。
-- 需要第二套Work lifecycle。
-- 需要DSH Session作persistent task identity。
-- 需要Agent Teams共用checkout寫入。
-- 需要Creator Mode自動mount production plugin。
-- 需要raw trajectory無redaction保存。
-- 需要DSH hook作唯一security gate。
-- 需要DSH event直接驅動ACCEPTED／CLOSED。
-- 需要AI Core或OMOS secret交給未admitted plugin。
-- 需要改production或安裝runtime。
-
----
-
-## 12. Final interpretation rule
-
-閱讀舊文件時：
-
-```text
-保留：
-DSH optional executor
-headless one-shot
-receipt first
-no teams/workflow/creator/nested runtime
-no Knowledge authority
-
-替換：
-provider extension seam
-→ runtime-native thin adapter + request / receipt
-
-維持：
-BLOCKED
-NOT_CURRENT_FRONTIER
-NO_INSTALL
-NO_RUNTIME
+Current Personal Memory priority impact
+= none
 ```
