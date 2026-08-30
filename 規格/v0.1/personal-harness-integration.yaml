@@ -1,344 +1,316 @@
 schema:
-  schema_id: urn:omos:schema:personal-harness-integration:0.1.0
-  version: 0.1.0
+  schema_id: urn:omos:schema:personal-memory-harness-scope:0.2.0
+  version: 0.2.0
   status: DRAFT_REVIEW_REQUIRED
   date: '2026-08-30'
+
+scope_correction:
+  ai_core_carve_out: false
+  statement: >-
+    Personal Memory Harness is a bounded memory capability inside or adjacent to
+    the existing AI Core. It does not replace, fork, or reproduce the complete AI Core.
+  primary_focus: PERSONAL_MEMORY
+  supersedes_overbroad_runtime_scope: true
+
 research_basis:
   organizational_memory_os:
     repo: bluemaple18-home/organizational-memory-os
-    head: 4926265e983ebd968dbaa827685c33000a47bc80
+    reviewed_head: 4926265e983ebd968dbaa827685c33000a47bc80
   ai_core:
     repo: bluemaple18-home/aicore
-    head: 87f6a16cf22642513730ea56530a8b5b1ce4ee99
-authority_owners:
-  personal_knowledge_product: Organizational Memory OS
-  work_task_lifecycle: AI Core existing Work contract
-  runtime_native_execution:
-  - Codex
-  - Claude Code
-  - Hermes
-  - DeepSeek Harness
-  cross_runtime_exchange:
-  - ExecutionRequest
-  - NativeEventReceipt
-  - ExecutionReceipt
-maturity_axis:
-  canonical:
-    L1: 基礎
-    L2: 自動化
-    L3: 智慧化
-    L4: 自治化
-  ux_aliases:
-    紀錄: usually L1 personal evidence UX
-    自動化: L2
-    智慧化: L3
-  rejected_alias:
-    協作化: must not replace L4; use collaboration dimension
-collaboration_dimension:
-  scope:
-  - PERSONAL
-  - TEAM
-  - DEPARTMENT
-  - COMPANY
-  - CLIENT
-  mode:
-  - PRIVATE
-  - SHARED_READ
-  - SHARED_PROPOSE
-  - SHARED_REVIEW
-  - SHARED_PUBLISH
-proposal_dispositions:
-- id: PH-LEVEL-01
-  proposal: rename L1-L4 to 紀錄/自動化/智慧化/協作化
-  decision: REJECT_CANONICAL_RENAME
-  replacement: keep 基礎/自動化/智慧化/自治化; collaboration is orthogonal
-- id: PH-DEFAULT-02
-  proposal: all colleagues default to L2
-  decision: AMEND_PRODUCT_PRESET
-  replacement: source-specific L2 after connector, consent, ACL, retention, deletion and capture-health
-    gates
-- id: PH-CARD-03
-  proposal: task-card/v1 YAML schema
-  decision: AMEND_EXISTING_WORK_CARD
-  replacement: validate existing Markdown frontmatter; define a separate immutable ExecutionRequest
-- id: PH-EVENT-04
-  proposal: session.started and task.finished as hook events
-  decision: REJECT_AS_NATIVE_EVENT_NAMES
-  replacement: store native event name then map to neutral semantic receipt
-- id: PH-CLI-05
-  proposal: memctl
-  decision: DEFER_READ_ONLY_FACADE
-  replacement: M1 feasibility for status/doctor/search/show/export --dry-run only
-- id: PH-LOOP-06
-  proposal: Capture/Closeout/Consolidation/Promotion loops
-  decision: ADOPT_AS_DOMAIN_OPERATIONS
-  replacement: map to existing Evidence/WorkRecord/Candidate/Governance; no four services or state
-    machines
-- id: PH-RUNTIME-07
-  proposal: Runtime Provider Interface
-  decision: REJECT_UNIVERSAL_PROVIDER_PLATFORM
-  replacement: thin runtime-native invocation adapter plus request/receipt mapping
-- id: PH-MILESTONE-08
-  proposal: M0-M4
-  decision: AMEND_DELIVERY_MILESTONES
-  replacement: delivery sequence only; not product maturity, Work lifecycle or Knowledge lifecycle
-- id: PH-HERMES-09
-  proposal: Hermes Adapter
-  decision: ADMIT_RESEARCH_SPIKE_ONLY
-  replacement: Codex baseline first; one-shot sandboxed receipt-only Hermes spike later
-task_card_frontmatter_profile:
-  working_name: ai-core.task-card-frontmatter.v1
-  truth_role: validator only; existing Markdown task card remains Work authority
+    reviewed_head: 87f6a16cf22642513730ea56530a8b5b1ce4ee99
+
+system_owners:
+  complete_ai_core:
+    owner: AI Core
+    responsibilities:
+      - Work lifecycle
+      - Task cards
+      - Runtime and agents
+      - Review and acceptance
+      - Rules and skills
+      - Git/worktree/branch governance
+  personal_memory_capability:
+    owner: Personal Memory Team
+    responsibilities:
+      - Memory source inventory
+      - Memory evidence admission
+      - Personal memory candidate distillation
+      - Personal memory governance
+      - Personal canonical memory boundary
+      - Founder Vault projections
+      - Recall/context return
+      - Correction/supersession
+  organizational_memory_semantics:
+    owner: Organizational Memory OS
+    role: semantic and governance donor
+    responsibilities:
+      - Raw Evidence vocabulary
+      - Scope and permission
+      - Candidate/canonical separation
+      - Verification/acceptance
+      - Personal-to-team/company promotion proposal
+
+existing_ai_core_memory_surfaces:
+  runtime_memory_log:
+    path: .memory/logs/ai_core_memories.jsonl
+    provisional_role: RUNTIME_OR_HISTORICAL_MEMORY_EVIDENCE
+    authority_status: REQUIRES_PMEM_00_AUDIT
+  source_memory_archive:
+    path: .memory/archive/source_memories.jsonl
+    provisional_role: LEGACY_SOURCE_MEMORY_MATERIAL
+    authority_status: HISTORICAL_NOT_CURRENT_BY_NAME_ALONE
+  legacy_canonical_archive:
+    path: .memory/archive/legacy_canonical_memories.jsonl
+    provisional_role: LEGACY_CANONICAL_MEMORY_ARCHIVE
+    authority_status: HISTORICAL_NOT_CURRENT_BY_NAME_ALONE
+  founder_vault:
+    path: .founder-vault/
+    provisional_role: FOUNDER_CURATED_PERSONAL_SURFACE
+    authority_status: PER_FILE_AUDIT_REQUIRED
+  founder_memory_summary:
+    path: .founder-vault/memory-summary.md
+    role: REBUILDABLE_STARTUP_CONTEXT_PROJECTION
+    canonical_authority: false
+  ai_core_work:
+    paths:
+      - .work/
+      - docs/task_cards/
+      - config/work_lifecycle_contract.json
+    role_for_memory_team: UPSTREAM_REFERENCE_ONLY
+    memory_team_may_mutate: false
+
+in_scope:
+  - AI Core memory surface and authority inventory
+  - Memory source/provenance mapping
+  - Personal memory candidate taxonomy
+  - Personal memory support/conflict/freshness/correction
+  - Personal memory acceptance and single-writer boundary
+  - Founder Vault and memory-summary projection contract
+  - Permission-aware bounded recall/context pack
+  - Personal-to-team/company promotion proposal semantics
+  - Legacy memory translation mapping without destructive migration
+
+out_of_scope:
+  - Complete AI Core extraction or replacement
+  - AI Core Work lifecycle redesign
+  - Task card schema replacement
+  - Runtime Provider Interface or provider registry
+  - ExecutionRequest platform
+  - Runtime-native event normalization platform
+  - Codex/Claude Code/Hermes/DeepSeek Harness adapter implementation
+  - Global hook registration
+  - Agent Teams or multi-agent runtime
+  - Worktree/branch/reservation management
+  - Review/merge/push/deploy governance
+  - New memory database before authority audit
+
+memory_pipeline:
+  - stage: CAPTURE
+    flow: AI Core or human source -> OMOS RawEvidence semantics -> Memory Evidence
+  - stage: CONSOLIDATE
+    flow: Memory Evidence -> classify/deduplicate/conflict/freshness -> Personal Memory Candidate
+  - stage: GOVERN_AND_PROMOTE
+    flow: Candidate -> review requirement -> acceptance -> Personal Memory Single Writer -> Personal Canonical Memory
+  - stage: RECALL_AND_CORRECT
+    flow: Intent -> bounded memory context -> AI Core use -> correction evidence -> amend/invalidate/supersede
+
+memory_kinds_phase_1:
+  - PREFERENCE
+  - WORKING_STYLE
+  - PRINCIPLE
+  - LESSON
+  - DECISION
+  - PROJECT_CONTEXT
+  - PERSON_CONTEXT
+  - PROCEDURE
+  - LONG_LIVED_CONSTRAINT
+
+not_long_lived_memory_by_default:
+  - current_task_status
+  - one_off_command_output
+  - transient_open_loop
+  - temporary_branch_or_worktree_state
+  - unverified_model_suggestion
+  - runtime_completion_message
+
+personal_memory_contract_candidates:
+  - MemoryEvidenceRef
+  - PersonalMemoryCandidate
+  - PersonalMemoryRecord
+  - MemorySupportLink
+  - MemoryCorrection
+  - MemorySupersession
+  - MemoryPromotionProposal
+  - MemoryProjectionManifest
+  - MemoryContextPack
+
+memory_record_minimum_semantics:
+  identity:
+    - memory_id
+    - owner_scope
+    - memory_kind
+  content:
+    - statement
+    - applicability
+    - validity
+  support:
+    - evidence_refs
+    - source_anchors
+    - provenance
+  governance:
+    - confidence
+    - verification_status
+    - acceptance_status
+    - sensitivity
+    - freshness
+    - conflict_refs
+    - supersedes
+    - retention
+  chronology:
+    - created_at
+    - effective_from
+    - effective_to
+    - reviewed_at
+
+ai_core_to_memory_intake:
+  uses_existing_contract: OMOS RawEvidenceEnvelope
+  new_runtime_contract_required: false
+  allowed_source_kinds:
+    - AI_CORE_MEMORY_LOG_ENTRY
+    - AI_CORE_WORK_RECEIPT_REF
+    - AI_CORE_ACCEPTED_RESULT_REF
+    - AI_CORE_TASK_CARD_REF
+    - GIT_COMMIT_REF
+    - HANDOFF_OR_DECISION_REF
+    - FOUNDER_MANUAL_NOTE
+    - USER_CORRECTION
   required_fields:
-  - id
-  - status
-  - type
-  - priority
-  - role
-  - execution_authorized
-  - implementation_authorized
-  - production_authorized
-  conditional_fields:
-  - parent
-  - chain_id
-  - cycle
-  - thickness
-  - model
-  - reasoning
-  - model_reason
-  rules:
-  - missing authorization never defaults to true
-  - status must map to existing work_lifecycle_contract.v1
-  - runtime events cannot mutate card frontmatter directly
-  - unknown authority-bearing extensions fail closed
-execution_request:
-  working_name: ai_core.execution-request.v1
-  immutable: true
-  minimum_sections:
-  - identity
-  - task_card_ref
-  - runtime
-  - workspace
-  - input
-  - capabilities
-  - limits
-  - authorization
-  - expected_outputs
-  - request_digest
-  forbidden_fields:
-  - acceptance_status
-  - canonical_write_authorized
-  - knowledge_canonicality
-execution_receipt:
-  working_name: ai_core.execution-receipt.v1
-  immutable: true
-  execution_status:
-  - COMPLETE
-  - PARTIAL
-  - FAIL
-  - ABORT
-  - INTERRUPTED
-  - UNKNOWN
-  minimum_fields:
-  - receipt_id
-  - request_ref
-  - runtime_provider
-  - runtime_version
-  - adapter_profile
-  - profile_digest
-  - native_run_refs
-  - started_at
-  - completed_at
-  - execution_status
-  - exit_code
-  - terminal_reason
-  - stdout_artifact_ref
-  - stderr_artifact_ref
-  - result_artifact_refs
-  - changed_paths
-  - candidate_commit
-  - native_event_receipt_refs
-  - tool_versions
-  - environment_digest
-  - errors
-  invariant: COMPLETE != VERIFIED != ACCEPTED
-native_event_receipt:
-  working_name: ai_core.runtime-native-event-receipt.v1
-  preserve_native_event_name: true
-  semantic_events:
-  - RUNTIME_SESSION_OPENED
-  - RUNTIME_TURN_STARTED
-  - RUNTIME_ITEM_COMPLETED
-  - RUNTIME_TOOL_COMPLETED
-  - RUNTIME_RUN_TERMINATED
-  - RUNTIME_TASK_SIGNAL_OBSERVED
-  - RUNTIME_FAILURE_OBSERVED
-  forbidden_semantic_events:
-  - TASK_ACCEPTED
-  - TASK_CLOSED
-  - KNOWLEDGE_VERIFIED
-  minimum_fields:
-  - receipt_id
-  - runtime_provider
-  - runtime_version
-  - native_event_name
-  - native_event_id
-  - native_session_ref
-  - native_turn_ref
-  - native_item_ref
-  - native_task_ref
-  - semantic_event
-  - occurred_at
-  - received_at
-  - ai_core_task_ref
-  - execution_request_ref
-  - payload_ref
-  - raw_digest
-  - sanitized_digest
-  - retention_class
-  - mapping_profile
-  - mapping_version
-  - delivery_id
-  - redelivery_key
-native_event_mappings:
-  codex:
-    thread/started: RUNTIME_SESSION_OPENED
-    turn/started: RUNTIME_TURN_STARTED
-    item/completed: RUNTIME_ITEM_COMPLETED
-    turn/completed: RUNTIME_RUN_TERMINATED
-    thread/tokenUsage/updated: USAGE_OBSERVATION
-  claude_code:
-    SessionStart: RUNTIME_SESSION_OPENED
-    PostToolUse: RUNTIME_TOOL_COMPLETED
-    PostToolUseFailure: RUNTIME_FAILURE_OBSERVED
-    TaskCompleted: RUNTIME_TASK_SIGNAL_OBSERVED
-    Stop: RUNTIME_RUN_TERMINATED
-    StopFailure: RUNTIME_FAILURE_OBSERVED
-    SessionEnd: RUNTIME_RUN_TERMINATED
-  hermes:
-    on_session_start: RUNTIME_SESSION_OPENED
-    post_tool_call: RUNTIME_TOOL_COMPLETED
-    post_llm_call: TURN_OUTPUT_OBSERVATION
-    on_session_end: RUNTIME_RUN_TERMINATED
-    on_session_finalize: SESSION_TEARDOWN_OBSERVATION
-    subagent_stop: CHILD_EXECUTION_OBSERVATION
-    kanban_task_completed: RUNTIME_TASK_SIGNAL_OBSERVED
+    - source_identity
+    - source_version_or_digest
+    - occurred_at
+    - observed_at
+    - scope
+    - sensitivity
+    - payload_or_artifact_ref
+    - provenance
+  optional_fields:
+    - work_state_ref
+    - verification_receipt_ref
+    - acceptance_receipt_ref
+  invariants:
+    - Work state remains AI Core authority
+    - Runtime event remains runtime or AI Core evidence
+    - Memory team never closes AI Core work
+    - Memory capture never implies memory acceptance
+
+founder_vault_projection:
+  folders:
+    - identity
+    - context
+    - memory
+    - sop
+    - operations
+    - projects
+    - people
+    - archive
+  memory_summary:
+    role: STARTUP_CONTEXT_PROJECTION
+    rebuildable: true
+    source_refs_required: true
+    direct_model_overwrite_is_canonical: false
+  folder_taxonomy_is_schema_authority: false
+  mixed_scope_global_summary_forbidden: true
+
+recall_context_pack:
+  inputs:
+    - task_or_query_intent
+    - requester_scope
+    - context_budget
+  outputs:
+    - selected_memory_refs
+    - source_refs
+    - freshness
+    - applicability
+    - omission_or_gap_notice
+  permission_strategy: INTERSECTION
+  unrestricted_global_summary_forbidden: true
+
 loops:
-  Capture: Source -> Evidence Admission -> Raw Evidence -> Capture Health/Gap Receipt
-  Closeout: WorkRecord -> CloseoutProposal -> verification/human confirmation
-  Consolidation: structure/dedup/conflict/freshness -> assertion/procedure/decision Candidate
-  Promotion: Candidate -> Scope Proposal -> Permission -> Verification -> Acceptance -> Canonical
-    Single Writer
-  implementation_rule: domain operations, not four agents/services/queues/databases/state machines
-runtime_invocation_adapter:
-  decision: THIN_ADAPTER_ONLY
-  operations:
-  - preflight(request)->PreflightReceipt
-  - invoke(request)->NativeHandle
-  - collect(handle)->ExecutionReceipt
-  - interrupt(handle)->InterruptReceipt (optional)
-  forbidden:
-  - provider registry
-  - provider database
-  - universal runtime
-  - session truth
-  - task lifecycle authority
-  - verification authority
-  - merge/push/deploy authority
-  - knowledge promotion authority
-  - silent provider fallback
-memctl:
-  status: DEFER_READ_ONLY_FACADE
-  phase_1_commands:
-  - status
-  - doctor
-  - search
-  - show
-  - export --dry-run
-  phase_1_forbidden_commands:
-  - capture
-  - write
-  - promote
-  - publish
-  - delete
-  - purge
-  - sync
-  - approve
-  - canonicalize
-  - install
-  - enable
-  owns_database: false
-  owns_canonical_writer: false
-hermes_spike:
-  status: TRIGGER_AFTER_CODEX_BASELINE
-  repo: NousResearch/hermes-agent
-  release: v2026.8.27
-  tag_object: fcebd62163497e77e5de00d26d2ed86cb4ef8761
-  commit: 5fc308a70719a83cccdbba4c0e39c23f5a8239d5
-  license: MIT
-  candidate_command: hermes chat -q "<bounded-task>"
-  profile:
-  - ONE_SHOT
-  - ASSIGNED_WORKTREE_ONLY
-  - NO_GATEWAY
-  - NO_DESKTOP
-  - NO_MESSAGING
-  - NO_KANBAN
-  - NO_CRON
-  - NO_AUTONOMOUS_SKILL_CREATION
-  - NO_MEMORY_WRITE
-  - NO_MEMORY_PROMOTION
-  - NO_OUTBOUND_WEBHOOK
-  - NO_SHELL_HOOK
-  - NO_SUBAGENT
-  - NO_DYNAMIC_TEAM
-  - NO_PROVIDER_FALLBACK
-  phase_1_evidence:
-  - stdout
-  - stderr
-  - exit_code
-  - timing
-  - runtime_version
-  - profile_digest
-  - task_ref
-  - worktree_ref
-  - artifact_refs
-delivery_milestones:
-  M0: current truth, contracts, mappings, negative fixtures, read-only review
-  M1: read-only personal surface / doctor / search proof; no writes
-  M2: 'Codex native baseline: one task, one worktree, one request, one runtime, one receipt'
-  M3: closeout and consolidation candidate generation; no promotion
-  M4: promotion gate and optional Hermes challenger after baseline
+  Capture:
+    owner: Personal Memory Team
+  Consolidate:
+    owner: Personal Memory Team
+  GovernPromote:
+    owner: Personal Memory Team with existing OMOS governance semantics
+  RecallCorrect:
+    owner: Personal Memory Team
+  WorkCloseout:
+    owner: AI Core
+    memory_role: upstream signal only
+
+backlog:
+  PMEM_00:
+    title: AI Core Memory Surface and Authority Audit
+    status: READY_FOR_READ_ONLY_DESIGN
+    writes_allowed: false
+  PMEM_01:
+    title: Personal Memory Contract v0.1
+    status: BLOCKED_BY_PMEM_00
+  PMEM_02:
+    title: Legacy Memory Translation Mapping
+    status: BLOCKED_BY_PMEM_00_PMEM_01
+  PMEM_03:
+    title: Founder Vault Projection Contract
+    status: BLOCKED_BY_PMEM_01
+  PMEM_04:
+    title: Recall and Context Pack Contract
+    status: BLOCKED_BY_PMEM_01
+  PMEM_05:
+    title: Minimal Read-only Capture Adapter
+    status: BLOCKED_BY_PMEM_01_PMEM_02
+  PMEM_06:
+    title: Personal-to-Team/Company Promotion Proposal
+    status: DEFER_UNTIL_PERSONAL_MEMORY_STABLE
+  PMEM_07:
+    title: Memory Evaluation and Regression
+    status: BLOCKED_BY_PMEM_01_PMEM_04
+
+superseded_or_removed_from_memory_backlog:
+  task_card_frontmatter_profile: AI_CORE_OWNED_OUT_OF_SCOPE
+  execution_request_receipt_platform: AI_CORE_OR_RUNTIME_OWNED_OUT_OF_SCOPE
+  runtime_native_event_mapping_platform: OUT_OF_SCOPE
+  codex_runtime_baseline: OUT_OF_SCOPE
+  hermes_adapter: OUT_OF_SCOPE
+  deepseek_harness_adapter: OUT_OF_SCOPE
+  universal_provider_interface: REJECTED
+  memctl_write_commands: REJECTED
+  memctl_read_only_view: OPTIONAL_DEFERRED
+
 authority_invariants:
-- PERSONAL_MEMORY_NE_COMPANY_CANONICAL_KNOWLEDGE
-- WORK_RECORD_NE_KNOWLEDGE
-- RUNTIME_COMPLETE_NE_WORK_ACCEPTED
-- RUNTIME_COMPLETE_NE_KNOWLEDGE_VERIFIED
-- NATIVE_TASK_COMPLETED_NE_AI_CORE_CLOSED
-- OBJECT_LINK_NE_PERMISSION_EXPANSION
-- TASK_CARD_NE_EXECUTION_REQUEST
-- EXECUTION_REQUEST_NE_ACCEPTANCE_AUTHORIZATION
-- EXECUTION_RECEIPT_NE_VERIFICATION_RECEIPT
-- FOUNDER_VAULT_NE_ENTERPRISE_CANONICAL_STORE
-- NO_UNIVERSAL_PROVIDER_REGISTRY
-- NO_SILENT_RUNTIME_FALLBACK
+  - AI_CORE_REMAINS_COMPLETE
+  - PERSONAL_MEMORY_HARNESS_NE_AI_CORE_REPLACEMENT
+  - WORK_RECORD_NE_MEMORY
+  - WORK_STATE_NE_MEMORY_STATE
+  - RUNTIME_COMPLETE_NE_MEMORY_VERIFIED
+  - CAPTURED_NE_ACCEPTED_MEMORY
+  - PERSONAL_MEMORY_NE_COMPANY_CANONICAL_KNOWLEDGE
+  - FOUNDER_VAULT_TAXONOMY_NE_CANONICAL_SCHEMA
+  - MEMORY_SUMMARY_IS_REBUILDABLE_PROJECTION
+  - USER_CORRECTION_CREATES_EVIDENCE_NOT_DIRECT_OVERWRITE
+  - NO_RUNTIME_PROVIDER_PLATFORM_IN_MEMORY_SLICE
+  - NO_AUTOMATIC_SCOPE_PROMOTION
+
 required_negative_fixtures:
-- missing authorization defaults false
-- native event redelivery
-- same native event ID with different payload
-- runtime reconnect event gap
-- TaskCompleted cannot close AI Core work
-- turn/completed cannot accept work
-- exit 0 with verification NOT_RUN
-- stdout says done but process failed
-- timeout leaves child process alive
-- runtime silently falls back
-- worktree outside allowlist
-- profile digest drift
-- private evidence linked to company object
-- mixed-scope WorkRecord summary leak
-- L2 connector loses ACL access
-- model confidence auto-promotion
-- Hermes hook not registered
-- Hermes memory write attempted
-- Hermes kanban/cron/gateway unexpectedly enabled
+  - runtime says done but memory verification is NOT_RUN
+  - current task status incorrectly promoted as long-lived memory
+  - same fact changes over time without supersession
+  - founder vault summary loses source references
+  - legacy file named canonical is treated as current authority without audit
+  - personal preference leaks into company scope
+  - private person context appears in mixed-scope global summary
+  - model confidence auto-promotes memory
+  - deleted source leaves stale founder-vault projection
+  - user correction overwrites history instead of creating revision
+  - memory team mutates AI Core task status
+  - runtime adapter work enters the memory backlog
