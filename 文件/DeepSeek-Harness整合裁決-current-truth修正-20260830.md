@@ -1,72 +1,141 @@
-# DeepSeek Harness 整合裁決｜Current Truth 與 Personal Memory 範圍補正
+# DeepSeek Harness 與公司員工個人記憶標準｜範圍補正
 
 日期：2026-08-30
 
 狀態：
 
 ```text
-CURRENT_TRUTH_AMENDMENT
-OUT_OF_SCOPE_FOR_PERSONAL_MEMORY_HARNESS
+SCOPE_CORRECTION
 SEPARATE_RUNTIME_RESEARCH
-IMPLEMENTATION_DEFERRED
+OUT_OF_EMPLOYEE_MEMORY_CORE
+NOT_MVP_BLOCKER
 NO_IMPLEMENTATION_AUTHORIZATION
 NO_INSTALL_AUTHORIZATION
-NO_RUNTIME_EXECUTION_AUTHORIZATION
 ```
 
 ---
 
-# 0. Scope correction
+## 0. 補正目的
 
-DeepSeek Harness不是Personal Memory Harness的施工項目。
-
-正式關係：
+公司員工 Personal Memory Standard 的目標是：
 
 ```text
-AI Core
-= 保持完整，擁有Work／Task／Runtime／Review
-
-Personal Memory Harness
-= 只承接記憶Evidence、Candidate、Governance、Projection、Recall
-
-DeepSeek Harness
-= AI Core未來可能評估的optional runtime executor
+每位員工使用同一套記憶 contract與lifecycle
 ```
 
-即使未來AI Core使用DSH：
+不是：
 
 ```text
-DSH run／receipt／artifact
-→ 可能成為Personal Memory的一種上游Evidence來源
+每位員工安裝DeepSeek Harness
+每位員工有一套Agent Runtime
+記憶團隊負責Runtime Provider整合
 ```
 
-也不代表Personal Memory Team要建立：
-
-```text
-DSH adapter
-provider registry
-runtime router
-session bridge
-hook
-Agent Teams
-Creator Mode
-```
+因此 DeepSeek Harness（DSH）從 Employee Personal Memory core與current backlog移出。
 
 ---
 
-# 1. Still-valid DSH authority boundary
-
-以下裁決維持有效：
+## 1. DSH 仍然有效的定位
 
 ```text
 DeepSeek Harness
+= Optional backend executor / runtime donor
+!= Employee Personal Memory Standard
 != Knowledge Authority
+!= Personal Memory Authority
 != Permission Authority
 != Canonical Writer
-!= AI Core Work Authority
 ```
 
-如果未來另案獲准，第一個候選profile仍至少：
+DSH未來可在公司後端、私有環境或特定進階角色中執行：
+
+- bounded extraction。
+- candidate generation。
+- counter-evidence search。
+- evaluation／verification task。
+- source adapter helper。
+
+但執行結果仍只是 Evidence／Proposal。
+
+```text
+DSH COMPLETE
+!= Personal Memory Accepted
+!= Company Knowledge Accepted
+```
+
+---
+
+## 2. 一般員工不依賴 DSH
+
+普通員工的產品入口仍是：
+
+```text
+Outlook
+Teams
+Jira
+Documents
+Meetings
+Web
+Existing company systems
+```
+
+中央或地端服務負責把來源映射到：
+
+```text
+RawEvidenceEnvelope
+→ ObjectLink / WorkRecord
+→ PersonalMemoryCandidate
+→ Governance
+→ PersonalMemoryRecord
+```
+
+執行這些 worker時，可以用 deterministic code、任一合規模型或未來的 DSH；員工本人不需要知道或管理 runtime。
+
+---
+
+## 3. DSH 與共用記憶規格的唯一接點
+
+若未來另案核准 DSH，唯一合法輸入／輸出是既有中立 contract：
+
+```text
+Authorized bounded input
+→ Optional DSH executor
+→ Process / sanitized execution receipt
+→ Raw Evidence or Candidate Proposal
+```
+
+DSH不得：
+
+- 定義每位員工的memory schema。
+- 保存公司唯一personal memory truth。
+- 直接寫PersonalMemoryRecord。
+- 直接升TEAM／COMPANY Knowledge。
+- 決定employee privacy mode。
+- 以Session／Trajectory作WorkRecord或Memory authority。
+
+---
+
+## 4. 與 AI Core 的關係
+
+AI Core保留完整，不因Employee Personal Memory Standard被拆分。
+
+DSH若未來接入AI Core或其他backend runtime，是獨立 runtime research；AI Core本身也只可作Employee Memory中的developer-specific source／consumer adapter。
+
+```text
+AI Core runtime integration
+!= Employee Memory core
+
+DSH runtime integration
+!= Employee Memory core
+```
+
+兩者都不得成為一般員工使用Personal Memory的前置條件。
+
+---
+
+## 5. 原 DSH 裁決仍保留的安全限制
+
+若未來另案進行DSH spike，第一版仍至少：
 
 ```text
 HEADLESS
@@ -81,137 +150,54 @@ NO_DYNAMIC_WORKFLOW
 NO_NESTED_CODEX_OR_CLAUDE_SUBAGENTS
 ```
 
-並維持：
+且：
 
 ```text
-Runtime completed
-!= AI Core accepted
-!= Memory verified
-!= Knowledge accepted
+process receipt first
+sanitized event bridge only if necessary
+no raw transcript default export
+no silent provider fallback
+no runtime completion → verification/acceptance
 ```
+
+這些限制屬 runtime research，不得插隊 Employee Personal Memory Standard。
 
 ---
 
-# 2. Current AI Core seam correction
+## 6. Backlog 裁決
 
-AI Core舊有 generic provider extension四檔：
-
-```text
-scripts/execution_provider_extension.py
-config/execution_provider_extensions.json
-docs/execution-provider-extension.md
-tests/test_execution_provider_extension.py
-```
-
-已由 accepted removal commit：
+Employee Personal Memory backlog不包含：
 
 ```text
-38f7f7e6d95d4e77fbd426a458d7aa83a82dddb5
+DSH adapter
+DSH profile implementation
+DSH SessionEvent mapping
+DSH Agent Teams
+DSH Creator Mode
 ```
 
-移除，且已在reviewed AI Core HEAD ancestry中。
-
-因此禁止依舊文件重建同名或等價：
+DSH只保留在：
 
 ```text
-provider registry
-provider metadata database
-universal runtime API
-provider lifecycle FSM
-formal dispatcher platform
+Separate Runtime Donor / Trigger Research
 ```
 
-未來若AI Core另案評估DSH，只能採runtime-native bounded execution seam；該工作由AI Core擁有，不由Personal Memory Harness擁有。
+當以下都成立才重評：
+
+1. Employee Memory core contract已穩定。
+2. 有真實backend executor缺口。
+3. deterministic／現有model worker不足。
+4. security、privacy、retention與cost可量測。
+5. 有獨立Owner approval。
 
 ---
 
-# 3. Personal Memory only needs the evidence boundary
-
-對Personal Memory Team唯一相關的未來介面是：
+## 7. 最終句子
 
 ```text
-AI Core accepted／bounded runtime artifact or receipt ref
-        ↓
-OMOS RawEvidence semantics
-        ↓
-Personal Memory Candidate（若內容值得長期沉澱）
-        ↓
-Memory Governance／Acceptance
-```
+Employee Personal Memory Standard
+must remain runtime-neutral.
 
-Personal Memory端不需要知道或管理：
-
-```text
-DSH Session
-Profile／Bundle／Patch
-Node process
-credential route
-runtime interruption
-subagent lifecycle
-workflow script
-```
-
-除非它們是追溯某一Evidence不可缺少的bounded provenance metadata。
-
----
-
-# 4. Backlog disposition
-
-原本：
-
-```text
-OMOS-DSH runtime adapter／trajectory／capability admission
-```
-
-對Personal Memory Harness全部改為：
-
-```text
-OUT_OF_SCOPE
-AI_CORE_OR_PLATFORM_OWNED
-NOT_A_MEMORY_FRONTIER
-```
-
-Personal Memory目前唯一下一步仍是：
-
-```text
-PMEM-00
-AI Core Memory Surface／Authority Audit
-```
-
-DSH不得阻塞：
-
-- Memory surface audit。
-- Personal Memory Contract。
-- Founder Vault projection contract。
-- Recall／Context Pack contract。
-
----
-
-# 5. Hard stops
-
-禁止：
-
-- 因Personal Memory需要Evidence就重建DSH integration platform。
-- 讓DSH session／trajectory成Personal Canonical Memory。
-- 將DSH exit 0當Memory Verification PASS。
-- 將DSH hook或tool event直接promotion。
-- 把DSH memory／team／workflow功能搬進Personal Memory Harness。
-- 讓Personal Memory Team擁有runtime install、credential、sandbox或provider fallback。
-
----
-
-# 6. Final disposition
-
-```text
-DSH research value
-= retained
-
-DSH runtime work
-= AI Core／runtime-owned separate future card
-
-Personal Memory relationship
-= optional upstream Evidence source only
-
-Current Personal Memory priority impact
-= none
+DeepSeek Harness may execute a bounded task,
+but it never defines what an employee memory is.
 ```
