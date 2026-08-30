@@ -1,14 +1,12 @@
-# Codex 審查交接｜Personal Memory Harness｜2026-08-30
+# Codex 審查交接｜公司員工個人記憶標準｜2026-08-30
 
 狀態：
 
 ```text
 READ_ONLY_REVIEW
-MEMORY_SCOPE_ONLY
-NO_AI_CORE_CARVE_OUT
+COMPANY_KNOWLEDGE_PREPARATION
 NO_IMPLEMENTATION_AUTHORIZATION
 NO_GIT_MUTATION_AUTHORIZATION
-NO_RUNTIME_INSTALL_AUTHORIZATION
 NO_SCHEMA_ACCEPTANCE_AUTHORITY
 ```
 
@@ -20,40 +18,27 @@ bluemaple18-home/organizational-memory-os
 
 請先重新讀取 `main` 並回報 actual HEAD。
 
-Cross-repo evidence：
+---
+
+## 1. Owner intent
+
+本計畫不是把完整 AI Core 切出去，也不是為每位員工建立 Personal AI Core。
+
+真正目標：
+
+> 為公司每位員工定義同一套 Personal Memory contract、lifecycle、permission、correction、recall 與 promotion 規格；不同角色只替換 source／role profile與capability level。
+
+AI Core只作：
 
 ```text
-bluemaple18-home/aicore
-reviewed HEAD in proposal:
-87f6a16cf22642513730ea56530a8b5b1ce4ee99
+Developer-specific donor / advanced source adapter
 ```
+
+不得把 AI Core 的 task、branch、worktree、runtime、review、merge、deploy或folder layout升為公司員工共用記憶 schema。
 
 ---
 
-# 1. Owner intent
-
-本計畫不是拆出或複製完整 AI Core。
-
-正式 intent：
-
-> 只盤點並補強 AI Core 的個人記憶能力；AI Core 的 Work、Task、Runtime、Review、Rules、Skills、Agent與工程治理全部保留原 owner與現況。
-
-任何將本案重新擴張成：
-
-```text
-Personal AI Core
-Universal Runtime
-Provider Registry
-Task Lifecycle
-Runtime Adapter Platform
-Hermes／DSH integration project
-```
-
-的建議，應判定為 scope drift。
-
----
-
-# 2. Review targets
+## 2. Review targets
 
 主要審查：
 
@@ -63,171 +48,176 @@ Hermes／DSH integration project
 文件/待辦補充-個人知識庫Harness-20260830.md
 ```
 
-補讀 OMOS authority：
+補讀 authority：
 
 ```text
-文件/最小核心重基準.md
 文件/個人證據與工作紀錄.md
+文件/SaaS能力等級.md
+文件/最小核心重基準.md
+文件/核心知識主幹.md
 文件/權限政策與設定治理.md
-文件/驗證治理.md
 文件/STD-00-Schema-Vocabulary-Freeze-v0.1-提案.md
+規格/v0.1/common-vocabulary.yaml
 ```
 
-AI Core current-truth evidence：
-
-```text
-.memory/**
-.founder-vault/**
-docs/ai-core-canonical-architecture.md
-config/work_lifecycle_contract.json
-```
-
-AI Core Work／Task／Runtime文件只用來確認 boundary，不是本輪要重設計的對象。
+AI Core只作 donor fact check；不是本輪設計 authority。
 
 ---
 
-# 3. Review purpose
+## 3. Hard invariants
 
-判斷提案是否正確做到：
-
-1. AI Core保持完整，不被Personal Memory Harness取代或拆走。
-2. `.memory/**` 與 `.founder-vault/**` 被先當作待audit的current／legacy／projection surfaces，而不是靠檔名猜authority。
-3. 記憶團隊只負責Capture、Consolidate、Govern／Promote、Recall／Correct。
-4. AI Core Work Closeout只作上游signal，不被記憶團隊接管。
-5. Founder Vault／memory-summary被限制為personal curated surface／projection。
-6. Personal Memory仍遵守Evidence→Candidate→Acceptance→Single Writer。
-7. Personal→Team／Company仍需Proposal＋Review。
-8. 下一步只開read-only `PMEM-00` authority audit。
-
----
-
-# 4. Hard invariants
-
-審查不得推翻：
+不得推翻：
 
 ```text
-AI Core remains complete
-Personal Memory Harness != AI Core replacement
-WorkRecord != Memory
-Work state != Memory state
-Captured != Accepted Memory
-Runtime COMPLETE != Memory Verified
+Every employee uses the same core memory contract
+General employees do not need complete AI Core
+Raw Evidence != Personal Memory
+WorkRecord != Personal Memory
+Candidate != Accepted Personal Memory
+Personal Canonical Memory is canonical only within PERSONAL scope
 Personal Memory != Company Canonical Knowledge
-Founder Vault taxonomy != Canonical schema
-memory-summary.md = rebuildable projection
-User correction creates revision evidence, not destructive overwrite
+Permission-before-Retrieval
+ObjectLink != Permission Expansion
+Correction must preserve history
+Personal → Shared requires Proposal + Review + Single Writer
+Role Profile != Core Schema Authority
+Agent / Model / Harness = Optional Executor
 ```
 
 ---
 
-# 5. Required checks
+## 4. Required checks
 
-## A. Scope
+### A. Product scope
 
-確認所有文件都沒有要求記憶團隊建立：
-
-- Task Card schema replacement。
-- Work lifecycle。
-- Runtime provider interface／registry。
-- ExecutionRequest platform。
-- Runtime-native event platform。
-- Codex／Claude／Hermes／DSH adapter。
-- Global hook。
-- Worktree／branch／review／merge governance。
-
-## B. Current memory surfaces
-
-確認至少覆蓋：
+確認整份提案是否清楚表達：
 
 ```text
-.memory/logs/ai_core_memories.jsonl
-.memory/archive/source_memories.jsonl
-.memory/archive/legacy_canonical_memories.jsonl
-.founder-vault/**
-.founder-vault/memory-summary.md
+one employee personal memory standard
+not one AI Core per employee
 ```
 
-並檢查：
+確認 AI Core只被放在developer adapter／donor位置。
 
-- 名稱含 `canonical` 是否被錯當current authority。
-- Founder Vault curated file與projection是否仍有待audit區分。
-- `memory-summary.md` 是否明確可重建且需source refs。
+### B. Same spec vs different role
 
-## C. Memory pipeline
+確認能同時做到：
+
+- PM、RD、MD、Sales來源不同。
+- 所有來源進同一 RawEvidence contract。
+- 所有角色使用同一 Candidate／Memory／Correction／Promotion lifecycle。
+- Role extension不會產生第二套identity或permission。
+
+### C. Personal scope ownership
+
+檢查：
+
+```text
+EMPLOYEE_PRIVATE
+COMPANY_MANAGED_PERSONAL
+SHARED_WORK_CONTEXT
+```
+
+是否需要分開；如果需要，指出 exact contract缺口。
+
+特別檢查：
+
+- admin是否可能預設讀取全部personal memory。
+- offboarding／export／delete／legal hold是否有位置。
+- personal scope是否可能被誤當company-owned searchable pool。
+
+### D. Memory lifecycle
 
 確認：
 
 ```text
-AI Core source refs
-→ RawEvidence semantics
-→ Personal Memory Candidate
-→ Governance／Acceptance
-→ Personal Canonical Memory
-→ Founder Vault／Recall projections
-→ Correction／Supersession
+Evidence
+→ ObjectLink / WorkRecord
+→ PersonalMemoryCandidate
+→ Verification
+→ Personal Acceptance
+→ PersonalMemoryRecord
+→ Recall / Correction
+→ optional PromotionProposal
 ```
 
-沒有繞過Candidate／Acceptance／Single Writer。
+沒有把WorkRecord、runtime result或task state直接當Memory。
 
-## D. Memory kinds
+### E. Memory kinds
 
-確認Phase-1 kinds合理：
+檢查Phase-1 kinds是否足以涵蓋一般公司員工，而不是只適用developer。
+
+確認 transient／one-off／task state被排除於long-lived memory default。
+
+### F. Recall
+
+確認 `MemoryContextPack`：
+
+- permission first。
+- applicability與freshness可表達。
+- context budget可表達。
+- citation／source refs保留。
+- omission／gap可揭露。
+
+### G. Correction
+
+確認 correction不是直接overwrite，且有：
 
 ```text
-PREFERENCE
-WORKING_STYLE
-PRINCIPLE
-LESSON
-DECISION
-PROJECT_CONTEXT
-PERSON_CONTEXT
-PROCEDURE
-LONG_LIVED_CONSTRAINT
+new evidence
+proposal
+decision
+supersession / invalidation
+history
 ```
 
-並確認 transient task status、command output、branch/worktree state不會自動升長期記憶。
+### H. Promotion
 
-## E. Work boundary
+確認 PERSONAL → TEAM／DEPARTMENT／COMPANY／CLIENT：
 
-確認：
+- 不是copy。
+- 需要permission／scope check。
+- 需要evidence support。
+- 需要review。
+- 只能由Canonical Single Writer完成。
 
-- Task Card／Work status只作source ref。
-- Work accepted不自動等於memory accepted。
-- Closeout由AI Core擁有。
-- 記憶團隊不修改 `.work` 或task card。
+### I. L1–L4
 
-## F. Projection／Recall
+確認四個Level共享同一contract，只改automation depth。
 
-確認：
+不要擅自裁決所有員工預設L2；Default Level仍是product／policy decision。
 
-- Founder Vault folder是view，不是schema authority。
-- summary有source refs與build semantics。
-- mixed-scope memory不會產生unrestricted global summary。
-- recall有context budget／freshness／scope／gap notice。
+### J. Deployment
 
-## G. Backlog
+確認普通員工可只使用Outlook／Teams／Jira／Documents／Web，不需要本機AI Core或agent daemon。
 
-確認：
+### K. Machine-readable consistency
+
+檢查：
 
 ```text
-PMEM-00
-= read-only memory surface／authority audit
+規格/v0.1/personal-harness-integration.yaml
 ```
 
-是唯一可準備的下一步；PMEM-01之後全部正確blocked／deferred。
+與主文件：
+
+- terminology一致。
+- contract registry一致。
+- scope modes一致。
+- backlog一致。
+- hard stops一致。
 
 ---
 
-# 6. Output format
+## 5. Required output
 
 請只回：
 
 ```text
 VERDICT: ACCEPT | AMEND | BLOCK
 
-SCOPE-CONFIRMED
-- AI Core remains complete: YES | NO
-- Memory-only capability slice: YES | NO
+CURRENT-TRUTH-CONFIRMED
+- ...
 
 LOCKED-AS-IS
 - ...
@@ -238,50 +228,61 @@ FINDINGS
   File:
   Section / field:
   Problem:
-  Evidence:
-  Authority impact:
-  Proposed amendment:
+  Product impact:
+  Authority / privacy impact:
+  Proposed bounded amendment:
   Fixture/test required:
 
-OPEN DECISIONS
+OPEN PRODUCT DECISIONS
 - ...
 
 READY NEXT
-- PMEM-00 read-only authority audit: YES | NO
-- PMEM-01 Personal Memory Contract: YES | NO
-- Runtime/provider work belongs here: YES | NO
+- EMEM-00 Scope / Ownership / Privacy Contract: YES | NO
+- EMEM-01 Personal Memory Contract: YES | NO
 - Reason:
 ```
 
-`Runtime/provider work belongs here` 的正確預期是 `NO`；若 reviewer主張 `YES`，必須證明沒有擴張Owner intent，也沒有建立第二套 AI Core。
+每個 finding必須指出 exact section或machine-readable field。
 
 ---
 
-# 7. BLOCK threshold
+## 6. Valid BLOCK reasons
 
-只有以下任一成立才可 `BLOCK`：
+只有以下情況可用 `BLOCK`：
 
-- 提案仍會切出／複製完整 AI Core。
-- 記憶團隊可修改 AI Core Work authority。
-- Legacy檔名可繞過current authority audit。
-- Runtime event可直接寫Personal Canonical Memory。
-- Founder Vault projection取得不可重建的canonical authority。
-- Personal Memory可無review升Company Knowledge。
-- PMEM-00需要production mutation才能完成。
+- 同一個employee memory無法隔離。
+- personal scope ownership語意無法表達。
+- role profile會改寫核心schema。
+- Evidence／WorkRecord／Memory authority混淆。
+- correction會抹除history。
+- promotion可繞過review或single writer。
+- 일반員工仍被迫依賴AI Core／runtime。
+- Phase-1 PM／RD／MD／Sales fixture無法共用同一contract。
 
-一般欄位不足或命名問題只能 `AMEND`，不得重建整套架構。
+不要因想增加更多框架、Graph、Agent或Runtime而使用 `BLOCK`。
 
 ---
 
-# 8. Forbidden actions
+## 7. Forbidden actions
 
 本輪禁止：
 
-- 修改任何repo檔案。
+- 修改任何檔案。
 - 建branch／commit／PR。
 - 修改AI Core。
-- 清理／遷移 `.memory`。
-- 改寫Founder Vault。
-- 安裝或執行runtime。
-- 建Task／Work／Provider／Hook平台。
-- 把本提案自行標成Canonical。
+- 盤點或搬移AI Core `.memory`／`.founder-vault`內容。
+- 建立Task Card schema或Runtime Provider Interface。
+- 安裝／執行Codex、Claude、Hermes、DSH。
+- 建立connector、DB、migration、agent daemon。
+- 將提案自行標成Canonical。
+- 把AI Core physical folder直接搬成公司標準。
+
+---
+
+## 8. Review emphasis
+
+這次最重要的問題不是「AI Core memory怎麼切」。
+
+而是：
+
+> 一套工具中立、角色中立、runtime中立的Personal Memory Standard，能否讓每位員工使用同一生命週期，又能保留角色來源差異、個人隱私與升公司知識的治理邊界？
