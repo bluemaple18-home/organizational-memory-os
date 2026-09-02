@@ -1,0 +1,410 @@
+{
+  "fixture_id": "personal-memory-positive-fixtures-v0.1",
+  "cases": [
+    {
+      "case_id": "PMEM_POS_EMPLOYEE_READ_PRIVATE",
+      "request": {
+        "actor": "EMPLOYEE",
+        "action": "READ",
+        "scope_mode": "EMPLOYEE_PRIVATE",
+        "context": {
+          "is_owner": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_POS_EMPLOYEE_WRITE_COMPANY_MANAGED",
+      "request": {
+        "actor": "EMPLOYEE",
+        "action": "WRITE",
+        "scope_mode": "COMPANY_MANAGED_PERSONAL",
+        "context": {
+          "is_owner": true,
+          "consent_or_notice_present": true,
+          "source_acl_propagated": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_POS_MANAGER_READ_COMPANY_MANAGED_WITH_NOTICE",
+      "request": {
+        "actor": "MANAGER",
+        "action": "READ",
+        "scope_mode": "COMPANY_MANAGED_PERSONAL",
+        "context": {
+          "manager_business_need": true,
+          "company_policy_allows_manager_read": true,
+          "employee_notice_given": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_POS_ADMIN_BREAK_GLASS_COMPANY_MANAGED",
+      "request": {
+        "actor": "ADMIN",
+        "action": "READ",
+        "scope_mode": "COMPANY_MANAGED_PERSONAL",
+        "context": {
+          "break_glass_approved": true,
+          "audit_reason_recorded": true,
+          "employee_notice_given": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_POS_REVIEWER_PROMOTE_PRIVATE_WITH_CONSENT",
+      "request": {
+        "actor": "REVIEWER",
+        "action": "PROMOTE",
+        "scope_mode": "EMPLOYEE_PRIVATE",
+        "context": {
+          "review_assignment": true,
+          "employee_consent": true,
+          "promotion_review_approved": true,
+          "scope_widening_checked": true,
+          "redaction_complete": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_POS_EMPLOYEE_EXPORT_SHARED_OWN_REDACTED_CONTEXT",
+      "request": {
+        "actor": "EMPLOYEE",
+        "action": "EXPORT",
+        "scope_mode": "SHARED_WORK_CONTEXT",
+        "context": {
+          "is_owner": true,
+          "export_policy_allows": true,
+          "private_material_redacted": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_POS_SYSTEM_WRITE_SHARED_WITH_POLICY_AND_ACL",
+      "request": {
+        "actor": "SYSTEM",
+        "action": "WRITE",
+        "scope_mode": "SHARED_WORK_CONTEXT",
+        "context": {
+          "policy_bound_system": true,
+          "source_acl_propagated": true,
+          "private_material_redacted": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_POS_MANAGER_PROMOTE_COMPANY_MANAGED_WITH_AUTHORITY",
+      "request": {
+        "actor": "MANAGER",
+        "action": "PROMOTE",
+        "scope_mode": "COMPANY_MANAGED_PERSONAL",
+        "context": {
+          "manager_business_need": true,
+          "company_policy_allows_manager_promotion": true,
+          "employee_notice_given": true,
+          "promotion_review_approved": true,
+          "scope_widening_checked": true,
+          "redaction_complete": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_POS_MANAGER_PROMOTE_SHARED_WITH_AUTHORITY",
+      "request": {
+        "actor": "MANAGER",
+        "action": "PROMOTE",
+        "scope_mode": "SHARED_WORK_CONTEXT",
+        "context": {
+          "manager_business_need": true,
+          "source_acl_allows_requester": true,
+          "promotion_review_approved": true,
+          "scope_widening_checked": true,
+          "redaction_complete": true
+        }
+      },
+      "expected": "allow"
+    }
+  ],
+  "resource_cases": [
+    {
+      "case_id": "PMEM_RESOURCE_POS_CANDIDATE_PROPOSED_WITH_SUPPORT",
+      "resource_type": "PersonalMemoryCandidate",
+      "resource": {
+        "candidate_id": "urn:omos:personal-memory:candidate:0198e6d0-9001-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "memory_kind": "WORK_PREFERENCE",
+        "content": {
+          "statement_or_structured_content": "Matt prefers concise PM handoff cards with explicit acceptance evidence."
+        },
+        "applicability": {
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "applies_to_refs": [
+            "urn:omos:project:personal-memory-standard"
+          ]
+        },
+        "validity_interval": {
+          "effective_from": "2026-09-02T00:00:00Z",
+          "effective_to": null
+        },
+        "support_link_refs": [
+          "urn:omos:personal-memory:support-link:0198e6d0-9002-7aaa-8bbb-111111111111"
+        ],
+        "provenance": {
+          "generated_from_refs": [
+            "urn:omos:work-record:0198e6d0-9003-7aaa-8bbb-111111111111"
+          ],
+          "proposed_by": "SYSTEM",
+          "model_confidence": 0.72
+        },
+        "governance": {
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "INTERNAL",
+          "acl_ref": "urn:omos:acl:0198e6d0-9004-7aaa-8bbb-111111111111",
+          "verification_status": "NOT_RUN",
+          "acceptance_status": "PENDING"
+        },
+        "chronology": {
+          "created_at": "2026-09-02T00:00:01Z"
+        },
+        "candidate_status": "PROPOSED"
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_RESOURCE_POS_SUPPORT_LINK_EXACT_ANCHOR",
+      "resource_type": "MemorySupportLink",
+      "resource": {
+        "link_id": "urn:omos:personal-memory:support-link:0198e6d0-9002-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "target_ref": "urn:omos:personal-memory:candidate:0198e6d0-9001-7aaa-8bbb-111111111111",
+        "target_employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d0-9010-7aaa-8bbb-111111111111",
+        "source_anchor_ref": "urn:omos:source-anchor:0198e6d0-9011-7aaa-8bbb-111111111111",
+        "source_anchor_profile": "MARKDOWN_TEXT_V1",
+        "relation": "SUPPORTS",
+        "anchor_resolution": "EXACT_MATCH",
+        "provenance": {
+          "created_by": "SYSTEM",
+          "created_at": "2026-09-02T00:00:02Z"
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_RESOURCE_POS_RECORD_SUPPORT_LINK_EXACT_ANCHOR",
+      "resource_type": "MemorySupportLink",
+      "resource": {
+        "link_id": "urn:omos:personal-memory:support-link:0198e6d0-9024-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "target_ref": "urn:omos:personal-memory:record:0198e6d0-9020-7aaa-8bbb-111111111111",
+        "target_employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d0-9025-7aaa-8bbb-111111111111",
+        "source_anchor_ref": "urn:omos:source-anchor:0198e6d0-9026-7aaa-8bbb-111111111111",
+        "source_anchor_profile": "MARKDOWN_TEXT_V1",
+        "relation": "SUPPORTS",
+        "anchor_resolution": "EXACT_MATCH",
+        "provenance": {
+          "created_by": "SYSTEM",
+          "created_at": "2026-09-02T00:04:30Z"
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_RESOURCE_POS_RECORD_FROM_ACCEPTED_CANDIDATE",
+      "resource_type": "PersonalMemoryRecord",
+      "resource": {
+        "record_id": "urn:omos:personal-memory:record:0198e6d0-9020-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_candidate_ref": "urn:omos:personal-memory:candidate:0198e6d0-9001-7aaa-8bbb-111111111111",
+        "memory_kind": "WORK_PREFERENCE",
+        "content": {
+          "statement_or_structured_content": "Matt prefers concise PM handoff cards with explicit acceptance evidence."
+        },
+        "applicability": {
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "applies_to_refs": [
+            "urn:omos:project:personal-memory-standard"
+          ]
+        },
+        "validity_interval": {
+          "effective_from": "2026-09-02T00:00:00Z",
+          "effective_to": null
+        },
+        "support_link_refs": [
+          "urn:omos:personal-memory:support-link:0198e6d0-9024-7aaa-8bbb-111111111111"
+        ],
+        "candidate_snapshot": {
+          "candidate_status": "ACCEPTED_FOR_RECORD",
+          "verification_status": "PASS",
+          "acceptance_status": "ACCEPTED"
+        },
+        "governance": {
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "verification_status": "PASS",
+          "acceptance_status": "ACCEPTED",
+          "verification_receipt_ref": "urn:omos:receipt:0198e6d0-9021-7aaa-8bbb-111111111111",
+          "personal_acceptance_ref": "urn:omos:receipt:0198e6d0-9022-7aaa-8bbb-111111111111",
+          "sensitivity": "INTERNAL",
+          "acl_ref": "urn:omos:acl:0198e6d0-9023-7aaa-8bbb-111111111111",
+          "freshness": "CURRENT",
+          "review_due_at": "2026-12-02T00:00:00Z",
+          "conflict_refs": [],
+          "supersedes": [],
+          "superseded_by": [],
+          "retention_state": "RETAINED"
+        },
+        "chronology": {
+          "created_at": "2026-09-02T00:05:00Z",
+          "effective_from": "2026-09-02T00:00:00Z",
+          "effective_to": null,
+          "reviewed_at": "2026-09-02T00:04:00Z"
+        },
+        "record_status": "ACTIVE"
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "PMEM_RESOURCE_POS_CONFLICT_SET_UNRESOLVED",
+      "resource_type": "MemoryConflictSet",
+      "resource": {
+        "set_id": "urn:omos:personal-memory:conflict-set:0198e6d0-9030-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "member_memory_refs": [
+          "urn:omos:personal-memory:record:0198e6d0-9020-7aaa-8bbb-111111111111",
+          "urn:omos:personal-memory:candidate:0198e6d0-9031-7aaa-8bbb-111111111111"
+        ],
+        "member_owner_refs": [
+          "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+          "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111"
+        ],
+        "conflict_type": "TEMPORAL_MISMATCH",
+        "resolution_status": "UNRESOLVED",
+        "support_link_refs": [
+          "urn:omos:personal-memory:support-link:0198e6d0-9034-7aaa-8bbb-111111111111",
+          "urn:omos:personal-memory:support-link:0198e6d0-9035-7aaa-8bbb-111111111111"
+        ],
+        "created_at": "2026-09-02T00:10:00Z"
+      },
+      "related_resources": [
+        {
+          "resource_type": "PersonalMemoryCandidate",
+          "resource": {
+            "candidate_id": "urn:omos:personal-memory:candidate:0198e6d0-9031-7aaa-8bbb-111111111111",
+            "tenant_id": "tenant-example",
+            "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "memory_kind": "WORK_PREFERENCE",
+            "content": {
+              "statement_or_structured_content": "A newer preference may qualify an older accepted memory."
+            },
+            "applicability": {
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "applies_to_refs": [
+                "urn:omos:project:personal-memory-standard"
+              ]
+            },
+            "validity_interval": {
+              "effective_from": "2026-09-03T00:00:00Z",
+              "effective_to": null
+            },
+            "support_link_refs": [
+              "urn:omos:personal-memory:support-link:0198e6d0-9036-7aaa-8bbb-111111111111"
+            ],
+            "provenance": {
+              "generated_from_refs": [
+                "urn:omos:work-record:0198e6d0-9037-7aaa-8bbb-111111111111"
+              ],
+              "proposed_by": "SYSTEM",
+              "model_confidence": 0.7
+            },
+            "governance": {
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "INTERNAL",
+              "acl_ref": "urn:omos:acl:0198e6d0-9038-7aaa-8bbb-111111111111",
+              "verification_status": "NOT_RUN",
+              "acceptance_status": "PENDING"
+            },
+            "chronology": {
+              "created_at": "2026-09-03T00:00:01Z"
+            },
+            "candidate_status": "PROPOSED"
+          }
+        },
+        {
+          "resource_type": "MemorySupportLink",
+          "resource": {
+            "link_id": "urn:omos:personal-memory:support-link:0198e6d0-9034-7aaa-8bbb-111111111111",
+            "tenant_id": "tenant-example",
+            "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "target_ref": "urn:omos:personal-memory:record:0198e6d0-9020-7aaa-8bbb-111111111111",
+            "target_employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d0-9039-7aaa-8bbb-111111111111",
+            "source_anchor_ref": "urn:omos:source-anchor:0198e6d0-9040-7aaa-8bbb-111111111111",
+            "source_anchor_profile": "MARKDOWN_TEXT_V1",
+            "relation": "CONTRADICTS",
+            "anchor_resolution": "EXACT_MATCH",
+            "provenance": {
+              "created_by": "SYSTEM",
+              "created_at": "2026-09-02T00:09:00Z"
+            }
+          }
+        },
+        {
+          "resource_type": "MemorySupportLink",
+          "resource": {
+            "link_id": "urn:omos:personal-memory:support-link:0198e6d0-9035-7aaa-8bbb-111111111111",
+            "tenant_id": "tenant-example",
+            "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "target_ref": "urn:omos:personal-memory:candidate:0198e6d0-9031-7aaa-8bbb-111111111111",
+            "target_employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d0-9041-7aaa-8bbb-111111111111",
+            "source_anchor_ref": "urn:omos:source-anchor:0198e6d0-9042-7aaa-8bbb-111111111111",
+            "source_anchor_profile": "MARKDOWN_TEXT_V1",
+            "relation": "CONTRADICTS",
+            "anchor_resolution": "EXACT_MATCH",
+            "provenance": {
+              "created_by": "SYSTEM",
+              "created_at": "2026-09-02T00:09:30Z"
+            }
+          }
+        },
+        {
+          "resource_type": "MemorySupportLink",
+          "resource": {
+            "link_id": "urn:omos:personal-memory:support-link:0198e6d0-9036-7aaa-8bbb-111111111111",
+            "tenant_id": "tenant-example",
+            "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "target_ref": "urn:omos:personal-memory:candidate:0198e6d0-9031-7aaa-8bbb-111111111111",
+            "target_employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d0-9043-7aaa-8bbb-111111111111",
+            "source_anchor_ref": "urn:omos:source-anchor:0198e6d0-9044-7aaa-8bbb-111111111111",
+            "source_anchor_profile": "MARKDOWN_TEXT_V1",
+            "relation": "SUPPORTS",
+            "anchor_resolution": "EXACT_MATCH",
+            "provenance": {
+              "created_by": "SYSTEM",
+              "created_at": "2026-09-03T00:00:02Z"
+            }
+          }
+        }
+      ],
+      "expected": "allow"
+    }
+  ]
+}

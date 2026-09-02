@@ -48,12 +48,487 @@ product_authority:
     authority_over_memory: false
 
 employee_memory_scope_modes:
-  - EMPLOYEE_PRIVATE
-  - COMPANY_MANAGED_PERSONAL
-  - SHARED_WORK_CONTEXT
+  modes:
+    - EMPLOYEE_PRIVATE
+    - COMPANY_MANAGED_PERSONAL
+    - SHARED_WORK_CONTEXT
+  derived_from:
+    - ownership_mode
+    - visibility_scope
   rule: >-
     Scope mode, visibility, retention, export, deletion, and offboarding behavior
     must be explicit; PERSONAL never implies company-wide search authority.
+
+ownership_visibility_contract:
+  ownership_modes:
+    EMPLOYEE_CONTROLLED:
+      owner_of_memory_statement: employee
+      company_default_content_access: forbidden
+      employee_export_right: allowed_subject_to_policy
+      employee_delete_right: allowed_subject_to_retention_and_legal_hold
+    COMPANY_MANAGED_EMPLOYEE_CONTEXT:
+      owner_of_memory_statement: company_for_work_purpose
+      company_default_content_access: conditional
+      employee_export_right: conditional
+      employee_delete_right: request_or_tombstone_subject_to_policy
+    JOINT_WORK_CONTEXT:
+      owner_of_memory_statement: work_group_or_company_context
+      company_default_content_access: conditional
+      employee_export_right: scoped_to_own_contributions
+      employee_delete_right: request_redaction_or_correction
+  visibility_scopes:
+    SELF_ONLY:
+      default_readers:
+        - employee_owner
+      widening_requires_promotion_gate: true
+    EMPLOYEE_AND_POLICY_SYSTEM:
+      default_readers:
+        - employee_owner
+        - policy_bound_system
+      widening_requires_promotion_gate: true
+    WORK_CONTEXT_PARTICIPANTS:
+      default_readers:
+        - employee_owner
+        - source_acl_participants
+        - assigned_reviewer_when_needed
+      widening_requires_promotion_gate: true
+  mode_definitions:
+    EMPLOYEE_PRIVATE:
+      ownership_mode: EMPLOYEE_CONTROLLED
+      visibility_scope: SELF_ONLY
+      semantics: employee-owned private work memory; company cannot search content by default
+      consent_or_notice_required: CONSENT_REQUIRED
+      retention_default: EMPLOYEE_POLICY_DEFAULT
+      offboarding_default: EXPORT_THEN_PURGE_UNLESS_LEGAL_HOLD
+    COMPANY_MANAGED_PERSONAL:
+      ownership_mode: COMPANY_MANAGED_EMPLOYEE_CONTEXT
+      visibility_scope: EMPLOYEE_AND_POLICY_SYSTEM
+      semantics: company-managed personal work context with explicit policy-bound access
+      consent_or_notice_required: NOTICE_AND_POLICY_REF_REQUIRED
+      retention_default: COMPANY_POLICY_DEFAULT
+      offboarding_default: TRANSFER_OR_ARCHIVE_WITH_EMPLOYEE_NOTICE
+    SHARED_WORK_CONTEXT:
+      ownership_mode: JOINT_WORK_CONTEXT
+      visibility_scope: WORK_CONTEXT_PARTICIPANTS
+      semantics: work-context memory visible only to participants allowed by source ACL and policy
+      consent_or_notice_required: NOTICE_REQUIRED
+      retention_default: SOURCE_OR_TEAM_POLICY_DEFAULT
+      offboarding_default: RETAIN_WORK_CONTEXT_WITH_PRIVATE_MATERIAL_REDACTED
+  actor_action_policy:
+    EMPLOYEE:
+      READ:
+        EMPLOYEE_PRIVATE:
+          decision: ALLOW
+          required_conditions:
+            - is_owner
+        COMPANY_MANAGED_PERSONAL:
+          decision: ALLOW
+          required_conditions:
+            - is_owner
+        SHARED_WORK_CONTEXT:
+          decision: ALLOW
+          required_conditions:
+            - source_acl_allows_requester
+      WRITE:
+        EMPLOYEE_PRIVATE:
+          decision: ALLOW
+          required_conditions:
+            - is_owner
+            - consent_or_notice_present
+        COMPANY_MANAGED_PERSONAL:
+          decision: ALLOW
+          required_conditions:
+            - is_owner
+            - consent_or_notice_present
+            - source_acl_propagated
+        SHARED_WORK_CONTEXT:
+          decision: ALLOW
+          required_conditions:
+            - source_acl_allows_requester
+            - source_acl_propagated
+            - private_material_redacted
+      DELETE:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - legal_hold_absent
+            - retention_allows_delete
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - legal_hold_absent
+            - company_policy_allows_delete
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - private_material_redacted
+            - legal_hold_absent
+      EXPORT:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - legal_hold_absent
+            - export_policy_allows
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - export_policy_allows
+            - company_policy_allows_export
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - export_policy_allows
+            - private_material_redacted
+      PROMOTE:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - source_acl_allows_requester
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+    MANAGER:
+      READ:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - manager_business_need
+            - company_policy_allows_manager_read
+            - employee_notice_given
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - source_acl_allows_requester
+            - manager_business_need
+      WRITE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - source_acl_allows_requester
+            - writes_only_work_context
+      DELETE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - retention_allows_delete
+            - legal_hold_absent
+            - private_material_redacted
+      EXPORT:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - export_policy_allows
+            - source_acl_allows_requester
+            - private_material_redacted
+      PROMOTE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - manager_business_need
+            - company_policy_allows_manager_promotion
+            - employee_notice_given
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - manager_business_need
+            - source_acl_allows_requester
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+    ADMIN:
+      READ:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - break_glass_approved
+            - audit_reason_recorded
+            - employee_notice_given
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - admin_policy_scope_allows
+            - audit_reason_recorded
+      WRITE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+      DELETE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - retention_allows_delete
+            - legal_hold_absent
+            - audit_reason_recorded
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - retention_allows_delete
+            - legal_hold_absent
+            - audit_reason_recorded
+      EXPORT:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - export_policy_allows
+            - audit_reason_recorded
+            - employee_notice_given
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - export_policy_allows
+            - admin_policy_scope_allows
+            - audit_reason_recorded
+      PROMOTE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+    REVIEWER:
+      READ:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - employee_consent
+            - redaction_complete
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - company_policy_allows_review
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - source_acl_allows_requester
+      WRITE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+      DELETE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+      EXPORT:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+      PROMOTE:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - employee_consent
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+    SYSTEM:
+      READ:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - is_owner_context
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - source_acl_propagated
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - source_acl_propagated
+      WRITE:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - is_owner_context
+            - consent_or_notice_present
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - consent_or_notice_present
+            - source_acl_propagated
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - source_acl_propagated
+            - private_material_redacted
+      DELETE:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - retention_allows_delete
+            - legal_hold_absent
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - retention_allows_delete
+            - legal_hold_absent
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - retention_allows_delete
+            - legal_hold_absent
+      EXPORT:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+      PROMOTE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+  retention_and_lifecycle_policy:
+    legal_hold_overrides_delete_and_purge: true
+    offboarding_requires:
+      - mode_specific_disposition
+      - export_or_notice_decision
+      - private_material_redaction_before_shared_retention
+      - audit_receipt
+    delete_semantics:
+      EMPLOYEE_PRIVATE: remove_payload_or_tombstone_subject_to_legal_hold
+      COMPANY_MANAGED_PERSONAL: request_delete_or_archive_subject_to_company_policy
+      SHARED_WORK_CONTEXT: redact_private_material_and_retain_work_provenance_when_allowed
+    export_semantics:
+      EMPLOYEE_PRIVATE: employee_export_allowed_when_policy_and_legal_hold_allow
+      COMPANY_MANAGED_PERSONAL: employee_export_requires_company_policy_and_notice
+      SHARED_WORK_CONTEXT: export_only_own_contribution_or_redacted_context
+  source_acl_inheritance:
+    rule: source ACL is a ceiling; personal memory may narrow but cannot widen without promotion gate
+    required_receipts:
+      - source_acl_snapshot
+      - personal_acl_decision
+      - policy_ref
+  promotion_widening_gate:
+    required:
+      - promotion_proposal
+      - evidence_support_check
+      - source_acl_check
+      - redaction_complete
+      - reviewer_approval
+      - canonical_single_writer
+    forbidden:
+      - direct_copy_to_shared_canonical
+      - model_confidence_only
+      - admin_override_without_review
 
 capability_levels:
   L1:
@@ -156,6 +631,8 @@ employee_memory_profile_minimum:
   memory_policy:
     - capability_level
     - personal_scope_mode
+    - ownership_mode
+    - visibility_scope
     - sensitivity_policy_ref
     - retention_policy_ref
     - promotion_policy_ref
@@ -183,6 +660,278 @@ not_long_lived_memory_by_default:
   - UNVERIFIED_MODEL_SUGGESTION
   - SHORT_LIVED_SCHEDULE
 
+personal_memory_resource_contracts:
+  version: 0.1.0
+  shared_constraints:
+    tenant_id_required: true
+    employee_owner_ref_required: true
+    id_profile: UUIDv7_URN
+    id_templates:
+      PersonalMemoryCandidate: urn:omos:personal-memory:candidate:{uuidv7}
+      PersonalMemoryRecord: urn:omos:personal-memory:record:{uuidv7}
+      MemorySupportLink: urn:omos:personal-memory:support-link:{uuidv7}
+      MemoryConflictSet: urn:omos:personal-memory:conflict-set:{uuidv7}
+    candidate_not_record_rule: >-
+      A PersonalMemoryCandidate is a durable-memory proposal only; it cannot
+      become an accepted PersonalMemoryRecord by status, confidence, or label
+      mutation. A separate PersonalMemoryRecord requires a distinct record_id,
+      origin_candidate_ref, verification receipt, personal acceptance receipt,
+      and support links.
+    support_target_rule: >-
+      Candidate and Record support must point through MemorySupportLink to exact
+      Evidence and SourceAnchor refs. Model summaries, completion messages, and
+      confidence scores are routing signals only.
+    model_summary_as_support: forbidden
+    cross_employee_reference_rule: >-
+      Any support or member reference that crosses employee_owner_ref requires
+      permission_intersection_ref and must not widen the source ACL.
+    transient_memory_rule: >-
+      Kinds listed in not_long_lived_memory_by_default must fail closed unless a
+      later explicit governance contract reclassifies them with support,
+      verification, and personal acceptance.
+  enums:
+    candidate_status:
+      - PROPOSED
+      - NEEDS_VERIFICATION
+      - VERIFIED
+      - ACCEPTANCE_REQUESTED
+      - ACCEPTED_FOR_RECORD
+      - REJECTED
+      - BLOCKED
+      - SUPERSEDED
+    record_status:
+      - ACTIVE
+      - SUPERSEDED
+      - INVALIDATED
+      - ARCHIVED
+    verification_status:
+      - NOT_RUN
+      - PARTIAL
+      - PASS
+      - FAIL
+    acceptance_status:
+      - PENDING
+      - ACCEPTED
+      - REJECTED
+      - BLOCKED
+    support_relation:
+      - SUPPORTS
+      - QUALIFIES
+      - LIMITS
+      - CONTRADICTS
+      - DERIVED_FROM
+    allowed_anchor_resolution_for_support:
+      - EXACT_MATCH
+      - RELOCATED
+    conflict_resolution_status:
+      - UNRESOLVED
+      - QUALIFIED_BY_SCOPE
+      - QUALIFIED_BY_TIME
+      - RESOLVED_BY_REVIEW
+      - BLOCKED
+  resources:
+    PersonalMemoryCandidate:
+      purpose: unaccepted durable-memory proposal
+      identity_kind: PERSONAL_MEMORY_CANDIDATE
+      required_fields:
+        - candidate_id
+        - tenant_id
+        - employee_owner_ref
+        - memory_kind
+        - content.statement_or_structured_content
+        - applicability.scope_mode
+        - applicability.applies_to_refs
+        - validity_interval.effective_from
+        - support_link_refs
+        - provenance.generated_from_refs
+        - provenance.proposed_by
+        - governance.ownership_mode
+        - governance.visibility_scope
+        - governance.sensitivity
+        - governance.acl_ref
+        - governance.verification_status
+        - governance.acceptance_status
+        - chronology.created_at
+        - candidate_status
+      required_support:
+        minimum_support_link_refs: 1
+        link_resource: MemorySupportLink
+        must_resolve_to:
+          - RawEvidenceEnvelope
+          - SourceAnchor
+      lifecycle:
+        initial_status: PROPOSED
+        allowed_transitions:
+          PROPOSED:
+            - NEEDS_VERIFICATION
+            - VERIFIED
+            - REJECTED
+            - BLOCKED
+          NEEDS_VERIFICATION:
+            - VERIFIED
+            - REJECTED
+            - BLOCKED
+          VERIFIED:
+            - ACCEPTANCE_REQUESTED
+            - REJECTED
+            - BLOCKED
+          ACCEPTANCE_REQUESTED:
+            - ACCEPTED_FOR_RECORD
+            - REJECTED
+            - BLOCKED
+          ACCEPTED_FOR_RECORD:
+            - SUPERSEDED
+          BLOCKED:
+            - NEEDS_VERIFICATION
+            - REJECTED
+          REJECTED: []
+          SUPERSEDED: []
+      acceptance_gate:
+        acceptance_status_ACCEPTED_requires:
+          - governance.verification_status=PASS
+          - governance.verification_receipt_ref
+          - governance.personal_acceptance_ref
+        creates_record: false
+      forbidden:
+        - record_id
+        - resource_kind=PERSONAL_MEMORY_RECORD
+        - model_confidence_only
+        - memory_kind in not_long_lived_memory_by_default
+    PersonalMemoryRecord:
+      purpose: accepted memory inside PERSONAL scope
+      identity_kind: PERSONAL_MEMORY_RECORD
+      required_fields:
+        - record_id
+        - tenant_id
+        - employee_owner_ref
+        - origin_candidate_ref
+        - memory_kind
+        - content.statement_or_structured_content
+        - applicability.scope_mode
+        - applicability.applies_to_refs
+        - validity_interval.effective_from
+        - support_link_refs
+        - candidate_snapshot.candidate_status
+        - candidate_snapshot.verification_status
+        - candidate_snapshot.acceptance_status
+        - governance.ownership_mode
+        - governance.visibility_scope
+        - governance.verification_status
+        - governance.acceptance_status
+        - governance.verification_receipt_ref
+        - governance.personal_acceptance_ref
+        - governance.sensitivity
+        - governance.acl_ref
+        - governance.freshness
+        - governance.review_due_at
+        - governance.conflict_refs
+        - governance.supersedes
+        - governance.superseded_by
+        - governance.retention_state
+        - chronology.created_at
+        - chronology.effective_from
+        - record_status
+      creation_gate:
+        required:
+          - origin_candidate_ref points to PersonalMemoryCandidate
+          - record_id differs from origin_candidate_ref
+          - candidate_snapshot.candidate_status=ACCEPTED_FOR_RECORD
+          - candidate_snapshot.verification_status=PASS
+          - candidate_snapshot.acceptance_status=ACCEPTED
+          - governance.verification_status=PASS
+          - governance.acceptance_status=ACCEPTED
+          - governance.verification_receipt_ref
+          - governance.personal_acceptance_ref
+          - support_link_refs minimum 1
+      lifecycle:
+        initial_status: ACTIVE
+        allowed_transitions:
+          ACTIVE:
+            - SUPERSEDED
+            - INVALIDATED
+            - ARCHIVED
+          SUPERSEDED:
+            - ARCHIVED
+          INVALIDATED:
+            - ARCHIVED
+          ARCHIVED: []
+      update_rule: >-
+        Corrections create a new revision or supersession receipt; accepted
+        records are not overwritten in place.
+      forbidden:
+        - memory_kind in not_long_lived_memory_by_default
+        - missing evidence support
+        - missing personal acceptance
+    MemorySupportLink:
+      purpose: exact evidence and source-anchor support
+      identity_kind: MEMORY_SUPPORT_LINK
+      required_fields:
+        - link_id
+        - tenant_id
+        - employee_owner_ref
+        - target_ref
+        - evidence_ref
+        - source_anchor_ref
+        - source_anchor_profile
+        - relation
+        - anchor_resolution
+        - provenance.created_by
+        - provenance.created_at
+      allowed_targets:
+        - PersonalMemoryCandidate
+        - PersonalMemoryRecord
+      required_source_refs:
+        - RawEvidenceEnvelope.evidence_ref
+        - SourceAnchor.source_anchor_ref
+      source_anchor_profile_allowed_from: common-vocabulary.source_anchor_profiles.phase_1
+      relation_semantics:
+        SUPPORTS: evidence supports the memory statement
+        QUALIFIES: evidence limits applicability or validity
+        LIMITS: evidence restricts scope, actor, time, or confidence
+        CONTRADICTS: evidence contributes to MemoryConflictSet
+        DERIVED_FROM: memory was derived from a work record or normalized view
+      forbidden:
+        - model_summary_only
+        - source_anchor_ref missing
+        - evidence_ref missing
+        - anchor_resolution in MISSING/AMBIGUOUS/NOT_CHECKED
+    MemoryConflictSet:
+      purpose: contradictory or scope/time-qualified memories
+      identity_kind: MEMORY_CONFLICT_SET
+      required_fields:
+        - set_id
+        - tenant_id
+        - employee_owner_ref
+        - member_memory_refs
+        - member_owner_refs
+        - conflict_type
+        - resolution_status
+        - support_link_refs
+        - created_at
+      member_rules:
+        minimum_member_memory_refs: 2
+        allowed_members:
+          - PersonalMemoryCandidate
+          - PersonalMemoryRecord
+        member_owner_refs_must_match_resolved_members: true
+        cross_employee_member_requires: permission_intersection_ref
+      support_rules:
+        support_links_target_members_only: true
+        required_relation: CONTRADICTS
+        support_link_target_resource: MemorySupportLink
+      resolution_rule: >-
+        ConflictSet records contradiction, qualification, or review state only.
+        Review or supersession receipts may resolve the conflict elsewhere, but
+        the set does not select a winner or grant write authority by itself.
+      forbidden_fields:
+        - winner_memory_ref
+        - accepted_winner_ref
+        - canonical_winner_ref
+      forbidden_authority:
+        - acceptance
+        - canonical_writer
+        - winner_selection
+
 personal_memory_record_minimum:
   identity:
     - memory_id
@@ -198,6 +947,8 @@ personal_memory_record_minimum:
     - source_anchor_refs
     - provenance
   governance:
+    - ownership_mode
+    - visibility_scope
     - verification_status
     - acceptance_status
     - sensitivity
@@ -271,7 +1022,10 @@ personal_memory_governance:
   required_dimensions:
     - source support
     - scope
+    - ownership_mode
+    - visibility_scope
     - sensitivity
+    - consent_or_notice
     - applicability
     - validity
     - freshness
@@ -288,6 +1042,8 @@ recall_context_pack:
     - intent
     - requester_identity
     - requester_scope
+    - ownership_mode
+    - visibility_scope
     - context_budget
   output:
     - selected_memory_refs
@@ -301,11 +1057,12 @@ recall_context_pack:
   unrestricted_global_personal_memory_search: forbidden
 
 correction_flow:
-  - USER_OR_SYSTEM_CORRECTION_EVIDENCE
-  - CORRECTION_PROPOSAL
-  - VERIFY
-  - ACCEPT
-  - AMEND_INVALIDATE_OR_SUPERSEDE
+  steps:
+    - USER_OR_SYSTEM_CORRECTION_EVIDENCE
+    - CORRECTION_PROPOSAL
+    - VERIFY
+    - ACCEPT
+    - AMEND_INVALIDATE_OR_SUPERSEDE
   history_erasure: forbidden
 
 promotion_flow:
@@ -320,7 +1077,9 @@ promotion_flow:
   required_steps:
     - PromotionProposal
     - permission_and_scope_check
+    - ownership_and_visibility_check
     - evidence_support_check
+    - redaction
     - verification
     - review
     - canonical_single_writer
@@ -390,7 +1149,7 @@ backlog:
     status: READY_FOR_REVIEW
   EMEM_01:
     title: Personal Memory Candidate and Record Schema
-    status: BLOCKED_BY_EMEM_00
+    status: READY_FOR_REVIEW
   EMEM_02:
     title: Personal Evidence Profile and Source Mapping
     status: BLOCKED_BY_STD_00_AND_RAW_EVIDENCE
@@ -398,15 +1157,18 @@ backlog:
     title: Recall and MemoryContextPack Contract
     status: BLOCKED_BY_EMEM_01
   EMEM_04:
+    title: Correction and Supersession
+    status: BLOCKED_BY_EMEM_01
+  EMEM_05:
     title: Personal-to-Shared Promotion Proposal
     status: BLOCKED_BY_EMEM_01_AND_GOVERNANCE
-  EMEM_05:
-    title: Product Department Vertical Slice
-    status: BLOCKED_BY_EMEM_01_TO_04
   EMEM_06:
+    title: Product Department Vertical Slice
+    status: BLOCKED_BY_EMEM_01_TO_05
+  EMEM_07:
     title: Role Profiles
     status: DEFER_UNTIL_CORE_CONTRACT_STABLE
-  EMEM_07:
+  EMEM_08:
     title: AI Core Developer Adapter
     status: DEFER_OPTIONAL
 
@@ -435,4 +1197,9 @@ required_negative_fixtures:
   - stale memory returned without freshness warning
   - role profile redefines core evidence identity
   - AI Core folder layout treated as universal schema
+  - shared work context includes EMPLOYEE_PRIVATE material without redaction
+  - employee writes shared work context without private material redaction
+  - system writes shared work context without private material redaction
+  - manager promotes COMPANY_MANAGED_PERSONAL without employee notice
+  - manager promotes SHARED_WORK_CONTEXT without source ACL
   - personal-to-company promotion bypasses review
