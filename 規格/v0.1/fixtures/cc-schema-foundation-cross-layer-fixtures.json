@@ -1,0 +1,55 @@
+{
+  "fixture_set": "cc-schema-foundation-cross-layer-v0.1",
+  "status": "LOCKED_OWNER_ACCEPTED_20260904",
+  "base_case": {
+    "case_id": "CC_CROSS_POS_CANDIDATE_SUPPORT_ANCHOR_RAW",
+    "expected": "allow",
+    "candidate": {
+      "candidate_id": "urn:omos:personal-memory:candidate:0198e6d0-9101-7aaa-8bbb-111111111111",
+      "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+      "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+      "applicability": {"scope_mode": "EMPLOYEE_PRIVATE"},
+      "support_link_refs": ["urn:omos:personal-memory:support-link:0198e6d0-9102-7aaa-8bbb-111111111111"],
+      "governance": {
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "acl_ref": "urn:omos:acl:0198e6d0-9104-7aaa-8bbb-111111111111"
+      }
+    },
+    "support_link": {
+      "link_id": "urn:omos:personal-memory:support-link:0198e6d0-9102-7aaa-8bbb-111111111111",
+      "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+      "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+      "target_ref": "urn:omos:personal-memory:candidate:0198e6d0-9101-7aaa-8bbb-111111111111",
+      "target_employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+      "evidence_ref": "urn:omos:evidence:0198e6d1-0002-7aaa-8bbb-111111111111",
+      "source_anchor_ref": "urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111",
+      "source_anchor_profile": "MARKDOWN_TEXT_V1",
+      "relation": "SUPPORTS",
+      "anchor_resolution": "EXACT_MATCH",
+      "support_material": {
+        "kind": "EXACT_SOURCE_ANCHOR",
+        "exact_quote": "策略檢查"
+      }
+    },
+    "raw_evidence_fixture_ref": "git-markdown-sop-raw-evidence",
+    "anchor_fixture_ref": "markdown-text-source-anchor",
+    "access_binding": {
+      "source_acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0202-7aaa-8bbb-111111111111",
+      "candidate_acl_ref": "urn:omos:acl:0198e6d0-9104-7aaa-8bbb-111111111111",
+      "source_visibility_scope_refs": ["urn:omos:scope:repo-acme"],
+      "candidate_visibility_scope": "SELF_ONLY",
+      "scope_relation": "SELF_ONLY_SUBSET_OF_SOURCE"
+    }
+  },
+  "negative_cases": [
+    {"name": "missing-source-anchor-ref", "mutation": {"target": "support", "op": "delete", "path": "source_anchor_ref"}, "expected_failure_codes": ["SUPPORT_ANCHOR_REF"]},
+    {"name": "wrong-raw-evidence-ref", "mutation": {"target": "support", "op": "replace", "path": "evidence_ref", "value": "urn:omos:evidence:0198e6d1-ffff-7aaa-8bbb-111111111111"}, "expected_failure_codes": ["SUPPORT_EVIDENCE_REF"]},
+    {"name": "representation-digest-mismatch", "mutation": {"target": "anchor", "op": "replace", "path": "representation.representation_digest", "value": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"}, "expected_failure_codes": ["REPRESENTATION_DIGEST"]},
+    {"name": "revoked-source-claims-exact", "mutation": {"target": "anchor", "op": "replace", "path": "source_availability", "value": "ACCESS_REVOKED"}, "expected_failure_codes": ["RESOLUTION_AVAILABILITY"]},
+    {"name": "owner-widening", "mutation": {"target": "support", "op": "replace", "path": "employee_owner_ref", "value": "urn:omos:employee:0198e6d0-bbbb-7aaa-8bbb-111111111111"}, "expected_failure_codes": ["OWNER_ALIGNMENT"]},
+    {"name": "acl-widening", "mutation": {"target": "candidate", "op": "replace", "path": "governance.acl_ref", "value": "urn:omos:acl:0198e6d0-ffff-7aaa-8bbb-111111111111"}, "expected_failure_codes": ["ACL_BINDING"]},
+    {"name": "visibility-scope-widening", "mutation": {"target": "candidate", "op": "replace", "path": "governance.visibility_scope", "value": "SHARED_WORK_CONTEXT"}, "expected_failure_codes": ["VISIBILITY_SCOPE"]},
+    {"name": "summary-only-support", "mutation": {"target": "support", "op": "replace", "path": "support_material.kind", "value": "MODEL_SUMMARY"}, "expected_failure_codes": ["SUPPORT_MATERIAL"]}
+  ]
+}

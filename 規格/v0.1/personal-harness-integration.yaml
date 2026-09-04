@@ -1152,7 +1152,7 @@ backlog:
     status: READY_FOR_REVIEW
   EMEM_02:
     title: Personal Evidence Profile and Source Mapping
-    status: BLOCKED_BY_STD_00_AND_RAW_EVIDENCE
+    status: BLOCKED_BY_STD_03_NORMALIZED_DOCUMENT
   EMEM_03:
     title: Recall and MemoryContextPack Contract
     status: BLOCKED_BY_EMEM_01

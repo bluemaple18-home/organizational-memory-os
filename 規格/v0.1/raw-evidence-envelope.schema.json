@@ -1,0 +1,748 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:omos:schema:raw-evidence-envelope:0.1.0",
+  "title": "RawEvidenceEnvelope v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "evidence_ref",
+    "tenant_id",
+    "source_identity",
+    "source_aliases",
+    "source_version",
+    "chronology",
+    "digests",
+    "payload",
+    "access",
+    "provenance",
+    "source_availability",
+    "payload_retention_state",
+    "idempotency_key",
+    "idempotency_basis",
+    "quality_gaps"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "omos.evidence.raw.v0.1"
+    },
+    "evidence_id": {
+      "$ref": "#/$defs/uuidv7"
+    },
+    "evidence_ref": {
+      "type": "string",
+      "pattern": "^urn:omos:evidence:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "tenant_id": {
+      "$ref": "#/$defs/uuidv7"
+    },
+    "source_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_system",
+        "source_instance_id",
+        "entity_type",
+        "native_id"
+      ],
+      "properties": {
+        "source_system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_instance_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "entity_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_native_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "source_aliases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "value"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "MUTABLE_KEY",
+              "URL",
+              "DISPLAY_NAME",
+              "LEGACY_ID",
+              "EXTERNAL_REF"
+            ]
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1
+          },
+          "valid_from": {
+            "$ref": "#/$defs/rfc3339_or_null"
+          },
+          "valid_to": {
+            "$ref": "#/$defs/rfc3339_or_null"
+          },
+          "status": {
+            "enum": [
+              "ACTIVE",
+              "RETIRED"
+            ]
+          },
+          "source_evidence_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "source_event": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "event_type",
+        "native_event_id",
+        "identity_basis",
+        "delivery_id",
+        "idempotency_basis"
+      ],
+      "properties": {
+        "event_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "native_event_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "identity_basis": {
+          "enum": [
+            "NATIVE",
+            "FALLBACK_DERIVED",
+            "NONE"
+          ]
+        },
+        "delivery_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "idempotency_basis": {
+          "$ref": "#/$defs/idempotency_basis"
+        }
+      }
+    },
+    "source_version": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "basis",
+        "kind",
+        "value",
+        "secondary_digest"
+      ],
+      "properties": {
+        "basis": {
+          "enum": [
+            "AUTHORITATIVE_NATIVE",
+            "COMPOUND_OBSERVED",
+            "CONTENT_ONLY",
+            "UNKNOWN"
+          ]
+        },
+        "kind": {
+          "enum": [
+            "REVISION",
+            "ETAG",
+            "COMMIT",
+            "SEQUENCE",
+            "CHANGE_ID",
+            "UPDATED_AT_DIGEST",
+            "CONTENT_DIGEST",
+            "NONE"
+          ]
+        },
+        "value": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "secondary_digest": {
+          "$ref": "#/$defs/sha256_or_null"
+        }
+      }
+    },
+    "chronology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "occurred_at",
+        "occurred_at_basis",
+        "observed_at",
+        "received_at",
+        "persisted_at"
+      ],
+      "properties": {
+        "occurred_at": {
+          "$ref": "#/$defs/rfc3339_or_null"
+        },
+        "occurred_at_basis": {
+          "enum": [
+            "SOURCE",
+            "PRODUCER_ASSIGNED",
+            "OBSERVED",
+            "UNKNOWN"
+          ]
+        },
+        "observed_at": {
+          "$ref": "#/$defs/rfc3339"
+        },
+        "received_at": {
+          "$ref": "#/$defs/rfc3339"
+        },
+        "persisted_at": {
+          "$ref": "#/$defs/rfc3339"
+        }
+      }
+    },
+    "digests": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "raw_digest",
+        "canonical_digest"
+      ],
+      "properties": {
+        "raw_digest": {
+          "$ref": "#/$defs/sha256"
+        },
+        "canonical_digest": {
+          "$ref": "#/$defs/sha256_or_null"
+        },
+        "normalized_digest": {
+          "$ref": "#/$defs/sha256_or_null"
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "media_type",
+        "payload_ref",
+        "size_bytes",
+        "structured_profile",
+        "canonicalization_profile",
+        "retention_tier"
+      ],
+      "properties": {
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "payload_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "structured_profile": {
+          "enum": [
+            "BINARY",
+            "TEXT",
+            "I_JSON",
+            "NON_I_JSON"
+          ]
+        },
+        "canonicalization_profile": {
+          "enum": [
+            "NONE",
+            "RFC8785_JCS"
+          ]
+        },
+        "retention_tier": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acl_snapshot_ref",
+        "permission_basis",
+        "visibility_scope_refs"
+      ],
+      "properties": {
+        "acl_snapshot_ref": {
+          "type": "string",
+          "pattern": "^urn:omos:acl-snapshot:"
+        },
+        "permission_basis": {
+          "enum": [
+            "SOURCE_ACL",
+            "TENANT_POLICY",
+            "MANUAL_AUTHORITY"
+          ]
+        },
+        "source_permission_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility_scope_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "transport_delivery": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "source",
+        "id",
+        "type"
+      ],
+      "properties": {
+        "profile": {
+          "enum": [
+            "CLOUDEVENTS_1_0"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "subject": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "time": {
+          "$ref": "#/$defs/rfc3339_or_null"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adapter_id",
+        "adapter_version",
+        "ingestion_mode",
+        "source_observation_receipt_ref"
+      ],
+      "properties": {
+        "adapter_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adapter_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ingestion_mode": {
+          "enum": [
+            "MANUAL_UPLOAD",
+            "POLL",
+            "WEBHOOK",
+            "BULK_EXPORT",
+            "MIGRATION"
+          ]
+        },
+        "source_observation_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "adapter_activity_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lineage_receipt_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lineage_activity_status": {
+          "enum": [
+            "STARTED",
+            "RUNNING",
+            "COMPLETE",
+            "PARTIAL",
+            "FAIL",
+            "ABORT"
+          ]
+        },
+        "verification_status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "PARTIAL",
+            "NOT_RUN",
+            "STATIC_ONLY"
+          ]
+        },
+        "verification_inferred_from_activity": {
+          "type": "boolean"
+        }
+      }
+    },
+    "activity_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "source_availability": {
+      "enum": [
+        "AVAILABLE",
+        "NOT_FOUND_UNCONFIRMED",
+        "ACCESS_REVOKED",
+        "SOURCE_DELETED",
+        "UNAVAILABLE_UNKNOWN",
+        "REPRESENTATION_UNAVAILABLE"
+      ]
+    },
+    "payload_retention_state": {
+      "enum": [
+        "RETAINED",
+        "LEGAL_HOLD",
+        "RETENTION_EXPIRED",
+        "TOMBSTONED",
+        "PURGED"
+      ]
+    },
+    "deletion_confirmation_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "permission_decision_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "idempotency_key": {
+      "$ref": "#/$defs/sha256"
+    },
+    "idempotency_basis": {
+      "$ref": "#/$defs/idempotency_basis"
+    },
+    "quality_gaps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "severity"
+        ],
+        "properties": {
+          "code": {
+            "enum": [
+              "PAGE_REQUIRES_OCR",
+              "TABLE_STRUCTURE_UNCERTAIN",
+              "MULTI_COLUMN_READING_ORDER_RISK",
+              "IMAGE_CONTENT_NOT_READ",
+              "FORMULA_NOT_PARSED",
+              "TRUNCATED_BY_LIMIT",
+              "ROBOTS_EXCLUDED",
+              "ATTACHMENT_UNREADABLE",
+              "UNSUPPORTED_FORMAT",
+              "ENCODING_REPLACEMENT_DETECTED",
+              "PARSER_FALLBACK_USED",
+              "SOURCE_PARTIAL",
+              "CANONICALIZATION_UNAVAILABLE",
+              "REDELIVERY_PAYLOAD_MISMATCH",
+              "CLOCK_SKEW_DETECTED",
+              "IDENTITY_FALLBACK_DERIVED"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "INFO",
+              "LOW",
+              "MEDIUM",
+              "HIGH",
+              "CRITICAL"
+            ]
+          },
+          "detail": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "canonicalization_profile": { "const": "NONE" }
+            },
+            "required": ["canonicalization_profile"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "digests": {
+            "properties": {
+              "canonical_digest": { "type": "null" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "canonicalization_profile": { "const": "RFC8785_JCS" }
+            },
+            "required": ["canonicalization_profile"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "structured_profile": { "const": "I_JSON" }
+            }
+          },
+          "digests": {
+            "properties": {
+              "canonical_digest": { "$ref": "#/$defs/sha256" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source_event": {
+            "type": "object",
+            "properties": {
+              "native_event_id": { "type": "null" }
+            },
+            "required": ["native_event_id"]
+          }
+        },
+        "required": ["source_event"]
+      },
+      "then": {
+        "properties": {
+          "source_event": {
+            "properties": {
+              "identity_basis": { "const": "FALLBACK_DERIVED" },
+              "idempotency_basis": {
+                "properties": {
+                  "profile": { "const": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1" },
+                  "includes": {
+                    "allOf": [
+                      { "contains": { "const": "tenant_id" } },
+                      { "contains": { "const": "stable_source_identity" } },
+                      { "contains": { "const": "event_type" } },
+                      { "contains": { "const": "occurred_at" } },
+                      { "contains": { "const": "raw_digest" } }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source_event": {
+            "type": "object",
+            "properties": {
+              "native_event_id": { "type": "string", "minLength": 1 }
+            },
+            "required": ["native_event_id"]
+          }
+        },
+        "required": ["source_event"]
+      },
+      "then": {
+        "properties": {
+          "source_event": {
+            "properties": {
+              "identity_basis": { "const": "NATIVE" },
+              "idempotency_basis": {
+                "properties": {
+                  "profile": { "const": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1" },
+                  "includes": {
+                    "allOf": [
+                      { "contains": { "const": "tenant_id" } },
+                      { "contains": { "const": "stable_source_identity" } },
+                      { "contains": { "const": "event_type" } },
+                      { "contains": { "const": "native_event_id" } }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuidv7": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "sha256_or_null": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "rfc3339": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "rfc3339_or_null": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "idempotency_basis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "includes",
+        "excludes"
+      ],
+      "properties": {
+        "profile": {
+          "enum": [
+            "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+            "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1"
+          ]
+        },
+        "includes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "excludes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "profile": { "const": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1" }
+            }
+          },
+          "then": {
+            "properties": {
+              "includes": {
+                "allOf": [
+                  { "contains": { "const": "tenant_id" } },
+                  { "contains": { "const": "stable_source_identity" } },
+                  { "contains": { "const": "source_version" } }
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "profile": { "const": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1" }
+            }
+          },
+          "then": {
+            "properties": {
+              "includes": {
+                "allOf": [
+                  { "contains": { "const": "tenant_id" } },
+                  { "contains": { "const": "stable_source_identity" } },
+                  { "contains": { "const": "event_type" } }
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

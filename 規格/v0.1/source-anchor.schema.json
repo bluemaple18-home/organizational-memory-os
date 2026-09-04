@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:omos:schema:source-anchor:0.1.0",
+  "title": "Common SourceAnchor v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "anchor_id", "anchor_ref", "evidence_ref", "source_identity", "source_version", "representation", "access", "profile", "selectors", "profile_details", "quote", "normalization_profile", "source_availability", "resolution"],
+  "properties": {
+    "schema_version": {"const": "omos.source-anchor.v0.1"},
+    "anchor_id": {"$ref": "#/$defs/uuidv7"},
+    "anchor_ref": {"type": "string", "pattern": "^urn:omos:source-anchor:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "evidence_ref": {"type": "string", "pattern": "^urn:omos:evidence:[0-9a-f-]{36}$"},
+    "source_identity": {"$ref": "#/$defs/source_identity"},
+    "source_version": {"$ref": "#/$defs/source_version"},
+    "representation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_payload_ref", "source_payload_digest", "representation_ref", "media_type", "representation_digest", "digest_basis"],
+      "properties": {
+        "source_payload_ref": {"type": "string", "minLength": 1},
+        "source_payload_digest": {"$ref": "#/$defs/sha256"},
+        "representation_ref": {"type": "string", "minLength": 1},
+        "media_type": {"type": "string", "pattern": "^[a-z]+/[a-z0-9.+-]+$"},
+        "representation_digest": {"$ref": "#/$defs/sha256"},
+        "digest_basis": {"type": "string", "minLength": 1}
+      }
+    },
+    "access": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acl_snapshot_ref", "permission_decision_ref"],
+      "properties": {
+        "acl_snapshot_ref": {"type": "string", "pattern": "^urn:omos:acl-snapshot:[0-9a-f-]{36}$"},
+        "permission_decision_ref": {"type": ["string", "null"]}
+      }
+    },
+    "profile": {"enum": ["PDF_REGION_V1", "MARKDOWN_TEXT_V1", "JIRA_CLOUD_ENTITY_SEGMENT_V1"]},
+    "selectors": {"type": "array", "minItems": 1, "items": {"type": "object", "additionalProperties": false, "required": ["selector_type"], "properties": {"selector_type": {"enum": ["PDF_REGION", "TEXT_POSITION", "TEXT_QUOTE", "HEADING_PATH", "JSON_POINTER"]}}}},
+    "profile_details": {"type": "object"},
+    "quote": {"$ref": "#/$defs/quote"},
+    "normalization_profile": {"const": "OMOS_TEXT_NORM_V1"},
+    "source_availability": {"enum": ["AVAILABLE", "ACCESS_REVOKED", "REPRESENTATION_UNAVAILABLE"]},
+    "resolution": {"$ref": "#/$defs/resolution"}
+  },
+  "$defs": {
+    "uuidv7": {"type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
+    "sha256": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "source_identity": {"type": "object", "additionalProperties": false, "required": ["source_system", "source_instance_id", "entity_type", "native_id"], "properties": {"source_system": {"type": "string", "minLength": 1}, "source_instance_id": {"type": "string", "minLength": 1}, "entity_type": {"type": "string", "minLength": 1}, "native_id": {"type": "string", "minLength": 1}, "parent_native_id": {"type": ["string", "null"]}}},
+    "source_version": {"type": "object", "additionalProperties": false, "required": ["basis", "kind", "value", "secondary_digest"], "properties": {"basis": {"enum": ["AUTHORITATIVE_NATIVE", "COMPOUND_OBSERVED", "CONTENT_ONLY", "UNKNOWN"]}, "kind": {"enum": ["REVISION", "ETAG", "COMMIT", "SEQUENCE", "CHANGE_ID", "UPDATED_AT_DIGEST", "CONTENT_DIGEST", "NONE"]}, "value": {"type": ["string", "null"]}, "secondary_digest": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}}},
+    "quote": {"type": "object", "additionalProperties": false, "required": ["exact", "prefix", "suffix", "normalization_profile"], "properties": {"exact": {"type": "string", "minLength": 1}, "prefix": {"type": "string"}, "suffix": {"type": "string"}, "normalization_profile": {"const": "OMOS_TEXT_NORM_V1"}}},
+    "resolution": {"type": "object", "additionalProperties": false, "required": ["status", "resolved_at", "resolver_version"], "properties": {"status": {"enum": ["EXACT_MATCH", "RELOCATED", "CONTENT_CHANGED", "MISSING", "ACCESS_REVOKED", "REPRESENTATION_UNAVAILABLE", "AMBIGUOUS"]}, "resolved_at": {"type": "string", "format": "date-time"}, "resolver_version": {"type": "string", "minLength": 1}}}
+  }
+}

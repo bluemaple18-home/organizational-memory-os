@@ -1,6 +1,6 @@
 {
   "fixture_set": "std-00-negative-v0.1",
-  "status": "DRAFT_REVIEW_REQUIRED",
+  "status": "LOCKED",
   "cases": [
     {
       "id": "NEG-001",
@@ -218,6 +218,21 @@
       ],
       "required_outcome": [
         "projections can be rebuilt from canonical refs, evidence refs, and build configuration"
+      ]
+    },
+    {
+      "id": "NEG-017",
+      "name": "source-anchor-missing-representation-digest",
+      "given": "A Phase-1 SourceAnchor profile locates a source representation but omits anchor.representation_digest or lacks a declared digest basis.",
+      "must_not": [
+        "treat the anchor as fully resolvable",
+        "infer the digest from quote text or mutable source alias",
+        "accept profile-specific selectors without a representation digest basis"
+      ],
+      "required_outcome": [
+        "reject or block the SourceAnchor contract",
+        "require anchor.representation_digest",
+        "require source_anchor_profiles.digest_basis for the anchor profile"
       ]
     }
   ]

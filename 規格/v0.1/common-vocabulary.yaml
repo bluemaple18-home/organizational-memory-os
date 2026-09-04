@@ -1,7 +1,7 @@
 schema:
   schema_id: urn:omos:schema:common-vocabulary:0.1.0
   version: 0.1.0
-  status: DRAFT_REVIEW_REQUIRED
+  status: LOCKED
   json_schema_dialect: https://json-schema.org/draft/2020-12/schema
 
 contract_families:
@@ -356,6 +356,16 @@ source_anchor_profiles:
     - PDF_REGION_V1
     - MARKDOWN_TEXT_V1
     - JIRA_CLOUD_ENTITY_SEGMENT_V1
+  digest_basis:
+    PDF_REGION_V1:
+      representation_digest_basis: retained source payload bytes for the page representation
+      fixture_digest_field: digests.raw_digest
+    MARKDOWN_TEXT_V1:
+      representation_digest_basis: repository blob bytes at the pinned commit
+      fixture_digest_field: source_version.secondary_digest
+    JIRA_CLOUD_ENTITY_SEGMENT_V1:
+      representation_digest_basis: rendered Jira ADF field segment under the declared renderer profile
+      fixture_digest_field: source_version.secondary_digest
 
 object_context:
   object_type_core:

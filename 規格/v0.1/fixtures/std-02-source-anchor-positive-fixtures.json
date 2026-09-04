@@ -1,0 +1,67 @@
+{
+  "fixture_set": "std-02-source-anchor-positive-v0.1",
+  "status": "LOCKED_OWNER_ACCEPTED_20260904",
+  "raw_evidence_fixture_set": "std-01-raw-evidence-positive-v0.1",
+  "fixtures": [
+    {
+      "name": "pdf-region-source-anchor",
+      "anchor": {
+        "schema_version": "omos.source-anchor.v0.1",
+        "anchor_id": "0198e6d2-0001-7aaa-8bbb-111111111111",
+        "anchor_ref": "urn:omos:source-anchor:0198e6d2-0001-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0001-7aaa-8bbb-111111111111",
+        "source_identity": {"source_system": "document-upload", "source_instance_id": "tenant-example", "entity_type": "file", "native_id": "upload-20260828-001", "parent_native_id": null},
+        "source_version": {"basis": "CONTENT_ONLY", "kind": "CONTENT_DIGEST", "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "secondary_digest": null},
+        "representation": {"source_payload_ref": "urn:omos:payload:0198e6d1-0101-7aaa-8bbb-111111111111", "source_payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "representation_ref": "urn:omos:representation:normalized-page-7", "media_type": "text/plain", "representation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "digest_basis": "retained source payload bytes for the page representation"},
+        "access": {"acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0201-7aaa-8bbb-111111111111", "permission_decision_ref": null},
+        "profile": "PDF_REGION_V1",
+        "selectors": [{"selector_type": "PDF_REGION"}, {"selector_type": "TEXT_QUOTE"}],
+        "profile_details": {"page": 7, "page_number_basis": "ONE_BASED", "bbox": {"x_min": 0.101234, "y_min": 0.203456, "x_max": 0.812345, "y_max": 0.287654, "coordinate_space": "NORMALIZED_PAGE_0_1", "origin": "TOP_LEFT"}, "block_id": "b-000123", "char_range": {"start": 120, "end": 124, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE"}, "char_representation_ref": "urn:omos:representation:normalized-page-7", "char_representation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "selected_text": "權限檢查"},
+        "quote": {"exact": "權限檢查", "prefix": "安全要求：", "suffix": "後才可查詢薪資。", "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "normalization_profile": "OMOS_TEXT_NORM_V1",
+        "source_availability": "AVAILABLE",
+        "resolution": {"status": "EXACT_MATCH", "resolved_at": "2026-09-04T01:00:00Z", "resolver_version": "std02-fixture-v1"}
+      }
+    },
+    {
+      "name": "markdown-text-source-anchor",
+      "anchor": {
+        "schema_version": "omos.source-anchor.v0.1",
+        "anchor_id": "0198e6d2-0002-7aaa-8bbb-111111111111",
+        "anchor_ref": "urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0002-7aaa-8bbb-111111111111",
+        "source_identity": {"source_system": "github", "source_instance_id": "R_kgDOExample", "entity_type": "repository-path", "native_id": "docs/order-spend-zero.md", "parent_native_id": null},
+        "source_version": {"basis": "AUTHORITATIVE_NATIVE", "kind": "COMMIT", "value": "0123456789abcdef0123456789abcdef01234567", "secondary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
+        "representation": {"source_payload_ref": "urn:omos:payload:0198e6d1-0102-7aaa-8bbb-111111111111", "source_payload_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "representation_ref": "urn:omos:representation:git-blob-order-spend-zero", "media_type": "text/markdown", "representation_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc", "digest_basis": "repository blob bytes at the pinned commit"},
+        "access": {"acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0202-7aaa-8bbb-111111111111", "permission_decision_ref": null},
+        "profile": "MARKDOWN_TEXT_V1",
+        "selectors": [{"selector_type": "TEXT_POSITION"}, {"selector_type": "TEXT_QUOTE"}, {"selector_type": "HEADING_PATH"}],
+        "profile_details": {"codepoint_range": {"start": 520, "end": 524, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE"}, "line_range": {"start": 18, "end": 18}, "line_number_basis": "ONE_BASED_END_INCLUSIVE", "heading_path": ["訂單花費為 0 排查", "策略層級"], "selected_text": "策略檢查"},
+        "quote": {"exact": "策略檢查", "prefix": "確認廣告形式一致後，", "suffix": "再檢查定向交集。", "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "normalization_profile": "OMOS_TEXT_NORM_V1",
+        "source_availability": "AVAILABLE",
+        "resolution": {"status": "EXACT_MATCH", "resolved_at": "2026-09-04T01:00:01Z", "resolver_version": "std02-fixture-v1"}
+      }
+    },
+    {
+      "name": "jira-cloud-entity-segment-source-anchor",
+      "anchor": {
+        "schema_version": "omos.source-anchor.v0.1",
+        "anchor_id": "0198e6d2-0003-7aaa-8bbb-111111111111",
+        "anchor_ref": "urn:omos:source-anchor:0198e6d2-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "source_identity": {"source_system": "jira-cloud", "source_instance_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "native_id": "10042", "parent_native_id": null},
+        "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-28T05:58:20Z", "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+        "representation": {"source_payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111", "source_payload_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "representation_ref": "urn:omos:representation:jira-10042-description-adf-rendered", "media_type": "text/plain", "representation_digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212", "digest_basis": "rendered Jira ADF field segment under the declared renderer profile"},
+        "access": {"acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111", "permission_decision_ref": null},
+        "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+        "selectors": [{"selector_type": "JSON_POINTER"}, {"selector_type": "TEXT_POSITION"}, {"selector_type": "TEXT_QUOTE"}],
+        "profile_details": {"deployment_type": "CLOUD", "cloud_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "issue_id": "10042", "issue_key_alias": "PROJ-123", "field_id": "description", "json_pointer": "/fields/description/content/0/content/0/text", "renderer_profile": "JIRA_ADF_TEXT_RENDERER_V1", "renderer_version": "1.0.0", "text_selector": {"representation_ref": "urn:omos:representation:jira-10042-description-adf-rendered", "representation_digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212", "start": 0, "end": 6, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "請先檢查權限", "prefix": "處理前，", "suffix": "再存取資料。"}},
+        "quote": {"exact": "請先檢查權限", "prefix": "處理前，", "suffix": "再存取資料。", "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "normalization_profile": "OMOS_TEXT_NORM_V1",
+        "source_availability": "AVAILABLE",
+        "resolution": {"status": "EXACT_MATCH", "resolved_at": "2026-09-04T01:00:02Z", "resolver_version": "std02-fixture-v1"}
+      }
+    }
+  ]
+}

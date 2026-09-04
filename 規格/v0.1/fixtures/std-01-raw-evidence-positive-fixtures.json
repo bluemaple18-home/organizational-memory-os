@@ -1,0 +1,340 @@
+{
+  "fixture_set": "std-01-raw-evidence-positive-v0.1",
+  "status": "LOCKED_OWNER_ACCEPTED_20260904",
+  "fixtures": [
+    {
+      "name": "pdf-manual-upload-raw-evidence",
+      "purpose": "Validate PDF manual upload RawEvidenceEnvelope with content-only version, unknown occurrence time, raw digest, ACL snapshot, and retained payload.",
+      "envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0001-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0001-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "document-upload",
+          "source_instance_id": "tenant-example",
+          "entity_type": "file",
+          "native_id": "upload-20260828-001",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "DISPLAY_NAME",
+            "value": "產品排查手冊.pdf",
+            "valid_from": "2026-08-28T06:00:00Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": null,
+        "source_version": {
+          "basis": "CONTENT_ONLY",
+          "kind": "CONTENT_DIGEST",
+          "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "secondary_digest": null
+        },
+        "chronology": {
+          "occurred_at": null,
+          "occurred_at_basis": "UNKNOWN",
+          "observed_at": "2026-08-28T06:00:00Z",
+          "received_at": "2026-08-28T06:00:01Z",
+          "persisted_at": "2026-08-28T06:00:02Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "canonical_digest": null,
+          "normalized_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "payload": {
+          "media_type": "application/pdf",
+          "payload_ref": "urn:omos:payload:0198e6d1-0101-7aaa-8bbb-111111111111",
+          "size_bytes": 245760,
+          "structured_profile": "BINARY",
+          "canonicalization_profile": "NONE",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0201-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": null,
+          "visibility_scope_refs": [
+            "urn:omos:scope:tenant-example"
+          ]
+        },
+        "transport_delivery": null,
+        "provenance": {
+          "adapter_id": "manual-upload-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "MANUAL_UPLOAD",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0301-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0401-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": null,
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0401-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": []
+      }
+    },
+    {
+      "name": "git-markdown-sop-raw-evidence",
+      "purpose": "Validate Git Markdown RawEvidenceEnvelope with authoritative commit version and blob representation digest.",
+      "envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0002-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0002-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "github",
+          "source_instance_id": "R_kgDOExample",
+          "entity_type": "repository-path",
+          "native_id": "docs/order-spend-zero.md",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "URL",
+            "value": "https://github.com/example/acme/blob/main/docs/order-spend-zero.md",
+            "valid_from": "2026-08-28T06:01:00Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "DISPLAY_NAME",
+            "value": "訂單花費為 0 排查",
+            "valid_from": "2026-08-28T06:01:00Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": null,
+        "source_version": {
+          "basis": "AUTHORITATIVE_NATIVE",
+          "kind": "COMMIT",
+          "value": "0123456789abcdef0123456789abcdef01234567",
+          "secondary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:55:00Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T06:01:00Z",
+          "received_at": "2026-08-28T06:01:01Z",
+          "persisted_at": "2026-08-28T06:01:02Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "canonical_digest": null,
+          "normalized_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload": {
+          "media_type": "text/markdown",
+          "payload_ref": "urn:omos:payload:0198e6d1-0102-7aaa-8bbb-111111111111",
+          "size_bytes": 4096,
+          "structured_profile": "TEXT",
+          "canonicalization_profile": "NONE",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0202-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "repo-policy-main-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:repo-acme"
+          ]
+        },
+        "transport_delivery": null,
+        "provenance": {
+          "adapter_id": "git-repository-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "POLL",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0302-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0402-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0502-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0402-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": []
+      }
+    },
+    {
+      "name": "jira-cloud-issue-description-raw-evidence",
+      "purpose": "Validate Jira RawEvidenceEnvelope with numeric issue identity, mutable key alias, compound observed version, CloudEvents transport, and JCS canonical digest.",
+      "envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": []
+      }
+    }
+  ]
+}

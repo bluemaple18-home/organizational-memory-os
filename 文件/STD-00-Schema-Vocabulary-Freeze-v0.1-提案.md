@@ -5,13 +5,14 @@
 狀態：
 
 ```text
-DRAFT_COMPLETE
-REVIEW_REQUIRED
-NOT_CANONICAL
-NO_IMPLEMENTATION_AUTHORIZATION
+LOCKED
+OWNER_ACCEPTED_2026_09_04
+TECHNICAL_ACCEPTANCE_PASS
 MERGES_CTX_00_VOCABULARY
 DOES_NOT_CHANGE_CURRENT_FRONTIER
 ```
+
+鎖版依據：Owner 於 2026-09-04 明確接受 `STD-00`；P2 SourceAnchor digest缺口已在同日補齊 Jira positive `representation_digest`、profile digest basis與負向 fixture，並以 deterministic validator驗證。
 
 基準 Repo：
 
@@ -45,7 +46,7 @@ Base HEAD: 2be575c3bea70b3a91f9d97d89ca0dc6f878efa8
 - Agent Runtime。
 - Canonical architecture acceptance。
 
-只有使用者／指定 architecture authority 可以把本提案升為 `LOCKED`。
+本提案已由使用者／指定 architecture authority接受並升為 `LOCKED`。本鎖版不授權 STD-01、Adapter、Connector、DB、Skill、Hook、Loop、Harness或Hermes施工。
 
 ---
 
@@ -1888,17 +1889,19 @@ Codex必須特別檢查：
 12. Codex沒有提出`BLOCK`級authority finding。
 13. 使用者／指定authority明確接受。
 
+鎖版結果：以上 13 條於 2026-09-04 全部通過；驗證證據見 `.work/evidence/STD00-LOCK-20260904.md`。
+
 ---
 
 # 29. 下一步
 
-本提案通過Review後：
+本提案已通過Review並由Owner接受：
 
 ```text
 STD-00 → LOCKED
 ```
 
-才開：
+後續可另開獨立卡處理：
 
 ```text
 STD-01 RawEvidenceEnvelope JSON Schema

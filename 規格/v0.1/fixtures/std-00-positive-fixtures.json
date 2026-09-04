@@ -1,6 +1,6 @@
 {
   "fixture_set": "std-00-positive-v0.1",
-  "status": "DRAFT_REVIEW_REQUIRED",
+  "status": "LOCKED",
   "fixtures": [
     {
       "name": "pdf-manual-upload",
@@ -196,6 +196,7 @@
       "payload_retention_state": "RETAINED",
       "anchor": {
         "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+        "representation_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
         "entity_type": "issue",
         "entity_id": "10042",
         "field_path": "fields.description",

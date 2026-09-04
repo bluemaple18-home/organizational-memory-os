@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:omos:schema:source-anchor:jira-cloud-entity-segment-v1:0.1.0",
+  "title": "SourceAnchor JIRA_CLOUD_ENTITY_SEGMENT_V1 v0.1",
+  "allOf": [
+    {"$ref": "urn:omos:schema:source-anchor:0.1.0"},
+    {"type": "object", "required": ["profile", "profile_details"], "properties": {"profile": {"const": "JIRA_CLOUD_ENTITY_SEGMENT_V1"}, "profile_details": {"type": "object", "additionalProperties": false, "required": ["deployment_type", "cloud_id", "entity_type", "issue_id", "issue_key_alias", "field_id", "json_pointer", "renderer_profile", "renderer_version", "text_selector"], "properties": {"deployment_type": {"const": "CLOUD"}, "cloud_id": {"type": "string", "minLength": 1}, "entity_type": {"const": "issue"}, "issue_id": {"type": "string", "pattern": "^[0-9]+$"}, "issue_key_alias": {"type": "string", "minLength": 1}, "field_id": {"type": "string", "minLength": 1}, "json_pointer": {"type": "string", "pattern": "^(?:/(?:[^~/]|~[01])*)*$"}, "renderer_profile": {"type": "string", "minLength": 1}, "renderer_version": {"type": "string", "minLength": 1}, "text_selector": {"type": "object", "additionalProperties": false, "required": ["representation_ref", "representation_digest", "start", "end", "unit", "range_semantics", "exact", "prefix", "suffix"], "properties": {"representation_ref": {"type": "string", "minLength": 1}, "representation_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "start": {"type": "integer", "minimum": 0}, "end": {"type": "integer", "minimum": 0}, "unit": {"const": "UNICODE_CODE_POINT"}, "range_semantics": {"const": "START_INCLUSIVE_END_EXCLUSIVE"}, "exact": {"type": "string", "minLength": 1}, "prefix": {"type": "string"}, "suffix": {"type": "string"}}}}}}}
+  ]
+}

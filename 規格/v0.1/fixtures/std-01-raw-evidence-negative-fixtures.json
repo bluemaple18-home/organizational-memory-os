@@ -1,0 +1,3705 @@
+{
+  "fixture_set": "std-01-raw-evidence-negative-v0.1",
+  "status": "LOCKED_OWNER_ACCEPTED_20260904",
+  "cases": [
+    {
+      "id": "NEG-001",
+      "name": "evidence-id-equals-delivery-id",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "purpose": "Evidence identity不得沿用 delivery identity。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "transport_delivery.id"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "EVIDENCE_ID_DELIVERY_ID"
+      ]
+    },
+    {
+      "id": "NEG-002",
+      "name": "same-cloudevent-redelivery-creates-second-evidence",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "instance_expectations": [{"instance_index": 0, "expected_result": "ALLOW"}, {"instance_index": 1, "expected_result": "ALLOW"}],
+      "purpose": "相同 delivery與 raw digest不得建立第二筆 Evidence。",
+      "scenario": {
+        "envelopes": [
+          {
+            "schema_version": "omos.evidence.raw.v0.1",
+            "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+            "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+            "source_identity": {
+              "source_system": "jira-cloud",
+              "source_instance_id": "11111111-2222-3333-4444-555555555555",
+              "entity_type": "issue",
+              "native_id": "10042",
+              "parent_native_id": null
+            },
+            "source_aliases": [
+              {
+                "kind": "MUTABLE_KEY",
+                "value": "PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              },
+              {
+                "kind": "URL",
+                "value": "https://example.atlassian.net/browse/PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              }
+            ],
+            "source_event": {
+              "event_type": "com.atlassian.jira.issue.updated.v1",
+              "native_event_id": "webhook-event-789",
+              "identity_basis": "NATIVE",
+              "delivery_id": "delivery-456",
+              "idempotency_basis": {
+                "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+                "includes": [
+                  "tenant_id",
+                  "stable_source_identity",
+                  "event_type",
+                  "native_event_id"
+                ],
+                "excludes": [
+                  "transport_delivery.id",
+                  "received_at",
+                  "persisted_at",
+                  "ingestion_mode"
+                ]
+              }
+            },
+            "source_version": {
+              "basis": "COMPOUND_OBSERVED",
+              "kind": "UPDATED_AT_DIGEST",
+              "value": "2026-08-28T05:58:20Z",
+              "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "chronology": {
+              "occurred_at": "2026-08-28T05:58:20Z",
+              "occurred_at_basis": "SOURCE",
+              "observed_at": "2026-08-28T05:58:22Z",
+              "received_at": "2026-08-28T05:58:23Z",
+              "persisted_at": "2026-08-28T05:58:24Z"
+            },
+            "digests": {
+              "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+            },
+            "payload": {
+              "media_type": "application/json",
+              "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+              "size_bytes": 8192,
+              "structured_profile": "I_JSON",
+              "canonicalization_profile": "RFC8785_JCS",
+              "retention_tier": "SOURCE_FULL_BODY"
+            },
+            "access": {
+              "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+              "permission_basis": "SOURCE_ACL",
+              "source_permission_version": "jira-permission-snapshot-20260828",
+              "visibility_scope_refs": [
+                "urn:omos:scope:jira-project-10000"
+              ]
+            },
+            "transport_delivery": {
+              "profile": "CLOUDEVENTS_1_0",
+              "source": "https://example.atlassian.net",
+              "id": "delivery-456",
+              "type": "com.atlassian.jira.issue.updated.v1",
+              "subject": "issue/10042",
+              "time": "2026-08-28T05:58:20Z"
+            },
+            "provenance": {
+              "adapter_id": "jira-cloud-adapter",
+              "adapter_version": "0.1.0",
+              "ingestion_mode": "WEBHOOK",
+              "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+              "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+              "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+              "lineage_activity_status": "COMPLETE",
+              "verification_status": "NOT_RUN",
+              "verification_inferred_from_activity": false
+            },
+            "activity_refs": [
+              "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+            ],
+            "source_availability": "AVAILABLE",
+            "payload_retention_state": "RETAINED",
+            "deletion_confirmation_ref": null,
+            "permission_decision_ref": null,
+            "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "idempotency_basis": {
+              "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+              "includes": [
+                "tenant_id",
+                "stable_source_identity",
+                "source_version"
+              ],
+              "excludes": [
+                "transport_delivery.id",
+                "received_at",
+                "persisted_at",
+                "ingestion_mode"
+              ]
+            },
+            "quality_gaps": [
+
+            ]
+          },
+          {
+            "schema_version": "omos.evidence.raw.v0.1",
+            "evidence_id": "0198e6d1-1003-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d1-1003-7aaa-8bbb-111111111111",
+            "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+            "source_identity": {
+              "source_system": "jira-cloud",
+              "source_instance_id": "11111111-2222-3333-4444-555555555555",
+              "entity_type": "issue",
+              "native_id": "10042",
+              "parent_native_id": null
+            },
+            "source_aliases": [
+              {
+                "kind": "MUTABLE_KEY",
+                "value": "PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              },
+              {
+                "kind": "URL",
+                "value": "https://example.atlassian.net/browse/PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              }
+            ],
+            "source_event": {
+              "event_type": "com.atlassian.jira.issue.updated.v1",
+              "native_event_id": "webhook-event-789",
+              "identity_basis": "NATIVE",
+              "delivery_id": "delivery-456",
+              "idempotency_basis": {
+                "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+                "includes": [
+                  "tenant_id",
+                  "stable_source_identity",
+                  "event_type",
+                  "native_event_id"
+                ],
+                "excludes": [
+                  "transport_delivery.id",
+                  "received_at",
+                  "persisted_at",
+                  "ingestion_mode"
+                ]
+              }
+            },
+            "source_version": {
+              "basis": "COMPOUND_OBSERVED",
+              "kind": "UPDATED_AT_DIGEST",
+              "value": "2026-08-28T05:58:20Z",
+              "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "chronology": {
+              "occurred_at": "2026-08-28T05:58:20Z",
+              "occurred_at_basis": "SOURCE",
+              "observed_at": "2026-08-28T05:58:22Z",
+              "received_at": "2026-08-28T05:58:23Z",
+              "persisted_at": "2026-08-28T05:58:24Z"
+            },
+            "digests": {
+              "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+            },
+            "payload": {
+              "media_type": "application/json",
+              "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+              "size_bytes": 8192,
+              "structured_profile": "I_JSON",
+              "canonicalization_profile": "RFC8785_JCS",
+              "retention_tier": "SOURCE_FULL_BODY"
+            },
+            "access": {
+              "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+              "permission_basis": "SOURCE_ACL",
+              "source_permission_version": "jira-permission-snapshot-20260828",
+              "visibility_scope_refs": [
+                "urn:omos:scope:jira-project-10000"
+              ]
+            },
+            "transport_delivery": {
+              "profile": "CLOUDEVENTS_1_0",
+              "source": "https://example.atlassian.net",
+              "id": "delivery-456",
+              "type": "com.atlassian.jira.issue.updated.v1",
+              "subject": "issue/10042",
+              "time": "2026-08-28T05:58:20Z"
+            },
+            "provenance": {
+              "adapter_id": "jira-cloud-adapter",
+              "adapter_version": "0.1.0",
+              "ingestion_mode": "WEBHOOK",
+              "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+              "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+              "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+              "lineage_activity_status": "COMPLETE",
+              "verification_status": "NOT_RUN",
+              "verification_inferred_from_activity": false
+            },
+            "activity_refs": [
+              "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+            ],
+            "source_availability": "AVAILABLE",
+            "payload_retention_state": "RETAINED",
+            "deletion_confirmation_ref": null,
+            "permission_decision_ref": null,
+            "idempotency_key": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "idempotency_basis": {
+              "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+              "includes": [
+                "tenant_id",
+                "stable_source_identity",
+                "source_version"
+              ],
+              "excludes": [
+                "transport_delivery.id",
+                "received_at",
+                "persisted_at",
+                "ingestion_mode"
+              ]
+            },
+            "quality_gaps": [
+
+            ]
+          }
+        ]
+      },
+      "expected_failure_codes": [
+        "REDELIVERY_DUPLICATE_EVIDENCE"
+      ]
+    },
+    {
+      "id": "NEG-003",
+      "name": "redelivery-payload-mismatch-without-finding",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "instance_expectations": [{"instance_index": 0, "expected_result": "ALLOW"}, {"instance_index": 1, "expected_result": "ALLOW"}],
+      "purpose": "相同 delivery不同 payload不得靜默通過。",
+      "scenario": {
+        "envelopes": [
+          {
+            "schema_version": "omos.evidence.raw.v0.1",
+            "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+            "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+            "source_identity": {
+              "source_system": "jira-cloud",
+              "source_instance_id": "11111111-2222-3333-4444-555555555555",
+              "entity_type": "issue",
+              "native_id": "10042",
+              "parent_native_id": null
+            },
+            "source_aliases": [
+              {
+                "kind": "MUTABLE_KEY",
+                "value": "PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              },
+              {
+                "kind": "URL",
+                "value": "https://example.atlassian.net/browse/PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              }
+            ],
+            "source_event": {
+              "event_type": "com.atlassian.jira.issue.updated.v1",
+              "native_event_id": "webhook-event-789",
+              "identity_basis": "NATIVE",
+              "delivery_id": "delivery-456",
+              "idempotency_basis": {
+                "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+                "includes": [
+                  "tenant_id",
+                  "stable_source_identity",
+                  "event_type",
+                  "native_event_id"
+                ],
+                "excludes": [
+                  "transport_delivery.id",
+                  "received_at",
+                  "persisted_at",
+                  "ingestion_mode"
+                ]
+              }
+            },
+            "source_version": {
+              "basis": "COMPOUND_OBSERVED",
+              "kind": "UPDATED_AT_DIGEST",
+              "value": "2026-08-28T05:58:20Z",
+              "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "chronology": {
+              "occurred_at": "2026-08-28T05:58:20Z",
+              "occurred_at_basis": "SOURCE",
+              "observed_at": "2026-08-28T05:58:22Z",
+              "received_at": "2026-08-28T05:58:23Z",
+              "persisted_at": "2026-08-28T05:58:24Z"
+            },
+            "digests": {
+              "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+            },
+            "payload": {
+              "media_type": "application/json",
+              "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+              "size_bytes": 8192,
+              "structured_profile": "I_JSON",
+              "canonicalization_profile": "RFC8785_JCS",
+              "retention_tier": "SOURCE_FULL_BODY"
+            },
+            "access": {
+              "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+              "permission_basis": "SOURCE_ACL",
+              "source_permission_version": "jira-permission-snapshot-20260828",
+              "visibility_scope_refs": [
+                "urn:omos:scope:jira-project-10000"
+              ]
+            },
+            "transport_delivery": {
+              "profile": "CLOUDEVENTS_1_0",
+              "source": "https://example.atlassian.net",
+              "id": "delivery-456",
+              "type": "com.atlassian.jira.issue.updated.v1",
+              "subject": "issue/10042",
+              "time": "2026-08-28T05:58:20Z"
+            },
+            "provenance": {
+              "adapter_id": "jira-cloud-adapter",
+              "adapter_version": "0.1.0",
+              "ingestion_mode": "WEBHOOK",
+              "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+              "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+              "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+              "lineage_activity_status": "COMPLETE",
+              "verification_status": "NOT_RUN",
+              "verification_inferred_from_activity": false
+            },
+            "activity_refs": [
+              "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+            ],
+            "source_availability": "AVAILABLE",
+            "payload_retention_state": "RETAINED",
+            "deletion_confirmation_ref": null,
+            "permission_decision_ref": null,
+            "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "idempotency_basis": {
+              "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+              "includes": [
+                "tenant_id",
+                "stable_source_identity",
+                "source_version"
+              ],
+              "excludes": [
+                "transport_delivery.id",
+                "received_at",
+                "persisted_at",
+                "ingestion_mode"
+              ]
+            },
+            "quality_gaps": [
+
+            ]
+          },
+          {
+            "schema_version": "omos.evidence.raw.v0.1",
+            "evidence_id": "0198e6d1-1005-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d1-1005-7aaa-8bbb-111111111111",
+            "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+            "source_identity": {
+              "source_system": "jira-cloud",
+              "source_instance_id": "11111111-2222-3333-4444-555555555555",
+              "entity_type": "issue",
+              "native_id": "10042",
+              "parent_native_id": null
+            },
+            "source_aliases": [
+              {
+                "kind": "MUTABLE_KEY",
+                "value": "PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              },
+              {
+                "kind": "URL",
+                "value": "https://example.atlassian.net/browse/PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              }
+            ],
+            "source_event": {
+              "event_type": "com.atlassian.jira.issue.updated.v1",
+              "native_event_id": "webhook-event-789",
+              "identity_basis": "NATIVE",
+              "delivery_id": "delivery-456",
+              "idempotency_basis": {
+                "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+                "includes": [
+                  "tenant_id",
+                  "stable_source_identity",
+                  "event_type",
+                  "native_event_id"
+                ],
+                "excludes": [
+                  "transport_delivery.id",
+                  "received_at",
+                  "persisted_at",
+                  "ingestion_mode"
+                ]
+              }
+            },
+            "source_version": {
+              "basis": "COMPOUND_OBSERVED",
+              "kind": "UPDATED_AT_DIGEST",
+              "value": "2026-08-28T05:58:20Z",
+              "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "chronology": {
+              "occurred_at": "2026-08-28T05:58:20Z",
+              "occurred_at_basis": "SOURCE",
+              "observed_at": "2026-08-28T05:58:22Z",
+              "received_at": "2026-08-28T05:58:23Z",
+              "persisted_at": "2026-08-28T05:58:24Z"
+            },
+            "digests": {
+              "raw_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+              "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+            },
+            "payload": {
+              "media_type": "application/json",
+              "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+              "size_bytes": 8192,
+              "structured_profile": "I_JSON",
+              "canonicalization_profile": "RFC8785_JCS",
+              "retention_tier": "SOURCE_FULL_BODY"
+            },
+            "access": {
+              "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+              "permission_basis": "SOURCE_ACL",
+              "source_permission_version": "jira-permission-snapshot-20260828",
+              "visibility_scope_refs": [
+                "urn:omos:scope:jira-project-10000"
+              ]
+            },
+            "transport_delivery": {
+              "profile": "CLOUDEVENTS_1_0",
+              "source": "https://example.atlassian.net",
+              "id": "delivery-456",
+              "type": "com.atlassian.jira.issue.updated.v1",
+              "subject": "issue/10042",
+              "time": "2026-08-28T05:58:20Z"
+            },
+            "provenance": {
+              "adapter_id": "jira-cloud-adapter",
+              "adapter_version": "0.1.0",
+              "ingestion_mode": "WEBHOOK",
+              "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+              "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+              "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+              "lineage_activity_status": "COMPLETE",
+              "verification_status": "NOT_RUN",
+              "verification_inferred_from_activity": false
+            },
+            "activity_refs": [
+              "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+            ],
+            "source_availability": "AVAILABLE",
+            "payload_retention_state": "RETAINED",
+            "deletion_confirmation_ref": null,
+            "permission_decision_ref": null,
+            "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "idempotency_basis": {
+              "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+              "includes": [
+                "tenant_id",
+                "stable_source_identity",
+                "source_version"
+              ],
+              "excludes": [
+                "transport_delivery.id",
+                "received_at",
+                "persisted_at",
+                "ingestion_mode"
+              ]
+            },
+            "quality_gaps": [
+
+            ]
+          }
+        ]
+      },
+      "expected_failure_codes": [
+        "REDELIVERY_PAYLOAD_MISMATCH_UNFLAGGED"
+      ]
+    },
+    {
+      "id": "NEG-004",
+      "name": "same-source-new-revision-reuses-evidence-id",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "instance_expectations": [{"instance_index": 0, "expected_result": "ALLOW"}, {"instance_index": 1, "expected_result": "ALLOW"}],
+      "purpose": "同來源新版本不得重用 Evidence identity。",
+      "scenario": {
+        "envelopes": [
+          {
+            "schema_version": "omos.evidence.raw.v0.1",
+            "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+            "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+            "source_identity": {
+              "source_system": "jira-cloud",
+              "source_instance_id": "11111111-2222-3333-4444-555555555555",
+              "entity_type": "issue",
+              "native_id": "10042",
+              "parent_native_id": null
+            },
+            "source_aliases": [
+              {
+                "kind": "MUTABLE_KEY",
+                "value": "PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              },
+              {
+                "kind": "URL",
+                "value": "https://example.atlassian.net/browse/PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              }
+            ],
+            "source_event": {
+              "event_type": "com.atlassian.jira.issue.updated.v1",
+              "native_event_id": "webhook-event-789",
+              "identity_basis": "NATIVE",
+              "delivery_id": "delivery-456",
+              "idempotency_basis": {
+                "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+                "includes": [
+                  "tenant_id",
+                  "stable_source_identity",
+                  "event_type",
+                  "native_event_id"
+                ],
+                "excludes": [
+                  "transport_delivery.id",
+                  "received_at",
+                  "persisted_at",
+                  "ingestion_mode"
+                ]
+              }
+            },
+            "source_version": {
+              "basis": "COMPOUND_OBSERVED",
+              "kind": "UPDATED_AT_DIGEST",
+              "value": "2026-08-28T05:58:20Z",
+              "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "chronology": {
+              "occurred_at": "2026-08-28T05:58:20Z",
+              "occurred_at_basis": "SOURCE",
+              "observed_at": "2026-08-28T05:58:22Z",
+              "received_at": "2026-08-28T05:58:23Z",
+              "persisted_at": "2026-08-28T05:58:24Z"
+            },
+            "digests": {
+              "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+            },
+            "payload": {
+              "media_type": "application/json",
+              "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+              "size_bytes": 8192,
+              "structured_profile": "I_JSON",
+              "canonicalization_profile": "RFC8785_JCS",
+              "retention_tier": "SOURCE_FULL_BODY"
+            },
+            "access": {
+              "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+              "permission_basis": "SOURCE_ACL",
+              "source_permission_version": "jira-permission-snapshot-20260828",
+              "visibility_scope_refs": [
+                "urn:omos:scope:jira-project-10000"
+              ]
+            },
+            "transport_delivery": {
+              "profile": "CLOUDEVENTS_1_0",
+              "source": "https://example.atlassian.net",
+              "id": "delivery-456",
+              "type": "com.atlassian.jira.issue.updated.v1",
+              "subject": "issue/10042",
+              "time": "2026-08-28T05:58:20Z"
+            },
+            "provenance": {
+              "adapter_id": "jira-cloud-adapter",
+              "adapter_version": "0.1.0",
+              "ingestion_mode": "WEBHOOK",
+              "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+              "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+              "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+              "lineage_activity_status": "COMPLETE",
+              "verification_status": "NOT_RUN",
+              "verification_inferred_from_activity": false
+            },
+            "activity_refs": [
+              "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+            ],
+            "source_availability": "AVAILABLE",
+            "payload_retention_state": "RETAINED",
+            "deletion_confirmation_ref": null,
+            "permission_decision_ref": null,
+            "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "idempotency_basis": {
+              "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+              "includes": [
+                "tenant_id",
+                "stable_source_identity",
+                "source_version"
+              ],
+              "excludes": [
+                "transport_delivery.id",
+                "received_at",
+                "persisted_at",
+                "ingestion_mode"
+              ]
+            },
+            "quality_gaps": [
+
+            ]
+          },
+          {
+            "schema_version": "omos.evidence.raw.v0.1",
+            "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+            "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+            "source_identity": {
+              "source_system": "jira-cloud",
+              "source_instance_id": "11111111-2222-3333-4444-555555555555",
+              "entity_type": "issue",
+              "native_id": "10042",
+              "parent_native_id": null
+            },
+            "source_aliases": [
+              {
+                "kind": "MUTABLE_KEY",
+                "value": "PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              },
+              {
+                "kind": "URL",
+                "value": "https://example.atlassian.net/browse/PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              }
+            ],
+            "source_event": {
+              "event_type": "com.atlassian.jira.issue.updated.v1",
+              "native_event_id": "webhook-event-789",
+              "identity_basis": "NATIVE",
+              "delivery_id": "delivery-456",
+              "idempotency_basis": {
+                "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+                "includes": [
+                  "tenant_id",
+                  "stable_source_identity",
+                  "event_type",
+                  "native_event_id"
+                ],
+                "excludes": [
+                  "transport_delivery.id",
+                  "received_at",
+                  "persisted_at",
+                  "ingestion_mode"
+                ]
+              }
+            },
+            "source_version": {
+              "basis": "COMPOUND_OBSERVED",
+              "kind": "UPDATED_AT_DIGEST",
+              "value": "2026-08-29T05:58:20Z",
+              "secondary_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            "chronology": {
+              "occurred_at": "2026-08-28T05:58:20Z",
+              "occurred_at_basis": "SOURCE",
+              "observed_at": "2026-08-28T05:58:22Z",
+              "received_at": "2026-08-28T05:58:23Z",
+              "persisted_at": "2026-08-28T05:58:24Z"
+            },
+            "digests": {
+              "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+            },
+            "payload": {
+              "media_type": "application/json",
+              "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+              "size_bytes": 8192,
+              "structured_profile": "I_JSON",
+              "canonicalization_profile": "RFC8785_JCS",
+              "retention_tier": "SOURCE_FULL_BODY"
+            },
+            "access": {
+              "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+              "permission_basis": "SOURCE_ACL",
+              "source_permission_version": "jira-permission-snapshot-20260828",
+              "visibility_scope_refs": [
+                "urn:omos:scope:jira-project-10000"
+              ]
+            },
+            "transport_delivery": {
+              "profile": "CLOUDEVENTS_1_0",
+              "source": "https://example.atlassian.net",
+              "id": "delivery-457",
+              "type": "com.atlassian.jira.issue.updated.v1",
+              "subject": "issue/10042",
+              "time": "2026-08-28T05:58:20Z"
+            },
+            "provenance": {
+              "adapter_id": "jira-cloud-adapter",
+              "adapter_version": "0.1.0",
+              "ingestion_mode": "WEBHOOK",
+              "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+              "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+              "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+              "lineage_activity_status": "COMPLETE",
+              "verification_status": "NOT_RUN",
+              "verification_inferred_from_activity": false
+            },
+            "activity_refs": [
+              "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+            ],
+            "source_availability": "AVAILABLE",
+            "payload_retention_state": "RETAINED",
+            "deletion_confirmation_ref": null,
+            "permission_decision_ref": null,
+            "idempotency_key": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+            "idempotency_basis": {
+              "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+              "includes": [
+                "tenant_id",
+                "stable_source_identity",
+                "source_version"
+              ],
+              "excludes": [
+                "transport_delivery.id",
+                "received_at",
+                "persisted_at",
+                "ingestion_mode"
+              ]
+            },
+            "quality_gaps": [
+
+            ]
+          }
+        ]
+      },
+      "expected_failure_codes": [
+        "REVISION_REUSED_EVIDENCE_ID"
+      ]
+    },
+    {
+      "id": "NEG-004A",
+      "name": "same-source-new-revision-reuses-idempotency-key",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "instance_expectations": [{"instance_index": 0, "expected_result": "ALLOW"}, {"instance_index": 1, "expected_result": "ALLOW"}],
+      "purpose": "同一 stable source identity 的新版本即使使用新 Evidence identity 與 payload ref，仍不得重用 idempotency key。",
+      "scenario": {
+        "envelopes": [
+          {
+            "schema_version": "omos.evidence.raw.v0.1",
+            "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+            "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+            "source_identity": {
+              "source_system": "jira-cloud",
+              "source_instance_id": "11111111-2222-3333-4444-555555555555",
+              "entity_type": "issue",
+              "native_id": "10042",
+              "parent_native_id": null
+            },
+            "source_aliases": [
+              {
+                "kind": "MUTABLE_KEY",
+                "value": "PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              },
+              {
+                "kind": "URL",
+                "value": "https://example.atlassian.net/browse/PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              }
+            ],
+            "source_event": {
+              "event_type": "com.atlassian.jira.issue.updated.v1",
+              "native_event_id": "webhook-event-789",
+              "identity_basis": "NATIVE",
+              "delivery_id": "delivery-456",
+              "idempotency_basis": {
+                "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+                "includes": [
+                  "tenant_id",
+                  "stable_source_identity",
+                  "event_type",
+                  "native_event_id"
+                ],
+                "excludes": [
+                  "transport_delivery.id",
+                  "received_at",
+                  "persisted_at",
+                  "ingestion_mode"
+                ]
+              }
+            },
+            "source_version": {
+              "basis": "COMPOUND_OBSERVED",
+              "kind": "UPDATED_AT_DIGEST",
+              "value": "2026-08-28T05:58:20Z",
+              "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "chronology": {
+              "occurred_at": "2026-08-28T05:58:20Z",
+              "occurred_at_basis": "SOURCE",
+              "observed_at": "2026-08-28T05:58:22Z",
+              "received_at": "2026-08-28T05:58:23Z",
+              "persisted_at": "2026-08-28T05:58:24Z"
+            },
+            "digests": {
+              "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+            },
+            "payload": {
+              "media_type": "application/json",
+              "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+              "size_bytes": 8192,
+              "structured_profile": "I_JSON",
+              "canonicalization_profile": "RFC8785_JCS",
+              "retention_tier": "SOURCE_FULL_BODY"
+            },
+            "access": {
+              "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+              "permission_basis": "SOURCE_ACL",
+              "source_permission_version": "jira-permission-snapshot-20260828",
+              "visibility_scope_refs": [
+                "urn:omos:scope:jira-project-10000"
+              ]
+            },
+            "transport_delivery": {
+              "profile": "CLOUDEVENTS_1_0",
+              "source": "https://example.atlassian.net",
+              "id": "delivery-456",
+              "type": "com.atlassian.jira.issue.updated.v1",
+              "subject": "issue/10042",
+              "time": "2026-08-28T05:58:20Z"
+            },
+            "provenance": {
+              "adapter_id": "jira-cloud-adapter",
+              "adapter_version": "0.1.0",
+              "ingestion_mode": "WEBHOOK",
+              "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+              "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+              "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+              "lineage_activity_status": "COMPLETE",
+              "verification_status": "NOT_RUN",
+              "verification_inferred_from_activity": false
+            },
+            "activity_refs": [
+              "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+            ],
+            "source_availability": "AVAILABLE",
+            "payload_retention_state": "RETAINED",
+            "deletion_confirmation_ref": null,
+            "permission_decision_ref": null,
+            "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "idempotency_basis": {
+              "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+              "includes": [
+                "tenant_id",
+                "stable_source_identity",
+                "source_version"
+              ],
+              "excludes": [
+                "transport_delivery.id",
+                "received_at",
+                "persisted_at",
+                "ingestion_mode"
+              ]
+            },
+            "quality_gaps": [
+
+            ]
+          },
+          {
+            "schema_version": "omos.evidence.raw.v0.1",
+            "evidence_id": "0198e6d1-2003-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d1-2003-7aaa-8bbb-111111111111",
+            "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+            "source_identity": {
+              "source_system": "jira-cloud",
+              "source_instance_id": "11111111-2222-3333-4444-555555555555",
+              "entity_type": "issue",
+              "native_id": "10042",
+              "parent_native_id": null
+            },
+            "source_aliases": [
+              {
+                "kind": "MUTABLE_KEY",
+                "value": "PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              },
+              {
+                "kind": "URL",
+                "value": "https://example.atlassian.net/browse/PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              }
+            ],
+            "source_event": {
+              "event_type": "com.atlassian.jira.issue.updated.v1",
+              "native_event_id": "webhook-event-790",
+              "identity_basis": "NATIVE",
+              "delivery_id": "delivery-457",
+              "idempotency_basis": {
+                "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+                "includes": [
+                  "tenant_id",
+                  "stable_source_identity",
+                  "event_type",
+                  "native_event_id"
+                ],
+                "excludes": [
+                  "transport_delivery.id",
+                  "received_at",
+                  "persisted_at",
+                  "ingestion_mode"
+                ]
+              }
+            },
+            "source_version": {
+              "basis": "COMPOUND_OBSERVED",
+              "kind": "UPDATED_AT_DIGEST",
+              "value": "2026-08-29T05:58:20Z",
+              "secondary_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+            },
+            "chronology": {
+              "occurred_at": "2026-08-29T05:58:20Z",
+              "occurred_at_basis": "SOURCE",
+              "observed_at": "2026-08-29T05:58:22Z",
+              "received_at": "2026-08-29T05:58:23Z",
+              "persisted_at": "2026-08-29T05:58:24Z"
+            },
+            "digests": {
+              "raw_digest": "sha256:abababababababababababababababababababababababababababababababab",
+              "canonical_digest": "sha256:cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+              "normalized_digest": "sha256:efefefefefefefefefefefefefefefefefefefefefefefefefefefefefefefef"
+            },
+            "payload": {
+              "media_type": "application/json",
+              "payload_ref": "urn:omos:payload:0198e6d1-2103-7aaa-8bbb-111111111111",
+              "size_bytes": 8192,
+              "structured_profile": "I_JSON",
+              "canonicalization_profile": "RFC8785_JCS",
+              "retention_tier": "SOURCE_FULL_BODY"
+            },
+            "access": {
+              "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+              "permission_basis": "SOURCE_ACL",
+              "source_permission_version": "jira-permission-snapshot-20260828",
+              "visibility_scope_refs": [
+                "urn:omos:scope:jira-project-10000"
+              ]
+            },
+            "transport_delivery": {
+              "profile": "CLOUDEVENTS_1_0",
+              "source": "https://example.atlassian.net",
+              "id": "delivery-457",
+              "type": "com.atlassian.jira.issue.updated.v1",
+              "subject": "issue/10042",
+              "time": "2026-08-29T05:58:20Z"
+            },
+            "provenance": {
+              "adapter_id": "jira-cloud-adapter",
+              "adapter_version": "0.1.0",
+              "ingestion_mode": "WEBHOOK",
+              "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+              "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+              "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+              "lineage_activity_status": "COMPLETE",
+              "verification_status": "NOT_RUN",
+              "verification_inferred_from_activity": false
+            },
+            "activity_refs": [
+              "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+            ],
+            "source_availability": "AVAILABLE",
+            "payload_retention_state": "RETAINED",
+            "deletion_confirmation_ref": null,
+            "permission_decision_ref": null,
+            "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "idempotency_basis": {
+              "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+              "includes": [
+                "tenant_id",
+                "stable_source_identity",
+                "source_version"
+              ],
+              "excludes": [
+                "transport_delivery.id",
+                "received_at",
+                "persisted_at",
+                "ingestion_mode"
+              ]
+            },
+            "quality_gaps": [
+
+            ]
+          }
+        ]
+      },
+      "expected_failure_codes": [
+        "REVISION_REUSED_IDEMPOTENCY_KEY"
+      ]
+    },
+    {
+      "id": "NEG-005",
+      "name": "same-payload-different-sources-merged",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "instance_expectations": [{"instance_index": 0, "expected_result": "ALLOW"}, {"instance_index": 1, "expected_result": "ALLOW"}],
+      "purpose": "相同 bytes不得跨來源合併 identity。",
+      "scenario": {
+        "envelopes": [
+          {
+            "schema_version": "omos.evidence.raw.v0.1",
+            "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+            "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+            "source_identity": {
+              "source_system": "jira-cloud",
+              "source_instance_id": "11111111-2222-3333-4444-555555555555",
+              "entity_type": "issue",
+              "native_id": "10042",
+              "parent_native_id": null
+            },
+            "source_aliases": [
+              {
+                "kind": "MUTABLE_KEY",
+                "value": "PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              },
+              {
+                "kind": "URL",
+                "value": "https://example.atlassian.net/browse/PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              }
+            ],
+            "source_event": {
+              "event_type": "com.atlassian.jira.issue.updated.v1",
+              "native_event_id": "webhook-event-789",
+              "identity_basis": "NATIVE",
+              "delivery_id": "delivery-456",
+              "idempotency_basis": {
+                "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+                "includes": [
+                  "tenant_id",
+                  "stable_source_identity",
+                  "event_type",
+                  "native_event_id"
+                ],
+                "excludes": [
+                  "transport_delivery.id",
+                  "received_at",
+                  "persisted_at",
+                  "ingestion_mode"
+                ]
+              }
+            },
+            "source_version": {
+              "basis": "COMPOUND_OBSERVED",
+              "kind": "UPDATED_AT_DIGEST",
+              "value": "2026-08-28T05:58:20Z",
+              "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "chronology": {
+              "occurred_at": "2026-08-28T05:58:20Z",
+              "occurred_at_basis": "SOURCE",
+              "observed_at": "2026-08-28T05:58:22Z",
+              "received_at": "2026-08-28T05:58:23Z",
+              "persisted_at": "2026-08-28T05:58:24Z"
+            },
+            "digests": {
+              "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+            },
+            "payload": {
+              "media_type": "application/json",
+              "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+              "size_bytes": 8192,
+              "structured_profile": "I_JSON",
+              "canonicalization_profile": "RFC8785_JCS",
+              "retention_tier": "SOURCE_FULL_BODY"
+            },
+            "access": {
+              "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+              "permission_basis": "SOURCE_ACL",
+              "source_permission_version": "jira-permission-snapshot-20260828",
+              "visibility_scope_refs": [
+                "urn:omos:scope:jira-project-10000"
+              ]
+            },
+            "transport_delivery": {
+              "profile": "CLOUDEVENTS_1_0",
+              "source": "https://example.atlassian.net",
+              "id": "delivery-456",
+              "type": "com.atlassian.jira.issue.updated.v1",
+              "subject": "issue/10042",
+              "time": "2026-08-28T05:58:20Z"
+            },
+            "provenance": {
+              "adapter_id": "jira-cloud-adapter",
+              "adapter_version": "0.1.0",
+              "ingestion_mode": "WEBHOOK",
+              "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+              "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+              "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+              "lineage_activity_status": "COMPLETE",
+              "verification_status": "NOT_RUN",
+              "verification_inferred_from_activity": false
+            },
+            "activity_refs": [
+              "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+            ],
+            "source_availability": "AVAILABLE",
+            "payload_retention_state": "RETAINED",
+            "deletion_confirmation_ref": null,
+            "permission_decision_ref": null,
+            "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "idempotency_basis": {
+              "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+              "includes": [
+                "tenant_id",
+                "stable_source_identity",
+                "source_version"
+              ],
+              "excludes": [
+                "transport_delivery.id",
+                "received_at",
+                "persisted_at",
+                "ingestion_mode"
+              ]
+            },
+            "quality_gaps": [
+
+            ]
+          },
+          {
+            "schema_version": "omos.evidence.raw.v0.1",
+            "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+            "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+            "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+            "source_identity": {
+              "source_system": "jira-cloud",
+              "source_instance_id": "11111111-2222-3333-4444-555555555555",
+              "entity_type": "issue",
+              "native_id": "10043",
+              "parent_native_id": null
+            },
+            "source_aliases": [
+              {
+                "kind": "MUTABLE_KEY",
+                "value": "PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              },
+              {
+                "kind": "URL",
+                "value": "https://example.atlassian.net/browse/PROJ-123",
+                "valid_from": "2026-08-28T05:58:20Z",
+                "valid_to": null,
+                "status": "ACTIVE",
+                "source_evidence_ref": null
+              }
+            ],
+            "source_event": {
+              "event_type": "com.atlassian.jira.issue.updated.v1",
+              "native_event_id": "webhook-event-789",
+              "identity_basis": "NATIVE",
+              "delivery_id": "delivery-456",
+              "idempotency_basis": {
+                "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+                "includes": [
+                  "tenant_id",
+                  "stable_source_identity",
+                  "event_type",
+                  "native_event_id"
+                ],
+                "excludes": [
+                  "transport_delivery.id",
+                  "received_at",
+                  "persisted_at",
+                  "ingestion_mode"
+                ]
+              }
+            },
+            "source_version": {
+              "basis": "COMPOUND_OBSERVED",
+              "kind": "UPDATED_AT_DIGEST",
+              "value": "2026-08-28T05:58:20Z",
+              "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+            },
+            "chronology": {
+              "occurred_at": "2026-08-28T05:58:20Z",
+              "occurred_at_basis": "SOURCE",
+              "observed_at": "2026-08-28T05:58:22Z",
+              "received_at": "2026-08-28T05:58:23Z",
+              "persisted_at": "2026-08-28T05:58:24Z"
+            },
+            "digests": {
+              "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+              "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+            },
+            "payload": {
+              "media_type": "application/json",
+              "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+              "size_bytes": 8192,
+              "structured_profile": "I_JSON",
+              "canonicalization_profile": "RFC8785_JCS",
+              "retention_tier": "SOURCE_FULL_BODY"
+            },
+            "access": {
+              "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+              "permission_basis": "SOURCE_ACL",
+              "source_permission_version": "jira-permission-snapshot-20260828",
+              "visibility_scope_refs": [
+                "urn:omos:scope:jira-project-10000"
+              ]
+            },
+            "transport_delivery": {
+              "profile": "CLOUDEVENTS_1_0",
+              "source": "https://example.atlassian.net",
+              "id": "delivery-456",
+              "type": "com.atlassian.jira.issue.updated.v1",
+              "subject": "issue/10042",
+              "time": "2026-08-28T05:58:20Z"
+            },
+            "provenance": {
+              "adapter_id": "jira-cloud-adapter",
+              "adapter_version": "0.1.0",
+              "ingestion_mode": "WEBHOOK",
+              "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+              "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+              "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+              "lineage_activity_status": "COMPLETE",
+              "verification_status": "NOT_RUN",
+              "verification_inferred_from_activity": false
+            },
+            "activity_refs": [
+              "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+            ],
+            "source_availability": "AVAILABLE",
+            "payload_retention_state": "RETAINED",
+            "deletion_confirmation_ref": null,
+            "permission_decision_ref": null,
+            "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+            "idempotency_basis": {
+              "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+              "includes": [
+                "tenant_id",
+                "stable_source_identity",
+                "source_version"
+              ],
+              "excludes": [
+                "transport_delivery.id",
+                "received_at",
+                "persisted_at",
+                "ingestion_mode"
+              ]
+            },
+            "quality_gaps": [
+
+            ]
+          }
+        ]
+      },
+      "expected_failure_codes": [
+        "CROSS_SOURCE_DIGEST_MERGE"
+      ]
+    },
+    {
+      "id": "NEG-006",
+      "name": "source-event-without-native-event-id-missing-fallback",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "purpose": "缺 native event id必須使用明示 deterministic fallback basis。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "source_event.native_event_id",
+        "source_event.identity_basis",
+        "source_event.idempotency_basis.includes"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": null,
+          "identity_basis": "NONE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "SOURCE_EVENT_FALLBACK",
+        "SOURCE_EVENT_FALLBACK_BASIS",
+        "SOURCE_EVENT_FALLBACK_GAP"
+      ]
+    },
+    {
+      "id": "NEG-007",
+      "name": "four-clocks-collapsed-or-reordered",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "purpose": "Four clocks不得全部塌縮為同一時間。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "chronology.observed_at",
+        "chronology.received_at",
+        "chronology.persisted_at"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:20Z",
+          "received_at": "2026-08-28T05:58:20Z",
+          "persisted_at": "2026-08-28T05:58:20Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "FOUR_CLOCKS_COLLAPSED"
+      ]
+    },
+    {
+      "id": "NEG-008",
+      "name": "single-jira-404-marked-source-deleted",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "purpose": "單次 404不得直接確認刪除。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "source_availability"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "SOURCE_DELETED",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "SOURCE_DELETED_CONFIRMATION"
+      ]
+    },
+    {
+      "id": "NEG-009",
+      "name": "permission-revoked-classified-as-deleted",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "purpose": "撤權必須附 permission decision。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "source_availability"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "ACCESS_REVOKED",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "ACCESS_REVOKED_PERMISSION"
+      ]
+    },
+    {
+      "id": "NEG-010",
+      "name": "project-deletion-webhook-only-confirmation",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "purpose": "webhook-only不得作為刪除確認。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "source_availability",
+        "deletion_confirmation_ref"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "SOURCE_DELETED",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": "urn:omos:receipt:webhook-only-project-delete",
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "SOURCE_DELETED_WEBHOOK_ONLY"
+      ]
+    },
+    {
+      "id": "NEG-011",
+      "name": "non-i-json-canonical-digest-claimed",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "purpose": "非 I-JSON不得宣稱 JCS canonical digest，且必須留下 gap。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "payload.structured_profile"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "NON_I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "NON_I_JSON_CANONICAL_DIGEST",
+        "NON_I_JSON_GAP",
+        "JCS_REQUIRES_I_JSON"
+      ]
+    },
+    {
+      "id": "NEG-012",
+      "name": "missing-raw-digest",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "purpose": "raw digest必填。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "digests.raw_digest"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": null,
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "RAW_DIGEST"
+      ]
+    },
+    {
+      "id": "NEG-013",
+      "name": "missing-acl-snapshot",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "purpose": "ACL snapshot ref必填。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "access.acl_snapshot_ref"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": null,
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "ACL_SNAPSHOT"
+      ]
+    },
+    {
+      "id": "NEG-014",
+      "name": "missing-provenance",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "purpose": "Provenance必要欄位不可遺失。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "provenance.adapter_id"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": null,
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "PROVENANCE_FIELD"
+      ]
+    },
+    {
+      "id": "NEG-015",
+      "name": "openlineage-complete-treated-as-verified",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "purpose": "Activity COMPLETE不得推導 verification。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "provenance.verification_inferred_from_activity"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": true
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "COMPLETE_NE_VERIFIED"
+      ]
+    },
+    {
+      "id": "NEG-016",
+      "name": "entity-snapshot-idempotency-missing-source-version",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "purpose": "Entity snapshot profile必須包含 source_version。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "idempotency_basis.includes"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "IDEMPOTENCY_PROFILE_INCLUDES"
+      ]
+    },
+    {
+      "id": "NEG-017",
+      "name": "source-event-idempotency-missing-native-event-id",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "purpose": "Native source event profile必須包含 native_event_id。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "source_event.idempotency_basis.includes"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "SOURCE_EVENT_NATIVE_BASIS"
+      ]
+    },
+    {
+      "id": "NEG-018",
+      "name": "canonicalization-none-with-canonical-digest",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "purpose": "NONE profile的 canonical_digest必須為 null。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "payload.canonicalization_profile"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "NONE",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "CANONICALIZATION_NONE_DIGEST"
+      ]
+    },
+    {
+      "id": "NEG-019",
+      "name": "jcs-with-non-i-json-profile",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "purpose": "JCS只允許 I_JSON。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "payload.structured_profile"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "TEXT",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+
+        ]
+      },
+      "expected_failure_codes": [
+        "JCS_REQUIRES_I_JSON"
+      ]
+    },
+    {
+      "id": "NEG-020",
+      "name": "unknown-quality-gap-code",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "purpose": "quality gap code必須來自 LOCKED vocabulary。",
+      "base_fixture": "jira-cloud-issue-description-raw-evidence",
+      "allowed_mutation_paths": [
+        "quality_gaps"
+      ],
+      "invalid_envelope": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "11111111-2222-3333-4444-555555555555",
+          "entity_type": "issue",
+          "native_id": "10042",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "MUTABLE_KEY",
+            "value": "PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          },
+          {
+            "kind": "URL",
+            "value": "https://example.atlassian.net/browse/PROJ-123",
+            "valid_from": "2026-08-28T05:58:20Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": {
+          "event_type": "com.atlassian.jira.issue.updated.v1",
+          "native_event_id": "webhook-event-789",
+          "identity_basis": "NATIVE",
+          "delivery_id": "delivery-456",
+          "idempotency_basis": {
+            "profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1",
+            "includes": [
+              "tenant_id",
+              "stable_source_identity",
+              "event_type",
+              "native_event_id"
+            ],
+            "excludes": [
+              "transport_delivery.id",
+              "received_at",
+              "persisted_at",
+              "ingestion_mode"
+            ]
+          }
+        },
+        "source_version": {
+          "basis": "COMPOUND_OBSERVED",
+          "kind": "UPDATED_AT_DIGEST",
+          "value": "2026-08-28T05:58:20Z",
+          "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        "chronology": {
+          "occurred_at": "2026-08-28T05:58:20Z",
+          "occurred_at_basis": "SOURCE",
+          "observed_at": "2026-08-28T05:58:22Z",
+          "received_at": "2026-08-28T05:58:23Z",
+          "persisted_at": "2026-08-28T05:58:24Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"
+        },
+        "payload": {
+          "media_type": "application/json",
+          "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111",
+          "size_bytes": 8192,
+          "structured_profile": "I_JSON",
+          "canonicalization_profile": "RFC8785_JCS",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": "jira-permission-snapshot-20260828",
+          "visibility_scope_refs": [
+            "urn:omos:scope:jira-project-10000"
+          ]
+        },
+        "transport_delivery": {
+          "profile": "CLOUDEVENTS_1_0",
+          "source": "https://example.atlassian.net",
+          "id": "delivery-456",
+          "type": "com.atlassian.jira.issue.updated.v1",
+          "subject": "issue/10042",
+          "time": "2026-08-28T05:58:20Z"
+        },
+        "provenance": {
+          "adapter_id": "jira-cloud-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "WEBHOOK",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111",
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "transport_delivery.id",
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": [
+          {
+            "code": "UNLOCKED_CODE",
+            "severity": "HIGH"
+          }
+        ]
+      },
+      "expected_failure_codes": [
+        "QUALITY_GAP_CODE"
+      ]
+    }
+  ]
+}

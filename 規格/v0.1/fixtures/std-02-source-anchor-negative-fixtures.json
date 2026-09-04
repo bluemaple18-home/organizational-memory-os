@@ -1,0 +1,377 @@
+{
+  "fixture_set": "std-02-source-anchor-negative-v0.1",
+  "status": "LOCKED_OWNER_ACCEPTED_20260904",
+  "mutation_model": "每個案例由完整正向 base fixture 深複製後，只套用 declared mutations；validator 必須拒絕且不可出現 unrelated failure。",
+  "cases": [
+    {
+      "name": "pdf-bbox-out-of-range",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.bbox.x_max",
+          "value": 1.1
+        }
+      ],
+      "expected_failure_codes": [
+        "PDF_BBOX_RANGE"
+      ]
+    },
+    {
+      "name": "pdf-bbox-reversed",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.bbox.x_min",
+          "value": 0.9
+        }
+      ],
+      "expected_failure_codes": [
+        "PDF_BBOX_ORDER"
+      ]
+    },
+    {
+      "name": "pdf-page-zero",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.page",
+          "value": 0
+        }
+      ],
+      "expected_failure_codes": [
+        "PDF_PAGE"
+      ]
+    },
+    {
+      "name": "pdf-missing-representation-digest",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "delete",
+          "path": "representation.representation_digest"
+        }
+      ],
+      "expected_failure_codes": [
+        "REPRESENTATION_REQUIRED"
+      ]
+    },
+    {
+      "name": "pdf-profile-details-untrusted-extra",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.untrusted_extra",
+          "value": true
+        }
+      ],
+      "expected_failure_codes": [
+        "PDF_REGION_V1_PROFILE_DETAILS_CLOSED"
+      ]
+    },
+    {
+      "name": "selectors-not-array",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "selectors",
+          "value": "TEXT_QUOTE"
+        }
+      ],
+      "expected_failure_codes": [
+        "COMMON_ROOT_TYPE"
+      ]
+    },
+    {
+      "name": "pdf-char-range-reversed",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.char_range.start",
+          "value": 124
+        }
+      ],
+      "expected_failure_codes": [
+        "PDF_CHAR_RANGE"
+      ]
+    },
+    {
+      "name": "markdown-line-only",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "markdown-text-source-anchor",
+      "mutations": [
+        {
+          "op": "delete",
+          "path": "profile_details.codepoint_range"
+        }
+      ],
+      "expected_failure_codes": [
+        "MARKDOWN_TEXT_V1_PROFILE_DETAILS_REQUIRED"
+      ]
+    },
+    {
+      "name": "markdown-utf16-unit",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "markdown-text-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.codepoint_range.unit",
+          "value": "UTF16_CODE_UNIT"
+        }
+      ],
+      "expected_failure_codes": [
+        "MARKDOWN_CODEPOINT_UNIT"
+      ]
+    },
+    {
+      "name": "markdown-quote-mismatch",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "markdown-text-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "quote.exact",
+          "value": "策略摘要"
+        }
+      ],
+      "expected_failure_codes": [
+        "QUOTE_SELECTED_TEXT"
+      ]
+    },
+    {
+      "name": "markdown-relocation-without-robust-context",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "markdown-text-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "resolution.status",
+          "value": "RELOCATED"
+        },
+        {
+          "op": "replace",
+          "path": "quote.prefix",
+          "value": ""
+        },
+        {
+          "op": "replace",
+          "path": "quote.suffix",
+          "value": ""
+        }
+      ],
+      "expected_failure_codes": [
+        "RELOCATED_CONTEXT"
+      ]
+    },
+    {
+      "name": "jira-key-used-as-identity",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "jira-cloud-entity-segment-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.issue_id",
+          "value": "PROJ-123"
+        }
+      ],
+      "expected_failure_codes": [
+        "JIRA_ISSUE_IDENTITY"
+      ]
+    },
+    {
+      "name": "jira-missing-cloud-id",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "jira-cloud-entity-segment-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.cloud_id",
+          "value": ""
+        }
+      ],
+      "expected_failure_codes": [
+        "JIRA_CLOUD_ID"
+      ]
+    },
+    {
+      "name": "jira-non-numeric-issue-id",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "jira-cloud-entity-segment-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.issue_id",
+          "value": "abc"
+        }
+      ],
+      "expected_failure_codes": [
+        "JIRA_ISSUE_IDENTITY"
+      ]
+    },
+    {
+      "name": "jira-data-center-mixed-into-cloud",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "jira-cloud-entity-segment-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.deployment_type",
+          "value": "DATA_CENTER"
+        }
+      ],
+      "expected_failure_codes": [
+        "JIRA_CLOUD_ONLY"
+      ]
+    },
+    {
+      "name": "jira-invalid-json-pointer",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "jira-cloud-entity-segment-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.json_pointer",
+          "value": "fields/description"
+        }
+      ],
+      "expected_failure_codes": [
+        "JIRA_JSON_POINTER"
+      ]
+    },
+    {
+      "name": "jira-field-id-pointer-mismatch",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "jira-cloud-entity-segment-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "profile_details.field_id",
+          "value": "summary"
+        }
+      ],
+      "expected_failure_codes": [
+        "JIRA_FIELD_POINTER_BINDING"
+      ]
+    },
+    {
+      "name": "acl-snapshot-reference-mismatch",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "access.acl_snapshot_ref",
+          "value": "urn:omos:acl-snapshot:0198e6d1-0999-7aaa-8bbb-111111111111"
+        }
+      ],
+      "expected_failure_codes": [
+        "ACL_SNAPSHOT_CROSS_REF"
+      ]
+    },
+    {
+      "name": "permission-reference-mismatch",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "access.permission_decision_ref",
+          "value": "urn:omos:permission-decision:0198e6d1-0999-7aaa-8bbb-111111111111"
+        }
+      ],
+      "expected_failure_codes": [
+        "PERMISSION_REF_CROSS_REF"
+      ]
+    },
+    {
+      "name": "resolution-falsely-claims-revoked",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "resolution.status",
+          "value": "ACCESS_REVOKED"
+        }
+      ],
+      "expected_failure_codes": [
+        "RESOLUTION_AVAILABILITY_MISMATCH"
+      ]
+    },
+    {
+      "name": "summary-used-as-quote",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "quote.exact",
+          "value": "摘要：先完成權限檢查"
+        }
+      ],
+      "expected_failure_codes": [
+        "QUOTE_SELECTED_TEXT"
+      ]
+    },
+    {
+      "name": "source-evidence-reference-mismatch",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "evidence_ref",
+          "value": "urn:omos:evidence:0198e6d1-0999-7aaa-8bbb-111111111111"
+        }
+      ],
+      "expected_failure_codes": [
+        "EVIDENCE_REF"
+      ]
+    }
+  ]
+}

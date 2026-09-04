@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:omos:schema:source-anchor:pdf-region-v1:0.1.0",
+  "title": "SourceAnchor PDF_REGION_V1 v0.1",
+  "allOf": [
+    {"$ref": "urn:omos:schema:source-anchor:0.1.0"},
+    {"type": "object", "required": ["profile", "profile_details"], "properties": {"profile": {"const": "PDF_REGION_V1"}, "profile_details": {"type": "object", "additionalProperties": false, "required": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "properties": {"page": {"type": "integer", "minimum": 1}, "page_number_basis": {"const": "ONE_BASED"}, "bbox": {"type": "object", "additionalProperties": false, "required": ["x_min", "y_min", "x_max", "y_max", "coordinate_space", "origin"], "properties": {"x_min": {"type": "number", "minimum": 0, "maximum": 1}, "y_min": {"type": "number", "minimum": 0, "maximum": 1}, "x_max": {"type": "number", "minimum": 0, "maximum": 1}, "y_max": {"type": "number", "minimum": 0, "maximum": 1}, "coordinate_space": {"const": "NORMALIZED_PAGE_0_1"}, "origin": {"const": "TOP_LEFT"}}}, "block_id": {"type": "string", "minLength": 1}, "char_range": {"type": "object", "additionalProperties": false, "required": ["start", "end", "unit", "range_semantics"], "properties": {"start": {"type": "integer", "minimum": 0}, "end": {"type": "integer", "minimum": 0}, "unit": {"const": "UNICODE_CODE_POINT"}, "range_semantics": {"const": "START_INCLUSIVE_END_EXCLUSIVE"}}}, "char_representation_ref": {"type": "string", "minLength": 1}, "char_representation_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}, "selected_text": {"type": "string", "minLength": 1}}}}}
+  ]
+}

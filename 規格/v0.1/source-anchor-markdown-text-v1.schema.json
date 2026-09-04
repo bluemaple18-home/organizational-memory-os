@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:omos:schema:source-anchor:markdown-text-v1:0.1.0",
+  "title": "SourceAnchor MARKDOWN_TEXT_V1 v0.1",
+  "allOf": [
+    {"$ref": "urn:omos:schema:source-anchor:0.1.0"},
+    {"type": "object", "required": ["profile", "profile_details"], "properties": {"profile": {"const": "MARKDOWN_TEXT_V1"}, "profile_details": {"type": "object", "additionalProperties": false, "required": ["codepoint_range", "line_range", "line_number_basis", "heading_path", "selected_text"], "properties": {"codepoint_range": {"type": "object", "additionalProperties": false, "required": ["start", "end", "unit", "range_semantics"], "properties": {"start": {"type": "integer", "minimum": 0}, "end": {"type": "integer", "minimum": 0}, "unit": {"const": "UNICODE_CODE_POINT"}, "range_semantics": {"const": "START_INCLUSIVE_END_EXCLUSIVE"}}}, "line_range": {"type": "object", "additionalProperties": false, "required": ["start", "end"], "properties": {"start": {"type": "integer", "minimum": 1}, "end": {"type": "integer", "minimum": 1}}}, "line_number_basis": {"const": "ONE_BASED_END_INCLUSIVE"}, "heading_path": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}, "selected_text": {"type": "string", "minLength": 1}}}}}
+  ]
+}
