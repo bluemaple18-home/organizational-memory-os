@@ -68,7 +68,8 @@ Pinned exact donor files：
 | Atomic structured extraction | `simplemem/core/memory_builder.py` | keywords、absolute timestamp、location、persons、entities、topic 等 typed extraction |
 | Coreference + temporal anchoring | `MCP/reference/core/memory_builder.py` | Atomic Entries、pronoun/coreference resolution、relative→absolute time |
 | Package-level design | `README.md` | structured atomic memory → index → retrieve 的三階段產品實作參考 |
-| Vector backend abstraction | latest pinned root code under `simplemem/` | backend interface 是 projection implementation donor，不是 authority donor |
+| Multi-view retrieval facade | `simplemem/core/database/vector_store.py` | pinned commit 明示 semantic dense、lexical keyword/FTS、structured metadata 三條 retrieval path；只能作 projection/retrieval donor |
+| Vector backend abstraction | `simplemem/core/database/vector_store_backend.py` | pinned commit `refactor: extract vector store backend interface` 的 provider-neutral backend seam；可吸 interface/testing pattern，不取得 authority |
 
 Paper claims（只作 donor benchmark evidence，不作本產品承諾）：SimpleMem 主張 Semantic Structured Compression、Recursive Memory Consolidation、Adaptive Query-Aware Retrieval；論文 benchmark 報告的 F1/token improvement 必須視為其資料集結果，不直接成為 Organizational Memory OS acceptance threshold。
 
