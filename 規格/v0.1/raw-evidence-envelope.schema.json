@@ -137,7 +137,8 @@
           "type": [
             "string",
             "null"
-          ]
+          ],
+          "minLength": 1
         },
         "identity_basis": {
           "enum": [
@@ -568,6 +569,36 @@
           "digests": {
             "properties": {
               "canonical_digest": { "$ref": "#/$defs/sha256" }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "structured_profile": { "const": "NON_I_JSON" }
+            },
+            "required": ["structured_profile"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "digests": {
+            "properties": {
+              "canonical_digest": { "type": "null" }
+            }
+          },
+          "quality_gaps": {
+            "contains": {
+              "type": "object",
+              "properties": {
+                "code": { "const": "CANONICALIZATION_UNAVAILABLE" }
+              },
+              "required": ["code"]
             }
           }
         }

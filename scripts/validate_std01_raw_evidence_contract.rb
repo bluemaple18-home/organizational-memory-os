@@ -25,11 +25,13 @@ EXPECTED_NEGATIVE_NAMES = %w[
   same-source-new-revision-reuses-idempotency-key
   same-payload-different-sources-merged
   source-event-without-native-event-id-missing-fallback
+  source-event-empty-native-event-id-native-identity
   four-clocks-collapsed-or-reordered
   single-jira-404-marked-source-deleted
   permission-revoked-classified-as-deleted
   project-deletion-webhook-only-confirmation
   non-i-json-canonical-digest-claimed
+  non-i-json-without-canonicalization-gap
   missing-raw-digest
   missing-acl-snapshot
   missing-provenance
@@ -162,9 +164,13 @@ def validate_schema_document(schema, failures)
   jcs_branch = root_conditions.to_a.find { |branch| branch.dig("if", "properties", "payload", "properties", "canonicalization_profile", "const") == "RFC8785_JCS" }
   fallback_branch = root_conditions.to_a.find { |branch| branch.dig("then", "properties", "source_event", "properties", "identity_basis", "const") == "FALLBACK_DERIVED" }
   native_branch = root_conditions.to_a.find { |branch| branch.dig("then", "properties", "source_event", "properties", "identity_basis", "const") == "NATIVE" }
+  non_i_json_branch = root_conditions.to_a.find { |branch| branch.dig("if", "properties", "payload", "properties", "structured_profile", "const") == "NON_I_JSON" }
   assert(none_branch&.dig("then", "properties", "digests", "properties", "canonical_digest", "type") == "null", "SCHEMA_NONE_CANONICAL_NULL", "NONE conditional 必須令 canonical_digest 為 null", failures)
   assert(jcs_branch&.dig("then", "properties", "payload", "properties", "structured_profile", "const") == "I_JSON", "SCHEMA_JCS_I_JSON", "JCS conditional 必須要求 I_JSON", failures)
   assert(jcs_branch&.dig("then", "properties", "digests", "properties", "canonical_digest", "$ref") == "#/$defs/sha256", "SCHEMA_JCS_DIGEST", "JCS conditional 必須要求 canonical digest", failures)
+  assert(schema.dig("properties", "source_event", "properties", "native_event_id", "minLength") == 1, "SCHEMA_NATIVE_EVENT_ID_NON_EMPTY", "native_event_id string 必須非空", failures)
+  assert(non_i_json_branch&.dig("then", "properties", "digests", "properties", "canonical_digest", "type") == "null", "SCHEMA_NON_I_JSON_CANONICAL_NULL", "NON_I_JSON conditional 必須令 canonical_digest 為 null", failures)
+  assert(JSON.generate(non_i_json_branch).include?("CANONICALIZATION_UNAVAILABLE"), "SCHEMA_NON_I_JSON_GAP", "NON_I_JSON conditional 必須要求 CANONICALIZATION_UNAVAILABLE gap", failures)
   assert(fallback_branch && JSON.generate(fallback_branch).include?("raw_digest"), "SCHEMA_EVENT_FALLBACK", "fallback event conditional 必須有 deterministic raw digest basis", failures)
   assert(native_branch && JSON.generate(native_branch).include?("native_event_id"), "SCHEMA_EVENT_NATIVE", "native event conditional 必須包含 native_event_id", failures)
 end
@@ -297,7 +303,7 @@ def validate_envelope(common_vocab, envelope)
     assert(event_includes.is_a?(Array) && event_includes.uniq == event_includes, "SOURCE_EVENT_INCLUDES_UNIQUE", "source_event idempotency includes 必須為無重複 array", failures)
     assert(event_excludes.is_a?(Array), "SOURCE_EVENT_EXCLUDES_TYPE", "source_event idempotency excludes 必須為 array", failures)
     assert((event_includes.to_a & %w[transport_delivery.id received_at persisted_at ingestion_mode]).empty?, "SOURCE_EVENT_FORBIDDEN_INCLUDE", "source_event idempotency 不得含 delivery 或 ingestion clocks", failures)
-    if source_event["native_event_id"].nil?
+    if !present?(source_event["native_event_id"])
       assert(source_event["identity_basis"] == "FALLBACK_DERIVED", "SOURCE_EVENT_FALLBACK", "缺 native_event_id 時必須使用 FALLBACK_DERIVED", failures)
       includes = source_event.dig("idempotency_basis", "includes").to_a
       assert(%w[tenant_id stable_source_identity event_type occurred_at raw_digest].all? { |field| includes.include?(field) }, "SOURCE_EVENT_FALLBACK_BASIS", "fallback idempotency basis 必須包含 tenant_id、stable source identity、event_type、occurred_at、raw_digest", failures)
@@ -322,7 +328,7 @@ def validate_envelope(common_vocab, envelope)
                       when "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1"
                         %w[tenant_id stable_source_identity source_version]
                       when "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1"
-                        if source_event && source_event["native_event_id"].nil?
+                        if source_event && !present?(source_event["native_event_id"])
                           %w[tenant_id stable_source_identity event_type occurred_at raw_digest]
                         else
                           %w[tenant_id stable_source_identity event_type native_event_id]
@@ -463,12 +469,15 @@ def validate_negative_fixtures(common_vocab, positive_payload, payload, failures
       validation_failures.concat(validate_cross_event_semantics(envelopes))
     end
 
-    if authority == "RUBY_SEMANTIC"
-      codes = validation_failures.map { |failure| failure.split(":").first }
+    codes = validation_failures.map { |failure| failure.split(":").first }
+    if test_case.key?("expected_failure_codes")
       expected_codes = test_case.fetch("expected_failure_codes")
       expected_codes.each do |expected_code|
         assert(codes.include?(expected_code), "NEGATIVE_EXPECTED_FAILURE", "#{test_case["name"]} 未觸發 #{expected_code}", failures)
       end
+    end
+    if authority == "RUBY_SEMANTIC"
+      expected_codes = test_case.fetch("expected_failure_codes")
       unexpected_codes = codes.uniq - expected_codes
       assert(unexpected_codes.empty?, "NEGATIVE_UNRELATED_FAILURE", "#{test_case["name"]} 另觸發 unrelated failures: #{unexpected_codes.join(', ')}", failures)
     end

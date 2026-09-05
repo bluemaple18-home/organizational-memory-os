@@ -51,6 +51,32 @@ def rejected(validator: Draft202012Validator, instance: dict) -> bool:
     return bool(list(validator.iter_errors(instance)))
 
 
+def schema_error_pairs(validator: Draft202012Validator, instance: dict) -> set[tuple[str, str]]:
+    return {
+        ("/" + "/".join(map(str, error.absolute_path)), error.validator)
+        for error in validator.iter_errors(instance)
+    }
+
+
+def expected_schema_error_pairs(case: dict, failures: list[str]) -> set[tuple[str, str]]:
+    name = case["name"]
+    expected_errors = case.get("expected_schema_errors")
+    if not isinstance(expected_errors, list) or not expected_errors:
+        failures.append(f"STD01_JSON_SCHEMA_EXPECTED_ERRORS:{name}")
+        return set()
+    pairs: set[tuple[str, str]] = set()
+    for expected in expected_errors:
+        if (
+            not isinstance(expected, dict)
+            or not isinstance(expected.get("path"), str)
+            or not isinstance(expected.get("validator"), str)
+        ):
+            failures.append(f"STD01_JSON_SCHEMA_EXPECTED_ERROR_SHAPE:{name}")
+            return set()
+        pairs.add((expected["path"], expected["validator"]))
+    return pairs
+
+
 def validate_case_contract(case: dict, family: str, failures: list[str]) -> None:
     name = case.get("name", "<unnamed>")
     if case.get("validation_authority") not in {"JSON_SCHEMA", "RUBY_SEMANTIC"}:
@@ -97,8 +123,16 @@ def validate_raw_negatives(
             continue
         schema_cases.append(name)
         invalid = case.get("invalid_envelope")
-        if invalid is None or not rejected(validator, invalid):
+        pairs = schema_error_pairs(validator, invalid) if invalid is not None else set()
+        if invalid is None or not pairs:
             failures.append(f"STD01_JSON_SCHEMA_NOT_REJECTED:{name}")
+            continue
+        for expected_path, expected_validator in expected_schema_error_pairs(case, failures):
+            if (expected_path, expected_validator) not in pairs:
+                failures.append(
+                    "STD01_JSON_SCHEMA_UNRELATED_REJECTION:"
+                    f"{name}:{expected_path}:{expected_validator}"
+                )
     return schema_cases, ruby_cases
 
 
@@ -144,6 +178,27 @@ def structural_relabel_probe(cases: list[dict], validator: Draft202012Validator)
     return 2
 
 
+def unrelated_rejection_probe(cases: list[dict], validator: Draft202012Validator) -> int:
+    probe = copy.deepcopy(next(case for case in cases if case["name"] == "non-i-json-without-canonicalization-gap"))
+    probe["invalid_envelope"]["quality_gaps"] = [
+        {
+            "code": "CANONICALIZATION_UNAVAILABLE",
+            "severity": "LOW",
+            "detail": "Non-I-JSON canonicalization unavailable."
+        }
+    ]
+    probe["invalid_envelope"]["payload"]["payload_ref"] = ""
+    failures: list[str] = []
+    validate_raw_negatives([probe], validator, failures)
+    expected = "STD01_JSON_SCHEMA_UNRELATED_REJECTION:non-i-json-without-canonicalization-gap:/quality_gaps:contains"
+    if expected in failures:
+        print("STD schema engine validator FAIL")
+        print(f"FAIL {expected}")
+        return 1
+    print("STD schema engine unrelated rejection probe unexpectedly accepted")
+    return 2
+
+
 def main() -> int:
     schemas = {document["$id"]: document for document in map(load_json, SCHEMA_PATHS)}
     registry = Registry().with_resources(
@@ -167,6 +222,8 @@ def main() -> int:
 
     if sys.argv[1:] == ["--probe-structural-relabel"]:
         return structural_relabel_probe(raw_negative["cases"], raw_validator)
+    if sys.argv[1:] == ["--probe-unrelated-json-schema"]:
+        return unrelated_rejection_probe(raw_negative["cases"], raw_validator)
 
     failures: list[str] = []
     for fixture in raw_positive["fixtures"]:
