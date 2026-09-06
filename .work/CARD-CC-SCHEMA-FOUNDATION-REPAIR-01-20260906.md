@@ -1,6 +1,6 @@
 ---
 id: CC-SCHEMA-FOUNDATION-REPAIR-01-20260906
-status: COMPLETE_GO_READY_FOR_EXTERNAL_TARGETED_REVIEW
+status: COMPLETE_EXTERNAL_CC_GO
 type: repair
 base_commit: d0824e5a4dc02e8f77211ba1e790698a829e2a44
 ---
@@ -32,7 +32,7 @@ base_commit: d0824e5a4dc02e8f77211ba1e790698a829e2a44
 - `native_event_id: "" + identity_basis: NATIVE` 同時被 Draft 2020-12 與 Ruby 拒絕。
 - `NON_I_JSON + canonicalization NONE + canonical_digest null + 無 CANONICALIZATION_UNAVAILABLE gap` 被 Draft 2020-12 拒絕。
 - 修復後刪除目標 schema/Ruby 規則會使 dedicated fixture fail；無關 error 不得充當 parity。
-- Repair commit 必須以 `d0824e5` 為 parent，回報完整 SHA／tree／changed blobs；未授權前不 push。
+- Repair commit 以 `d0824e5` 為 parent，完整 SHA／tree／changed blobs 已驗證；獲 Owner 授權後已 push。
 
 ## Deferred backlog
 
@@ -43,4 +43,6 @@ base_commit: d0824e5a4dc02e8f77211ba1e790698a829e2a44
 - Verdict：`GO`。
 - Findings：P0／P1／P2／P3 = `0／0／0／0`。
 - Closure：`CC-SF-001`、`CC-SF-002`、`CC-SF-003` 已關閉；原 gates 與兩個 fail-closed mutation probes 通過。
-- External gate：修補 commit push 後，回原 CC review line 做 targeted re-review；未通過前 STD-03 持續阻塞。
+- External gate（已完成）：修補 commit 已 push，並已回原 CC review line 完成 targeted re-review。
+- External result：CC targeted re-review 已於 repair commit `7e7f3a6c59217f7d1a1733cc01f8fb693d50598e` 裁決 `GO`；`CC-SF-001/002/003` 全數 `CLOSED`，P0／P1／P2／P3 = `0／0／0／0`。
+- Mainline acceptance：binding／redaction／zero-mutation 與 fixed-archive runtime gates 複核通過；本組 findings 對 STD-03 的 blocker 已解除。

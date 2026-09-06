@@ -1,0 +1,76 @@
+receipt_id: CC-SCHEMA-FOUNDATION-TARGETED-REREVIEW-20260906
+status: ACCEPTED_GO
+reviewer: external_cc
+review_mode: READ_ONLY_FIXED_COMMIT_TARGETED_REREVIEW
+
+input_binding:
+  repository: bluemaple18-home/organizational-memory-os
+  base_sha: d0824e5a4dc02e8f77211ba1e790698a829e2a44
+  repair_sha: 7e7f3a6c59217f7d1a1733cc01f8fb693d50598e
+  parent_sha: d0824e5a4dc02e8f77211ba1e790698a829e2a44
+  tree_sha: cd52240e10a186a92e95ff6288053e49400947e1
+  changed_blob_count: 6
+  result: PASS
+
+changed_blobs:
+  .work/CARD-CC-SCHEMA-FOUNDATION-REPAIR-01-20260906.md: e34cf09a6f565c27721b3da16d14d2c64efcb122
+  .work/evidence/CC-SCHEMA-FOUNDATION-REPAIR-01-20260906.md: 0177d2a628b294ff9af9914184181974a64fb508
+  scripts/validate_std01_raw_evidence_contract.rb: 63d0810bae1562b0b025e3579b396c7cfde90791
+  scripts/validate_std_schema_engine.py: da15ce7fe3d2d36b0cbac6225b6891f970c4d6da
+  規格/v0.1/fixtures/std-01-raw-evidence-negative-fixtures.json: 0c5e31d9a9c433cec7782248ce1dd33f34e7dab9
+  規格/v0.1/raw-evidence-envelope.schema.json: aea6b3228a5104f520386a378de9f12319c912bf
+
+external_result:
+  verdict: GO
+  counts:
+    P0: 0
+    P1: 0
+    P2: 0
+    P3: 0
+  closure:
+    CC-SF-001: CLOSED
+    CC-SF-002: CLOSED
+    CC-SF-003: CLOSED
+
+mainline_validation:
+  external_receipt_sha256: 2abb8815bdb54eba9f1a39e881eaeaf9068048dc9c7c7437db485f8413fa5287
+  receipt_schema_semantics: PASS
+  redaction_scan: PASS
+  git_object_binding: PASS
+  tracked_zero_mutation: PASS
+  fixed_archive_runtime:
+    standard_engine: PASS
+    std01_json_schema_coverage: 12/12
+    std00_validator: PASS
+    std01_validator: PASS
+    std02_validator: PASS
+    cross_layer_validator: PASS
+    cross_layer_negatives_rejected: 8
+    personal_memory_contract: PASS
+    json_yaml_parse: PASS
+  fail_closed_probes:
+    unrelated_json_schema_rejection:
+      expected_exit: 1
+      actual_exit: 1
+      result: PASS
+    structural_relabel:
+      expected_exit: 1
+      actual_exit: 1
+      result: PASS
+
+acceptance:
+  status: GO
+  blocker_decision: CC-SF-001/002/003 對 STD-03 的 blocker 已解除
+  external_review_line: CLOSED
+
+backlog_non_blocking:
+  - CC-SF-002：Ruby NON_I_JSON defensive mirror 尚無獨立正例行使。
+  - CC-SF-003：engine 尚未強制實際 error set 必須與宣告 error set 完全對稱。
+  - CC-SF-004：duplicate JSON/YAML key detector。
+  - CC-SF-005：coverage 輸出不承載 parity 訊息。
+  - CC-SF-006：STD-01/02 reference pattern 寬鬆度不一致。
+
+scope_boundary:
+  std03_implementation_started: false
+  receipt_only_commit: true
+  repair_branch_remains_frozen: true
