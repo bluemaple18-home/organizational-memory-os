@@ -1,10 +1,18 @@
 ---
 id: CC-SCHEMA-FOUNDATION-HANDOFF-20260904
-status: READY_FOR_EXTERNAL_CC_FIXED_COMMIT_REVIEW
+status: CLOSED_SUPERSEDED_BY_TARGETED_REREVIEW_GO
 review_mode: READ_ONLY_IMMUTABLE_DIFF
 ---
 
 # CC Schema Foundation fixed-commit 外部審查交件包
+
+## Final resolution
+
+- 原 review commit `d0824e5a4dc02e8f77211ba1e790698a829e2a44` 保持 immutable。
+- 修補 commit `7e7f3a6c59217f7d1a1733cc01f8fb693d50598e` 已完成同線 targeted re-review。
+- 外部 CC verdict：`GO`；`CC-SF-001/002/003` 全數 `CLOSED`。
+- Mainline acceptance receipt：`.work/evidence/CC-SCHEMA-FOUNDATION-TARGETED-REREVIEW-20260906.yaml`。
+- 本檔後續只作原 fixed-commit review 歷史交件，不再是待執行入口。
 
 ## 1. 審查身份與不可變邊界
 
