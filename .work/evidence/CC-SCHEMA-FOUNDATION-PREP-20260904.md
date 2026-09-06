@@ -152,8 +152,17 @@ Evidence 的現行 `PARTIAL`／`FIRST FRONTIER`／第一施工項殘留，且 ST
 - `STD-04 = UNBLOCKED_NOT_STARTED_BY_STD_01_LOCK`；未施工。
 - `EMEM-02 = BLOCKED_BY_STD_03_NORMALIZED_DOCUMENT`；STD-00／01／02 前置已滿足。
 - Canonical Direct-Write Audit 仍 pending，未納入本 review substrate。
-- 未做 STD-03、runtime、Connector、DB、Hook、Loop、Harness、Hermes；未
-  commit／push。
+- 未做 STD-03、runtime、Connector、DB、Hook、Loop、Harness、Hermes；
+  此階段當時尚未 commit／push，後續 fixed checkpoint 如下。
+
+## Fixed checkpoint 與內部獨立複驗
+
+- Fixed commit：`d0824e5a4dc02e8f77211ba1e790698a829e2a44`
+- Tree：`4d6c9635b13b22a6c3670dc59223de0c0be6f30f`
+- Mainline 於此 commit 重跑 standard engine、cross-layer、四個 Ruby gates、JSON／YAML parse 與 `git diff --check`，全數 PASS。
+- Structural relabel mutation probe 回傳預期 `exit 1`，拒絕 `missing-raw-digest`。
+- 內部獨立 reviewer 綁定 commit／tree／blob 後裁決 `GO`；P0／P1／P2 = `0／0／0`。
+- 此 receipt 是外部 CC 交件前驗收，不代表外部 CC 已審。
 
 ## 外部 CC handoff boundary
 

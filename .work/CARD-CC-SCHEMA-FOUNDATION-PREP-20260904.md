@@ -1,6 +1,6 @@
 ---
 id: CC-SCHEMA-FOUNDATION-PREP-20260904
-status: READY_FOR_FIXED_CHECKPOINT_REVIEW
+status: COMPLETE_GO_READY_FOR_EXTERNAL_CC_REVIEW
 type: implementation
 ---
 
@@ -42,5 +42,13 @@ type: implementation
 ## Review-02／03 closure
 
 - Repair-02：`RUBY_SEMANTIC` 必須先由 Draft 2020-12 實際 ALLOW；結構性 case 重標後仍會 fail-closed。
-- Repair-03：canonical backlog 已同步 STD-01／02 鎖版與 STD-03 未施工；裁決只保留「每一個 JSON_SCHEMA case」閨門。
-- 下一關：建立 fixed checkpoint commit，綁定 allowlist／blob digest 後進行最終 blocking review。
+- Repair-03：canonical backlog 已同步 STD-01／02 鎖版與 STD-03 未施工；裁決只保留「每一個 JSON_SCHEMA case」閘門。
+- Fixed checkpoint／allowlist／blob digest 綁定與內部 blocking review 已完成。
+
+## Fixed checkpoint acceptance
+
+- Review commit：`d0824e5a4dc02e8f77211ba1e790698a829e2a44`
+- Tree：`4d6c9635b13b22a6c3670dc59223de0c0be6f30f`
+- 內部獨立 blocking review：`GO`；P0／P1／P2 = `0／0／0`。
+- 此 GO 只證明 CC 交件 substrate 已完成；不冒充外部 CC 已審。
+- 下一關：外部 CC 對上述 fixed commit 做 read-only 大 review；通過前不啟動 STD-03。
