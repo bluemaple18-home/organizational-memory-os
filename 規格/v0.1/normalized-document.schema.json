@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:omos:schema:normalized-document:0.1.0",
+  "title": "NormalizedDocument v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "normalized_document_id",
+    "source_evidence_ref",
+    "source_content_sha256",
+    "normalized_digest",
+    "parser_receipt_ref",
+    "document",
+    "quality_gaps",
+    "block_refs"
+  ],
+  "properties": {
+    "schema_version": { "const": "omos.normalized-document.v0.1" },
+    "normalized_document_id": {
+      "type": "string",
+      "pattern": "^urn:omos:normalized-document:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "source_evidence_ref": {
+      "type": "string",
+      "pattern": "^urn:omos:evidence:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "source_content_sha256": { "$ref": "#/$defs/sha256" },
+    "normalized_digest": { "$ref": "#/$defs/sha256" },
+    "parser_receipt_ref": {
+      "type": "string",
+      "pattern": "^urn:omos:receipt:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "minLength": 1
+    },
+    "document": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "media_type", "language", "page_count"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "media_type": { "type": "string", "pattern": "^[a-z]+/[a-z0-9.+-]+$" },
+        "language": { "$ref": "#/$defs/language" },
+        "page_count": { "type": ["integer", "null"], "minimum": 1 }
+      }
+    },
+    "quality_gaps": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/quality_gap" }
+    },
+    "block_refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "pattern": "^urn:omos:document-block:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "language": { "type": "string", "pattern": "^(?:[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*|und|mul)$" },
+    "quality_gap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "severity", "detail"],
+      "properties": {
+        "code": {
+          "enum": [
+            "PAGE_REQUIRES_OCR",
+            "TABLE_STRUCTURE_UNCERTAIN",
+            "MULTI_COLUMN_READING_ORDER_RISK",
+            "IMAGE_CONTENT_NOT_READ",
+            "FORMULA_NOT_PARSED",
+            "TRUNCATED_BY_LIMIT",
+            "ROBOTS_EXCLUDED",
+            "ATTACHMENT_UNREADABLE",
+            "UNSUPPORTED_FORMAT",
+            "ENCODING_REPLACEMENT_DETECTED",
+            "PARSER_FALLBACK_USED",
+            "SOURCE_PARTIAL",
+            "CANONICALIZATION_UNAVAILABLE",
+            "REDELIVERY_PAYLOAD_MISMATCH",
+            "CLOCK_SKEW_DETECTED",
+            "IDENTITY_FALLBACK_DERIVED"
+          ]
+        },
+        "severity": { "enum": ["INFO", "LOW", "MEDIUM", "HIGH", "CRITICAL"] },
+        "detail": { "type": "string", "minLength": 1 }
+      }
+    }
+  }
+}

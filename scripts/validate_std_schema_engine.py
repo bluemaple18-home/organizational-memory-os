@@ -3,7 +3,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["jsonschema==4.25.1"]
 # ///
-"""以標準 JSON Schema Draft 2020-12 engine 驗證 STD-01／02 fixture。"""
+"""以標準 JSON Schema Draft 2020-12 engine 驗證 STD-01／02／03 fixture。"""
 
 from __future__ import annotations
 
@@ -23,6 +23,8 @@ SCHEMA_PATHS = (
     "規格/v0.1/source-anchor-pdf-region-v1.schema.json",
     "規格/v0.1/source-anchor-markdown-text-v1.schema.json",
     "規格/v0.1/source-anchor-jira-cloud-entity-segment-v1.schema.json",
+    "規格/v0.1/normalized-document.schema.json",
+    "規格/v0.1/normalized-document-block.schema.json",
 )
 PROFILE_SCHEMAS = {
     "PDF_REGION_V1": "urn:omos:schema:source-anchor:pdf-region-v1:0.1.0",
@@ -40,11 +42,17 @@ def apply_mutation(payload: dict, mutation: dict) -> None:
     keys = mutation["path"].split(".")
     parent = payload
     for key in keys[:-1]:
-        parent = parent[key]
+        parent = parent[int(key)] if isinstance(parent, list) else parent[key]
     if mutation["op"] == "delete":
-        del parent[keys[-1]]
+        if isinstance(parent, list):
+            del parent[int(keys[-1])]
+        else:
+            del parent[keys[-1]]
     else:
-        parent[keys[-1]] = mutation["value"]
+        if isinstance(parent, list):
+            parent[int(keys[-1])] = mutation["value"]
+        else:
+            parent[keys[-1]] = mutation["value"]
 
 
 def rejected(validator: Draft202012Validator, instance: dict) -> bool:
@@ -58,11 +66,11 @@ def schema_error_pairs(validator: Draft202012Validator, instance: dict) -> set[t
     }
 
 
-def expected_schema_error_pairs(case: dict, failures: list[str]) -> set[tuple[str, str]]:
+def expected_schema_error_pairs(case: dict, family: str, failures: list[str]) -> set[tuple[str, str]]:
     name = case["name"]
     expected_errors = case.get("expected_schema_errors")
     if not isinstance(expected_errors, list) or not expected_errors:
-        failures.append(f"STD01_JSON_SCHEMA_EXPECTED_ERRORS:{name}")
+        failures.append(f"{family}_JSON_SCHEMA_EXPECTED_ERRORS:{name}")
         return set()
     pairs: set[tuple[str, str]] = set()
     for expected in expected_errors:
@@ -71,7 +79,7 @@ def expected_schema_error_pairs(case: dict, failures: list[str]) -> set[tuple[st
             or not isinstance(expected.get("path"), str)
             or not isinstance(expected.get("validator"), str)
         ):
-            failures.append(f"STD01_JSON_SCHEMA_EXPECTED_ERROR_SHAPE:{name}")
+            failures.append(f"{family}_JSON_SCHEMA_EXPECTED_ERROR_SHAPE:{name}")
             return set()
         pairs.add((expected["path"], expected["validator"]))
     return pairs
@@ -127,7 +135,7 @@ def validate_raw_negatives(
         if invalid is None or not pairs:
             failures.append(f"STD01_JSON_SCHEMA_NOT_REJECTED:{name}")
             continue
-        for expected_path, expected_validator in expected_schema_error_pairs(case, failures):
+        for expected_path, expected_validator in expected_schema_error_pairs(case, "STD01", failures):
             if (expected_path, expected_validator) not in pairs:
                 failures.append(
                     "STD01_JSON_SCHEMA_UNRELATED_REJECTION:"
@@ -160,6 +168,67 @@ def validate_anchor_negatives(
         schema_cases.append(name)
         if not rejected(validators[mutated["profile"]], mutated):
             failures.append(f"STD02_JSON_SCHEMA_NOT_REJECTED:{name}")
+    return schema_cases, ruby_cases
+
+
+def apply_document_mutations(bundle: dict, mutations: list[dict]) -> list[dict]:
+    mutated_targets = []
+    for mutation in mutations:
+        target = mutation["target"]
+        if target == "root":
+            apply_mutation(bundle["root"], mutation)
+            mutated_targets.append(bundle["root"])
+        elif target == "block":
+            block = bundle["blocks"][mutation["index"]]
+            apply_mutation(block, mutation)
+            mutated_targets.append(block)
+        else:
+            raise KeyError(target)
+    return mutated_targets
+
+
+def validate_document_negatives(
+    cases: list[dict],
+    documents_by_name: dict[str, dict],
+    root_validator: Draft202012Validator,
+    block_validator: Draft202012Validator,
+    failures: list[str],
+) -> tuple[list[str], list[str]]:
+    schema_cases: list[str] = []
+    ruby_cases: list[str] = []
+    for case in cases:
+        validate_case_contract(case, "STD03", failures)
+        name = case["name"]
+        base = documents_by_name.get(case.get("base_fixture"))
+        if base is None:
+            failures.append(f"STD03_NEGATIVE_BASE:{name}")
+            continue
+        mutated = copy.deepcopy(base)
+        mutated_targets = apply_document_mutations(mutated, case.get("mutations", []))
+        if case.get("validation_authority") == "RUBY_SEMANTIC":
+            schema_rejected = rejected(root_validator, mutated["root"]) or any(
+                rejected(block_validator, block) for block in mutated["blocks"]
+            )
+            if schema_rejected:
+                failures.append(f"STD03_RUBY_SEMANTIC_SCHEMA_REJECTED:{name}")
+            else:
+                ruby_cases.append(name)
+            continue
+        schema_cases.append(name)
+        pairs: set[tuple[str, str]] = set()
+        targets = mutated_targets or [mutated["root"]]
+        for target in targets:
+            validator = root_validator if target is mutated["root"] else block_validator
+            pairs |= schema_error_pairs(validator, target)
+        if not pairs:
+            failures.append(f"STD03_JSON_SCHEMA_NOT_REJECTED:{name}")
+            continue
+        for expected_path, expected_validator in expected_schema_error_pairs(case, "STD03", failures):
+            if (expected_path, expected_validator) not in pairs:
+                failures.append(
+                    "STD03_JSON_SCHEMA_UNRELATED_REJECTION:"
+                    f"{name}:{expected_path}:{expected_validator}"
+                )
     return schema_cases, ruby_cases
 
 
@@ -210,6 +279,12 @@ def main() -> int:
     raw_validator = Draft202012Validator(
         schemas["urn:omos:schema:raw-evidence-envelope:0.1.0"], registry=registry
     )
+    normalized_document_validator = Draft202012Validator(
+        schemas["urn:omos:schema:normalized-document:0.1.0"], registry=registry
+    )
+    normalized_block_validator = Draft202012Validator(
+        schemas["urn:omos:schema:normalized-document-block:0.1.0"], registry=registry
+    )
     profile_validators = {
         profile: Draft202012Validator(schemas[uri], registry=registry)
         for profile, uri in PROFILE_SCHEMAS.items()
@@ -219,6 +294,8 @@ def main() -> int:
     anchor_positive = load_json("規格/v0.1/fixtures/std-02-source-anchor-positive-fixtures.json")
     raw_negative = load_json("規格/v0.1/fixtures/std-01-raw-evidence-negative-fixtures.json")
     anchor_negative = load_json("規格/v0.1/fixtures/std-02-source-anchor-negative-fixtures.json")
+    document_positive = load_json("規格/v0.1/fixtures/std-03-normalized-document-positive-fixtures.json")
+    document_negative = load_json("規格/v0.1/fixtures/std-03-normalized-document-negative-fixtures.json")
 
     if sys.argv[1:] == ["--probe-structural-relabel"]:
         return structural_relabel_probe(raw_negative["cases"], raw_validator)
@@ -233,6 +310,12 @@ def main() -> int:
         anchor = fixture["anchor"]
         if rejected(profile_validators[anchor["profile"]], anchor):
             failures.append(f"STD02_POSITIVE_REJECTED:{fixture['name']}")
+    for fixture in document_positive["fixtures"]:
+        if rejected(normalized_document_validator, fixture["root"]):
+            failures.append(f"STD03_ROOT_POSITIVE_REJECTED:{fixture['name']}")
+        for index, block in enumerate(fixture["blocks"]):
+            if rejected(normalized_block_validator, block):
+                failures.append(f"STD03_BLOCK_POSITIVE_REJECTED:{fixture['name']}:{index}")
 
     anchors_by_name = {
         fixture["name"]: fixture["anchor"] for fixture in anchor_positive["fixtures"]
@@ -242,6 +325,16 @@ def main() -> int:
     )
     anchor_schema_cases, anchor_ruby_cases = validate_anchor_negatives(
         anchor_negative["cases"], anchors_by_name, profile_validators, failures
+    )
+    documents_by_name = {
+        fixture["name"]: fixture for fixture in document_positive["fixtures"]
+    }
+    document_schema_cases, document_ruby_cases = validate_document_negatives(
+        document_negative["cases"],
+        documents_by_name,
+        normalized_document_validator,
+        normalized_block_validator,
+        failures,
     )
 
     if failures:
@@ -260,6 +353,11 @@ def main() -> int:
     print(
         "STD02 RUBY_SEMANTIC schema-allowed then excluded from schema rejection "
         f"coverage: {len(anchor_ruby_cases)}"
+    )
+    print(f"STD03 JSON_SCHEMA coverage: {len(document_schema_cases)}/{len(document_schema_cases)}")
+    print(
+        "STD03 RUBY_SEMANTIC schema-allowed then excluded from schema rejection "
+        f"coverage: {len(document_ruby_cases)}"
     )
     return 0
 

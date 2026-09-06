@@ -1,0 +1,169 @@
+{
+  "fixture_set": "std-03-normalized-document-negative-v0.1",
+  "status": "READY_FOR_REVIEW",
+  "mutation_model": "每個案例由完整正向 base fixture 深複製後，只套用 declared mutations；validator 必須拒絕且不可出現 unrelated failure。",
+  "cases": [
+    {
+      "name": "root-untrusted-extra",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "root", "op": "replace", "path": "untrusted_extra", "value": true}],
+      "expected_schema_errors": [{"path": "/", "validator": "additionalProperties"}],
+      "expected_failure_codes": ["ROOT_CLOSED"]
+    },
+    {
+      "name": "block-untrusted-extra",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 0, "op": "replace", "path": "untrusted_extra", "value": true}],
+      "expected_schema_errors": [{"path": "/", "validator": "additionalProperties"}],
+      "expected_failure_codes": ["BLOCK_CLOSED"]
+    },
+    {
+      "name": "root-empty-parser-receipt",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "root", "op": "replace", "path": "parser_receipt_ref", "value": ""}],
+      "expected_schema_errors": [{"path": "/parser_receipt_ref", "validator": "pattern"}],
+      "expected_failure_codes": ["PARSER_RECEIPT_REF"]
+    },
+    {
+      "name": "block-empty-content",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 1, "op": "replace", "path": "content", "value": ""}],
+      "expected_schema_errors": [{"path": "/content", "validator": "minLength"}],
+      "expected_failure_codes": ["BLOCK_CONTENT"]
+    },
+    {
+      "name": "non-phase-one-block-type",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "markdown-normalized-document",
+      "mutations": [{"target": "block", "index": 2, "op": "replace", "path": "block_type", "value": "list"}],
+      "expected_schema_errors": [{"path": "/block_type", "validator": "enum"}],
+      "expected_failure_codes": ["BLOCK_TYPE"]
+    },
+    {
+      "name": "unresolved-evidence-ref",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "root", "op": "replace", "path": "source_evidence_ref", "value": "urn:omos:evidence:0198e6d1-0999-7aaa-8bbb-111111111111"}],
+      "expected_failure_codes": ["EVIDENCE_REF"]
+    },
+    {
+      "name": "unresolved-source-anchor-ref",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 1, "op": "replace", "path": "source_anchor_refs.0", "value": "urn:omos:source-anchor:0198e6d2-0999-7aaa-8bbb-111111111111"}],
+      "expected_failure_codes": ["SOURCE_ANCHOR_REF"]
+    },
+    {
+      "name": "anchor-evidence-mismatch",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 1, "op": "replace", "path": "source_anchor_refs.0", "value": "urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111"}],
+      "expected_failure_codes": ["ANCHOR_EVIDENCE_MISMATCH"]
+    },
+    {
+      "name": "source-content-digest-mismatch",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "root", "op": "replace", "path": "source_content_sha256", "value": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}],
+      "expected_failure_codes": ["SOURCE_CONTENT_DIGEST"]
+    },
+    {
+      "name": "block-content-digest-mismatch",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 1, "op": "replace", "path": "content_sha256", "value": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}],
+      "expected_failure_codes": ["BLOCK_CONTENT_DIGEST"]
+    },
+    {
+      "name": "normalized-digest-mismatch",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "markdown-normalized-document",
+      "mutations": [{"target": "root", "op": "replace", "path": "normalized_digest", "value": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}],
+      "expected_failure_codes": ["NORMALIZED_DIGEST"]
+    },
+    {
+      "name": "duplicate-block-id",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 1, "op": "replace", "path": "block_id", "value": "urn:omos:document-block:0198e6d3-1001-7aaa-8bbb-111111111111"}],
+      "expected_failure_codes": ["DUPLICATE_BLOCK_ID"]
+    },
+    {
+      "name": "duplicate-block-order",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 1, "op": "replace", "path": "order", "value": 1}],
+      "expected_failure_codes": ["DUPLICATE_BLOCK_ORDER"]
+    },
+    {
+      "name": "missing-block-ref",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "root", "op": "delete", "path": "block_refs.2"}],
+      "expected_failure_codes": ["BLOCK_REF_SET"]
+    },
+    {
+      "name": "missing-parent",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 1, "op": "replace", "path": "parent_id", "value": "urn:omos:document-block:0198e6d3-1999-7aaa-8bbb-111111111111"}],
+      "expected_failure_codes": ["PARENT_REF"]
+    },
+    {
+      "name": "parent-cycle",
+      "validation_authority": "RUBY_SEMANTIC",
+      "expected_result": "REJECT",
+      "schema_expected_result": "ALLOW",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 0, "op": "replace", "path": "parent_id", "value": "urn:omos:document-block:0198e6d3-1002-7aaa-8bbb-111111111111"}],
+      "expected_failure_codes": ["PARENT_CYCLE"]
+    },
+    {
+      "name": "table-missing-structured-cells",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "markdown-normalized-document",
+      "mutations": [{"target": "block", "index": 4, "op": "delete", "path": "attributes.table.rows"}],
+      "expected_schema_errors": [{"path": "/attributes/table", "validator": "required"}],
+      "expected_failure_codes": ["TABLE_STRUCTURE"]
+    },
+    {
+      "name": "image-missing-asset-ref",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 2, "op": "delete", "path": "attributes.asset.asset_ref"}],
+      "expected_schema_errors": [{"path": "/attributes/asset", "validator": "required"}],
+      "expected_failure_codes": ["IMAGE_ASSET"]
+    }
+  ]
+}

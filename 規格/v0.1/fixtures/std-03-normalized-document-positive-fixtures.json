@@ -1,0 +1,239 @@
+{
+  "fixture_set": "std-03-normalized-document-positive-v0.1",
+  "status": "READY_FOR_REVIEW",
+  "raw_evidence_fixture_set": "std-01-raw-evidence-positive-v0.1",
+  "source_anchor_fixture_set": "std-02-source-anchor-positive-v0.1",
+  "fixtures": [
+    {
+      "name": "pdf-normalized-document",
+      "root": {
+        "schema_version": "omos.normalized-document.v0.1",
+        "normalized_document_id": "urn:omos:normalized-document:0198e6d3-0001-7aaa-8bbb-111111111111",
+        "source_evidence_ref": "urn:omos:evidence:0198e6d1-0001-7aaa-8bbb-111111111111",
+        "source_content_sha256": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "normalized_digest": "sha256:8534cde0a6face2227d8da72f55847289718d9b83c6251467a1617063ad4154b",
+        "parser_receipt_ref": "urn:omos:receipt:0198e6d3-0301-7aaa-8bbb-111111111111",
+        "document": {
+          "name": "產品排查手冊.pdf",
+          "media_type": "application/pdf",
+          "language": "zh-Hant",
+          "page_count": 20
+        },
+        "quality_gaps": [],
+        "block_refs": [
+          "urn:omos:document-block:0198e6d3-1001-7aaa-8bbb-111111111111",
+          "urn:omos:document-block:0198e6d3-1002-7aaa-8bbb-111111111111",
+          "urn:omos:document-block:0198e6d3-1003-7aaa-8bbb-111111111111"
+        ]
+      },
+      "blocks": [
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-1001-7aaa-8bbb-111111111111",
+          "block_type": "title",
+          "parent_id": null,
+          "order": 1,
+          "level": 1,
+          "content": "產品排查手冊",
+          "content_sha256": "sha256:79379aba08e85bce2de926ad27c21df209503243dadc9548b64a69fea8a8a31a",
+          "language": "zh-Hant",
+          "content_layer": "TITLE",
+          "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0001-7aaa-8bbb-111111111111"],
+          "attributes": {},
+          "quality": {"extraction_confidence": 0.97, "warnings": []}
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-1002-7aaa-8bbb-111111111111",
+          "block_type": "paragraph",
+          "parent_id": "urn:omos:document-block:0198e6d3-1001-7aaa-8bbb-111111111111",
+          "order": 2,
+          "level": 2,
+          "content": "安全要求：權限檢查後才可查詢薪資。",
+          "content_sha256": "sha256:96bf63b4e2f39e6009b46b7b2f8468bd3ed88c716758e387c659fcd4a0b499e4",
+          "language": "zh-Hant",
+          "content_layer": "BODY",
+          "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0001-7aaa-8bbb-111111111111"],
+          "attributes": {},
+          "quality": {"extraction_confidence": 0.94, "warnings": []}
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-1003-7aaa-8bbb-111111111111",
+          "block_type": "image",
+          "parent_id": "urn:omos:document-block:0198e6d3-1001-7aaa-8bbb-111111111111",
+          "order": 3,
+          "level": 2,
+          "content": "流程截圖：權限檢查位置",
+          "content_sha256": "sha256:916c7fee7c0e60fc17896acf48db90d6b5858407d9dd0eef674b88d6e215aa55",
+          "language": "zh-Hant",
+          "content_layer": "IMAGE",
+          "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0001-7aaa-8bbb-111111111111"],
+          "attributes": {
+            "asset": {
+              "asset_ref": "urn:omos:asset:0198e6d3-9001-7aaa-8bbb-111111111111",
+              "media_type": "image/png",
+              "caption": "權限檢查位置",
+              "bbox": {"x_min": 0.101234, "y_min": 0.203456, "x_max": 0.812345, "y_max": 0.287654, "coordinate_space": "NORMALIZED_PAGE_0_1", "origin": "TOP_LEFT"}
+            }
+          },
+          "quality": {"extraction_confidence": 0.86, "warnings": ["IMAGE_CONTENT_NOT_READ"]}
+        }
+      ]
+    },
+    {
+      "name": "markdown-normalized-document",
+      "root": {
+        "schema_version": "omos.normalized-document.v0.1",
+        "normalized_document_id": "urn:omos:normalized-document:0198e6d3-0002-7aaa-8bbb-111111111111",
+        "source_evidence_ref": "urn:omos:evidence:0198e6d1-0002-7aaa-8bbb-111111111111",
+        "source_content_sha256": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "normalized_digest": "sha256:5768e2c8f2c523799e10746fa131c6830dc94eab7e5cce054c0f65a318b9b95f",
+        "parser_receipt_ref": "urn:omos:receipt:0198e6d3-0302-7aaa-8bbb-111111111111",
+        "document": {
+          "name": "docs/order-spend-zero.md",
+          "media_type": "text/markdown",
+          "language": "zh-Hant",
+          "page_count": null
+        },
+        "quality_gaps": [],
+        "block_refs": [
+          "urn:omos:document-block:0198e6d3-2001-7aaa-8bbb-111111111111",
+          "urn:omos:document-block:0198e6d3-2002-7aaa-8bbb-111111111111",
+          "urn:omos:document-block:0198e6d3-2003-7aaa-8bbb-111111111111",
+          "urn:omos:document-block:0198e6d3-2004-7aaa-8bbb-111111111111",
+          "urn:omos:document-block:0198e6d3-2005-7aaa-8bbb-111111111111"
+        ]
+      },
+      "blocks": [
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-2001-7aaa-8bbb-111111111111",
+          "block_type": "title",
+          "parent_id": null,
+          "order": 1,
+          "level": 1,
+          "content": "訂單花費為 0 排查",
+          "content_sha256": "sha256:1aa56eafeeb31a80341b2bb2ea9d6a86a9df90f42b47a89fd17bb4f6bd6c7757",
+          "language": "zh-Hant",
+          "content_layer": "TITLE",
+          "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111"],
+          "attributes": {},
+          "quality": {"extraction_confidence": 1.0, "warnings": []}
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-2002-7aaa-8bbb-111111111111",
+          "block_type": "section_header",
+          "parent_id": "urn:omos:document-block:0198e6d3-2001-7aaa-8bbb-111111111111",
+          "order": 2,
+          "level": 2,
+          "content": "策略層級",
+          "content_sha256": "sha256:7e2b19d39cc82049fd34ca1aad98b706a61043b095d195d742e0f667252b6728",
+          "language": "zh-Hant",
+          "content_layer": "BODY",
+          "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111"],
+          "attributes": {},
+          "quality": {"extraction_confidence": 1.0, "warnings": []}
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-2003-7aaa-8bbb-111111111111",
+          "block_type": "list_item",
+          "parent_id": "urn:omos:document-block:0198e6d3-2002-7aaa-8bbb-111111111111",
+          "order": 3,
+          "level": 3,
+          "content": "確認廣告形式一致後，策略檢查再檢查定向交集。",
+          "content_sha256": "sha256:bbf143b9985bb857ed6e1ba0628683b0f0b9158f40c2c51b1d41b612fbbc68b9",
+          "language": "zh-Hant",
+          "content_layer": "BODY",
+          "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111"],
+          "attributes": {},
+          "quality": {"extraction_confidence": 1.0, "warnings": []}
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-2004-7aaa-8bbb-111111111111",
+          "block_type": "code",
+          "parent_id": "urn:omos:document-block:0198e6d3-2002-7aaa-8bbb-111111111111",
+          "order": 4,
+          "level": 3,
+          "content": "if spend == 0: check_strategy()",
+          "content_sha256": "sha256:84e044a26e17b4a5f8e12ca1cde1c051ac0601576c90b4e4b2632ff57a914b12",
+          "language": "und",
+          "content_layer": "CODE",
+          "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111"],
+          "attributes": {},
+          "quality": {"extraction_confidence": 1.0, "warnings": []}
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-2005-7aaa-8bbb-111111111111",
+          "block_type": "table",
+          "parent_id": "urn:omos:document-block:0198e6d3-2002-7aaa-8bbb-111111111111",
+          "order": 5,
+          "level": 3,
+          "content": "檢查項\t狀態\n策略檢查\t必做",
+          "content_sha256": "sha256:6063bf3d6eb60aa3d09d27c1e605e93022e9f73f920179bbc531ffc601030bf9",
+          "language": "zh-Hant",
+          "content_layer": "TABLE",
+          "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111"],
+          "attributes": {
+            "table": {
+              "columns": [{"column_index": 0, "text": "檢查項"}, {"column_index": 1, "text": "狀態"}],
+              "rows": [
+                {"row_index": 0, "cells": [{"column_index": 0, "text": "檢查項", "row_span": 1, "col_span": 1}, {"column_index": 1, "text": "狀態", "row_span": 1, "col_span": 1}]},
+                {"row_index": 1, "cells": [{"column_index": 0, "text": "策略檢查", "row_span": 1, "col_span": 1}, {"column_index": 1, "text": "必做", "row_span": 1, "col_span": 1}]}
+              ]
+            }
+          },
+          "quality": {"extraction_confidence": 0.99, "warnings": []}
+        }
+      ]
+    },
+    {
+      "name": "jira-normalized-document",
+      "root": {
+        "schema_version": "omos.normalized-document.v0.1",
+        "normalized_document_id": "urn:omos:normalized-document:0198e6d3-0003-7aaa-8bbb-111111111111",
+        "source_evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "source_content_sha256": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "normalized_digest": "sha256:b0f0762c13aa835fcc5ff262010c7da6da34daf7bc63b77b019d0cbc5ce77538",
+        "parser_receipt_ref": "urn:omos:receipt:0198e6d3-0303-7aaa-8bbb-111111111111",
+        "document": {
+          "name": "PROJ-123 description",
+          "media_type": "application/json",
+          "language": "zh-Hant",
+          "page_count": null
+        },
+        "quality_gaps": [],
+        "block_refs": [
+          "urn:omos:document-block:0198e6d3-3001-7aaa-8bbb-111111111111",
+          "urn:omos:document-block:0198e6d3-3002-7aaa-8bbb-111111111111"
+        ]
+      },
+      "blocks": [
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-3001-7aaa-8bbb-111111111111",
+          "block_type": "title",
+          "parent_id": null,
+          "order": 1,
+          "level": 1,
+          "content": "PROJ-123 description",
+          "content_sha256": "sha256:c78bba2c8e17c715ce66bd48c2b151045ac3b08540d00dbcb3a608a3fb31816a",
+          "language": "und",
+          "content_layer": "TITLE",
+          "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0003-7aaa-8bbb-111111111111"],
+          "attributes": {},
+          "quality": {"extraction_confidence": 0.99, "warnings": []}
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-3002-7aaa-8bbb-111111111111",
+          "block_type": "paragraph",
+          "parent_id": "urn:omos:document-block:0198e6d3-3001-7aaa-8bbb-111111111111",
+          "order": 2,
+          "level": 2,
+          "content": "處理前，請先檢查權限再存取資料。",
+          "content_sha256": "sha256:4234f148a5aa5865dcb46c9dea62465e5b9230a49f348cbb9a6fc7463d698081",
+          "language": "zh-Hant",
+          "content_layer": "BODY",
+          "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0003-7aaa-8bbb-111111111111"],
+          "attributes": {},
+          "quality": {"extraction_confidence": 0.98, "warnings": []}
+        }
+      ]
+    }
+  ]
+}
