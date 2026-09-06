@@ -1,6 +1,6 @@
 ---
 id: STD03-NORMALIZED-DOCUMENT-20260906
-status: READY_FOR_REVIEW
+status: COMPLETE_REVIEW_GO_AWAITING_OWNER_LOCK_20260907
 type: implementation
 ---
 
@@ -14,6 +14,13 @@ type: implementation
 - Scope：JSON Schema 2020-12 root／block contract、PDF／Markdown／Jira 正例、單一 mutation 負例、跨層 resolution／digest／hierarchy validator、標準 engine parity、backlog／evidence。
 - Constraints：不做 parser／adapter runtime、DB／canonical writer，不做 STD-04～06，不做 EMEM-02，不新增 workflow engine／Hook／Loop／Harness／Hermes，不吸收 Docling runtime，不處理 CC-SF-004～008／010，不 push。
 - Evidence：`.work/evidence/STD03-NORMALIZED-DOCUMENT-20260906.md`。
+
+## Independent review｜2026-09-07
+
+- Fixed commit：`cfaeec6`（parent `287f491`）。
+- Verdict：`GO`；P0／P1 = `0/0`。
+- Non-blocking：`STD03-RV-001` table／image conditional mutation coverage（P2）；`STD03-RV-002` STD-03 JSON Schema expected-error exact parity（P3）。
+- Current state：實作與獨立 review 完成，等待 Owner 決定是否鎖版；未鎖版前不解鎖 Document Adapter Mapping／EMEM-02。
 
 ## Kickoff decisions
 

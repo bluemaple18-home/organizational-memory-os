@@ -1,6 +1,6 @@
 # STD-03 NormalizedDocument block subset v0.1 — 驗證證據
 
-- 狀態：`READY_FOR_REVIEW`；尚未經獨立 review，不得標記 `GO` 或 `LOCKED`。
+- 狀態：`COMPLETE_REVIEW_GO_AWAITING_OWNER_LOCK_20260907`；獨立 review 已 `GO`，但尚未經 Owner 鎖版。
 - 範圍：NormalizedDocument root／block JSON Schema、PDF／Markdown／Jira 正例、單一 mutation 負例、deterministic Ruby validator 與標準 JSON Schema engine parity。
 
 ## 已確認結果
@@ -14,3 +14,11 @@
 
 - `CC-SF-009`：`source_aliases: []` 為合法語意；`source_identity.native_id` 仍必填且非空。裁決狀態為 `CLOSED_DECISION_ALLOW_EMPTY`，不改動 STD-01 contract。
 - 本 slice 是 `PROJECTION_ONLY`；未加入 parser／adapter runtime、canonical writer、DB 或 EMEM-02。
+
+## Independent fixed-commit review｜2026-09-07
+
+- Binding：`cfaeec6` relative to parent `287f491`。
+- Verdict：`GO`；P0／P1 = `0/0`。
+- Reviewer 複驗：STD-00～03、standard engine、personal-memory、cross-layer、JSON／YAML parse、`git diff --check 287f491 cfaeec6` 全 PASS；`--probe-structural-relabel` 與 `--probe-unrelated-json-schema` 均如預期非零轉紅。
+- `STD03-RV-001`（P2，非阻塞）：待新增 table `attributes={}` 與 image `attributes={}` schema negatives，並鎖定 conditional AST，確保刪除 conditional 時 gate 會轉紅。
+- `STD03-RV-002`（P3，非阻塞）：STD-03 JSON Schema actual error set 與 declared set 目前僅 subset parity；與 `CC-SF-007` 同卡改為 exact／symmetric parity。
