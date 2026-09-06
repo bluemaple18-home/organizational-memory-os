@@ -1146,25 +1146,25 @@ phase_1_pilot:
 backlog:
   EMEM_00:
     title: Employee Personal Memory Scope and Ownership Contract
-    status: READY_FOR_REVIEW
+    status: COMPLETE_GO_20260903
   EMEM_01:
     title: Personal Memory Candidate and Record Schema
-    status: READY_FOR_REVIEW
+    status: COMPLETE_GO_20260903
   EMEM_02:
     title: Personal Evidence Profile and Source Mapping
     status: BLOCKED_BY_STD_03_NORMALIZED_DOCUMENT
   EMEM_03:
     title: Recall and MemoryContextPack Contract
-    status: BLOCKED_BY_EMEM_01
+    status: UNBLOCKED_NOT_STARTED_BY_EMEM_01_GO
   EMEM_04:
     title: Correction and Supersession
-    status: BLOCKED_BY_EMEM_01
+    status: UNBLOCKED_NOT_STARTED_BY_EMEM_01_GO
   EMEM_05:
     title: Personal-to-Shared Promotion Proposal
-    status: BLOCKED_BY_EMEM_01_AND_GOVERNANCE
+    status: UNBLOCKED_NOT_STARTED_BY_EMEM_00_01_GO
   EMEM_06:
     title: Product Department Vertical Slice
-    status: BLOCKED_BY_EMEM_01_TO_05
+    status: BLOCKED_BY_EMEM_02_TO_05
   EMEM_07:
     title: Role Profiles
     status: DEFER_UNTIL_CORE_CONTRACT_STABLE
