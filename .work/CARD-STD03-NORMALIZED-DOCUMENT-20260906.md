@@ -1,6 +1,6 @@
 ---
 id: STD03-NORMALIZED-DOCUMENT-20260906
-status: COMPLETE_REVIEW_GO_AWAITING_OWNER_LOCK_20260907
+status: LOCKED_OWNER_ACCEPTED_20260907
 type: implementation
 ---
 
@@ -20,7 +20,12 @@ type: implementation
 - Fixed commit：`cfaeec6`（parent `287f491`）。
 - Verdict：`GO`；P0／P1 = `0/0`。
 - Non-blocking：`STD03-RV-001` table／image conditional mutation coverage（P2）；`STD03-RV-002` STD-03 JSON Schema expected-error exact parity（P3）。
-- Current state：實作與獨立 review 完成，等待 Owner 決定是否鎖版；未鎖版前不解鎖 Document Adapter Mapping／EMEM-02。
+- Current state：實作與獨立 review 完成；Owner 於 2026-09-07 接受並鎖版，Document Adapter Mapping／EMEM-02 的 STD-03 依賴阻塞已解除。
+
+## Owner lock｜2026-09-07
+
+- Owner 明確同意鎖定與 push；`STD-03 = LOCKED_OWNER_ACCEPTED_20260907`。
+- `STD03-RV-001/002` 是已登錄非阻塞 hardening，不取消本次鎖版；必須在 Adapter Mapping 前完成。
 
 ## Kickoff decisions
 

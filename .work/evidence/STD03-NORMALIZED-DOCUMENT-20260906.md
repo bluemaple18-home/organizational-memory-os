@@ -1,6 +1,6 @@
 # STD-03 NormalizedDocument block subset v0.1 — 驗證證據
 
-- 狀態：`COMPLETE_REVIEW_GO_AWAITING_OWNER_LOCK_20260907`；獨立 review 已 `GO`，但尚未經 Owner 鎖版。
+- 狀態：`LOCKED_OWNER_ACCEPTED_20260907`；獨立 review `GO` 後，Owner 已明確接受並鎖版。
 - 範圍：NormalizedDocument root／block JSON Schema、PDF／Markdown／Jira 正例、單一 mutation 負例、deterministic Ruby validator 與標準 JSON Schema engine parity。
 
 ## 已確認結果
@@ -22,3 +22,4 @@
 - Reviewer 複驗：STD-00～03、standard engine、personal-memory、cross-layer、JSON／YAML parse、`git diff --check 287f491 cfaeec6` 全 PASS；`--probe-structural-relabel` 與 `--probe-unrelated-json-schema` 均如預期非零轉紅。
 - `STD03-RV-001`（P2，非阻塞）：待新增 table `attributes={}` 與 image `attributes={}` schema negatives，並鎖定 conditional AST，確保刪除 conditional 時 gate 會轉紅。
 - `STD03-RV-002`（P3，非阻塞）：STD-03 JSON Schema actual error set 與 declared set 目前僅 subset parity；與 `CC-SF-007` 同卡改為 exact／symmetric parity。
+- Owner decision：2026-09-07 同意鎖定並 push；非阻塞 findings 留在 Adapter Mapping 前的 hardening card。

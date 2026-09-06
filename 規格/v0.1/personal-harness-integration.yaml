@@ -1152,7 +1152,7 @@ backlog:
     status: COMPLETE_GO_20260903
   EMEM_02:
     title: Personal Evidence Profile and Source Mapping
-    status: BLOCKED_BY_STD_03_NORMALIZED_DOCUMENT
+    status: UNBLOCKED_NOT_STARTED_BY_STD_03_LOCK
   EMEM_03:
     title: Recall and MemoryContextPack Contract
     status: UNBLOCKED_NOT_STARTED_BY_EMEM_01_GO
