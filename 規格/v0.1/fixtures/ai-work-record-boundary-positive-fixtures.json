@@ -1,0 +1,106 @@
+{
+  "fixture_id": "ai-work-record-boundary-positive-fixtures-v0.1",
+  "task_card_cases": [
+    {
+      "case_id": "AIWR_TC_POS_MINIMAL_CONTROL_CARD",
+      "task_card": {
+        "card_id": "urn:omos:task-card:0198e800-1001-7aaa-8bbb-111111111111",
+        "is_personal_memory": false,
+        "objective": "Close the SSP-298 boundary contract slice.",
+        "scope": "boundary yaml + fixtures + validator",
+        "constraints": "no runtime, no second workflow engine",
+        "acceptance": "validator PASS with required negative coverage",
+        "status": "IN_REVIEW",
+        "evidence_refs": [
+          "urn:omos:evidence:0198e800-1002-7aaa-8bbb-111111111111"
+        ]
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "AIWR_TC_POS_DONE_CARD_REFERENCE_ONLY",
+      "task_card": {
+        "card_id": "urn:omos:task-card:0198e800-1003-7aaa-8bbb-111111111111",
+        "is_personal_memory": false,
+        "objective": "Ship the adapter mapping slice.",
+        "scope": "document adapter mapping",
+        "constraints": "reuse STD-01/02/03",
+        "acceptance": "independent review GO",
+        "status": "DONE",
+        "evidence_refs": [
+          "urn:omos:evidence:0198e800-1004-7aaa-8bbb-111111111111"
+        ],
+        "sensitive_content_copied": false
+      },
+      "expected": "allow"
+    }
+  ],
+  "promotion_path_cases": [
+    {
+      "case_id": "AIWR_PP_POS_TASK_CARD_FULL_PATH",
+      "promotion": {
+        "origin": "TASK_CARD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "RAW_EVIDENCE_ENVELOPE",
+          "PERSONAL_MEMORY_CANDIDATE",
+          "VERIFICATION",
+          "PERSONAL_ACCEPTANCE",
+          "PERSONAL_MEMORY_RECORD"
+        ],
+        "candidate_memory_kind": "LESSON",
+        "verification_receipt_ref": "urn:omos:verification:0198e800-2001-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198e800-2002-7aaa-8bbb-111111111111",
+        "acceptance_authority_signal": null
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "AIWR_PP_POS_WORK_RECORD_FULL_PATH",
+      "promotion": {
+        "origin": "WORK_RECORD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "RAW_EVIDENCE_ENVELOPE",
+          "PERSONAL_MEMORY_CANDIDATE",
+          "VERIFICATION",
+          "PERSONAL_ACCEPTANCE",
+          "PERSONAL_MEMORY_RECORD"
+        ],
+        "candidate_memory_kind": "DECISION",
+        "verification_receipt_ref": "urn:omos:verification:0198e800-2003-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198e800-2004-7aaa-8bbb-111111111111",
+        "acceptance_authority_signal": null
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "AIWR_PP_POS_CANDIDATE_ONLY_NO_RECORD",
+      "promotion": {
+        "origin": "TASK_CARD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "RAW_EVIDENCE_ENVELOPE",
+          "PERSONAL_MEMORY_CANDIDATE"
+        ],
+        "candidate_memory_kind": "PROJECT_CONTEXT",
+        "acceptance_authority_signal": null
+      },
+      "expected": "allow"
+    }
+  ],
+  "automated_step_cases": [
+    {
+      "case_id": "AIWR_AS_POS_FAIL_LOUD_WITH_GATE",
+      "automated_step": {
+        "step_id": "capture-work-record-draft",
+        "input_schema_ref": "urn:omos:schema:aiwr-step-input:0.1.0",
+        "output_schema_ref": "urn:omos:schema:aiwr-step-output:0.1.0",
+        "error_behavior": "FAIL_LOUD",
+        "human_acceptance_gate": true,
+        "dry_run_supported": true
+      },
+      "expected": "allow"
+    }
+  ]
+}

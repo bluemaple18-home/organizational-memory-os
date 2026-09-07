@@ -1,0 +1,139 @@
+schema:
+  schema_id: urn:omos:schema:ai-work-record-boundary:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-07'
+  traces_to:
+    - AIWR-01
+  authority_inputs:
+    - 規格/v0.1/personal-harness-integration.yaml
+    - 文件/個人證據與工作紀錄.md
+    - 文件/待辦補充-個人知識庫Harness-20260830.md
+
+purpose:
+  statement: >-
+    Fix the boundary between an AI Task Card, a WorkRecord, Raw Evidence, and a
+    PersonalMemoryCandidate so that runtime state is never auto-promoted to
+    long-lived personal memory, without introducing a second workflow authority.
+  no_second_workflow_authority: true
+  reuses_contracts:
+    - RawEvidenceEnvelope
+    - WorkRecord
+    - PersonalMemoryCandidate
+    - VerificationReceipt
+    - AcceptanceReceipt
+  does_not_define:
+    - task card frontmatter schema
+    - hook, loop, harness, hermes runtime
+    - registry, finite state machine, database, canonical writer
+
+authority_boundary:
+  task_card:
+    role: WORK_CONTROL_AND_REPORT_ARTIFACT
+    is_personal_memory: false
+    required_fields:
+      - card_id
+      - objective
+      - scope
+      - constraints
+      - acceptance
+      - status
+      - evidence_refs
+    status_enum:
+      - OPEN
+      - BLOCKED
+      - IN_REVIEW
+      - DONE
+      - CANCELLED
+    sensitive_content_rule: reference_only_never_copied
+    forbidden_fields:
+      - personal_acceptance_ref
+      - verification_receipt_ref
+      - accepted_for_record
+      - memory_kind
+      - record_id
+      - candidate_status
+    forbidden_authority:
+      - memory_acceptance
+      - verification
+      - canonical_writer
+  work_record:
+    role: REBUILDABLE_PROJECTION
+    answers: what happened in this work
+    does_not_answer: what should be remembered long term
+    may_generate_candidates: '0..N'
+    forbidden_authority:
+      - memory_acceptance
+      - canonical_writer
+
+promotion_path:
+  ordered_steps:
+    - TASK_CARD_OR_WORK_RECORD
+    - RAW_EVIDENCE_ENVELOPE
+    - PERSONAL_MEMORY_CANDIDATE
+    - VERIFICATION
+    - PERSONAL_ACCEPTANCE
+    - PERSONAL_MEMORY_RECORD
+  rules:
+    evidence_step_required: true
+    task_card_direct_to_record: forbidden
+    candidate_before_verification_and_acceptance: true
+    skip_any_step: forbidden
+    steps_out_of_order: forbidden
+  receipts_required:
+    VERIFICATION: verification_receipt_ref
+    PERSONAL_ACCEPTANCE: personal_acceptance_ref
+
+non_acceptance_authority:
+  signals:
+    - branch
+    - worktree
+    - runtime_completion
+    - model_confidence
+  rule: >-
+    None of these signals carries verification or acceptance authority. A
+    PersonalMemoryCandidate reaching accepted state must cite a verification
+    receipt and a personal acceptance receipt, never one of these signals.
+
+automated_step_contract:
+  required_per_step:
+    - input_schema_ref
+    - output_schema_ref
+    - error_behavior
+    - human_acceptance_gate
+    - dry_run_supported
+  error_behavior_enum:
+    - FAIL_LOUD
+  fail_silent: forbidden
+  human_acceptance_gate_rule: >-
+    Every automated step that can lead to a durable memory must stop at an
+    explicit human acceptance gate; the gate position must be recorded.
+
+cross_reference:
+  personal_spec: 規格/v0.1/personal-harness-integration.yaml
+  transient_kinds_source: not_long_lived_memory_by_default
+  transient_kinds_must_match: true
+  runtime_policy_source: runtime_policy
+  executor_authority_over_memory_must_be: false
+  reused_core_invariants:
+    - WORK_RECORD_NE_PERSONAL_MEMORY
+    - CANDIDATE_NE_ACCEPTED_PERSONAL_MEMORY
+    - CAPTURED_NE_REMEMBERED
+    - MODEL_CONFIDENCE_NE_VERIFICATION
+
+hard_stops:
+  - no workflow engine, registry, FSM, or DB in this contract
+  - no task card frontmatter schema definition here
+  - no hook, loop, harness, or hermes here
+  - task card is not personal memory
+  - runtime completion is not acceptance
+  - branch or worktree state is not memory
+
+required_negative_fixtures:
+  - current task status promoted as long-lived memory
+  - temporary branch or worktree state promoted as memory
+  - runtime completion message treated as accepted
+  - model confidence auto-accepts candidate
+  - task card creates record skipping evidence
+  - automated step bypasses human acceptance gate
+  - task card carries a memory acceptance field

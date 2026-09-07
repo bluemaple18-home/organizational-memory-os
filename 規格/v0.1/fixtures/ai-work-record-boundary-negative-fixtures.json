@@ -1,0 +1,208 @@
+{
+  "fixture_id": "ai-work-record-boundary-negative-fixtures-v0.1",
+  "task_card_negative_cases": [
+    {
+      "case_id": "AIWR_TC_NEG_CARRIES_PERSONAL_ACCEPTANCE_REF",
+      "covers_boundary_negative_fixture": "task card carries a memory acceptance field",
+      "expected_failure_code": "TASK_CARD_CARRIES_MEMORY_ACCEPTANCE_FIELD",
+      "task_card": {
+        "card_id": "urn:omos:task-card:0198e800-3001-7aaa-8bbb-111111111111",
+        "is_personal_memory": false,
+        "objective": "Sneak an acceptance receipt onto the control card.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "DONE",
+        "evidence_refs": [
+          "urn:omos:evidence:0198e800-3002-7aaa-8bbb-111111111111"
+        ],
+        "personal_acceptance_ref": "urn:omos:acceptance:0198e800-3003-7aaa-8bbb-111111111111"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_TC_NEG_MISSING_CONTROL_FIELD",
+      "covers_boundary_negative_fixture": "task card missing a required control field",
+      "expected_failure_code": "TASK_CARD_MISSING_CONTROL_FIELD",
+      "task_card": {
+        "card_id": "urn:omos:task-card:0198e800-3004-7aaa-8bbb-111111111111",
+        "is_personal_memory": false,
+        "objective": "Card with no acceptance criteria.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "status": "OPEN",
+        "evidence_refs": []
+      },
+      "expected": "deny"
+    }
+  ],
+  "promotion_path_negative_cases": [
+    {
+      "case_id": "AIWR_PP_NEG_CURRENT_TASK_STATUS_PROMOTED",
+      "covers_boundary_negative_fixture": "current task status promoted as long-lived memory",
+      "expected_failure_code": "TRANSIENT_KIND_PROMOTED",
+      "promotion": {
+        "origin": "TASK_CARD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "RAW_EVIDENCE_ENVELOPE",
+          "PERSONAL_MEMORY_CANDIDATE",
+          "VERIFICATION",
+          "PERSONAL_ACCEPTANCE",
+          "PERSONAL_MEMORY_RECORD"
+        ],
+        "candidate_memory_kind": "CURRENT_TASK_STATUS",
+        "verification_receipt_ref": "urn:omos:verification:0198e800-4001-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198e800-4002-7aaa-8bbb-111111111111",
+        "acceptance_authority_signal": null
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_PP_NEG_BRANCH_WORKTREE_STATE_PROMOTED",
+      "covers_boundary_negative_fixture": "temporary branch or worktree state promoted as memory",
+      "expected_failure_code": "TRANSIENT_KIND_PROMOTED",
+      "promotion": {
+        "origin": "WORK_RECORD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "RAW_EVIDENCE_ENVELOPE",
+          "PERSONAL_MEMORY_CANDIDATE",
+          "VERIFICATION",
+          "PERSONAL_ACCEPTANCE",
+          "PERSONAL_MEMORY_RECORD"
+        ],
+        "candidate_memory_kind": "TEMPORARY_BRANCH_OR_WORKTREE_STATE",
+        "verification_receipt_ref": "urn:omos:verification:0198e800-4003-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198e800-4004-7aaa-8bbb-111111111111",
+        "acceptance_authority_signal": null
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_PP_NEG_RUNTIME_COMPLETION_AS_ACCEPTANCE",
+      "covers_boundary_negative_fixture": "runtime completion message treated as accepted",
+      "expected_failure_code": "NON_ACCEPTANCE_SIGNAL_USED_AS_AUTHORITY",
+      "promotion": {
+        "origin": "TASK_CARD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "RAW_EVIDENCE_ENVELOPE",
+          "PERSONAL_MEMORY_CANDIDATE",
+          "VERIFICATION",
+          "PERSONAL_ACCEPTANCE",
+          "PERSONAL_MEMORY_RECORD"
+        ],
+        "candidate_memory_kind": "LESSON",
+        "verification_receipt_ref": "urn:omos:verification:0198e800-4005-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198e800-4006-7aaa-8bbb-111111111111",
+        "acceptance_authority_signal": "runtime_completion"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_PP_NEG_MODEL_CONFIDENCE_AUTO_ACCEPT",
+      "covers_boundary_negative_fixture": "model confidence auto-accepts candidate",
+      "expected_failure_code": "NON_ACCEPTANCE_SIGNAL_USED_AS_AUTHORITY",
+      "promotion": {
+        "origin": "TASK_CARD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "RAW_EVIDENCE_ENVELOPE",
+          "PERSONAL_MEMORY_CANDIDATE",
+          "VERIFICATION",
+          "PERSONAL_ACCEPTANCE",
+          "PERSONAL_MEMORY_RECORD"
+        ],
+        "candidate_memory_kind": "LESSON",
+        "verification_receipt_ref": "urn:omos:verification:0198e800-4007-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198e800-4008-7aaa-8bbb-111111111111",
+        "acceptance_authority_signal": "model_confidence"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_PP_NEG_TASK_CARD_DIRECT_TO_RECORD",
+      "covers_boundary_negative_fixture": "task card creates record skipping evidence",
+      "expected_failure_code": "TASK_CARD_DIRECT_TO_RECORD",
+      "promotion": {
+        "origin": "TASK_CARD",
+        "steps": [
+          "PERSONAL_MEMORY_RECORD"
+        ],
+        "candidate_memory_kind": "LESSON",
+        "acceptance_authority_signal": null
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_PP_NEG_WORK_RECORD_SKIPS_EVIDENCE",
+      "covers_boundary_negative_fixture": "promotion path skips the evidence step",
+      "expected_failure_code": "PROMOTION_SKIPS_EVIDENCE",
+      "promotion": {
+        "origin": "WORK_RECORD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "PERSONAL_MEMORY_CANDIDATE",
+          "VERIFICATION",
+          "PERSONAL_ACCEPTANCE",
+          "PERSONAL_MEMORY_RECORD"
+        ],
+        "candidate_memory_kind": "LESSON",
+        "verification_receipt_ref": "urn:omos:verification:0198e800-4009-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198e800-4010-7aaa-8bbb-111111111111",
+        "acceptance_authority_signal": null
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_PP_NEG_SKIPS_VERIFICATION",
+      "covers_boundary_negative_fixture": "promotion path skips verification or acceptance",
+      "expected_failure_code": "PROMOTION_SKIPS_VERIFICATION_OR_ACCEPTANCE",
+      "promotion": {
+        "origin": "TASK_CARD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "RAW_EVIDENCE_ENVELOPE",
+          "PERSONAL_MEMORY_CANDIDATE",
+          "PERSONAL_ACCEPTANCE",
+          "PERSONAL_MEMORY_RECORD"
+        ],
+        "candidate_memory_kind": "LESSON",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198e800-4011-7aaa-8bbb-111111111111",
+        "acceptance_authority_signal": null
+      },
+      "expected": "deny"
+    }
+  ],
+  "automated_step_negative_cases": [
+    {
+      "case_id": "AIWR_AS_NEG_NO_HUMAN_GATE",
+      "covers_boundary_negative_fixture": "automated step bypasses human acceptance gate",
+      "expected_failure_code": "AUTOMATED_STEP_BYPASSES_HUMAN_GATE",
+      "automated_step": {
+        "step_id": "auto-accept-candidate",
+        "input_schema_ref": "urn:omos:schema:aiwr-step-input:0.1.0",
+        "output_schema_ref": "urn:omos:schema:aiwr-step-output:0.1.0",
+        "error_behavior": "FAIL_LOUD",
+        "human_acceptance_gate": false,
+        "dry_run_supported": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_AS_NEG_FAIL_SILENT",
+      "covers_boundary_negative_fixture": "automated step fails silently",
+      "expected_failure_code": "AUTOMATED_STEP_FAIL_SILENT",
+      "automated_step": {
+        "step_id": "swallow-errors",
+        "input_schema_ref": "urn:omos:schema:aiwr-step-input:0.1.0",
+        "output_schema_ref": "urn:omos:schema:aiwr-step-output:0.1.0",
+        "error_behavior": "SWALLOW",
+        "human_acceptance_gate": true,
+        "dry_run_supported": true
+      },
+      "expected": "deny"
+    }
+  ]
+}
