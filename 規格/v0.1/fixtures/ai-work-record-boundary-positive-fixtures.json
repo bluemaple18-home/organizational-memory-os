@@ -98,6 +98,7 @@
         "output_schema_ref": "urn:omos:schema:aiwr-step-output:0.1.0",
         "error_behavior": "FAIL_LOUD",
         "human_acceptance_gate": true,
+        "human_acceptance_gate_position": "PERSONAL_ACCEPTANCE",
         "dry_run_supported": true
       },
       "expected": "allow"

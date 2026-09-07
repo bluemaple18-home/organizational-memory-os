@@ -33,6 +33,9 @@ EXPECTED_TASK_CARD_FORBIDDEN_FIELDS = %w[
   candidate_status
 ].freeze
 
+EXPECTED_TASK_CARD_FORBIDDEN_AUTHORITY = %w[memory_acceptance verification canonical_writer].freeze
+EXPECTED_WORK_RECORD_FORBIDDEN_AUTHORITY = %w[memory_acceptance canonical_writer].freeze
+
 EXPECTED_PROMOTION_STEPS = %w[
   TASK_CARD_OR_WORK_RECORD
   RAW_EVIDENCE_ENVELOPE
@@ -42,14 +45,6 @@ EXPECTED_PROMOTION_STEPS = %w[
   PERSONAL_MEMORY_RECORD
 ].freeze
 
-# 升格路徑中「PERSONAL_MEMORY_RECORD 之前必須依序出現」的步驟。
-PROMOTION_PREREQ_ORDER = %w[
-  RAW_EVIDENCE_ENVELOPE
-  PERSONAL_MEMORY_CANDIDATE
-  VERIFICATION
-  PERSONAL_ACCEPTANCE
-].freeze
-
 EXPECTED_NON_ACCEPTANCE_SIGNALS = %w[branch worktree runtime_completion model_confidence].freeze
 
 EXPECTED_AUTOMATED_STEP_FIELDS = %w[
@@ -57,8 +52,12 @@ EXPECTED_AUTOMATED_STEP_FIELDS = %w[
   output_schema_ref
   error_behavior
   human_acceptance_gate
+  human_acceptance_gate_position
   dry_run_supported
 ].freeze
+
+# gate 必須停在耐久記憶形成之前 —— 允許的位置是 VERIFICATION 與 PERSONAL_ACCEPTANCE。
+EXPECTED_ALLOWED_GATE_POSITIONS = %w[VERIFICATION PERSONAL_ACCEPTANCE].freeze
 
 EXPECTED_REUSED_CORE_INVARIANTS = %w[
   WORK_RECORD_NE_PERSONAL_MEMORY
@@ -145,6 +144,11 @@ def task_card_failure(card)
 end
 
 # 回傳 nil 或精確 machine failure code。
+#
+# steps 必須是 EXPECTED_PROMOTION_STEPS 由 index 0 起的連續 prefix；含
+# PERSONAL_MEMORY_RECORD 時必須等於完整 sequence。第一個偏離位置的「應有步驟」
+# 決定 failure code。`origin == TASK_CARD` 且 steps 剛好是
+# [TASK_CARD_OR_WORK_RECORD, PERSONAL_MEMORY_RECORD] 判 TASK_CARD_DIRECT_TO_RECORD。
 def promotion_path_failure(promotion, transient_kinds)
   signal = promotion["acceptance_authority_signal"]
   return "NON_ACCEPTANCE_SIGNAL_USED_AS_AUTHORITY" if EXPECTED_NON_ACCEPTANCE_SIGNALS.include?(signal)
@@ -153,26 +157,25 @@ def promotion_path_failure(promotion, transient_kinds)
   return "TRANSIENT_KIND_PROMOTED" if present?(candidate_kind) && transient_kinds.include?(candidate_kind)
 
   steps = promotion["steps"].to_a
-  unknown = steps.find { |step| !EXPECTED_PROMOTION_STEPS.include?(step) }
-  return "PROMOTION_UNKNOWN_STEP" if unknown
+  return "PROMOTION_UNKNOWN_STEP" if steps.any? { |step| !EXPECTED_PROMOTION_STEPS.include?(step) }
+  return "PROMOTION_DUPLICATE_STEP" if steps.uniq.length != steps.length
+  return "PROMOTION_EMPTY_PATH" if steps.empty?
 
-  if steps.include?("PERSONAL_MEMORY_RECORD")
-    before_record = steps[0...steps.index("PERSONAL_MEMORY_RECORD")]
-
-    unless before_record.include?("RAW_EVIDENCE_ENVELOPE")
-      return "TASK_CARD_DIRECT_TO_RECORD" if before_record.empty?
-
-      return "PROMOTION_SKIPS_EVIDENCE"
-    end
-
-    PROMOTION_PREREQ_ORDER.each do |prereq|
-      return "PROMOTION_SKIPS_VERIFICATION_OR_ACCEPTANCE" unless before_record.include?(prereq)
-    end
-
-    present_prereq_indexes = PROMOTION_PREREQ_ORDER.map { |prereq| before_record.index(prereq) }
-    return "PROMOTION_STEPS_OUT_OF_ORDER" if present_prereq_indexes != present_prereq_indexes.sort
+  if promotion["origin"] == "TASK_CARD" && steps == %w[TASK_CARD_OR_WORK_RECORD PERSONAL_MEMORY_RECORD]
+    return "TASK_CARD_DIRECT_TO_RECORD"
   end
 
+  expected_prefix = EXPECTED_PROMOTION_STEPS[0, steps.length]
+  if steps != expected_prefix
+    first_divergence = steps.each_index.find { |index| steps[index] != expected_prefix[index] }
+    expected_here = expected_prefix[first_divergence]
+    return "PROMOTION_SKIPS_EVIDENCE" if expected_here == "RAW_EVIDENCE_ENVELOPE"
+    return "PROMOTION_SKIPS_VERIFICATION_OR_ACCEPTANCE" if %w[VERIFICATION PERSONAL_ACCEPTANCE].include?(expected_here)
+
+    return "PROMOTION_STEPS_OUT_OF_ORDER"
+  end
+
+  # steps 是合法 prefix；若含 RECORD 則必為完整 sequence（RECORD 是最後一步）。
   return "PROMOTION_MISSING_RECEIPT" if steps.include?("VERIFICATION") && !present?(promotion["verification_receipt_ref"])
   return "PROMOTION_MISSING_RECEIPT" if steps.include?("PERSONAL_ACCEPTANCE") && !present?(promotion["personal_acceptance_ref"])
 
@@ -180,12 +183,18 @@ def promotion_path_failure(promotion, transient_kinds)
 end
 
 # 回傳 nil 或精確 machine failure code。
-def automated_step_failure(step)
-  missing = EXPECTED_AUTOMATED_STEP_FIELDS.find { |field| !step.key?(field) }
-  return "AUTOMATED_STEP_MISSING_CONTRACT_FIELD" if missing
+# schema ref 用 present?（null / 空字串視為缺）；boolean 欄位用 key?。
+def automated_step_failure(step, allowed_gate_positions)
+  return "AUTOMATED_STEP_MISSING_CONTRACT_FIELD" unless present?(step["input_schema_ref"])
+  return "AUTOMATED_STEP_MISSING_CONTRACT_FIELD" unless present?(step["output_schema_ref"])
+  return "AUTOMATED_STEP_MISSING_CONTRACT_FIELD" unless step.key?("error_behavior")
+  return "AUTOMATED_STEP_MISSING_CONTRACT_FIELD" unless step.key?("human_acceptance_gate")
+  return "AUTOMATED_STEP_MISSING_CONTRACT_FIELD" unless step.key?("dry_run_supported")
+  return "AUTOMATED_STEP_MISSING_CONTRACT_FIELD" unless present?(step["human_acceptance_gate_position"])
 
   return "AUTOMATED_STEP_FAIL_SILENT" if step["error_behavior"] != "FAIL_LOUD"
   return "AUTOMATED_STEP_BYPASSES_HUMAN_GATE" if step["human_acceptance_gate"] != true
+  return "AUTOMATED_STEP_GATE_POSITION_INVALID" unless allowed_gate_positions.include?(step["human_acceptance_gate_position"])
   return "AUTOMATED_STEP_NO_DRY_RUN" if step["dry_run_supported"] != true
 
   nil
@@ -226,13 +235,21 @@ assert(
   "task_card.forbidden_fields 與鎖定清單不符",
   failures
 )
-assert(task_card.fetch("forbidden_authority", []).include?("memory_acceptance"), "task_card 不得取得 memory_acceptance authority", failures)
+assert(
+  sorted_set(task_card.fetch("forbidden_authority", [])) == sorted_set(EXPECTED_TASK_CARD_FORBIDDEN_AUTHORITY),
+  "task_card.forbidden_authority 必須剛好是 [memory_acceptance, verification, canonical_writer]",
+  failures
+)
 assert(task_card["sensitive_content_rule"] == "reference_only_never_copied", "task_card 敏感內容必須只存 reference", failures)
 
 work_record = spec.dig("authority_boundary", "work_record") || {}
 assert(work_record["role"] == "REBUILDABLE_PROJECTION", "work_record.role 必須是 REBUILDABLE_PROJECTION", failures)
 assert(work_record["may_generate_candidates"] == "0..N", "work_record.may_generate_candidates 必須是 0..N", failures)
-assert(work_record.fetch("forbidden_authority", []).include?("memory_acceptance"), "work_record 不得取得 memory_acceptance authority", failures)
+assert(
+  sorted_set(work_record.fetch("forbidden_authority", [])) == sorted_set(EXPECTED_WORK_RECORD_FORBIDDEN_AUTHORITY),
+  "work_record.forbidden_authority 必須剛好是 [memory_acceptance, canonical_writer]",
+  failures
+)
 
 promotion_path = spec.fetch("promotion_path", {})
 assert(promotion_path.fetch("ordered_steps", []) == EXPECTED_PROMOTION_STEPS, "promotion_path.ordered_steps 與鎖定順序不符", failures)
@@ -257,6 +274,12 @@ assert(
 )
 assert(automated_step_contract.fetch("error_behavior_enum", []) == %w[FAIL_LOUD], "automated_step_contract.error_behavior_enum 必須剛好是 [FAIL_LOUD]", failures)
 assert(automated_step_contract["fail_silent"] == "forbidden", "automated_step_contract.fail_silent 必須 forbidden", failures)
+assert(
+  sorted_set(automated_step_contract.fetch("allowed_gate_positions", [])) == sorted_set(EXPECTED_ALLOWED_GATE_POSITIONS),
+  "automated_step_contract.allowed_gate_positions 必須剛好是 [VERIFICATION, PERSONAL_ACCEPTANCE]",
+  failures
+)
+allowed_gate_positions = automated_step_contract.fetch("allowed_gate_positions", [])
 
 cross_reference = spec.fetch("cross_reference", {})
 transient_kinds = personal_spec.fetch("not_long_lived_memory_by_default", [])
@@ -298,7 +321,7 @@ end
 
 positive.fetch("automated_step_cases").each do |test_case|
   assert(test_case.fetch("expected") == "allow", "#{test_case.fetch("case_id")} automated step positive 必須預期 allow", failures)
-  actual = automated_step_failure(test_case.fetch("automated_step"))
+  actual = automated_step_failure(test_case.fetch("automated_step"), allowed_gate_positions)
   assert(actual.nil?, "#{test_case.fetch("case_id")} 預期 allow，實際被拒：#{actual}", failures)
 end
 
@@ -320,7 +343,7 @@ check_negative(negative.fetch("promotion_path_negative_cases"), "promotion", fai
   promotion_path_failure(test_case.fetch("promotion"), transient_kinds)
 end
 check_negative(negative.fetch("automated_step_negative_cases"), "automated step", failures) do |test_case|
-  automated_step_failure(test_case.fetch("automated_step"))
+  automated_step_failure(test_case.fetch("automated_step"), allowed_gate_positions)
 end
 
 covered_labels = sorted_set(

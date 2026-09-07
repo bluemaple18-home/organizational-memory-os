@@ -128,7 +128,40 @@
       "promotion": {
         "origin": "TASK_CARD",
         "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
           "PERSONAL_MEMORY_RECORD"
+        ],
+        "candidate_memory_kind": "LESSON",
+        "acceptance_authority_signal": null
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_PP_NEG_DUPLICATE_STEP",
+      "covers_boundary_negative_fixture": "promotion path repeats a step",
+      "expected_failure_code": "PROMOTION_DUPLICATE_STEP",
+      "promotion": {
+        "origin": "WORK_RECORD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "RAW_EVIDENCE_ENVELOPE",
+          "RAW_EVIDENCE_ENVELOPE",
+          "PERSONAL_MEMORY_CANDIDATE"
+        ],
+        "candidate_memory_kind": "LESSON",
+        "acceptance_authority_signal": null
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_PP_NEG_PARTIAL_SKIPS_EVIDENCE",
+      "covers_boundary_negative_fixture": "partial promotion path skips the evidence step",
+      "expected_failure_code": "PROMOTION_SKIPS_EVIDENCE",
+      "promotion": {
+        "origin": "TASK_CARD",
+        "steps": [
+          "TASK_CARD_OR_WORK_RECORD",
+          "PERSONAL_MEMORY_CANDIDATE"
         ],
         "candidate_memory_kind": "LESSON",
         "acceptance_authority_signal": null
@@ -186,6 +219,7 @@
         "output_schema_ref": "urn:omos:schema:aiwr-step-output:0.1.0",
         "error_behavior": "FAIL_LOUD",
         "human_acceptance_gate": false,
+        "human_acceptance_gate_position": "PERSONAL_ACCEPTANCE",
         "dry_run_supported": true
       },
       "expected": "deny"
@@ -200,6 +234,51 @@
         "output_schema_ref": "urn:omos:schema:aiwr-step-output:0.1.0",
         "error_behavior": "SWALLOW",
         "human_acceptance_gate": true,
+        "human_acceptance_gate_position": "PERSONAL_ACCEPTANCE",
+        "dry_run_supported": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_AS_NEG_NULL_SCHEMA_REF",
+      "covers_boundary_negative_fixture": "automated step schema ref is null",
+      "expected_failure_code": "AUTOMATED_STEP_MISSING_CONTRACT_FIELD",
+      "automated_step": {
+        "step_id": "null-input-schema",
+        "input_schema_ref": null,
+        "output_schema_ref": "urn:omos:schema:aiwr-step-output:0.1.0",
+        "error_behavior": "FAIL_LOUD",
+        "human_acceptance_gate": true,
+        "human_acceptance_gate_position": "PERSONAL_ACCEPTANCE",
+        "dry_run_supported": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_AS_NEG_MISSING_GATE_POSITION",
+      "covers_boundary_negative_fixture": "automated step has no gate position",
+      "expected_failure_code": "AUTOMATED_STEP_MISSING_CONTRACT_FIELD",
+      "automated_step": {
+        "step_id": "no-gate-position",
+        "input_schema_ref": "urn:omos:schema:aiwr-step-input:0.1.0",
+        "output_schema_ref": "urn:omos:schema:aiwr-step-output:0.1.0",
+        "error_behavior": "FAIL_LOUD",
+        "human_acceptance_gate": true,
+        "dry_run_supported": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "AIWR_AS_NEG_BAD_GATE_POSITION",
+      "covers_boundary_negative_fixture": "automated step gate position not allowed",
+      "expected_failure_code": "AUTOMATED_STEP_GATE_POSITION_INVALID",
+      "automated_step": {
+        "step_id": "gate-before-evidence",
+        "input_schema_ref": "urn:omos:schema:aiwr-step-input:0.1.0",
+        "output_schema_ref": "urn:omos:schema:aiwr-step-output:0.1.0",
+        "error_behavior": "FAIL_LOUD",
+        "human_acceptance_gate": true,
+        "human_acceptance_gate_position": "RAW_EVIDENCE_ENVELOPE",
         "dry_run_supported": true
       },
       "expected": "deny"

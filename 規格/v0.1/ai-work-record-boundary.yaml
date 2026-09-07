@@ -101,13 +101,19 @@ automated_step_contract:
     - output_schema_ref
     - error_behavior
     - human_acceptance_gate
+    - human_acceptance_gate_position
     - dry_run_supported
   error_behavior_enum:
     - FAIL_LOUD
   fail_silent: forbidden
+  allowed_gate_positions:
+    - VERIFICATION
+    - PERSONAL_ACCEPTANCE
   human_acceptance_gate_rule: >-
     Every automated step that can lead to a durable memory must stop at an
-    explicit human acceptance gate; the gate position must be recorded.
+    explicit human acceptance gate before durable memory is formed. The gate
+    position is a machine-readable step name and must be one of
+    allowed_gate_positions (VERIFICATION or PERSONAL_ACCEPTANCE).
 
 cross_reference:
   personal_spec: 規格/v0.1/personal-harness-integration.yaml
