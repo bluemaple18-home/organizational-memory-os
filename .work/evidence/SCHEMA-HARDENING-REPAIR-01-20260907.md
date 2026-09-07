@@ -2,6 +2,23 @@
 
 Status: READY_FOR_TARGETED_REREVIEW
 
+## Targeted Re-review NO-GO and Repair
+
+- 第一次 targeted re-review 對 `SH-RV-001` 判定 NO-GO：Ruby `valid_rfc3339?` 僅檢查 `Z` 後交由 `Time.iso8601`，會接受 schema pattern 拒絕的 `2026-09-04T01:00:00.1234567890Z`。
+- 修補：Ruby predicate 先以同 schema 的 UTC RFC3339 pattern（fractional seconds 為 0–9 位）完整比對，再以 `Time.iso8601` 驗證日期／時間語意。
+- 新增獨立、test-only `ruby_semantic_regression_cases` metadata；不改既有 standard engine 對 `RUBY_SEMANTIC` 必須 schema-ALLOW 的 authority semantics。單一 matrix case 證明 0、1、9 位 fractional seconds 允許，10 位拒絕。
+
+第二輪驗證：
+
+```text
+2026-09-04T01:00:00Z ALLOW
+2026-09-04T01:00:00.1Z ALLOW
+2026-09-04T01:00:00.123456789Z ALLOW
+2026-09-04T01:00:00.1234567890Z REJECT
+```
+
+- STD-00～03、standard engine、cross-layer、personal-memory、JSON/YAML parse、Ruby syntax 與 `git diff --check` 均於此修補後再次 PASS。
+
 ## Scope
 
 - 僅修 P1 `SH-RV-001`：`resolution.resolved_at` 的 UTC RFC3339 schema／standard engine／STD-02 fixture／Ruby schema AST parity。

@@ -48,8 +48,12 @@ NEGATIVE_NAMES = %w[
   resolution-non-utc-offset
   resolution-invalid-calendar-timestamp
 ].freeze
+RUBY_TIMESTAMP_REGRESSION_NAMES = %w[
+  resolution-fractional-precision-parity
+].freeze
 UUIDV7 = /\A[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/.freeze
 SHA256 = /\Asha256:[0-9a-f]{64}\z/.freeze
+UTC_RFC3339 = /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?Z\z/.freeze
 COMMON_SCHEMA_URN = "urn:omos:schema:source-anchor:0.1.0"
 SELECTOR_COMPOSITIONS = {
   "PDF_REGION_V1" => %w[PDF_REGION TEXT_QUOTE],
@@ -119,7 +123,10 @@ def deep_copy(value)
 end
 
 def valid_rfc3339?(value)
-  value.is_a?(String) && value.end_with?("Z") && Time.iso8601(value)
+  return false unless value.is_a?(String) && value.match?(UTC_RFC3339)
+
+  Time.iso8601(value)
+  true
 rescue ArgumentError
   false
 end
@@ -457,6 +464,34 @@ def validate_negative(negative, positive, evidence_by_ref, common_vocab, failure
   end
 end
 
+def validate_ruby_timestamp_regressions(negative, failures)
+  cases = negative["ruby_semantic_regression_cases"]
+  assert(cases.is_a?(Array), "RUBY_TIMESTAMP_REGRESSION_CASES", "timestamp regression cases 必須是 array", failures)
+  return unless cases.is_a?(Array)
+
+  names = cases.map { |test_case| test_case["name"] }
+  assert(names == RUBY_TIMESTAMP_REGRESSION_NAMES, "RUBY_TIMESTAMP_REGRESSION_NAMES", "timestamp regression case 必須精確覆蓋 fractional precision parity", failures)
+  cases.each do |test_case|
+    assert(test_case["validation_authority"] == "RUBY_SEMANTIC", "RUBY_TIMESTAMP_REGRESSION_AUTHORITY", "#{test_case["name"]} 必須是 RUBY_SEMANTIC", failures)
+    assert(test_case["predicate"] == "resolution.resolved_at", "RUBY_TIMESTAMP_REGRESSION_PREDICATE", "#{test_case["name"]} 必須測試 resolution.resolved_at", failures)
+    examples = test_case["examples"]
+    assert(examples.is_a?(Array), "RUBY_TIMESTAMP_REGRESSION_EXAMPLES", "#{test_case["name"]} examples 必須是 array", failures)
+    next unless examples.is_a?(Array)
+
+    expected_examples = [
+      {"value" => "2026-09-04T01:00:00Z", "expected_result" => "ALLOW"},
+      {"value" => "2026-09-04T01:00:00.1Z", "expected_result" => "ALLOW"},
+      {"value" => "2026-09-04T01:00:00.123456789Z", "expected_result" => "ALLOW"},
+      {"value" => "2026-09-04T01:00:00.1234567890Z", "expected_result" => "REJECT"}
+    ]
+    assert(examples == expected_examples, "RUBY_TIMESTAMP_REGRESSION_MATRIX", "#{test_case["name"]} 必須覆蓋 0/1/9 位允許與 10 位拒絕", failures)
+    examples.each do |example|
+      expected = example["expected_result"] == "ALLOW"
+      assert(valid_rfc3339?(example["value"]) == expected, "RUBY_TIMESTAMP_REGRESSION_RESULT", "#{test_case["name"]} #{example["value"]} 結果不正確", failures)
+    end
+  end
+end
+
 def validate_availability_truth_table(failures)
   cases = [
     ["AVAILABLE", "EXACT_MATCH", true],
@@ -501,4 +536,5 @@ validate_availability_truth_table(failures)
 evidence_by_ref = raw_evidence.fetch("fixtures", []).to_h { |fixture| [fixture.dig("envelope", "evidence_ref"), fixture["envelope"]] }
 validate_positive(positive, evidence_by_ref, common_vocab, failures)
 validate_negative(negative, positive, evidence_by_ref, common_vocab, failures)
+validate_ruby_timestamp_regressions(negative, failures)
 finish(failures)

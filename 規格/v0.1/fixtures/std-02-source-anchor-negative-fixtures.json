@@ -2,6 +2,19 @@
   "fixture_set": "std-02-source-anchor-negative-v0.1",
   "status": "LOCKED_OWNER_ACCEPTED_20260904",
   "mutation_model": "每個案例由完整正向 base fixture 深複製後，只套用 declared mutations；validator 必須拒絕且不可出現 unrelated failure。",
+  "ruby_semantic_regression_cases": [
+    {
+      "name": "resolution-fractional-precision-parity",
+      "validation_authority": "RUBY_SEMANTIC",
+      "predicate": "resolution.resolved_at",
+      "examples": [
+        {"value": "2026-09-04T01:00:00Z", "expected_result": "ALLOW"},
+        {"value": "2026-09-04T01:00:00.1Z", "expected_result": "ALLOW"},
+        {"value": "2026-09-04T01:00:00.123456789Z", "expected_result": "ALLOW"},
+        {"value": "2026-09-04T01:00:00.1234567890Z", "expected_result": "REJECT"}
+      ]
+    }
+  ],
   "cases": [
     {
       "name": "pdf-bbox-out-of-range",
