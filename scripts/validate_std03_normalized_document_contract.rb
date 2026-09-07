@@ -43,7 +43,9 @@ NEGATIVE_NAMES = %w[
   missing-parent
   parent-cycle
   table-missing-structured-cells
+  table-empty-attributes
   image-missing-asset-ref
+  image-empty-attributes
 ].freeze
 
 SHA256 = /\Asha256:[0-9a-f]{64}\z/.freeze
@@ -53,20 +55,51 @@ RECEIPT_REF = /\Aurn:omos:receipt:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-
 SOURCE_ANCHOR_REF = /\Aurn:omos:source-anchor:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/.freeze
 LANGUAGE = /\A(?:[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*|und|mul)\z/.freeze
 
+class DuplicateKeyError < StandardError; end
+
+class StrictJsonObject < Hash
+  def []=(key, value)
+    raise DuplicateKeyError, "duplicate JSON object key #{key.inspect}" if key?(key)
+
+    super
+  end
+end
+
+def assert_unique_yaml_mapping_keys(node, path = "$")
+  case node
+  when Psych::Nodes::Stream, Psych::Nodes::Document
+    node.children.each { |child| assert_unique_yaml_mapping_keys(child, path) }
+  when Psych::Nodes::Sequence
+    node.children.each_with_index { |child, index| assert_unique_yaml_mapping_keys(child, "#{path}[#{index}]") }
+  when Psych::Nodes::Mapping
+    seen = {}
+    node.children.each_slice(2) do |key_node, value_node|
+      key = key_node.respond_to?(:value) ? key_node.value : key_node.to_s
+      child_path = "#{path}.#{key}"
+      raise DuplicateKeyError, "duplicate YAML mapping key #{child_path}" if seen.key?(key)
+
+      seen[key] = true
+      assert_unique_yaml_mapping_keys(value_node, child_path)
+    end
+  end
+end
+
 def assert(condition, code, message, failures)
   failures << "#{code}: #{message}" unless condition
 end
 
 def read_json(path, failures)
-  JSON.parse(File.read(path))
-rescue JSON::ParserError => error
+  JSON.parse(File.read(path), object_class: StrictJsonObject)
+rescue JSON::ParserError, DuplicateKeyError => error
   failures << "JSON_PARSE: #{relative(path)} #{error.message}"
   nil
 end
 
 def read_yaml(path, failures)
-  YAML.safe_load(File.read(path), permitted_classes: [], aliases: false)
-rescue Psych::SyntaxError => error
+  text = File.read(path)
+  assert_unique_yaml_mapping_keys(Psych.parse_stream(text))
+  YAML.safe_load(text, permitted_classes: [], aliases: false)
+rescue Psych::SyntaxError, DuplicateKeyError => error
   failures << "YAML_PARSE: #{relative(path)} #{error.message}"
   nil
 end
@@ -164,6 +197,15 @@ def validate_schema_documents(root_schema, block_schema, common_vocab, failures)
   assert(block_schema.dig("properties", "attributes", "additionalProperties") == false, "BLOCK_ATTRIBUTES_CLOSED", "attributes 必須 closed", failures)
   assert(JSON.generate(block_schema).include?("table_attributes"), "BLOCK_TABLE_SCHEMA", "table 必須有 structured cells schema", failures)
   assert(JSON.generate(block_schema).include?("image_asset"), "BLOCK_IMAGE_SCHEMA", "image 必須有 asset/caption/bbox schema", failures)
+  conditions = block_schema.fetch("allOf", [])
+  table_branch = conditions.find { |branch| branch.dig("if", "properties", "block_type", "const") == "table" }
+  image_branch = conditions.find { |branch| branch.dig("if", "properties", "block_type", "const") == "image" }
+  empty_attributes_branch = conditions.find do |branch|
+    branch.dig("if", "properties", "block_type", "enum").to_a.sort == %w[code list_item paragraph section_header title unknown].sort
+  end
+  assert(table_branch&.dig("then", "properties", "attributes", "required") == ["table"], "BLOCK_TABLE_CONDITIONAL_AST", "table block 必須由 conditional AST 要求 attributes.table", failures)
+  assert(image_branch&.dig("then", "properties", "attributes", "required") == ["asset"], "BLOCK_IMAGE_CONDITIONAL_AST", "image block 必須由 conditional AST 要求 attributes.asset", failures)
+  assert(empty_attributes_branch&.dig("then", "properties", "attributes", "maxProperties") == 0, "BLOCK_EMPTY_ATTRIBUTES_CONDITIONAL_AST", "非 table/image Phase-1 block 必須由 conditional AST 要求 attributes={}", failures)
 
   locked_types = common_vocab.dig("common_enums", "block_type").to_a
   assert((PHASE_1_BLOCK_TYPES - locked_types).empty?, "VOCABULARY_BLOCK_TYPES", "Phase-1 block type 必須是 STD-00 LOCKED vocabulary 子集", failures)

@@ -15,11 +15,34 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 MUTATION_TARGETS = {"candidate", "support", "binding", "raw", "anchor"}
+EXPECTED_NEGATIVE_NAMES = [
+    "missing-source-anchor-ref",
+    "wrong-raw-evidence-ref",
+    "representation-digest-mismatch",
+    "revoked-source-claims-exact",
+    "owner-widening",
+    "acl-widening",
+    "visibility-scope-widening",
+    "summary-only-support",
+]
+
+
+class DuplicateKeyError(ValueError):
+    pass
+
+
+def reject_duplicate_object_pairs(pairs: list[tuple[str, object]]) -> dict:
+    payload: dict = {}
+    for key, value in pairs:
+        if key in payload:
+            raise DuplicateKeyError(key)
+        payload[key] = value
+    return payload
 
 
 def load_json(relative_path: str) -> dict:
     with (ROOT / relative_path).open(encoding="utf-8") as source:
-        return json.load(source)
+        return json.load(source, object_pairs_hook=reject_duplicate_object_pairs)
 
 
 def apply_mutation(payload: dict, mutation: dict) -> None:
@@ -100,6 +123,13 @@ def main() -> int:
         return 1
 
     failures = []
+    negative_names = [negative["name"] for negative in fixture["negative_cases"]]
+    if (
+        negative_names != EXPECTED_NEGATIVE_NAMES
+        or len(negative_names) != 8
+        or len(set(negative_names)) != len(negative_names)
+    ):
+        failures.append("NEGATIVE_CASE_REGISTRY")
     for negative in fixture["negative_cases"]:
         case, raw, anchor = resolve_case(fixture["base_case"], raw_by_name, anchor_by_name)
         mutation = negative["mutation"]

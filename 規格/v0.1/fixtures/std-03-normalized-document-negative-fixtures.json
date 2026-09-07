@@ -27,7 +27,10 @@
       "expected_result": "REJECT",
       "base_fixture": "pdf-normalized-document",
       "mutations": [{"target": "root", "op": "replace", "path": "parser_receipt_ref", "value": ""}],
-      "expected_schema_errors": [{"path": "/parser_receipt_ref", "validator": "pattern"}],
+      "expected_schema_errors": [
+        {"path": "/parser_receipt_ref", "validator": "minLength"},
+        {"path": "/parser_receipt_ref", "validator": "pattern"}
+      ],
       "expected_failure_codes": ["PARSER_RECEIPT_REF"]
     },
     {
@@ -157,12 +160,30 @@
       "expected_failure_codes": ["TABLE_STRUCTURE"]
     },
     {
+      "name": "table-empty-attributes",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "markdown-normalized-document",
+      "mutations": [{"target": "block", "index": 4, "op": "delete", "path": "attributes.table"}],
+      "expected_schema_errors": [{"path": "/attributes", "validator": "required"}],
+      "expected_failure_codes": ["TABLE_STRUCTURE"]
+    },
+    {
       "name": "image-missing-asset-ref",
       "validation_authority": "JSON_SCHEMA",
       "expected_result": "REJECT",
       "base_fixture": "pdf-normalized-document",
       "mutations": [{"target": "block", "index": 2, "op": "delete", "path": "attributes.asset.asset_ref"}],
       "expected_schema_errors": [{"path": "/attributes/asset", "validator": "required"}],
+      "expected_failure_codes": ["IMAGE_ASSET"]
+    },
+    {
+      "name": "image-empty-attributes",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-normalized-document",
+      "mutations": [{"target": "block", "index": 2, "op": "delete", "path": "attributes.asset"}],
+      "expected_schema_errors": [{"path": "/attributes", "validator": "required"}],
       "expected_failure_codes": ["IMAGE_ASSET"]
     }
   ]

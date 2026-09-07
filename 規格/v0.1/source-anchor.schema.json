@@ -9,7 +9,7 @@
     "schema_version": {"const": "omos.source-anchor.v0.1"},
     "anchor_id": {"$ref": "#/$defs/uuidv7"},
     "anchor_ref": {"type": "string", "pattern": "^urn:omos:source-anchor:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
-    "evidence_ref": {"type": "string", "pattern": "^urn:omos:evidence:[0-9a-f-]{36}$"},
+    "evidence_ref": {"type": "string", "pattern": "^urn:omos:evidence:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
     "source_identity": {"$ref": "#/$defs/source_identity"},
     "source_version": {"$ref": "#/$defs/source_version"},
     "representation": {
@@ -30,7 +30,7 @@
       "additionalProperties": false,
       "required": ["acl_snapshot_ref", "permission_decision_ref"],
       "properties": {
-        "acl_snapshot_ref": {"type": "string", "pattern": "^urn:omos:acl-snapshot:[0-9a-f-]{36}$"},
+        "acl_snapshot_ref": {"type": "string", "pattern": "^urn:omos:acl-snapshot:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"},
         "permission_decision_ref": {"type": ["string", "null"]}
       }
     },
@@ -48,6 +48,6 @@
     "source_identity": {"type": "object", "additionalProperties": false, "required": ["source_system", "source_instance_id", "entity_type", "native_id"], "properties": {"source_system": {"type": "string", "minLength": 1}, "source_instance_id": {"type": "string", "minLength": 1}, "entity_type": {"type": "string", "minLength": 1}, "native_id": {"type": "string", "minLength": 1}, "parent_native_id": {"type": ["string", "null"]}}},
     "source_version": {"type": "object", "additionalProperties": false, "required": ["basis", "kind", "value", "secondary_digest"], "properties": {"basis": {"enum": ["AUTHORITATIVE_NATIVE", "COMPOUND_OBSERVED", "CONTENT_ONLY", "UNKNOWN"]}, "kind": {"enum": ["REVISION", "ETAG", "COMMIT", "SEQUENCE", "CHANGE_ID", "UPDATED_AT_DIGEST", "CONTENT_DIGEST", "NONE"]}, "value": {"type": ["string", "null"]}, "secondary_digest": {"anyOf": [{"$ref": "#/$defs/sha256"}, {"type": "null"}]}}},
     "quote": {"type": "object", "additionalProperties": false, "required": ["exact", "prefix", "suffix", "normalization_profile"], "properties": {"exact": {"type": "string", "minLength": 1}, "prefix": {"type": "string"}, "suffix": {"type": "string"}, "normalization_profile": {"const": "OMOS_TEXT_NORM_V1"}}},
-    "resolution": {"type": "object", "additionalProperties": false, "required": ["status", "resolved_at", "resolver_version"], "properties": {"status": {"enum": ["EXACT_MATCH", "RELOCATED", "CONTENT_CHANGED", "MISSING", "ACCESS_REVOKED", "REPRESENTATION_UNAVAILABLE", "AMBIGUOUS"]}, "resolved_at": {"type": "string", "format": "date-time"}, "resolver_version": {"type": "string", "minLength": 1}}}
+    "resolution": {"type": "object", "additionalProperties": false, "required": ["status", "resolved_at", "resolver_version"], "properties": {"status": {"enum": ["EXACT_MATCH", "RELOCATED", "CONTENT_CHANGED", "MISSING", "ACCESS_REVOKED", "REPRESENTATION_UNAVAILABLE", "AMBIGUOUS"]}, "resolved_at": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"}, "resolver_version": {"type": "string", "minLength": 1}}}
   }
 }

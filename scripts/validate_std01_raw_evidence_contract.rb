@@ -43,6 +43,35 @@ EXPECTED_NEGATIVE_NAMES = %w[
   unknown-quality-gap-code
 ].freeze
 
+class DuplicateKeyError < StandardError; end
+
+class StrictJsonObject < Hash
+  def []=(key, value)
+    raise DuplicateKeyError, "duplicate JSON object key #{key.inspect}" if key?(key)
+
+    super
+  end
+end
+
+def assert_unique_yaml_mapping_keys(node, path = "$")
+  case node
+  when Psych::Nodes::Stream, Psych::Nodes::Document
+    node.children.each { |child| assert_unique_yaml_mapping_keys(child, path) }
+  when Psych::Nodes::Sequence
+    node.children.each_with_index { |child, index| assert_unique_yaml_mapping_keys(child, "#{path}[#{index}]") }
+  when Psych::Nodes::Mapping
+    seen = {}
+    node.children.each_slice(2) do |key_node, value_node|
+      key = key_node.respond_to?(:value) ? key_node.value : key_node.to_s
+      child_path = "#{path}.#{key}"
+      raise DuplicateKeyError, "duplicate YAML mapping key #{child_path}" if seen.key?(key)
+
+      seen[key] = true
+      assert_unique_yaml_mapping_keys(value_node, child_path)
+    end
+  end
+end
+
 def assert(condition, code, message, failures)
   failures << "#{code}: #{message}" unless condition
 end
@@ -53,8 +82,8 @@ def read_json(path, failures)
     return nil
   end
 
-  JSON.parse(File.read(path))
-rescue JSON::ParserError => error
+  JSON.parse(File.read(path), object_class: StrictJsonObject)
+rescue JSON::ParserError, DuplicateKeyError => error
   failures << "JSON_PARSE: #{path} #{error.message}"
   nil
 end
@@ -65,8 +94,10 @@ def read_yaml(path, failures)
     return nil
   end
 
-  YAML.safe_load(File.read(path), permitted_classes: [], aliases: false)
-rescue Psych::SyntaxError => error
+  text = File.read(path)
+  assert_unique_yaml_mapping_keys(Psych.parse_stream(text))
+  YAML.safe_load(text, permitted_classes: [], aliases: false)
+rescue Psych::SyntaxError, DuplicateKeyError => error
   failures << "YAML_PARSE: #{path} #{error.message}"
   nil
 end
@@ -484,6 +515,17 @@ def validate_negative_fixtures(common_vocab, positive_payload, payload, failures
   end
 end
 
+def validate_non_i_json_defensive_mirror(common_vocab, negative_payload, failures)
+  return if negative_payload.nil?
+
+  test_case = negative_payload.fetch("cases", []).find { |entry| entry["name"] == "non-i-json-without-canonicalization-gap" }
+  assert(test_case && test_case["invalid_envelope"].is_a?(Hash), "NON_I_JSON_DEFENSIVE_MIRROR_FIXTURE", "NON_I_JSON defensive mirror 必須有完整負例", failures)
+  return unless test_case && test_case["invalid_envelope"].is_a?(Hash)
+
+  codes = validate_envelope(common_vocab, test_case["invalid_envelope"]).map { |failure| failure.split(":").first }.uniq
+  assert(codes.include?("NON_I_JSON_GAP"), "NON_I_JSON_DEFENSIVE_MIRROR_EXECUTION", "Ruby defensive mirror 必須實際拒絕缺 CANONICALIZATION_UNAVAILABLE 的 NON_I_JSON payload", failures)
+end
+
 def main
   failures = []
   common_vocab = read_yaml(COMMON_VOCAB_PATH, failures)
@@ -496,6 +538,7 @@ def main
   validate_schema_document(schema, failures)
   validate_positive_fixtures(common_vocab, positive, failures)
   validate_negative_fixtures(common_vocab, positive, negative, failures)
+  validate_non_i_json_defensive_mirror(common_vocab, negative, failures)
 
   finish(failures)
 end

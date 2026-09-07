@@ -33,9 +33,22 @@ PROFILE_SCHEMAS = {
 }
 
 
+class DuplicateKeyError(ValueError):
+    pass
+
+
+def reject_duplicate_object_pairs(pairs: list[tuple[str, object]]) -> dict:
+    payload: dict = {}
+    for key, value in pairs:
+        if key in payload:
+            raise DuplicateKeyError(key)
+        payload[key] = value
+    return payload
+
+
 def load_json(relative_path: str) -> dict:
     with (ROOT / relative_path).open(encoding="utf-8") as source:
-        return json.load(source)
+        return json.load(source, object_pairs_hook=reject_duplicate_object_pairs)
 
 
 def apply_mutation(payload: dict, mutation: dict) -> None:
@@ -83,6 +96,23 @@ def expected_schema_error_pairs(case: dict, family: str, failures: list[str]) ->
             return set()
         pairs.add((expected["path"], expected["validator"]))
     return pairs
+
+
+def validate_schema_error_pairs(
+    actual_pairs: set[tuple[str, str]],
+    expected_pairs: set[tuple[str, str]],
+    case_name: str,
+    family: str,
+    failures: list[str],
+) -> None:
+    if actual_pairs == expected_pairs:
+        return
+    missing = sorted(expected_pairs - actual_pairs)
+    extra = sorted(actual_pairs - expected_pairs)
+    failures.append(
+        f"{family}_JSON_SCHEMA_ERROR_PAIRS_MISMATCH:"
+        f"{case_name}:missing={missing}:extra={extra}"
+    )
 
 
 def validate_case_contract(case: dict, family: str, failures: list[str]) -> None:
@@ -135,12 +165,13 @@ def validate_raw_negatives(
         if invalid is None or not pairs:
             failures.append(f"STD01_JSON_SCHEMA_NOT_REJECTED:{name}")
             continue
-        for expected_path, expected_validator in expected_schema_error_pairs(case, "STD01", failures):
-            if (expected_path, expected_validator) not in pairs:
-                failures.append(
-                    "STD01_JSON_SCHEMA_UNRELATED_REJECTION:"
-                    f"{name}:{expected_path}:{expected_validator}"
-                )
+        validate_schema_error_pairs(
+            pairs,
+            expected_schema_error_pairs(case, "STD01", failures),
+            name,
+            "STD01",
+            failures,
+        )
     return schema_cases, ruby_cases
 
 
@@ -166,8 +197,17 @@ def validate_anchor_negatives(
                 ruby_cases.append(name)
             continue
         schema_cases.append(name)
-        if not rejected(validators[mutated["profile"]], mutated):
+        pairs = schema_error_pairs(validators[mutated["profile"]], mutated)
+        if not pairs:
             failures.append(f"STD02_JSON_SCHEMA_NOT_REJECTED:{name}")
+            continue
+        validate_schema_error_pairs(
+            pairs,
+            expected_schema_error_pairs(case, "STD02", failures),
+            name,
+            "STD02",
+            failures,
+        )
     return schema_cases, ruby_cases
 
 
@@ -223,12 +263,13 @@ def validate_document_negatives(
         if not pairs:
             failures.append(f"STD03_JSON_SCHEMA_NOT_REJECTED:{name}")
             continue
-        for expected_path, expected_validator in expected_schema_error_pairs(case, "STD03", failures):
-            if (expected_path, expected_validator) not in pairs:
-                failures.append(
-                    "STD03_JSON_SCHEMA_UNRELATED_REJECTION:"
-                    f"{name}:{expected_path}:{expected_validator}"
-                )
+        validate_schema_error_pairs(
+            pairs,
+            expected_schema_error_pairs(case, "STD03", failures),
+            name,
+            "STD03",
+            failures,
+        )
     return schema_cases, ruby_cases
 
 
@@ -259,12 +300,27 @@ def unrelated_rejection_probe(cases: list[dict], validator: Draft202012Validator
     probe["invalid_envelope"]["payload"]["payload_ref"] = ""
     failures: list[str] = []
     validate_raw_negatives([probe], validator, failures)
-    expected = "STD01_JSON_SCHEMA_UNRELATED_REJECTION:non-i-json-without-canonicalization-gap:/quality_gaps:contains"
-    if expected in failures:
+    expected_prefix = (
+        "STD01_JSON_SCHEMA_ERROR_PAIRS_MISMATCH:"
+        "non-i-json-without-canonicalization-gap:"
+    )
+    if any(failure.startswith(expected_prefix) for failure in failures):
         print("STD schema engine validator FAIL")
-        print(f"FAIL {expected}")
+        print(f"FAIL {expected_prefix}extra")
         return 1
     print("STD schema engine unrelated rejection probe unexpectedly accepted")
+    return 2
+
+
+def duplicate_json_probe() -> int:
+    probe_path = "inline duplicate-key JSON"
+    try:
+        json.loads('{"schema_version":"x","schema_version":"y"}', object_pairs_hook=reject_duplicate_object_pairs)
+    except DuplicateKeyError as error:
+        print("STD schema engine validator FAIL")
+        print(f"FAIL DUPLICATE_JSON_KEY:{probe_path}:{error}")
+        return 1
+    print("STD schema engine duplicate JSON probe unexpectedly accepted")
     return 2
 
 
@@ -301,6 +357,8 @@ def main() -> int:
         return structural_relabel_probe(raw_negative["cases"], raw_validator)
     if sys.argv[1:] == ["--probe-unrelated-json-schema"]:
         return unrelated_rejection_probe(raw_negative["cases"], raw_validator)
+    if sys.argv[1:] == ["--probe-duplicate-json"]:
+        return duplicate_json_probe()
 
     failures: list[str] = []
     for fixture in raw_positive["fixtures"]:
@@ -344,20 +402,23 @@ def main() -> int:
         return 1
 
     print("STD schema engine validator PASS")
-    print(f"STD01 JSON_SCHEMA coverage: {len(raw_schema_cases)}/{len(raw_schema_cases)}")
     print(
-        "STD01 RUBY_SEMANTIC schema-allowed then excluded from schema rejection "
-        f"coverage: {len(raw_ruby_cases)}"
+        "STD01 coverage: "
+        f"json_schema_tested={len(raw_schema_cases)} "
+        f"json_schema_passed={len(raw_schema_cases)} "
+        f"ruby_semantic_excluded={len(raw_ruby_cases)}"
     )
-    print(f"STD02 JSON_SCHEMA coverage: {len(anchor_schema_cases)}/{len(anchor_schema_cases)}")
     print(
-        "STD02 RUBY_SEMANTIC schema-allowed then excluded from schema rejection "
-        f"coverage: {len(anchor_ruby_cases)}"
+        "STD02 coverage: "
+        f"json_schema_tested={len(anchor_schema_cases)} "
+        f"json_schema_passed={len(anchor_schema_cases)} "
+        f"ruby_semantic_excluded={len(anchor_ruby_cases)}"
     )
-    print(f"STD03 JSON_SCHEMA coverage: {len(document_schema_cases)}/{len(document_schema_cases)}")
     print(
-        "STD03 RUBY_SEMANTIC schema-allowed then excluded from schema rejection "
-        f"coverage: {len(document_ruby_cases)}"
+        "STD03 coverage: "
+        f"json_schema_tested={len(document_schema_cases)} "
+        f"json_schema_passed={len(document_schema_cases)} "
+        f"ruby_semantic_excluded={len(document_ruby_cases)}"
     )
     return 0
 

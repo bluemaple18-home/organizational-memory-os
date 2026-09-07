@@ -15,6 +15,9 @@
           "value": 1.1
         }
       ],
+      "expected_schema_errors": [
+        {"path": "/profile_details/bbox/x_max", "validator": "maximum"}
+      ],
       "expected_failure_codes": [
         "PDF_BBOX_RANGE"
       ]
@@ -48,6 +51,9 @@
           "value": 0
         }
       ],
+      "expected_schema_errors": [
+        {"path": "/profile_details/page", "validator": "minimum"}
+      ],
       "expected_failure_codes": [
         "PDF_PAGE"
       ]
@@ -62,6 +68,9 @@
           "op": "delete",
           "path": "representation.representation_digest"
         }
+      ],
+      "expected_schema_errors": [
+        {"path": "/representation", "validator": "required"}
       ],
       "expected_failure_codes": [
         "REPRESENTATION_REQUIRED"
@@ -79,6 +88,9 @@
           "value": true
         }
       ],
+      "expected_schema_errors": [
+        {"path": "/profile_details", "validator": "additionalProperties"}
+      ],
       "expected_failure_codes": [
         "PDF_REGION_V1_PROFILE_DETAILS_CLOSED"
       ]
@@ -94,6 +106,9 @@
           "path": "selectors",
           "value": "TEXT_QUOTE"
         }
+      ],
+      "expected_schema_errors": [
+        {"path": "/selectors", "validator": "type"}
       ],
       "expected_failure_codes": [
         "COMMON_ROOT_TYPE"
@@ -127,6 +142,9 @@
           "path": "profile_details.codepoint_range"
         }
       ],
+      "expected_schema_errors": [
+        {"path": "/profile_details", "validator": "required"}
+      ],
       "expected_failure_codes": [
         "MARKDOWN_TEXT_V1_PROFILE_DETAILS_REQUIRED"
       ]
@@ -142,6 +160,9 @@
           "path": "profile_details.codepoint_range.unit",
           "value": "UTF16_CODE_UNIT"
         }
+      ],
+      "expected_schema_errors": [
+        {"path": "/profile_details/codepoint_range/unit", "validator": "const"}
       ],
       "expected_failure_codes": [
         "MARKDOWN_CODEPOINT_UNIT"
@@ -203,6 +224,9 @@
           "value": "PROJ-123"
         }
       ],
+      "expected_schema_errors": [
+        {"path": "/profile_details/issue_id", "validator": "pattern"}
+      ],
       "expected_failure_codes": [
         "JIRA_ISSUE_IDENTITY"
       ]
@@ -218,6 +242,9 @@
           "path": "profile_details.cloud_id",
           "value": ""
         }
+      ],
+      "expected_schema_errors": [
+        {"path": "/profile_details/cloud_id", "validator": "minLength"}
       ],
       "expected_failure_codes": [
         "JIRA_CLOUD_ID"
@@ -235,6 +262,9 @@
           "value": "abc"
         }
       ],
+      "expected_schema_errors": [
+        {"path": "/profile_details/issue_id", "validator": "pattern"}
+      ],
       "expected_failure_codes": [
         "JIRA_ISSUE_IDENTITY"
       ]
@@ -251,6 +281,9 @@
           "value": "DATA_CENTER"
         }
       ],
+      "expected_schema_errors": [
+        {"path": "/profile_details/deployment_type", "validator": "const"}
+      ],
       "expected_failure_codes": [
         "JIRA_CLOUD_ONLY"
       ]
@@ -266,6 +299,9 @@
           "path": "profile_details.json_pointer",
           "value": "fields/description"
         }
+      ],
+      "expected_schema_errors": [
+        {"path": "/profile_details/json_pointer", "validator": "pattern"}
       ],
       "expected_failure_codes": [
         "JIRA_JSON_POINTER"
@@ -371,6 +407,63 @@
       ],
       "expected_failure_codes": [
         "EVIDENCE_REF"
+      ]
+    },
+    {
+      "name": "source-evidence-ref-uuidv4",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "evidence_ref",
+          "value": "urn:omos:evidence:0198e6d1-0999-4aaa-8bbb-111111111111"
+        }
+      ],
+      "expected_schema_errors": [
+        {"path": "/evidence_ref", "validator": "pattern"}
+      ],
+      "expected_failure_codes": [
+        "EVIDENCE_REF"
+      ]
+    },
+    {
+      "name": "acl-snapshot-ref-wide-uuid",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "access.acl_snapshot_ref",
+          "value": "urn:omos:acl-snapshot:11111111-2222-3333-4444-555555555555"
+        }
+      ],
+      "expected_schema_errors": [
+        {"path": "/access/acl_snapshot_ref", "validator": "pattern"}
+      ],
+      "expected_failure_codes": [
+        "ACL_SNAPSHOT_CROSS_REF"
+      ]
+    },
+    {
+      "name": "resolution-non-utc-offset",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "resolution.resolved_at",
+          "value": "2026-09-04T09:00:00+08:00"
+        }
+      ],
+      "expected_schema_errors": [
+        {"path": "/resolution/resolved_at", "validator": "pattern"}
+      ],
+      "expected_failure_codes": [
+        "RESOLUTION_TIMESTAMP"
       ]
     }
   ]

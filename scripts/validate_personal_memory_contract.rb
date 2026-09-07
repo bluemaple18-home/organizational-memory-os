@@ -99,8 +99,43 @@ HARD_DENY_FLAGS = %w[
   treats_ai_core_layout_as_universal_schema
 ].freeze
 
+class DuplicateKeyError < StandardError; end
+
+class StrictJsonObject < Hash
+  def []=(key, value)
+    raise DuplicateKeyError, "duplicate JSON object key #{key.inspect}" if key?(key)
+
+    super
+  end
+end
+
+def assert_unique_yaml_mapping_keys(node, path = "$")
+  case node
+  when Psych::Nodes::Stream, Psych::Nodes::Document
+    node.children.each { |child| assert_unique_yaml_mapping_keys(child, path) }
+  when Psych::Nodes::Sequence
+    node.children.each_with_index { |child, index| assert_unique_yaml_mapping_keys(child, "#{path}[#{index}]") }
+  when Psych::Nodes::Mapping
+    seen = {}
+    node.children.each_slice(2) do |key_node, value_node|
+      key = key_node.respond_to?(:value) ? key_node.value : key_node.to_s
+      child_path = "#{path}.#{key}"
+      raise DuplicateKeyError, "duplicate YAML mapping key #{child_path}" if seen.key?(key)
+
+      seen[key] = true
+      assert_unique_yaml_mapping_keys(value_node, child_path)
+    end
+  end
+end
+
 def read_json(path)
-  JSON.parse(File.read(path))
+  JSON.parse(File.read(path), object_class: StrictJsonObject)
+end
+
+def read_yaml(path)
+  text = File.read(path)
+  assert_unique_yaml_mapping_keys(Psych.parse_stream(text))
+  YAML.safe_load(text, permitted_classes: [], aliases: false)
 end
 
 def assert(condition, message, failures)
@@ -384,8 +419,8 @@ def evaluate_request(policy, request)
 end
 
 failures = []
-spec = YAML.load_file(SPEC_PATH)
-common_vocab = YAML.load_file(COMMON_VOCAB_PATH)
+spec = read_yaml(SPEC_PATH)
+common_vocab = read_yaml(COMMON_VOCAB_PATH)
 
 schema = spec.fetch("schema", {})
 assert(schema["version"] == "0.3.0", "schema.version 必須是 0.3.0", failures)

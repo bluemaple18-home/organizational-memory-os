@@ -43,6 +43,9 @@ NEGATIVE_NAMES = %w[
   resolution-falsely-claims-revoked
   summary-used-as-quote
   source-evidence-reference-mismatch
+  source-evidence-ref-uuidv4
+  acl-snapshot-ref-wide-uuid
+  resolution-non-utc-offset
 ].freeze
 UUIDV7 = /\A[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/.freeze
 SHA256 = /\Asha256:[0-9a-f]{64}\z/.freeze
@@ -53,20 +56,51 @@ SELECTOR_COMPOSITIONS = {
   "JIRA_CLOUD_ENTITY_SEGMENT_V1" => %w[JSON_POINTER TEXT_POSITION TEXT_QUOTE]
 }.freeze
 
+class DuplicateKeyError < StandardError; end
+
+class StrictJsonObject < Hash
+  def []=(key, value)
+    raise DuplicateKeyError, "duplicate JSON object key #{key.inspect}" if key?(key)
+
+    super
+  end
+end
+
+def assert_unique_yaml_mapping_keys(node, path = "$")
+  case node
+  when Psych::Nodes::Stream, Psych::Nodes::Document
+    node.children.each { |child| assert_unique_yaml_mapping_keys(child, path) }
+  when Psych::Nodes::Sequence
+    node.children.each_with_index { |child, index| assert_unique_yaml_mapping_keys(child, "#{path}[#{index}]") }
+  when Psych::Nodes::Mapping
+    seen = {}
+    node.children.each_slice(2) do |key_node, value_node|
+      key = key_node.respond_to?(:value) ? key_node.value : key_node.to_s
+      child_path = "#{path}.#{key}"
+      raise DuplicateKeyError, "duplicate YAML mapping key #{child_path}" if seen.key?(key)
+
+      seen[key] = true
+      assert_unique_yaml_mapping_keys(value_node, child_path)
+    end
+  end
+end
+
 def assert(condition, code, message, failures)
   failures << "#{code}: #{message}" unless condition
 end
 
 def read_json(path, failures)
-  JSON.parse(File.read(path))
-rescue JSON::ParserError => error
+  JSON.parse(File.read(path), object_class: StrictJsonObject)
+rescue JSON::ParserError, DuplicateKeyError => error
   failures << "JSON_PARSE: #{relative(path)} #{error.message}"
   nil
 end
 
 def read_yaml(path, failures)
-  YAML.safe_load(File.read(path), permitted_classes: [], aliases: false)
-rescue Psych::SyntaxError => error
+  text = File.read(path)
+  assert_unique_yaml_mapping_keys(Psych.parse_stream(text))
+  YAML.safe_load(text, permitted_classes: [], aliases: false)
+rescue Psych::SyntaxError, DuplicateKeyError => error
   failures << "YAML_PARSE: #{relative(path)} #{error.message}"
   nil
 end
@@ -212,6 +246,10 @@ def validate_schema_documents(schemas, failures)
   assert(common["additionalProperties"] == false, "SCHEMA_CLOSED", "Common SourceAnchor root 必須 closed", failures)
   assert_required(common, %w[schema_version anchor_id anchor_ref evidence_ref source_identity source_version representation access profile selectors profile_details quote normalization_profile source_availability resolution], "SCHEMA_REQUIRED", "Common SourceAnchor", failures)
   assert(common.dig("$defs", "quote", "properties", "exact", "minLength") == 1, "SCHEMA_QUOTE", "quote.exact 必須是非空原文", failures)
+  evidence_ref_pattern = "^urn:omos:evidence:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+  acl_snapshot_ref_pattern = "^urn:omos:acl-snapshot:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+  utc_rfc3339_pattern = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+  assert(common.dig("properties", "evidence_ref", "pattern") == evidence_ref_pattern, "SCHEMA_EVIDENCE_REF_UUIDV7", "evidence_ref 必須與 STD-01 canonical UUIDv7 URN pattern 對齊", failures)
   assert(common.dig("properties", "profile", "enum") == PROFILES, "SCHEMA_PROFILES", "Common SourceAnchor profile 必須精確對齊 LOCKED vocabulary", failures)
   assert(common.dig("properties", "representation", "additionalProperties") == false, "SCHEMA_REPRESENTATION_CLOSED", "representation 必須 closed", failures)
   assert_required(common.dig("properties", "representation") || {}, %w[source_payload_ref source_payload_digest representation_ref media_type representation_digest digest_basis], "SCHEMA_REPRESENTATION_REQUIRED", "representation", failures)
@@ -219,12 +257,13 @@ def validate_schema_documents(schemas, failures)
   assert(common.dig("properties", "representation", "properties", "media_type", "pattern") == "^[a-z]+/[a-z0-9.+-]+$", "SCHEMA_MEDIA_TYPE", "representation.media_type 必須是 IANA media type", failures)
   assert(common.dig("properties", "access", "additionalProperties") == false, "SCHEMA_ACCESS_CLOSED", "access 必須 closed", failures)
   assert_required(common.dig("properties", "access") || {}, %w[acl_snapshot_ref permission_decision_ref], "SCHEMA_ACCESS_REQUIRED", "access", failures)
+  assert(common.dig("properties", "access", "properties", "acl_snapshot_ref", "pattern") == acl_snapshot_ref_pattern, "SCHEMA_ACCESS_REF_UUIDV7", "acl_snapshot_ref 必須與 STD-01 canonical UUIDv7 URN pattern 對齊", failures)
   assert(common.dig("properties", "selectors", "items", "additionalProperties") == false, "SCHEMA_SELECTOR_CLOSED", "selector item 必須 closed", failures)
   assert(common.dig("properties", "selectors", "items", "properties", "selector_type", "enum").to_a.sort == SELECTOR_COMPOSITIONS.values.flatten.uniq.sort, "SCHEMA_SELECTOR_ENUM", "selector_type 必須限制為 Phase-1 enum", failures)
   %w[source_identity source_version quote resolution].each do |name|
     assert(common.dig("$defs", name, "additionalProperties") == false, "SCHEMA_COMMON_NESTED_CLOSED", "#{name} 必須 closed", failures)
   end
-  assert(common.dig("$defs", "resolution", "properties", "resolved_at", "type") == "string" && common.dig("$defs", "resolution", "properties", "resolved_at", "format") == "date-time", "SCHEMA_RFC3339", "resolution.resolved_at 必須是 RFC3339 date-time", failures)
+  assert(common.dig("$defs", "resolution", "properties", "resolved_at", "type") == "string" && common.dig("$defs", "resolution", "properties", "resolved_at", "format") == "date-time" && common.dig("$defs", "resolution", "properties", "resolved_at", "pattern") == utc_rfc3339_pattern, "SCHEMA_RFC3339", "resolution.resolved_at 必須是 UTC RFC3339 date-time Z", failures)
 
   {
     "source-anchor-pdf-region-v1.schema.json" => "PDF_REGION_V1",
