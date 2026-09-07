@@ -46,6 +46,7 @@ NEGATIVE_NAMES = %w[
   source-evidence-ref-uuidv4
   acl-snapshot-ref-wide-uuid
   resolution-non-utc-offset
+  resolution-invalid-calendar-timestamp
 ].freeze
 UUIDV7 = /\A[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/.freeze
 SHA256 = /\Asha256:[0-9a-f]{64}\z/.freeze
@@ -248,7 +249,7 @@ def validate_schema_documents(schemas, failures)
   assert(common.dig("$defs", "quote", "properties", "exact", "minLength") == 1, "SCHEMA_QUOTE", "quote.exact 必須是非空原文", failures)
   evidence_ref_pattern = "^urn:omos:evidence:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
   acl_snapshot_ref_pattern = "^urn:omos:acl-snapshot:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
-  utc_rfc3339_pattern = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z$"
+  utc_rfc3339_pattern = "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,9})?Z$"
   assert(common.dig("properties", "evidence_ref", "pattern") == evidence_ref_pattern, "SCHEMA_EVIDENCE_REF_UUIDV7", "evidence_ref 必須與 STD-01 canonical UUIDv7 URN pattern 對齊", failures)
   assert(common.dig("properties", "profile", "enum") == PROFILES, "SCHEMA_PROFILES", "Common SourceAnchor profile 必須精確對齊 LOCKED vocabulary", failures)
   assert(common.dig("properties", "representation", "additionalProperties") == false, "SCHEMA_REPRESENTATION_CLOSED", "representation 必須 closed", failures)

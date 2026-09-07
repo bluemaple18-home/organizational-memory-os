@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["jsonschema==4.25.1"]
+# dependencies = ["jsonschema==4.25.1", "rfc3339-validator==0.1.4"]
 # ///
 """以標準 JSON Schema Draft 2020-12 engine 驗證 STD-01／02／03 fixture。"""
 
@@ -12,7 +12,7 @@ import json
 import sys
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 from referencing import Registry, Resource
 
 
@@ -31,6 +31,7 @@ PROFILE_SCHEMAS = {
     "MARKDOWN_TEXT_V1": "urn:omos:schema:source-anchor:markdown-text-v1:0.1.0",
     "JIRA_CLOUD_ENTITY_SEGMENT_V1": "urn:omos:schema:source-anchor:jira-cloud-entity-segment-v1:0.1.0",
 }
+FORMAT_CHECKER = FormatChecker()
 
 
 class DuplicateKeyError(ValueError):
@@ -333,16 +334,24 @@ def main() -> int:
         Draft202012Validator.check_schema(document)
 
     raw_validator = Draft202012Validator(
-        schemas["urn:omos:schema:raw-evidence-envelope:0.1.0"], registry=registry
+        schemas["urn:omos:schema:raw-evidence-envelope:0.1.0"],
+        registry=registry,
+        format_checker=FORMAT_CHECKER,
     )
     normalized_document_validator = Draft202012Validator(
-        schemas["urn:omos:schema:normalized-document:0.1.0"], registry=registry
+        schemas["urn:omos:schema:normalized-document:0.1.0"],
+        registry=registry,
+        format_checker=FORMAT_CHECKER,
     )
     normalized_block_validator = Draft202012Validator(
-        schemas["urn:omos:schema:normalized-document-block:0.1.0"], registry=registry
+        schemas["urn:omos:schema:normalized-document-block:0.1.0"],
+        registry=registry,
+        format_checker=FORMAT_CHECKER,
     )
     profile_validators = {
-        profile: Draft202012Validator(schemas[uri], registry=registry)
+        profile: Draft202012Validator(
+            schemas[uri], registry=registry, format_checker=FORMAT_CHECKER
+        )
         for profile, uri in PROFILE_SCHEMAS.items()
     }
 

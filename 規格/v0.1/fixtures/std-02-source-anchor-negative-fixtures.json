@@ -465,6 +465,25 @@
       "expected_failure_codes": [
         "RESOLUTION_TIMESTAMP"
       ]
+    },
+    {
+      "name": "resolution-invalid-calendar-timestamp",
+      "validation_authority": "JSON_SCHEMA",
+      "expected_result": "REJECT",
+      "base_fixture": "pdf-region-source-anchor",
+      "mutations": [
+        {
+          "op": "replace",
+          "path": "resolution.resolved_at",
+          "value": "2026-99-99T99:99:99Z"
+        }
+      ],
+      "expected_schema_errors": [
+        {"path": "/resolution/resolved_at", "validator": "format"}
+      ],
+      "expected_failure_codes": [
+        "RESOLUTION_TIMESTAMP"
+      ]
     }
   ]
 }
