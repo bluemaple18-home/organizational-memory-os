@@ -1,6 +1,6 @@
 # Schema Hardening Pre-Adapter Evidence
 
-Status: COMPLETE_REVIEW_GO_AWAITING_OWNER_ACCEPTANCE_20260907
+Status: COMPLETE_OWNER_ACCEPTED_20260907
 
 ## Scope
 
@@ -83,3 +83,4 @@ No source authority, profile, selector, or legal fixture identity change was req
 - Repair `9fef981`：Ruby predicate 同步 0～9 位且加入 0／1／9 ALLOW、10 REJECT regression matrix。
 - Second targeted re-review：`SH-RV-001 CLOSED`；verdict `GO`；P0／P1／P2／P3 = `0/0/0/0`。
 - Re-review gates：STD-00～03、standard engine（12／16／9）、cross-layer 8 negatives、personal-memory、JSON／YAML parse／Ruby syntax／diff check 全 PASS；3 個 integrity probes 皆 expected exit 1。
+- Owner acceptance：2026-09-07；接受 STD-02 timestamp contract 精準化，解除 Adapter Mapping gate。
