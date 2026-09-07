@@ -1192,6 +1192,25 @@
         "forks_core_contract": true
       },
       "expected": "deny"
+    },
+    {
+      "case_id": "CAP_NEG_SAFETY_FLOOR_INVARIANT_MISSING",
+      "covers_capability_negative_fixture": "capability profile drops a safety-floor invariant",
+      "expected_failure_code": "SAFETY_FLOOR_INVARIANT_MISSING",
+      "profile": {
+        "capability_level": "L3",
+        "claimed_capabilities": [
+          "manual_capture"
+        ],
+        "safety_floor_state": {
+          "permission_before_retrieval": false,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "deny"
     }
   ],
   "level_transition_negative_cases": [
@@ -1202,7 +1221,7 @@
       "transition": {
         "from": "L1",
         "to": "L3",
-        "actor_authorized": true,
+        "authorized_actor": true,
         "reason_recorded": true
       },
       "expected": "deny"
@@ -1214,7 +1233,7 @@
       "transition": {
         "from": "L3",
         "to": "L2",
-        "actor_authorized": true,
+        "authorized_actor": true,
         "reason_recorded": true,
         "safety_floor_after": {
           "permission_before_retrieval": false,
@@ -1223,6 +1242,43 @@
           "candidate_not_auto_accepted_by_level": true,
           "promotion_requires_widening_gate": true
         }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TR_NEG_UNAUTHORIZED_ACTOR",
+      "covers_capability_negative_fixture": "level transition without an authorized actor",
+      "expected_failure_code": "LEVEL_TRANSITION_UNAUTHORIZED_ACTOR",
+      "transition": {
+        "from": "L1",
+        "to": "L2",
+        "authorized_actor": false,
+        "reason_recorded": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TR_NEG_REASON_NOT_RECORDED",
+      "covers_capability_negative_fixture": "level transition without a recorded reason",
+      "expected_failure_code": "LEVEL_TRANSITION_REASON_NOT_RECORDED",
+      "transition": {
+        "from": "L1",
+        "to": "L2",
+        "authorized_actor": true,
+        "reason_recorded": false
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TR_NEG_FORKS_CORE_CONTRACT",
+      "covers_capability_negative_fixture": "level transition forks the core contract",
+      "expected_failure_code": "LEVEL_TRANSITION_FORKS_CORE_CONTRACT",
+      "transition": {
+        "from": "L2",
+        "to": "L3",
+        "authorized_actor": true,
+        "reason_recorded": true,
+        "forks_core_contract": true
       },
       "expected": "deny"
     }

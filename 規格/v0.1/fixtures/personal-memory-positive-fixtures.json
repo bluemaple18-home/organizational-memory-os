@@ -530,7 +530,7 @@
       "transition": {
         "from": "L1",
         "to": "L2",
-        "actor_authorized": true,
+        "authorized_actor": true,
         "reason_recorded": true
       },
       "expected": "allow"
@@ -540,7 +540,7 @@
       "transition": {
         "from": "L3",
         "to": "L4",
-        "actor_authorized": true,
+        "authorized_actor": true,
         "reason_recorded": true
       },
       "expected": "allow"
@@ -550,7 +550,7 @@
       "transition": {
         "from": "L4",
         "to": "L3",
-        "actor_authorized": true,
+        "authorized_actor": true,
         "reason_recorded": true,
         "safety_floor_after": {
           "permission_before_retrieval": true,
@@ -567,7 +567,7 @@
       "transition": {
         "from": "L2",
         "to": "L1",
-        "actor_authorized": true,
+        "authorized_actor": true,
         "reason_recorded": true,
         "safety_floor_after": {
           "permission_before_retrieval": true,

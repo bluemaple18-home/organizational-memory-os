@@ -510,7 +510,7 @@ def level_transition_failure(spec, transition)
               contract.dig("allowed_downgrades", from_level).to_a
             end
   return "LEVEL_TRANSITION_NOT_SINGLE_STEP" unless allowed.include?(to_level)
-  return "LEVEL_TRANSITION_UNAUTHORIZED_ACTOR" unless transition["actor_authorized"] == true
+  return "LEVEL_TRANSITION_UNAUTHORIZED_ACTOR" unless transition["authorized_actor"] == true
   return "LEVEL_TRANSITION_REASON_NOT_RECORDED" unless transition["reason_recorded"] == true
   return "LEVEL_TRANSITION_FORKS_CORE_CONTRACT" if transition["forks_core_contract"] == true
 
@@ -631,9 +631,10 @@ assert(
   failures
 )
 assert(level_transitions.dig("downgrade_rules", "must_preserve_safety_floor") == true, "降級必須保留 safety floor", failures)
+assert(level_transitions.dig("downgrade_rules", "reduces_automation_depth_only") == true, "降級只減自動化深度必須為 true", failures)
 assert(
-  level_transitions.fetch("forbidden", []).include?("downgrade_that_removes_safety_floor"),
-  "level_transitions.forbidden 必須列出 downgrade_that_removes_safety_floor",
+  sorted_set(level_transitions.fetch("forbidden", [])) == sorted_set(%w[multi_step_jump unauthorized_actor downgrade_that_removes_safety_floor transition_that_forks_core_contract]),
+  "level_transitions.forbidden 必須剛好是四個鎖定禁止項",
   failures
 )
 
