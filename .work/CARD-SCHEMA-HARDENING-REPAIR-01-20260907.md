@@ -1,6 +1,6 @@
 ---
 id: SCHEMA-HARDENING-REPAIR-01-20260907
-status: READY_FOR_IMPLEMENTATION
+status: COMPLETE_TARGETED_REREVIEW_GO_20260907
 type: repair
 chain_id: SCHEMA-HARDENING-PRE-ADAPTER-20260907
 generation: 1
@@ -27,3 +27,9 @@ generation: 1
 - Python standard engine 對所有 validators 啟用 `FormatChecker`；現有 expected errors 如因 format assertion 增加，必須精確更新，不得降級 exact parity。
 - 新正／負案例直接覆蓋原 P1；全量 STD-00～03、cross-layer、personal-memory、JSON／YAML parse、`git diff --check` PASS。
 - 完成後回原 `schema_hardening_review` 只定點複審 `SH-RV-001` 與 regression。
+
+## Closure｜2026-09-07
+
+- First targeted re-review：`NO-GO`；Ruby `Time.iso8601` 仍接受 10 位 fractional seconds。
+- Second repair：Ruby predicate 與 schema 共用 0～9 位 fractional UTC 語意，並新增 test-only regression matrix。
+- Second targeted re-review：`SH-RV-001 CLOSED`；verdict `GO`；P0～P3 無 findings。

@@ -1,6 +1,6 @@
 ---
 id: SCHEMA-HARDENING-PRE-ADAPTER-20260907
-status: READY_FOR_IMPLEMENTATION
+status: COMPLETE_REVIEW_GO_AWAITING_OWNER_ACCEPTANCE_20260907
 type: implementation
 ---
 
@@ -13,6 +13,14 @@ type: implementation
 - Current frontier：`HARDEN-S01`；`HARDEN-S02` 被 `HARDEN-S01` checkpoint 阻擋。
 - Constraints：不做 parser／Document／Jira Adapter／EMEM-02／DB／runtime／Hook／Loop／Harness／Hermes；不改 authority 邊界；不新增 registry／workflow engine／package dependency；不 merge／push。
 - Evidence：`.work/evidence/SCHEMA-HARDENING-PRE-ADAPTER-20260907.md`。
+
+## Review chain｜2026-09-07
+
+- Implementation checkpoint：`0b0b0dd`（parent `d7c064d`）。
+- Initial review：`NO-GO`；唯一 P1 `SH-RV-001` 指出 `resolved_at` seconds-only pattern 與未啟用 format assertion 破壞 RFC3339 parity。
+- Repair checkpoints：`c12213a`、`9fef981`。
+- Targeted re-review：`SH-RV-001 CLOSED`；verdict `GO`；P0／P1／P2／P3 = `0/0/0/0`。
+- Current state：限域 hardening 已實作並複審通過，等待 Owner 接受 STD-02 timestamp contract 的精準化後才解鎖 Adapter Mapping。
 
 ## HARDEN-S01｜Gate integrity
 

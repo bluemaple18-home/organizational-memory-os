@@ -1,6 +1,6 @@
 # Schema Hardening Repair-01 Evidence
 
-Status: READY_FOR_TARGETED_REREVIEW
+Status: COMPLETE_TARGETED_REREVIEW_GO_20260907
 
 ## Targeted Re-review NO-GO and Repair
 
@@ -70,3 +70,9 @@ invalid_calendar []
 ## Remaining Risk
 
 - 本修補以 pinned `rfc3339-validator` 驗證標準 JSON Schema `date-time`，並由 explicit UTC `Z` pattern 收緊 `resolved_at`；未加入第二套 timestamp parser。後續只需針對 `SH-RV-001` 與其 regression 定點複審。
+
+## Targeted re-review closure
+
+- Cumulative repair：`0b0b0dd..9fef981`；第二補丁僅 3 檔，cumulative repair 僅 8 檔。
+- `SH-RV-001 = CLOSED`；verdict `GO`；P0～P3 無 findings。
+- 未改 source authority、UUID、Adapter、EMEM 或既有 validation authority semantics。

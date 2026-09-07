@@ -1,6 +1,6 @@
 # Schema Hardening Pre-Adapter Evidence
 
-Status: READY_FOR_REVIEW
+Status: COMPLETE_REVIEW_GO_AWAITING_OWNER_ACCEPTANCE_20260907
 
 ## Scope
 
@@ -73,3 +73,13 @@ No source authority, profile, selector, or legal fixture identity change was req
   - `negative cases rejected: 8`
 - `ruby scripts/validate_personal_memory_contract.rb`：PASS
 - `git diff --check`：PASS
+
+## Independent review and targeted closure
+
+- Fixed implementation checkpoint：`0b0b0dd`（parent `d7c064d`）。
+- Initial review：`NO-GO`；P1 `SH-RV-001` = schema 誤拒合法 fractional UTC，又未對 invalid calendar timestamp 執行 format assertion。
+- Repair `c12213a`：允許 0～9 位 fractional UTC，啟用 `FormatChecker` 與 pinned `rfc3339-validator==0.1.4`，新增 fractional positive／invalid calendar negative。
+- First targeted re-review：`NO-GO`；Ruby predicate 仍接受 10 位 fractional seconds。
+- Repair `9fef981`：Ruby predicate 同步 0～9 位且加入 0／1／9 ALLOW、10 REJECT regression matrix。
+- Second targeted re-review：`SH-RV-001 CLOSED`；verdict `GO`；P0／P1／P2／P3 = `0/0/0/0`。
+- Re-review gates：STD-00～03、standard engine（12／16／9）、cross-layer 8 negatives、personal-memory、JSON／YAML parse／Ruby syntax／diff check 全 PASS；3 個 integrity probes 皆 expected exit 1。
