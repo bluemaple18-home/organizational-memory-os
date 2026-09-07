@@ -406,5 +406,178 @@
       ],
       "expected": "allow"
     }
+  ],
+  "capability_profile_cases": [
+    {
+      "case_id": "CAP_POS_L1_BASIC",
+      "profile": {
+        "capability_level": "L1",
+        "claimed_capabilities": [
+          "manual_capture",
+          "candidate_generation",
+          "employee_confirmation",
+          "basic_recall_with_citation"
+        ],
+        "safety_floor_state": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CAP_POS_L2_AUTOMATION",
+      "profile": {
+        "capability_level": "L2",
+        "claimed_capabilities": [
+          "manual_capture",
+          "candidate_generation",
+          "employee_confirmation",
+          "basic_recall_with_citation",
+          "automatic_source_ingestion",
+          "deterministic_dedup_version_acl_retention",
+          "automatic_candidate_queue"
+        ],
+        "safety_floor_state": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CAP_POS_L3_INTELLIGENT",
+      "profile": {
+        "capability_level": "L3",
+        "claimed_capabilities": [
+          "manual_capture",
+          "candidate_generation",
+          "employee_confirmation",
+          "basic_recall_with_citation",
+          "automatic_source_ingestion",
+          "deterministic_dedup_version_acl_retention",
+          "automatic_candidate_queue",
+          "cross_source_object_linking",
+          "workrecord_correlation",
+          "conflict_freshness_gap_suggestion",
+          "context_aware_recall",
+          "promotion_suggestion"
+        ],
+        "safety_floor_state": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CAP_POS_L4_AUTONOMOUS_GATED",
+      "profile": {
+        "capability_level": "L4",
+        "claimed_capabilities": [
+          "manual_capture",
+          "candidate_generation",
+          "employee_confirmation",
+          "basic_recall_with_citation",
+          "automatic_source_ingestion",
+          "deterministic_dedup_version_acl_retention",
+          "automatic_candidate_queue",
+          "cross_source_object_linking",
+          "workrecord_correlation",
+          "conflict_freshness_gap_suggestion",
+          "context_aware_recall",
+          "promotion_suggestion",
+          "continuous_stale_conflict_gap_monitoring",
+          "correction_proposal",
+          "promotion_proposal",
+          "projection_rebuild_regression_evaluation"
+        ],
+        "authority_gate_satisfied": true,
+        "safety_floor_state": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CAP_POS_L3_PARTIAL_CLAIM_NO_FLOOR_STATE",
+      "profile": {
+        "capability_level": "L3",
+        "claimed_capabilities": [
+          "manual_capture",
+          "cross_source_object_linking"
+        ]
+      },
+      "expected": "allow"
+    }
+  ],
+  "level_transition_cases": [
+    {
+      "case_id": "TR_POS_UP_L1_L2",
+      "transition": {
+        "from": "L1",
+        "to": "L2",
+        "actor_authorized": true,
+        "reason_recorded": true
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "TR_POS_UP_L3_L4",
+      "transition": {
+        "from": "L3",
+        "to": "L4",
+        "actor_authorized": true,
+        "reason_recorded": true
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "TR_POS_DOWN_L4_L3_FLOOR_PRESERVED",
+      "transition": {
+        "from": "L4",
+        "to": "L3",
+        "actor_authorized": true,
+        "reason_recorded": true,
+        "safety_floor_after": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "TR_POS_DOWN_L2_L1_FLOOR_PRESERVED",
+      "transition": {
+        "from": "L2",
+        "to": "L1",
+        "actor_authorized": true,
+        "reason_recorded": true,
+        "safety_floor_after": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    }
   ]
 }
