@@ -1,0 +1,27 @@
+review_line: SSP298-REVIEW-20260907
+round: targeted_re_review_01
+review_input:
+  repository: bluemaple18-home/organizational-memory-os
+  base_sha: 5bf7357cf47900435f9b2695b606eac018916fb0
+  repair_sha: c91c02dee2129547cb6cf25c3cbf7abf0c4e94b9
+  tree_sha: bf2ac237d93e36196f244cf981b0febce5e011aa
+  allowlist_count: 5
+  binding: PASS
+  zero_mutation: PASS
+closure:
+  SSP298-RV-004: CLOSED
+  SSP298-RV-005: CLOSED
+  SSP298-RV-006: CLOSED
+  SSP298-RV-007: CLOSED
+counts: {P0: 0, P1: 0, P2: 0, P3: 0}
+regression: PASS
+external_verdict: GO
+mainline_acceptance:
+  self_verify: PASS  # branch clean, repair_sha parent == 5bf7357, worktree zero-mutation
+  gates_rerun_local: PASS  # aiwr-boundary + personal-memory + STD-00~03 + schema engine + cross-layer + git diff --check
+  owner_acceptance: ACCEPTED_20260908  # satisfies AIWR-01 DoD "邊界契約與負例獲 Owner 接受"
+original_review_commit_immutable: 67f76fa5fdc7aadee178e45d76af05c66bb5139c
+outcome:
+  card_status: ACCEPTED_GO_20260908
+  jira: SSP-298 -> Done (to be applied by Owner)
+  lane_b_next: SSP-299
