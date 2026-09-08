@@ -1,7 +1,7 @@
 # CC 開發派工工作流 v0.1
 
-- 狀態：`DRAFT_OWNER_REVIEW`
-- 日期：2026-09-07
+- 狀態：`ACTIVE_20260908`（已完整跑過 `SSP-290`／`SSP-298` 的實作 → 大 review NO_GO → repair → targeted re-review GO → Owner accept 全循環）
+- 日期：2026-09-07（v0.1）；2026-09-08 轉 ACTIVE
 - 適用範圍：`organizational-memory-os` 中由 Claude Code 承接實作的 Jira 線 —— 目前是 `SSP-286`（員工個人記憶閉環）與 `SSP-287`（AI 工作紀錄自動化執行層），子任務 `SSP-288`～`SSP-305`。
 - 授權輸入：`~/.claude/CLAUDE.md`（AI 共用規則 Lite）、`~/ai-core/rules/16-codex-multi-machine-workflow.md`、`文件/待辦重整.md` 第五節、`.work/handoff/CC-SCHEMA-FOUNDATION-HANDOFF-20260904.md`。
 
