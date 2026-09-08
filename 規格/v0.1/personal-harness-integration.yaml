@@ -718,6 +718,7 @@ contract_registry:
       purpose: immutable history of replace/invalidate/amend decision
     MemoryContextPack:
       purpose: permission-aware bounded recall result
+      required_fields_ref: recall_context_pack.contract.pack_required_fields
     MemoryPromotionProposal:
       purpose: PERSONAL to TEAM/DEPARTMENT/COMPANY/CLIENT proposal
     MemoryProjectionManifest:
@@ -1159,6 +1160,50 @@ recall_context_pack:
     - budget_usage
   permission_strategy: INTERSECTION
   unrestricted_global_personal_memory_search: forbidden
+  contract:
+    request_required_fields:
+      - intent
+      - requester_identity
+      - requester_scope
+      - ownership_mode
+      - visibility_scope
+      - context_budget
+    pack_required_fields:
+      - pack_id
+      - request_ref
+      - permission_decision_ref
+      - permission_decision_before_selection
+      - permission_decision_covered_memory_refs
+      - selected_memories
+      - source_refs
+      - applicability
+      - freshness
+      - permission_intersection_refs
+      - omitted_or_gap_notice
+      - budget_usage
+    permission_ordering:
+      decision_before_candidate_set: true
+      decision_scope_covers_selected: true
+    gap_notice_reasons:
+      - STALE_PRESENT
+      - NOT_APPLICABLE_FILTERED
+      - BUDGET_OMITTED
+    gap_notice_required_when:
+      - stale memory is present in or filtered from the selection
+      - a memory was filtered as not applicable to the intent
+      - a memory was omitted because of the context budget
+    forbidden:
+      - SEARCH_ALL_THEN_PROMPT_GUARD
+      - UNRESTRICTED_GLOBAL_SEARCH
+      - STALE_WITHOUT_FRESHNESS
+      - CROSS_OWNER_WITHOUT_INTERSECTION
+    statement: >-
+      A MemoryContextPack is the only recall result shape. The permission
+      decision is made before the candidate set is formed and its scope must
+      cover every selected memory. Stale, not-applicable, and budget-omitted
+      memories each require an explicit gap notice. There is no path that
+      searches all personal memory and then relies on a prompt to prevent
+      leakage.
 
 correction_flow:
   steps:

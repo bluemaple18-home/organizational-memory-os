@@ -579,5 +579,127 @@
       },
       "expected": "allow"
     }
+  ],
+  "context_pack_cases": [
+    {
+      "case_id": "CTXPACK_POS_FRESH_SELF_ONLY",
+      "request": {
+        "intent": "recall my PM handoff-card preferences",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-0001-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-0002-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-0003-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-1001-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-1001-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "FRESH"
+          }
+        ],
+        "source_refs": [
+          "urn:omos:evidence:0198e900-2001-7aaa-8bbb-111111111111"
+        ],
+        "applicability": {
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "applies_to_refs": [
+            "urn:omos:project:personal-memory-standard"
+          ]
+        },
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 1200,
+          "budget": 4000,
+          "omitted_count": 0
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CTXPACK_POS_STALE_BUDGET_CROSS_OWNER_ALL_NOTICED",
+      "request": {
+        "intent": "recall shared work-context decisions for the pilot",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "WORK_CONTEXT",
+        "ownership_mode": "JOINT_WORK_CONTEXT",
+        "visibility_scope": "WORK_CONTEXT_PARTICIPANTS",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-0011-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-0012-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-0013-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-1101-7aaa-8bbb-111111111111",
+          "urn:omos:personal-memory:record:0198e900-1102-7aaa-8bbb-111111111111",
+          "urn:omos:personal-memory:record:0198e900-1103-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-1101-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "FRESH"
+          },
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-1102-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-bbbb-7aaa-8bbb-222222222222",
+            "freshness": "FRESH"
+          },
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-1103-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "STALE"
+          }
+        ],
+        "source_refs": [
+          "urn:omos:evidence:0198e900-2101-7aaa-8bbb-111111111111"
+        ],
+        "applicability": {
+          "scope_mode": "SHARED_WORK_CONTEXT",
+          "applies_to_refs": [
+            "urn:omos:project:product-department-pilot"
+          ]
+        },
+        "freshness": {
+          "stale_present": true
+        },
+        "permission_intersection_refs": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-1102-7aaa-8bbb-111111111111",
+            "intersection_ref": "urn:omos:permission-intersection:0198e900-3001-7aaa-8bbb-111111111111"
+          }
+        ],
+        "omitted_or_gap_notice": [
+          {
+            "reason": "STALE_PRESENT",
+            "detail": "record ...1103 is stale and shown with a freshness flag"
+          },
+          {
+            "reason": "BUDGET_OMITTED",
+            "detail": "2 lower-priority memories omitted for the 4000 token budget"
+          }
+        ],
+        "budget_usage": {
+          "used": 3800,
+          "budget": 4000,
+          "omitted_count": 2
+        }
+      },
+      "expected": "allow"
+    }
   ]
 }
