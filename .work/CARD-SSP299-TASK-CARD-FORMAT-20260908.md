@@ -1,6 +1,6 @@
 ---
 id: SSP299-TASK-CARD-FORMAT-20260908
-status: IMPLEMENTED_AWAITING_BIG_REVIEW
+status: ACCEPTED_GO_20260909
 type: implementation
 jira: SSP-299
 lane: B

@@ -1,0 +1,20 @@
+review_line: SSP299-REVIEW-20260908
+round: targeted_re_review_01
+review_input:
+  base_sha: 22a16057aea515f183447ee946910827cb8cc0cc
+  repair_sha: a49b11f881bf0aa6ca7ce8f7a1c6f872481127f4
+  tree_sha: 58ba9296252b4a270566f22848aceaa715ac4074
+  binding: PASS
+  zero_mutation: PASS
+closure: {SSP299-RV-001: CLOSED, SSP299-RV-002: CLOSED, SSP299-RV-003: CLOSED}
+counts: {P0: 0, P1: 0, P2: 0, P3: 0}
+regression: PASS
+external_verdict: GO
+mainline_acceptance: {self_verify: PASS, gates_rerun_local: PASS, owner_acceptance: ACCEPTED_20260909}
+rv003_disposition: >-
+  Accepted as pointer binding. SSP-299 locks the four cross_reference.must_match.*_from
+  pointers to exact boundary paths; ai-work-record-boundary.yaml remains the sole authority
+  for the values and SSP-298's validator locks them. No value copy into SSP-299 (avoids a
+  second drift-prone declaration). Satisfies Acceptance #7 "不得分歧".
+original_review_commit_immutable: 86aaf8e79631580f486eb7a6508078cd2bbdc326
+outcome: {card_status: ACCEPTED_GO_20260909, jira: "SSP-299 -> Done (Owner applies)", lane_b_next: SSP-300}
