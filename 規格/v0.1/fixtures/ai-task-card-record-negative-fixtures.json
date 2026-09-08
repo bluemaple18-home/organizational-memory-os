@@ -78,6 +78,36 @@
         "personal_acceptance_ref": "urn:omos:acceptance:0198e910-9905-7aaa-8bbb-111111111111"
       },
       "expected": "deny"
+    },
+    {
+      "case_id": "TCR_NEG_INVALID_CARD_ID",
+      "covers_record_negative_fixture": "card_id is not a task-card URN string",
+      "expected_failure_code": "CARD_INVALID_FIELD_TYPE",
+      "card": {
+        "card_id": 12345,
+        "objective": "Card whose id is a number.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "OPEN",
+        "evidence_refs": []
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TCR_NEG_INVALID_EVIDENCE_REF",
+      "covers_record_negative_fixture": "evidence_refs contains a non-URN entry",
+      "expected_failure_code": "CARD_INVALID_FIELD_TYPE",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-9007-7aaa-8bbb-111111111111",
+        "objective": "Card with a bad evidence ref.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "OPEN",
+        "evidence_refs": ["not-a-urn", 123]
+      },
+      "expected": "deny"
     }
   ],
   "lifecycle_replay_negative_cases": [
@@ -95,6 +125,24 @@
       "expected_failure_code": "CARD_UNKNOWN_LIFECYCLE_EVENT",
       "events": ["start", "frobnicate"],
       "final_status": "OPEN",
+      "expected": "deny"
+    }
+  ],
+  "integrated_reconstruction_negative_cases": [
+    {
+      "case_id": "TCR_IR_NEG_STATUS_MISMATCH",
+      "covers_record_negative_fixture": "card status disagrees with the replayed lifecycle",
+      "expected_failure_code": "CARD_STATUS_LIFECYCLE_MISMATCH",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-9006-7aaa-8bbb-111111111111",
+        "objective": "Card marked OPEN but its events replay to DONE.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "OPEN",
+        "evidence_refs": []
+      },
+      "lifecycle_events": ["start", "submit_review", "complete"],
       "expected": "deny"
     }
   ]

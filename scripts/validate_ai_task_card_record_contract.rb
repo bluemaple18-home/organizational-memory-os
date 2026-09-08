@@ -97,12 +97,22 @@ def blank_string?(value)
   !value.is_a?(String) || value.strip.empty?
 end
 
+CARD_ID_URN = /\Aurn:omos:task-card:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/.freeze
+OMOS_URN = /\Aurn:omos:[a-z0-9-]+:.+\z/.freeze
+
+def urn?(value, pattern)
+  value.is_a?(String) && pattern.match?(value)
+end
+
 # 回傳 nil 或精確 machine failure code。
 def task_card_record_failure(card, boundary_forbidden_fields)
   return "CARD_MISSING_REQUIRED_FIELD" if EXPECTED_FIELDS.any? { |field| !card.key?(field) }
   return "CARD_MISSING_REQUIRED_FIELD" if EXPECTED_NON_EMPTY_STRING_FIELDS.any? { |field| blank_string?(card[field]) }
   return "CARD_MISSING_REQUIRED_FIELD" unless card["evidence_refs"].is_a?(Array)
   return "CARD_MISSING_REQUIRED_FIELD" unless present?(card["card_id"])
+
+  return "CARD_INVALID_FIELD_TYPE" unless urn?(card["card_id"], CARD_ID_URN)
+  return "CARD_INVALID_FIELD_TYPE" unless card["evidence_refs"].all? { |ref| urn?(ref, OMOS_URN) }
 
   return "CARD_INVALID_STATUS" unless EXPECTED_STATUS_ENUM.include?(card["status"])
   return "CARD_CARRIES_FORBIDDEN_FIELD" if boundary_forbidden_fields.any? { |field| card.key?(field) }
@@ -132,6 +142,24 @@ def lifecycle_replay_failure(events, final_status)
   end
 
   return "CARD_RECONSTRUCTION_MISMATCH" if present?(final_status) && final_status != status
+
+  nil
+end
+
+# Integrated check: the card and its lifecycle events must be mutually
+# consistent — the card is contract-valid, the events replay cleanly, and the
+# replayed final status equals card["status"]. Returns nil or the exact code.
+def reconstruction_failure(card, events, boundary_forbidden_fields)
+  card_fail = task_card_record_failure(card, boundary_forbidden_fields)
+  return card_fail if card_fail
+
+  lifecycle_fail = lifecycle_replay_failure(events, nil)
+  return lifecycle_fail if lifecycle_fail
+
+  events = events.to_a
+  status = EXPECTED_LIFECYCLE_EVENT_MAP.fetch(events.first)
+  events.drop(1).each { |event| status = EXPECTED_LIFECYCLE_EVENT_MAP.fetch(event) }
+  return "CARD_STATUS_LIFECYCLE_MISMATCH" if card["status"] != status
 
   nil
 end
@@ -190,6 +218,20 @@ assert(
 )
 assert(present?(boundary_forbidden_fields), "boundary task_card.forbidden_fields 必須存在且非空", failures)
 
+# Acceptance #7 is satisfied here as *pointer binding*: this slice does not copy
+# the boundary values, it locks the must_match pointers to the exact boundary
+# paths and requires the referenced boundary fields to be present.
+must_match = spec.dig("cross_reference", "must_match") || {}
+{
+  "status_enum_from" => "authority_boundary.task_card.status_enum",
+  "required_fields_from" => "authority_boundary.task_card.required_fields",
+  "forbidden_fields_from" => "authority_boundary.task_card.forbidden_fields",
+  "forbidden_authority_from" => "authority_boundary.task_card.forbidden_authority"
+}.each do |pointer_key, expected_path|
+  assert(must_match[pointer_key] == expected_path, "cross_reference.must_match.#{pointer_key} 必須是 #{expected_path}", failures)
+end
+assert(present?(boundary_task_card["forbidden_authority"]), "boundary task_card.forbidden_authority 必須存在且非空", failures)
+
 assert(
   sorted_set(spec.fetch("required_negative_fixtures", [])) == sorted_set(EXPECTED_RECORD_NEGATIVE_LABELS),
   "required_negative_fixtures 與鎖定 label 清單不符",
@@ -214,6 +256,12 @@ positive.fetch("lifecycle_replay_cases").each do |test_case|
   assert(actual == again, "#{test_case.fetch("case_id")} lifecycle replay 非 deterministic", failures)
 end
 
+positive.fetch("integrated_reconstruction_cases").each do |test_case|
+  assert(test_case.fetch("expected") == "allow", "#{test_case.fetch("case_id")} integrated positive 必須預期 allow", failures)
+  actual = reconstruction_failure(test_case.fetch("card"), test_case.fetch("lifecycle_events"), boundary_forbidden_fields)
+  assert(actual.nil?, "#{test_case.fetch("case_id")} 預期 allow，實際被拒：#{actual}", failures)
+end
+
 def check_negative(cases, kind, failures, &evaluator)
   cases.each do |test_case|
     case_id = test_case.fetch("case_id")
@@ -231,9 +279,14 @@ end
 check_negative(negative.fetch("lifecycle_replay_negative_cases"), "lifecycle", failures) do |test_case|
   lifecycle_replay_failure(test_case.fetch("events"), test_case["final_status"])
 end
+check_negative(negative.fetch("integrated_reconstruction_negative_cases"), "integrated", failures) do |test_case|
+  reconstruction_failure(test_case.fetch("card"), test_case.fetch("lifecycle_events"), boundary_forbidden_fields)
+end
 
 covered_labels = sorted_set(
-  (negative.fetch("task_card_record_negative_cases") + negative.fetch("lifecycle_replay_negative_cases"))
+  (negative.fetch("task_card_record_negative_cases") +
+   negative.fetch("lifecycle_replay_negative_cases") +
+   negative.fetch("integrated_reconstruction_negative_cases"))
     .map { |test_case| test_case.fetch("covers_record_negative_fixture") }
 )
 missing_labels = sorted_set(EXPECTED_RECORD_NEGATIVE_LABELS) - covered_labels

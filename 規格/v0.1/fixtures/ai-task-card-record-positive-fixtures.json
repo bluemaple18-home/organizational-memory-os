@@ -43,5 +43,23 @@
       "final_status": "CANCELLED",
       "expected": "allow"
     }
+  ],
+  "integrated_reconstruction_cases": [
+    {
+      "case_id": "TCR_IR_POS_CONSISTENT",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-1003-7aaa-8bbb-111111111111",
+        "objective": "A card whose status matches its lifecycle.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "independent review GO",
+        "status": "DONE",
+        "evidence_refs": [
+          "urn:omos:evidence:0198e910-2003-7aaa-8bbb-111111111111"
+        ]
+      },
+      "lifecycle_events": ["start", "submit_review", "complete"],
+      "expected": "allow"
+    }
   ]
 }
