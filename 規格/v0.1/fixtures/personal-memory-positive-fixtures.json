@@ -619,6 +619,7 @@
           "stale_present": false
         },
         "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [],
         "budget_usage": {
           "used": 1200,
@@ -683,6 +684,7 @@
             "intersection_ref": "urn:omos:permission-intersection:0198e900-3001-7aaa-8bbb-111111111111"
           }
         ],
+        "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [
           {
             "reason": "STALE_PRESENT",

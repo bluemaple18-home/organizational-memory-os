@@ -1304,10 +1304,17 @@
         "selected_memories": [],
         "source_refs": [],
         "applicability": {},
-        "freshness": {"stale_present": false},
+        "freshness": {
+          "stale_present": false
+        },
         "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [],
-        "budget_usage": {"used": 0, "budget": 4000, "omitted_count": 0}
+        "budget_usage": {
+          "used": 0,
+          "budget": 4000,
+          "omitted_count": 0
+        }
       },
       "expected": "deny"
     },
@@ -1345,10 +1352,17 @@
         ],
         "source_refs": [],
         "applicability": {},
-        "freshness": {"stale_present": false},
+        "freshness": {
+          "stale_present": false
+        },
         "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [],
-        "budget_usage": {"used": 500, "budget": 4000, "omitted_count": 0}
+        "budget_usage": {
+          "used": 500,
+          "budget": 4000,
+          "omitted_count": 0
+        }
       },
       "expected": "deny"
     },
@@ -1373,10 +1387,17 @@
         "selected_memories": [],
         "source_refs": [],
         "applicability": {},
-        "freshness": {"stale_present": false},
+        "freshness": {
+          "stale_present": false
+        },
         "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [],
-        "budget_usage": {"used": 0, "budget": 4000, "omitted_count": 0},
+        "budget_usage": {
+          "used": 0,
+          "budget": 4000,
+          "omitted_count": 0
+        },
         "search_strategy": "GLOBAL_THEN_PROMPT_GUARD"
       },
       "expected": "deny"
@@ -1410,10 +1431,17 @@
         ],
         "source_refs": [],
         "applicability": {},
-        "freshness": {"stale_present": false},
+        "freshness": {
+          "stale_present": false
+        },
         "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [],
-        "budget_usage": {"used": 500, "budget": 4000, "omitted_count": 0}
+        "budget_usage": {
+          "used": 500,
+          "budget": 4000,
+          "omitted_count": 0
+        }
       },
       "expected": "deny"
     },
@@ -1446,12 +1474,22 @@
         ],
         "source_refs": [],
         "applicability": {},
-        "freshness": {"stale_present": false},
+        "freshness": {
+          "stale_present": false
+        },
         "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [
-          {"reason": "NOT_APPLICABLE_FILTERED", "detail": "one off-intent memory dropped"}
+          {
+            "reason": "NOT_APPLICABLE_FILTERED",
+            "detail": "one off-intent memory dropped"
+          }
         ],
-        "budget_usage": {"used": 1900, "budget": 2000, "omitted_count": 3}
+        "budget_usage": {
+          "used": 1900,
+          "budget": 2000,
+          "omitted_count": 3
+        }
       },
       "expected": "deny"
     },
@@ -1484,10 +1522,152 @@
         ],
         "source_refs": [],
         "applicability": {},
-        "freshness": {"stale_present": false},
+        "freshness": {
+          "stale_present": false
+        },
         "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 500,
+          "budget": 4000,
+          "omitted_count": 0
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_CROSS_OWNER_EMPTY_INTERSECTION_REF",
+      "covers_recall_negative_fixture": "cross-owner selection with an empty intersection ref",
+      "expected_failure_code": "CROSS_OWNER_WITHOUT_INTERSECTION",
+      "request": {
+        "intent": "recall shared context",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "WORK_CONTEXT",
+        "ownership_mode": "JOINT_WORK_CONTEXT",
+        "visibility_scope": "WORK_CONTEXT_PARTICIPANTS",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9061-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9062-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9063-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-9501-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9501-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-bbbb-7aaa-8bbb-222222222222",
+            "freshness": "FRESH"
+          }
+        ],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {"stale_present": false},
+        "permission_intersection_refs": [
+          {"memory_ref": "urn:omos:personal-memory:record:0198e900-9501-7aaa-8bbb-111111111111", "intersection_ref": ""}
+        ],
+        "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [],
         "budget_usage": {"used": 500, "budget": 4000, "omitted_count": 0}
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_NULL_DECISION_REF",
+      "covers_recall_negative_fixture": "permission decision ref is null",
+      "expected_failure_code": "CONTEXT_PACK_MISSING_FIELD",
+      "request": {
+        "intent": "recall",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9071-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9072-7aaa-8bbb-111111111111",
+        "permission_decision_ref": null,
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [],
+        "selected_memories": [],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {"stale_present": false},
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {"used": 0, "budget": 4000, "omitted_count": 0}
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_NOT_APPLICABLE_WITHOUT_NOTICE",
+      "covers_recall_negative_fixture": "not-applicable filtered memory without a gap notice",
+      "expected_failure_code": "NOT_APPLICABLE_WITHOUT_NOTICE",
+      "request": {
+        "intent": "recall",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9081-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9082-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9083-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-9601-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9601-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "FRESH"
+          }
+        ],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {"stale_present": false},
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 2,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {"used": 500, "budget": 4000, "omitted_count": 0}
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_UNRESTRICTED_GLOBAL_SEARCH",
+      "covers_recall_negative_fixture": "unrestricted global personal memory search",
+      "expected_failure_code": "UNRESTRICTED_GLOBAL_SEARCH",
+      "request": {
+        "intent": "recall",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9091-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9092-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9093-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [],
+        "selected_memories": [],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {"stale_present": false},
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {"used": 0, "budget": 4000, "omitted_count": 0},
+        "search_strategy": "UNRESTRICTED_GLOBAL_SEARCH"
       },
       "expected": "deny"
     }

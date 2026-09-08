@@ -108,9 +108,18 @@ EXPECTED_CONTEXT_PACK_FIELDS = %w[
   applicability
   freshness
   permission_intersection_refs
+  not_applicable_filtered_count
   omitted_or_gap_notice
   budget_usage
 ].freeze
+
+# 這幾個 pack 欄位必須有實值（不是只有 key）。
+CONTEXT_PACK_PRESENT_FIELDS = %w[pack_id request_ref permission_decision_ref].freeze
+EXPECTED_INTERSECTION_ENTRY_FIELDS = %w[memory_ref intersection_ref].freeze
+RECALL_FORBIDDEN_SEARCH_STRATEGIES = {
+  "GLOBAL_THEN_PROMPT_GUARD" => "SEARCH_ALL_THEN_PROMPT_GUARD",
+  "UNRESTRICTED_GLOBAL_SEARCH" => "UNRESTRICTED_GLOBAL_SEARCH"
+}.freeze
 
 EXPECTED_RECALL_GAP_REASONS = %w[STALE_PRESENT NOT_APPLICABLE_FILTERED BUDGET_OMITTED].freeze
 EXPECTED_RECALL_FORBIDDEN = %w[
@@ -570,7 +579,13 @@ end
 def context_pack_failure(request, pack)
   return "RECALL_REQUEST_MISSING_FIELD" if EXPECTED_RECALL_REQUEST_FIELDS.any? { |field| !present?(request[field]) }
   return "CONTEXT_PACK_MISSING_FIELD" if EXPECTED_CONTEXT_PACK_FIELDS.any? { |field| !pack.key?(field) }
-  return "SEARCH_ALL_THEN_PROMPT_GUARD" if pack["search_strategy"] == "GLOBAL_THEN_PROMPT_GUARD"
+  return "CONTEXT_PACK_MISSING_FIELD" if CONTEXT_PACK_PRESENT_FIELDS.any? { |field| !present?(pack[field]) }
+  return "CONTEXT_PACK_MISSING_FIELD" unless pack["permission_decision_covered_memory_refs"].is_a?(Array)
+  return "CONTEXT_PACK_MISSING_FIELD" unless pack["permission_intersection_refs"].is_a?(Array)
+
+  forbidden_search_code = RECALL_FORBIDDEN_SEARCH_STRATEGIES[pack["search_strategy"]]
+  return forbidden_search_code if forbidden_search_code
+
   return "PERMISSION_DECISION_AFTER_SELECTION" if pack["permission_decision_before_selection"] != true
 
   selected = pack["selected_memories"].to_a
@@ -583,7 +598,8 @@ def context_pack_failure(request, pack)
   selected.each do |memory|
     next if memory["owner_ref"] == requester
 
-    return "CROSS_OWNER_WITHOUT_INTERSECTION" unless intersection_refs.any? { |entry| entry["memory_ref"] == memory["memory_ref"] }
+    entry = intersection_refs.find { |candidate| candidate["memory_ref"] == memory["memory_ref"] }
+    return "CROSS_OWNER_WITHOUT_INTERSECTION" if entry.nil? || !present?(entry["intersection_ref"])
   end
 
   gap_reasons = pack["omitted_or_gap_notice"].to_a.map { |notice| notice["reason"] }
@@ -591,6 +607,8 @@ def context_pack_failure(request, pack)
                                       !(pack.dig("freshness", "stale_present") == true && gap_reasons.include?("STALE_PRESENT"))
   return "BUDGET_OMITTED_WITHOUT_NOTICE" if pack.dig("budget_usage", "omitted_count").to_i.positive? &&
                                             !gap_reasons.include?("BUDGET_OMITTED")
+  return "NOT_APPLICABLE_WITHOUT_NOTICE" if pack["not_applicable_filtered_count"].to_i.positive? &&
+                                            !gap_reasons.include?("NOT_APPLICABLE_FILTERED")
 
   nil
 end
@@ -759,6 +777,16 @@ assert(
 assert(
   spec.dig("contract_registry", "define_for_employee_memory", "MemoryContextPack", "required_fields_ref") == "recall_context_pack.contract.pack_required_fields",
   "MemoryContextPack.required_fields_ref 必須指向 recall_context_pack.contract.pack_required_fields",
+  failures
+)
+assert(
+  recall_contract.fetch("permission_intersection_entry_fields", []) == EXPECTED_INTERSECTION_ENTRY_FIELDS,
+  "recall_context_pack.contract.permission_intersection_entry_fields 必須是 [memory_ref, intersection_ref]",
+  failures
+)
+assert(
+  recall_contract.fetch("forbidden_search_strategies", {}) == RECALL_FORBIDDEN_SEARCH_STRATEGIES,
+  "recall_context_pack.contract.forbidden_search_strategies 與鎖定對映表不符",
   failures
 )
 

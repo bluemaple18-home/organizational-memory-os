@@ -1179,8 +1179,15 @@ recall_context_pack:
       - applicability
       - freshness
       - permission_intersection_refs
+      - not_applicable_filtered_count
       - omitted_or_gap_notice
       - budget_usage
+    permission_intersection_entry_fields:
+      - memory_ref
+      - intersection_ref
+    forbidden_search_strategies:
+      GLOBAL_THEN_PROMPT_GUARD: SEARCH_ALL_THEN_PROMPT_GUARD
+      UNRESTRICTED_GLOBAL_SEARCH: UNRESTRICTED_GLOBAL_SEARCH
     permission_ordering:
       decision_before_candidate_set: true
       decision_scope_covers_selected: true
