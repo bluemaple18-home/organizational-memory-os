@@ -1,8 +1,9 @@
 # Security / Exposure Backlog
 
-更新：2026-09-08
+更新：2026-09-09
 狀態：`ACTIVE / CROSS_CUTTING_PLATFORM_CONTROL`
 責任分類：`ENTERPRISE_GOVERNANCE / CROSS_CUTTING_PLATFORM_CONTROL`
+定位：本檔為 Organizational Memory OS 目前最新的 repo-level security backlog，補充 `文件/待辦重整.md`；不建立新的 Knowledge Domain Core，也不改變既有 Minimal Core 施工順序。
 
 用途：補充 `文件/待辦重整.md` 的 repo / CI / publication exposure 治理。此檔不新增第九顆 Knowledge Domain Core；只記錄平台級安全治理待辦。Public repo 不保存 exploit payload、production secret、private endpoint 或可直接濫用的攻擊步驟。
 
