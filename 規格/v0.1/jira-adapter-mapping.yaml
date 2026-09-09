@@ -2,11 +2,12 @@ schema:
   schema_id: urn:omos:schema:jira-adapter-mapping:0.1.0
   version: 0.1.0
   status: DRAFT_REVIEW_REQUIRED
-  date: '2026-09-09'
+  date: '2026-09-10'
   traces_to:
     - JIRA-ADAPTER-MAPPING
   builds_on:
     - 規格/v0.1/raw-evidence-envelope.schema.json
+    - 規格/v0.1/source-anchor.schema.json
     - 規格/v0.1/source-anchor-jira-cloud-entity-segment-v1.schema.json
 
 purpose:
@@ -17,8 +18,10 @@ purpose:
     JIRA_CLOUD_ENTITY_SEGMENT_V1. It also fixes the compound source_version and
     the webhook-plus-reconciliation semantics. It does not re-define STD-01 or
     the Jira anchor profile schema; every projected field name and enum value is
-    a real member of the target schema (pointer binding). No Jira connector, no
-    REST client, no webhook runtime.
+    a real member of the target schema (pointer binding). The positive fixtures
+    are complete target instances and the gate validates them against the locked
+    STD-01 / base SourceAnchor / Jira profile schemas with a real JSON Schema
+    engine. No Jira connector, no REST client, no webhook runtime.
   no_second_workflow_authority: true
 
 jira_field_kinds:
@@ -32,17 +35,24 @@ raw_evidence_projection:
   entity_type: issue
   source_identity:
     native_id_basis: JIRA_CLOUD_ID_PLUS_ISSUE_ID
+    identity_components:
+      - cloud_id
+      - issue_id
     parent_native_id_basis: JIRA_PROJECT_ID
   source_version:
     basis: COMPOUND_OBSERVED
     kind: UPDATED_AT_DIGEST
     value_basis: ISSUE_UPDATED_TIMESTAMP
+    value_format: RFC3339_TIMESTAMP
     secondary_digest_basis: FIELD_ADF_SHA256
+    secondary_digest_format: SHA256_LOWER_HEX_64
   source_aliases:
     allowed_alias_basis: ISSUE_KEY
     rule: >-
-      an issue key rename adds a source_alias; the evidence identity
-      (cloud_id + issue_id) never changes.
+      an issue key rename adds a source_alias carrying the new key; the evidence
+      identity (cloud_id + issue_id) never changes. A run that reports an issue
+      key change must carry the new key in raw_evidence.source_aliases and keep
+      identity_components equal (JIRA_MAP_ISSUE_KEY_RENAME_NOT_ALIASED otherwise).
   payload:
     structured_profile: I_JSON
     canonicalization_profile: RFC8785_JCS
@@ -61,8 +71,13 @@ raw_evidence_projection:
     property's enum; source_identity is (cloud_id, issue_id)-addressed so the
     projection is deterministic (JIRA_MAP_NONDETERMINISTIC_IDENTITY otherwise);
     payload.payload_ref is a reference, never inline (JIRA_MAP_PAYLOAD_INLINE);
-    source_version.basis is COMPOUND_OBSERVED with a secondary_digest
-    (JIRA_MAP_VERSION_NOT_COMPOUND otherwise).
+    source_version.basis is COMPOUND_OBSERVED with kind UPDATED_AT_DIGEST and a
+    present secondary_digest (JIRA_MAP_VERSION_NOT_COMPOUND otherwise);
+    source_version.secondary_digest matches ^sha256:[0-9a-f]{64}$
+    (JIRA_MAP_SECONDARY_DIGEST_MALFORMED otherwise);
+    source_version.value is a present RFC3339 timestamp — the observed Jira issue
+    updated time — so reconciliation can order versions
+    (JIRA_MAP_VERSION_VALUE_INVALID otherwise).
 
 source_anchor_projection:
   profile: JIRA_CLOUD_ENTITY_SEGMENT_V1
@@ -84,6 +99,11 @@ source_anchor_projection:
     DESCRIPTION: description
     COMMENT_BODY: comment
     ADF_TEXT_NODE: description
+  json_pointer_prefix_by_kind:
+    SUMMARY: /fields/summary
+    DESCRIPTION: /fields/description
+    COMMENT_BODY: /fields/comment/comments/
+    ADF_TEXT_NODE: /fields/description
   allowed_resolution_status:
     - EXACT_MATCH
     - RELOCATED
@@ -99,19 +119,36 @@ source_anchor_projection:
     entity_type is issue, issue_id matches ^[0-9]+$; selectors carries a
     JSON_POINTER selector (JIRA_MAP_SELECTOR_MISSING); text_selector.unit is
     UNICODE_CODE_POINT with START_INCLUSIVE_END_EXCLUSIVE and end >= start;
-    normalization_profile is the OMOS_TEXT_NORM_V1 const.
+    normalization_profile is the OMOS_TEXT_NORM_V1 const;
+    profile_details.field_id equals field_id_by_kind[field_kind]
+    (JIRA_MAP_FIELD_ID_KIND_MISMATCH otherwise) and profile_details.json_pointer
+    starts with json_pointer_prefix_by_kind[field_kind] so the anchor addresses
+    the mapped field (JIRA_MAP_JSON_POINTER_FIELD_MISMATCH otherwise). The locked
+    Jira anchor profile schema leaves field_id as any non-empty string, so this
+    field_kind -> field_id / json_pointer binding is enforced only here.
 
 reconciliation:
   triggers:
     - WEBHOOK_GAP
     - PERIODIC_SWEEP
+  identity_components:
+    - cloud_id
+    - issue_id
+  version_decisions:
+    - NEW_EVIDENCE
+    - NOOP
   rule: >-
     a reconciliation run compares source_version.value (updated timestamp) and
-    secondary_digest against the last known evidence; a newer version yields a
-    new evidence record and an older or equal version is a no-op. Reconciliation
-    never changes an existing evidence identity
-    (JIRA_MAP_RECONCILIATION_CHANGES_IDENTITY) and never drops a detected gap
-    without emitting evidence or a quality gap
+    secondary_digest against the last known evidence; a strictly newer value
+    yields a new evidence record (decision NEW_EVIDENCE) and an older or equal
+    value is a no-op (decision NOOP); a decision that disagrees with the observed
+    value order is JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH. When a run
+    carries previous_identity and current_identity they are compared
+    component-wise on (cloud_id, issue_id) and any difference is
+    JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT regardless of a self-reported
+    changed_identity flag; a run that self-reports changed_identity true is
+    JIRA_MAP_RECONCILIATION_CHANGES_IDENTITY. Reconciliation never drops a
+    detected gap without emitting evidence or a quality gap
     (JIRA_MAP_RECONCILIATION_SILENT_GAP).
 
 determinism:
@@ -121,16 +158,34 @@ determinism:
     Jira-native ids, timestamps and content digests, never from delivery order
     or wall-clock.
 
+instance_validation:
+  engine: scripts/validate_jira_adapter_mapping_instances.py
+  rule: >-
+    each positive fixture carries a full raw_evidence_instance and
+    source_anchor_instance; the engine validates raw_evidence_instance against
+    raw-evidence-envelope.schema.json and source_anchor_instance against
+    source-anchor-jira-cloud-entity-segment-v1.schema.json (which composes the
+    base source-anchor.schema.json) with a real Draft 2020-12 engine, and
+    confirms every instance_negative case is rejected. A missing required field,
+    a wrong nested type / pattern / const fails closed.
+
 error_contract:
   JIRA_MAP_UNKNOWN_FIELD_KIND: jira-map.error.unknown_field_kind
   JIRA_MAP_FIELD_NOT_IN_TARGET_SCHEMA: jira-map.error.field_not_in_target_schema
   JIRA_MAP_NONDETERMINISTIC_IDENTITY: jira-map.error.nondeterministic_identity
   JIRA_MAP_PAYLOAD_INLINE: jira-map.error.payload_inline
   JIRA_MAP_VERSION_NOT_COMPOUND: jira-map.error.version_not_compound
+  JIRA_MAP_SECONDARY_DIGEST_MALFORMED: jira-map.error.secondary_digest_malformed
+  JIRA_MAP_VERSION_VALUE_INVALID: jira-map.error.version_value_invalid
   JIRA_MAP_PROFILE_MISMATCH: jira-map.error.profile_mismatch
   JIRA_MAP_SELECTOR_MISSING: jira-map.error.selector_missing
   JIRA_MAP_PROFILE_DETAILS_MALFORMED: jira-map.error.profile_details_malformed
+  JIRA_MAP_FIELD_ID_KIND_MISMATCH: jira-map.error.field_id_kind_mismatch
+  JIRA_MAP_JSON_POINTER_FIELD_MISMATCH: jira-map.error.json_pointer_field_mismatch
   JIRA_MAP_RECONCILIATION_CHANGES_IDENTITY: jira-map.error.reconciliation_changes_identity
+  JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT: jira-map.error.reconciliation_identity_drift
+  JIRA_MAP_ISSUE_KEY_RENAME_NOT_ALIASED: jira-map.error.issue_key_rename_not_aliased
+  JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH: jira-map.error.reconciliation_version_decision_mismatch
   JIRA_MAP_RECONCILIATION_SILENT_GAP: jira-map.error.reconciliation_silent_gap
   FAIL_SILENT: jira-map.error.fail_silent
 
@@ -138,11 +193,14 @@ runtime_independence: true
 
 cross_reference:
   raw_evidence_schema: 規格/v0.1/raw-evidence-envelope.schema.json
+  base_source_anchor_schema: 規格/v0.1/source-anchor.schema.json
   jira_anchor_profile_schema: 規格/v0.1/source-anchor-jira-cloud-entity-segment-v1.schema.json
   must_match:
     source_version_basis_from: raw-evidence-envelope.properties.source_version.basis.enum
     source_version_kind_from: raw-evidence-envelope.properties.source_version.kind.enum
     ingestion_mode_from: raw-evidence-envelope.properties.provenance.ingestion_mode.enum
+    raw_evidence_required_from: raw-evidence-envelope.required
+    base_source_anchor_required_from: source-anchor.required
     jira_profile_const_from: source-anchor-jira-cloud-entity-segment-v1.profile.const
     jira_profile_details_shape_from: source-anchor-jira-cloud-entity-segment-v1.profile_details.required
 
@@ -158,9 +216,21 @@ required_negative_fixtures:
   - source identity uses a non-native basis
   - the payload is inline content instead of a reference
   - the source version is not compound-observed with a secondary digest
+  - the compound source version secondary digest is not a locked sha256
+  - the compound source version has no observed updated timestamp
   - the source anchor profile is not the Jira cloud entity segment profile
   - the JSON_POINTER selector is missing
   - profile_details has the wrong key set
+  - the anchor field id does not match the field kind
+  - the anchor json pointer does not address the mapped field
   - reconciliation changes an existing evidence identity
+  - reconciliation before and after evidence identity differ
+  - an issue key rename is not recorded as a source alias
+  - reconciliation version decision disagrees with the observed version order
   - reconciliation drops a detected gap without emitting evidence
   - error but the mapping still claims success
+
+required_instance_negative_fixtures:
+  - a projected RawEvidenceEnvelope is missing a locked required field
+  - a projected Jira SourceAnchor is missing a base SourceAnchor required field
+  - a projected Jira SourceAnchor text_selector has a wrong nested shape
