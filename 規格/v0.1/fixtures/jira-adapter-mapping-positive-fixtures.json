@@ -1,0 +1,57 @@
+{
+  "jira_mapping_cases": [
+    {
+      "case_id": "JIRA_MAP_POS_DESCRIPTION",
+      "expected": "allow",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {
+          "claimed_field_keys": ["source_identity", "source_version", "source_aliases", "payload", "provenance", "chronology", "digests", "access"],
+          "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"},
+          "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"},
+          "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1"},
+          "provenance": {"ingestion_mode": "WEBHOOK"}
+        },
+        "source_anchor": {
+          "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+          "selectors": [{"selector_type": "JSON_POINTER"}],
+          "profile_details": {
+            "deployment_type": "CLOUD", "cloud_id": "abc-123", "entity_type": "issue",
+            "issue_id": "100045", "issue_key_alias": "SSP-291", "field_id": "description",
+            "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0",
+            "text_selector": {"representation_ref": "urn:omos:blob:rep-1", "representation_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222", "start": 0, "end": 42, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "The personal evidence profile maps sources", "prefix": "", "suffix": ""}
+          },
+          "normalization_profile": "OMOS_TEXT_NORM_V1"
+        },
+        "reconciliation": {"detected_gap": true, "changed_identity": false, "emitted_evidence_or_gap": true},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_POS_COMMENT_BODY",
+      "expected": "allow",
+      "projection": {
+        "field_kind": "COMMENT_BODY",
+        "raw_evidence": {
+          "claimed_field_keys": ["source_identity", "source_version", "payload", "provenance", "digests"],
+          "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"},
+          "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"},
+          "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-2"},
+          "provenance": {"ingestion_mode": "POLL"}
+        },
+        "source_anchor": {
+          "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+          "selectors": [{"selector_type": "JSON_POINTER"}, {"selector_type": "TEXT_QUOTE"}],
+          "profile_details": {
+            "deployment_type": "CLOUD", "cloud_id": "abc-123", "entity_type": "issue",
+            "issue_id": "100045", "issue_key_alias": "SSP-291", "field_id": "comment",
+            "json_pointer": "/fields/comment/comments/3/body", "renderer_profile": "adf", "renderer_version": "1.0",
+            "text_selector": {"representation_ref": "urn:omos:blob:rep-2", "representation_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444", "start": 10, "end": 55, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "webhook reconciliation must not change identity", "prefix": "note: ", "suffix": "."}
+          },
+          "normalization_profile": "OMOS_TEXT_NORM_V1"
+        },
+        "ok": true
+      }
+    }
+  ]
+}

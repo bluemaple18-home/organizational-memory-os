@@ -1,0 +1,139 @@
+{
+  "jira_mapping_negative_cases": [
+    {
+      "case_id": "JIRA_MAP_NEG_UNKNOWN_FIELD_KIND",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_UNKNOWN_FIELD_KIND",
+      "covers_jira_map_negative_fixture": "a field kind outside SUMMARY / DESCRIPTION / COMMENT_BODY / ADF_TEXT_NODE",
+      "projection": {
+        "field_kind": "LABELS",
+        "raw_evidence": {"claimed_field_keys": ["payload"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:aa"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:x"}, "provenance": {"ingestion_mode": "WEBHOOK"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_FIELD_NOT_IN_TARGET_SCHEMA",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_FIELD_NOT_IN_TARGET_SCHEMA",
+      "covers_jira_map_negative_fixture": "a projected field is not a property of the target schema",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "payload", "provenance", "issue_priority_rank"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:aa"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1"}, "provenance": {"ingestion_mode": "WEBHOOK"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_NONDETERMINISTIC_IDENTITY",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_jira_map_negative_fixture": "source identity uses a non-native basis",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "payload", "provenance"], "source_identity": {"native_id_basis": "WEBHOOK_DELIVERY_SEQUENCE"}, "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:aa"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1"}, "provenance": {"ingestion_mode": "WEBHOOK"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_PAYLOAD_INLINE",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_PAYLOAD_INLINE",
+      "covers_jira_map_negative_fixture": "the payload is inline content instead of a reference",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:aa"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1", "inline_content": "{\"type\":\"doc\",...}"}, "provenance": {"ingestion_mode": "WEBHOOK"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_VERSION_NOT_COMPOUND",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_VERSION_NOT_COMPOUND",
+      "covers_jira_map_negative_fixture": "the source version is not compound-observed with a secondary digest",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "source_version", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_version": {"basis": "CONTENT_ONLY", "kind": "CONTENT_DIGEST", "secondary_digest": null}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1"}, "provenance": {"ingestion_mode": "WEBHOOK"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_PROFILE_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_PROFILE_MISMATCH",
+      "covers_jira_map_negative_fixture": "the source anchor profile is not the Jira cloud entity segment profile",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:aa"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1"}, "provenance": {"ingestion_mode": "WEBHOOK"}},
+        "source_anchor": {"profile": "MARKDOWN_TEXT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_SELECTOR_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_SELECTOR_MISSING",
+      "covers_jira_map_negative_fixture": "the JSON_POINTER selector is missing",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:aa"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1"}, "provenance": {"ingestion_mode": "WEBHOOK"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "TEXT_QUOTE"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_PROFILE_DETAILS_MALFORMED",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_PROFILE_DETAILS_MALFORMED",
+      "covers_jira_map_negative_fixture": "profile_details has the wrong key set",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:aa"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1"}, "provenance": {"ingestion_mode": "WEBHOOK"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_RECONCILIATION_CHANGES_IDENTITY",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_RECONCILIATION_CHANGES_IDENTITY",
+      "covers_jira_map_negative_fixture": "reconciliation changes an existing evidence identity",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:aa"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1"}, "provenance": {"ingestion_mode": "POLL"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "reconciliation": {"detected_gap": true, "changed_identity": true, "emitted_evidence_or_gap": true},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_RECONCILIATION_SILENT_GAP",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_RECONCILIATION_SILENT_GAP",
+      "covers_jira_map_negative_fixture": "reconciliation drops a detected gap without emitting evidence",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:aa"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1"}, "provenance": {"ingestion_mode": "POLL"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "reconciliation": {"detected_gap": true, "changed_identity": false, "emitted_evidence_or_gap": false},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_FAIL_SILENT",
+      "expected": "deny",
+      "expected_failure_code": "FAIL_SILENT",
+      "covers_jira_map_negative_fixture": "error but the mapping still claims success",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "secondary_digest": "sha256:aa"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:jira-1"}, "provenance": {"ingestion_mode": "WEBHOOK"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "error": "webhook payload was truncated; description segment could not be anchored",
+        "ok": true
+      }
+    }
+  ]
+}
