@@ -1,6 +1,6 @@
 ---
 id: SSP304-HERMES-ADAPTER-20260909
-status: IN_REPAIR_01
+status: ACCEPTED_GO_20260909
 type: implementation
 jira: SSP-304
 lane: B

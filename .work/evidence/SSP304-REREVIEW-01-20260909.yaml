@@ -1,0 +1,81 @@
+# 定點複審驗收 receipt｜SSP-304 AIWR-07 Hermes 薄 Adapter / Repair 01
+# review line: .work/handoff/SSP304-REVIEW-20260909.md
+
+review_input:
+  repo: "bluemaple18-home/organizational-memory-os"
+  branch: "cc/ssp304-hermes-adapter"
+  base_sha: "df3406485be12b1f31d111e19f0842760588d894"
+  frozen_review_sha: "5aa7675ceb6dc783607a16b0c27156ec9fac2861"   # immutable
+  handoff_sha: "0a9eff7"
+  repair_sha: "e3be0a4f1b18b43cb81ada7a9750eb37c2883ab0"
+  repair_tree_sha: "ae047b0bbfb07337acbeef14235fde29c6d15eb8"
+  repair_only_diff_range: "5aa7675ceb6dc783607a16b0c27156ec9fac2861..e3be0a4f1b18b43cb81ada7a9750eb37c2883ab0"
+
+round: 1
+gate_kind: T1 contract slice / targeted re-review
+
+findings_carried_in:
+  - id: F-01
+    severity: P1
+    summary: version_ok read run["supported_hermes_versions"] instead of the locked spec list
+  - id: F-02
+    severity: P1
+    summary: hermes_event_map and the MAPPED run's mapped_to were checked independently, not bound
+  - id: F-03
+    severity: P2
+    summary: INCOMPATIBLE_FAIL_LOUD did not require a real failure signal
+  - id: F-04
+    severity: P2
+    summary: hermes_event_map entries not validated for a non-empty unique hermes_event
+
+closure:
+  F-01:
+    status: CLOSED
+    fix: >
+      hermes_adapter_failure takes a supported_versions argument; callers pass
+      EXPECTED_SUPPORTED_VERSIONS (= spec compatibility.supported_hermes_versions,
+      structurally asserted). The run's own supported_hermes_versions field is
+      never read.
+    fixture: HERMES_NEG_SELF_WIDENED_VERSIONS (run self-reports [...,9.9], hermes_version 9.9, MAPPED) -> HERMES_INCOMPAT_NOT_LOUD
+  F-02:
+    status: CLOSED
+    fix: >
+      on a MAPPED run, run.hermes_event must have exactly one hermes_event_map
+      entry and that entry's mapped_to must equal run.mapped_to, else
+      HERMES_MAPPING_NOT_DECLARED. spec mapping_run gains mapping_binding_rule.
+    fixture: HERMES_NEG_MAPPING_NOT_DECLARED (table started->start, run started->complete) -> HERMES_MAPPING_NOT_DECLARED
+  F-03:
+    status: CLOSED
+    fix: >
+      INCOMPATIBLE_FAIL_LOUD must have present?(error) and ok == false, else
+      HERMES_FAKE_FAIL_LOUD.
+    fixture: HERMES_NEG_FAKE_FAIL_LOUD (INCOMPATIBLE_FAIL_LOUD, no error, ok true) -> HERMES_FAKE_FAIL_LOUD
+  F-04:
+    status: CLOSED
+    fix: >
+      each hermes_event_map entry must carry a non-empty string hermes_event
+      unique within the map, else HERMES_EVENT_MAP_MALFORMED.
+    fixtures:
+      - HERMES_NEG_EVENT_MAP_NO_KEY (entry missing hermes_event) -> HERMES_EVENT_MAP_MALFORMED
+      - HERMES_NEG_EVENT_MAP_DUPLICATE (same hermes_event -> start / complete) -> HERMES_EVENT_MAP_MALFORMED
+
+regression:
+  gate_all_pass: true                 # 17 Ruby validators + std_schema_engine + cross-layer
+  schema_engine_coverage_unchanged: true  # STD01 12/12 excl 11, STD02 16/16 excl 10, STD03 9/9 excl 11
+  positive_fixtures_still_pass: true   # 5 (MAPPED declared-match, INCOMPATIBLE_FAIL_LOUD with error+ok:false, DISABLED)
+  enforcement_parity_replayed: true   # version from spec / HERMES_MAPPING_NOT_DECLARED / HERMES_FAKE_FAIL_LOUD / event non-empty / event uniqueness -> RED when removed
+  upstream_specs_untouched: true      # skill / task-card-record / harness / boundary / loop / hook
+  negative_labels: 15
+  validator_loc: 282
+  git_diff_check: clean
+
+binding_integrity:
+  frozen_review_sha_unchanged: true
+  commit_chain: "5aa7675 -> 0a9eff7 (handoff docs) -> e3be0a4 (repair 01)"
+  repair_touched_upstream: false
+
+verdict: GO
+owner_accept: PENDING
+next:
+  merge: "cc/ssp304-hermes-adapter -> main"
+  then: "Lane B -> SSP-305 (AIWR-08 端到端驗收 + 主管進度視圖) — Lane B 最後一張"
