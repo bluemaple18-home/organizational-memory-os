@@ -1671,5 +1671,147 @@
       },
       "expected": "deny"
     }
+  ],
+  "correction_proposal_negative_cases": [
+    {
+      "case_id": "CORR_PROP_NEG_NO_EVIDENCE",
+      "covers_correction_negative_fixture": "correction proposal without correction evidence",
+      "expected_failure_code": "CORRECTION_MISSING_EVIDENCE",
+      "proposal": {
+        "proposal_id": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "correction_evidence_refs": [],
+        "proposed_by": "EMPLOYEE",
+        "created_at": "2026-09-09T00:00:01Z"
+      },
+      "expected": "deny"
+    }
+  ],
+  "supersession_receipt_negative_cases": [
+    {
+      "case_id": "CORR_RECEIPT_NEG_SKIPS_VERIFICATION",
+      "covers_correction_negative_fixture": "supersession receipt skips verification",
+      "expected_failure_code": "CORRECTION_SKIPS_VERIFICATION",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9011-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "NOT_RUN",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9301-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9401-7aaa-8bbb-111111111111",
+        "created_at": "2026-09-09T00:00:02Z"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_SKIPS_ACCEPTANCE",
+      "covers_correction_negative_fixture": "supersession receipt skips acceptance",
+      "expected_failure_code": "CORRECTION_SKIPS_ACCEPTANCE",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9012-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9302-7aaa-8bbb-111111111111",
+        "created_at": "2026-09-09T00:00:02Z"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_IN_PLACE_OVERWRITE",
+      "covers_correction_negative_fixture": "correction overwrites the record in place",
+      "expected_failure_code": "CORRECTION_IN_PLACE_OVERWRITE",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9013-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9303-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9403-7aaa-8bbb-111111111111",
+        "created_at": "2026-09-09T00:00:02Z",
+        "in_place_content_patch": {"statement_or_structured_content": "silently rewritten"}
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_HISTORY_ERASURE",
+      "covers_correction_negative_fixture": "supersession receipt erases history",
+      "expected_failure_code": "CORRECTION_HISTORY_ERASURE",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9014-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9304-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9404-7aaa-8bbb-111111111111",
+        "created_at": "2026-09-09T00:00:02Z",
+        "history_erasure": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_KIND_LIFECYCLE_MISMATCH",
+      "covers_correction_negative_fixture": "correction kind maps to the wrong lifecycle status",
+      "expected_failure_code": "CORRECTION_KIND_LIFECYCLE_MISMATCH",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9015-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "INVALIDATED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9305-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9405-7aaa-8bbb-111111111111",
+        "created_at": "2026-09-09T00:00:02Z"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_MUTATED_AFTER_THE_FACT",
+      "covers_correction_negative_fixture": "supersession receipt mutated after the fact",
+      "expected_failure_code": "CORRECTION_RECEIPT_MUTATED",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9016-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9306-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9406-7aaa-8bbb-111111111111",
+        "created_at": "2026-09-09T00:00:02Z",
+        "mutated": true
+      },
+      "expected": "deny"
+    }
   ]
 }

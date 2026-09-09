@@ -714,8 +714,10 @@ contract_registry:
       purpose: contradictory or scope/time-qualified memories
     MemoryCorrectionProposal:
       purpose: employee/model correction request with evidence
+      required_fields_ref: correction_flow.contract.proposal_required_fields
     MemorySupersessionReceipt:
       purpose: immutable history of replace/invalidate/amend decision
+      required_fields_ref: correction_flow.contract.supersession_receipt_required_fields
     MemoryContextPack:
       purpose: permission-aware bounded recall result
       required_fields_ref: recall_context_pack.contract.pack_required_fields
@@ -1220,6 +1222,54 @@ correction_flow:
     - ACCEPT
     - AMEND_INVALIDATE_OR_SUPERSEDE
   history_erasure: forbidden
+  contract:
+    correction_kinds:
+      AMEND: SUPERSEDED
+      INVALIDATE: INVALIDATED
+      SUPERSEDE: SUPERSEDED
+    proposal_required_fields:
+      - proposal_id
+      - tenant_id
+      - employee_owner_ref
+      - target_record_ref
+      - correction_kind
+      - correction_evidence_refs
+      - proposed_by
+      - created_at
+    supersession_receipt_required_fields:
+      - receipt_id
+      - tenant_id
+      - employee_owner_ref
+      - origin_proposal_ref
+      - target_record_ref
+      - correction_kind
+      - old_record_ref
+      - resulting_record_status
+      - verification_status
+      - created_at
+    gate_enforced_fields:
+      - verification_receipt_ref
+      - personal_acceptance_ref
+    gate:
+      verification_status_must_be: PASS
+      requires:
+        - verification_receipt_ref
+        - personal_acceptance_ref
+    supersede_requires_new_record_ref: true
+    immutable_receipt: true
+    forbidden:
+      - history_erasure
+      - in_place_record_overwrite
+      - skip_verification
+      - skip_acceptance
+      - receipt_mutation
+    statement: >-
+      A correction is started by correction evidence and a proposal. The
+      supersession receipt only takes effect after verification PASS and personal
+      acceptance. The old record is never overwritten in place — it moves to the
+      lifecycle status mapped from correction_kind, and SUPERSEDE also records a
+      distinct new_record_ref. The receipt is immutable and always keeps
+      old_record_ref; history is never erased.
 
 promotion_flow:
   source:
