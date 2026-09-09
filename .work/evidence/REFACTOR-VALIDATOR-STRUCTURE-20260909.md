@@ -135,7 +135,38 @@ fixture 判定零改動。
 3 個 STD `LOCKED_OWNER_ACCEPTED` 檔仍 `> 400`：卡片 Scope 明訂「只做 helper 抽取，不拆結構」，
 結構拆分需重開已鎖契約，記入 backlog。其餘全部合規。
 
+## S02 Repair 01｜大 review NO_GO（1×P1 F-01）
+
+- **F-01（P1）**：S02 把舊入口 `validate_personal_memory_contract.rb` 的 coverage 縮成只剩
+  EMEM-00。golden byte-identical 沒抓到，因為 base 與 refactor 後 happy-path 都印
+  `PASS personal memory contract validation`，但實際驗的面向少了 capability/resource/recall/correction。
+  仍只呼叫舊命令的 CI／流程會在那些 slice 壞掉時得到假綠 → 違反 `REFACTOR_STRICT`。
+- **修法（不重拆）**：
+  - `git mv validate_personal_memory_contract.rb → validate_personal_memory_scope_contract.rb`
+    （EMEM-00 本體整份搬，PASS 字串改 `...scope contract validation`）。
+  - 新 `validate_personal_memory_contract.rb` = backward-compatible aggregator：`Open3.capture3`
+    fail-closed 依序跑 5 個 slice（scope/resource/capability/recall/correction），全綠才印
+    與 refactor 前逐字相同的 `PASS personal memory contract validation`；任一 slice 非 0 →
+    轉發其 stdout/stderr + `exit 1`。只 `require "open3"` / `require "rbconfig"`，無新 gem。
+- **舊命令 mutation parity**（`ruby scripts/validate_personal_memory_contract.rb`）：
+
+  | slice | mutation | 舊命令 |
+  |---|---|---|
+  | scope | `legal_hold_overrides_delete_and_purge` true→false | RED `FAIL legal hold 必須覆蓋 delete/purge` |
+  | resource | `MemoryConflictSet.forbidden_authority` 去 `winner_selection` | RED `FAIL MemoryConflictSet 必須禁止自行選 winner` |
+  | capability | `capability_matrix.cumulative` true→false | RED `FAIL capability_matrix.cumulative 必須為 true` |
+  | recall | `permission_strategy` INTERSECTION→UNION | RED `FAIL ...必須是 INTERSECTION` |
+  | correction | `immutable_receipt` true→false | RED `FAIL ...immutable_receipt 必須為 true` |
+
+  全部還原後舊命令 → `PASS personal memory contract validation` exit 0。
+
+- **行為不變 regression**：aggregator stdout+exit 對 golden byte-identical（stderr 空）；其餘 7 個
+  base validator + cross-layer byte-identical；schema engine PASS、coverage 不變；5 個 slice
+  直接跑皆 PASS；`git diff --check` 乾淨。
+- repair 卡：`.work/CARD-REFACTOR-VALIDATOR-STRUCTURE-REPAIR-01-20260909.md`。原 frozen review
+  SHA `f3bb423` 不動。
+
 ## Gate 全綠（整合樹）
 
-`ruby` 全 13 個 Ruby validator + `uv run --no-project --script` schema engine + cross-layer +
-STD-00~03 + JSON/YAML parse + `git diff --check` 全 PASS（見上方 S02 驗證區塊）。
+`ruby` 全 14 個 Ruby validator（aggregator + 5 slice + STD-00~03 + AIWR ×3 + cross-layer）
++ `uv run --no-project --script` schema engine + JSON/YAML parse + `git diff --check` 全 PASS。
