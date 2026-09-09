@@ -1,0 +1,160 @@
+schema:
+  schema_id: urn:omos:schema:ai-work-record-hook:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-09'
+  traces_to:
+    - AIWR-04
+  builds_on:
+    - 規格/v0.1/ai-work-record-boundary.yaml#automated_step_contract
+    - 規格/v0.1/ai-task-card-record.yaml#lifecycle_event_to_status
+    - 規格/v0.1/ai-work-record-skill.yaml#input_contract
+
+purpose:
+  statement: >-
+    A Hook contract: on task lifecycle events, capture the allowed events and
+    assemble one batch that is a contract-valid ai-work-record-skill input.
+    Capture is idempotent on repeated events, a capture failure is isolated from
+    the host task, the Hook reads no unauthorized task content and performs no
+    memory acceptance, and it can be disabled to fall back to a manual Skill
+    call. The Hook does not re-define the SSP-298 boundary, the SSP-299 card
+    format or the SSP-300 Skill I/O — it references them.
+  no_second_workflow_authority: true
+
+capture_contract:
+  allowed_events:
+    - start
+    - block
+    - unblock
+    - submit_review
+    - complete
+    - cancel
+  event_envelope_fields:
+    - task_ref
+    - event
+    - occurred_at
+    - event_key
+    - evidence_refs
+  reference_only: true
+  idempotency:
+    dedupe_by: event_key
+    repeated_event_rule: >-
+      a repeated event_key collapses to a single captured entry; the emitted
+      batch must equal the de-duplicated event sequence.
+  ordering:
+    emitted_batch_rule: >-
+      after de-duplication the first emitted event is `start` and every
+      subsequent event is an allowed_status_transitions step of
+      ai-task-card-record.yaml.
+
+failure_isolation:
+  on_error: ISOLATE_FROM_HOST_TASK
+  forbidden:
+    - PROPAGATE
+    - RAISE_INTO_HOST
+    - BLOCK_HOST_TASK
+  host_task_impact_allowed:
+    - UNAFFECTED
+  host_task_impact_rule: >-
+    A capture reports host_task_impact as either absent or exactly UNAFFECTED.
+    Any other value (BLOCKED, FAILED, CANCELLED, MUTATED, ...) means the capture
+    failure changed the host task outcome and is a contract violation
+    (HOOK_FAILURE_BLOCKS_HOST_TASK), fail-closed.
+  note: >-
+    Hook exceptions are logged / dropped / queued for retry; the host task
+    outcome is never changed by a capture failure.
+
+authority:
+  reads_task_content: false
+  performs_memory_acceptance: false
+  writes_company_knowledge: false
+  error_behavior: FAIL_LOUD
+  forbidden_batch_fields:
+    - personal_acceptance_ref
+    - verification_receipt_ref
+    - accepted_for_record
+    - canonical_write_receipt_ref
+
+output_contract:
+  emitted_fields:
+    - lifecycle_events
+    - batch
+  lifecycle_events_rule: >-
+    the emitted lifecycle_events array must satisfy ai-work-record-skill.yaml
+    input_contract.lifecycle_events_rule (non-empty; first is `start`; every
+    event is a key of ai-task-card-record.yaml lifecycle_event_to_status).
+  seed_fields_rule: >-
+    the Hook carries seed_fields by reference only or leaves them to the Skill
+    caller; the Hook never assembles a draft_card itself.
+
+disable_and_rollback:
+  disable_switch: true
+  disabled_behavior: EMIT_NOTHING
+  fallback: MANUAL_SKILL_INVOCATION
+  side_effects:
+    - name: event_queue
+      teardown: drain and delete the pending-capture queue
+      failure_state: >-
+        queue not drained -> stale events replay on re-enable; detected by a
+        non-empty queue after teardown, remediation is an explicit purge.
+    - name: registered_lifecycle_handler
+      teardown: unregister the lifecycle handler from the host runtime
+      failure_state: >-
+        handler still registered -> Hook keeps firing while disabled; detected
+        by a capture emitted under disabled state (HOOK_DISABLED_STILL_EMITTING).
+    - name: partial_batch
+      teardown: discard any half-assembled batch for in-flight tasks
+      failure_state: >-
+        partial batch persisted -> next enable emits a batch that does not start
+        with `start`; detected by HOOK_BATCH_MUST_START on re-enable.
+
+error_contract:
+  HOOK_MISSING_FIELD: hook.error.missing_field
+  HOOK_EVENT_NOT_ALLOWED: hook.error.event_not_allowed
+  HOOK_EVENT_INLINE_CONTENT: hook.error.event_inline_content
+  HOOK_DUPLICATE_NOT_IDEMPOTENT: hook.error.duplicate_not_idempotent
+  HOOK_DUPLICATE_CONFLICT: hook.error.duplicate_conflict
+  HOOK_BATCH_MUST_START: hook.error.batch_must_start
+  HOOK_ILLEGAL_TRANSITION: hook.error.illegal_transition
+  HOOK_FAILURE_BLOCKS_HOST_TASK: hook.error.failure_blocks_host_task
+  HOOK_EXCEEDS_AUTHORITY: hook.error.exceeds_authority
+  HOOK_OUTPUT_NOT_SKILL_INPUT: hook.error.output_not_skill_input
+  HOOK_DISABLED_STILL_EMITTING: hook.error.disabled_still_emitting
+  HOOK_ROLLBACK_MISSING_FIELD: hook.error.rollback_missing_field
+  HOOK_ROLLBACK_SIDE_EFFECT_UNSPECIFIED: hook.error.rollback_side_effect_unspecified
+  FAIL_SILENT: hook.error.fail_silent
+
+runtime_independence: true
+
+cross_reference:
+  boundary_spec: 規格/v0.1/ai-work-record-boundary.yaml
+  task_card_record_spec: 規格/v0.1/ai-task-card-record.yaml
+  skill_spec: 規格/v0.1/ai-work-record-skill.yaml
+  must_match:
+    allowed_events_from: ai-task-card-record.lifecycle_event_to_status
+    transitions_from: ai-task-card-record.allowed_status_transitions
+    skill_input_rule_from: ai-work-record-skill.input_contract.lifecycle_events_rule
+    error_behavior_from: ai-work-record-boundary.automated_step_contract.error_behavior_enum
+
+hard_stops:
+  - no loop / harness / hermes / runtime here
+  - pure function plus data tables only; no state machine engine
+  - do not re-define SSP-298 boundary, SSP-299 card format or SSP-300 Skill I/O
+  - no registry / FSM / database / canonical writer
+
+required_negative_fixtures:
+  - event not in the allowed set
+  - event envelope carries inline content
+  - duplicate event handled non-idempotently
+  - duplicate event_key with a conflicting event
+  - emitted batch does not start with start
+  - emitted batch contains an illegal transition
+  - capture failure propagates into the host task
+  - capture reports a non-isolated host task impact
+  - emitted batch carries a memory acceptance field
+  - hook disabled but batch carries an authority field
+  - emitted batch is not a valid skill input
+  - hook disabled but still emitting events
+  - error but capture still claims success
+  - rollback contract missing disable switch
+  - rollback side effect missing a field
