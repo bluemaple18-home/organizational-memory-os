@@ -1,0 +1,162 @@
+schema:
+  schema_id: urn:omos:schema:ai-work-record-harness:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-09'
+  traces_to:
+    - AIWR-06
+  builds_on:
+    - 規格/v0.1/ai-work-record-hook.yaml
+    - 規格/v0.1/ai-work-record-skill.yaml
+    - 規格/v0.1/ai-work-record-loop.yaml
+
+purpose:
+  statement: >-
+    A lightweight Harness contract: orchestrate the existing Hook, Skill and
+    Loop capabilities in sequence. The Harness builds no registry, FSM,
+    database or canonical writer and no second runtime; every step's input,
+    output, timeout, error and receipt are traceable; execution is
+    single-agent and sequential by default and only fans out with a measured
+    gap; the Harness is removable and falls back to a direct Skill call; it
+    depends on no always-on service. It does not re-define the SSP-298..SSP-302
+    contracts — it references them.
+  no_second_workflow_authority: true
+
+orchestration:
+  allowed_capabilities:
+    - HOOK
+    - SKILL
+    - LOOP
+  execution_mode: SEQUENTIAL_SINGLE_AGENT
+  fan_out_rule: >-
+    a step may set fan_out true only when it carries a measured_gap_ref (an omos
+    URN); otherwise HARNESS_UNJUSTIFIED_FANOUT.
+  step_capability_rule: >-
+    every step.capability must be one of allowed_capabilities; anything else is
+    HARNESS_UNKNOWN_CAPABILITY (the Harness never introduces a new capability).
+
+no_second_runtime:
+  builds_registry: false
+  builds_fsm: false
+  builds_database: false
+  builds_canonical_writer: false
+  rule: >-
+    any of these true is HARNESS_SECOND_RUNTIME. The Harness is orchestration
+    over existing capabilities, not a new runtime.
+
+step_record:
+  required_fields:
+    - step
+    - capability
+    - input_ref
+    - output_ref
+    - timeout_seconds
+    - error
+    - receipt_ref
+  urn_fields:
+    - input_ref
+    - output_ref
+    - receipt_ref
+  timeout_seconds_rule: positive integer
+  rule: >-
+    every executed step carries all required_fields; urn_fields are omos URN
+    strings (reference only). A missing field or a non-positive timeout is
+    HARNESS_STEP_NOT_TRACEABLE; a non-URN ref is HARNESS_STEP_REF_NOT_URN.
+
+step_failure:
+  outcomes:
+    - COMPLETED
+    - STEP_FAILED
+  rule: >-
+    a step whose error is present while the run outcome is COMPLETED is
+    HARNESS_SILENT_STEP_FAILURE; an outcome STEP_FAILED must name a failed_step
+    that is one of the run's steps, otherwise HARNESS_STEP_FAILURE_UNMARKED.
+
+authority:
+  performs_memory_acceptance: false
+  writes_company_knowledge: false
+  makes_permission_decisions: false
+  error_behavior: FAIL_LOUD
+  forbidden_run_fields:
+    - personal_acceptance_ref
+    - verification_receipt_ref
+    - accepted_for_record
+    - canonical_write_receipt_ref
+    - permission_decision_ref
+
+no_always_on:
+  requires_always_on_service: false
+  rule: >-
+    requires_always_on_service true, or a run that declares an always-on service
+    dependency, is HARNESS_REQUIRES_ALWAYS_ON.
+
+disable_and_rollback:
+  removable: true
+  fallback: DIRECT_SKILL_INVOCATION
+  side_effects:
+    - name: step_queue
+      teardown: drain and delete any queued orchestration steps
+      failure_state: >-
+        queue not drained -> stale steps replay on re-enable; detected by a
+        non-empty queue after teardown.
+    - name: capability_bindings
+      teardown: release the Hook / Skill / Loop bindings held by the Harness
+      failure_state: >-
+        bindings still held -> the Harness keeps orchestrating while removed;
+        detected by a run emitted after removal.
+    - name: partial_run_record
+      teardown: discard any half-written step_record for an in-flight run
+      failure_state: >-
+        partial record persisted -> next enable resumes from an inconsistent
+        step index; detected by a step_record whose step numbers are not
+        contiguous from 1.
+
+error_contract:
+  HARNESS_UNKNOWN_CAPABILITY: harness.error.unknown_capability
+  HARNESS_NOT_SEQUENTIAL: harness.error.not_sequential
+  HARNESS_UNJUSTIFIED_FANOUT: harness.error.unjustified_fanout
+  HARNESS_SECOND_RUNTIME: harness.error.second_runtime
+  HARNESS_STEP_NOT_TRACEABLE: harness.error.step_not_traceable
+  HARNESS_STEP_REF_NOT_URN: harness.error.step_ref_not_urn
+  HARNESS_INVALID_OUTCOME: harness.error.invalid_outcome
+  HARNESS_SILENT_STEP_FAILURE: harness.error.silent_step_failure
+  HARNESS_STEP_FAILURE_UNMARKED: harness.error.step_failure_unmarked
+  HARNESS_EXCEEDS_AUTHORITY: harness.error.exceeds_authority
+  HARNESS_REQUIRES_ALWAYS_ON: harness.error.requires_always_on
+  HARNESS_ROLLBACK_MISSING_FIELD: harness.error.rollback_missing_field
+  HARNESS_ROLLBACK_SIDE_EFFECT_UNSPECIFIED: harness.error.rollback_side_effect_unspecified
+  FAIL_SILENT: harness.error.fail_silent
+
+runtime_independence: true
+
+cross_reference:
+  hook_spec: 規格/v0.1/ai-work-record-hook.yaml
+  skill_spec: 規格/v0.1/ai-work-record-skill.yaml
+  loop_spec: 規格/v0.1/ai-work-record-loop.yaml
+  boundary_spec: 規格/v0.1/ai-work-record-boundary.yaml
+  must_match:
+    hook_schema_id_from: ai-work-record-hook.schema.schema_id
+    skill_schema_id_from: ai-work-record-skill.schema.schema_id
+    loop_schema_id_from: ai-work-record-loop.schema.schema_id
+    error_behavior_from: ai-work-record-boundary.automated_step_contract.error_behavior_enum
+
+hard_stops:
+  - no hermes / runtime / connector / database / scheduler here
+  - pure function plus data tables only; no state machine engine
+  - do not re-define the SSP-298..SSP-302 contracts
+  - no registry / FSM / database / canonical writer / second runtime
+
+required_negative_fixtures:
+  - a step names a capability that is not HOOK / SKILL / LOOP
+  - the run did not execute in sequential single-agent mode
+  - a step fans out without a measured gap ref
+  - the harness builds a registry / FSM / database / canonical writer
+  - an executed step is missing a traceability field
+  - a step reference is not a URN
+  - outcome is not one of the allowed outcomes
+  - a step failed silently while the run claims COMPLETED
+  - outcome STEP_FAILED without naming a failed step
+  - run carries a permission decision field
+  - the harness requires an always-on service
+  - a rollback side effect is missing a field
+  - error but the run still claims success

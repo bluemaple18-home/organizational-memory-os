@@ -1,0 +1,217 @@
+{
+  "harness_run_negative_cases": [
+    {
+      "case_id": "HARNESS_NEG_UNKNOWN_CAPABILITY",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_UNKNOWN_CAPABILITY",
+      "covers_harness_negative_fixture": "a step names a capability that is not HOOK / SKILL / LOOP",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "DATABASE", "input_ref": "urn:omos:harness-input:d1", "output_ref": "urn:omos:harness-output:d1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:d1"}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_NOT_SEQUENTIAL",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_NOT_SEQUENTIAL",
+      "covers_harness_negative_fixture": "the run did not execute in sequential single-agent mode",
+      "run": {
+        "execution_mode": "PARALLEL_MULTI_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_UNJUSTIFIED_FANOUT",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_UNJUSTIFIED_FANOUT",
+      "covers_harness_negative_fixture": "a step fans out without a measured gap ref",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "SKILL", "input_ref": "urn:omos:harness-input:s1", "output_ref": "urn:omos:harness-output:s1", "timeout_seconds": 60, "error": null, "receipt_ref": "urn:omos:receipt:s1", "fan_out": true}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_SECOND_RUNTIME",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_SECOND_RUNTIME",
+      "covers_harness_negative_fixture": "the harness builds a registry / FSM / database / canonical writer",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": true, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_STEP_NOT_TRACEABLE",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_STEP_NOT_TRACEABLE",
+      "covers_harness_negative_fixture": "an executed step is missing a traceability field",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_STEP_REF_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_STEP_REF_NOT_URN",
+      "covers_harness_negative_fixture": "a step reference is not a URN",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "step-1-input", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_INVALID_OUTCOME",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_INVALID_OUTCOME",
+      "covers_harness_negative_fixture": "outcome is not one of the allowed outcomes",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"}
+        ],
+        "outcome": "RUNNING",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_SILENT_STEP_FAILURE",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_SILENT_STEP_FAILURE",
+      "covers_harness_negative_fixture": "a step failed silently while the run claims COMPLETED",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"},
+          {"step": 2, "capability": "SKILL", "input_ref": "urn:omos:harness-input:s1", "output_ref": "urn:omos:harness-output:s1", "timeout_seconds": 60, "error": "skill raised", "receipt_ref": "urn:omos:receipt:s1"}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_STEP_FAILURE_UNMARKED",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_STEP_FAILURE_UNMARKED",
+      "covers_harness_negative_fixture": "outcome STEP_FAILED without naming a failed step",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"},
+          {"step": 2, "capability": "SKILL", "input_ref": "urn:omos:harness-input:s1", "output_ref": "urn:omos:harness-output:s1", "timeout_seconds": 60, "error": "skill raised", "receipt_ref": "urn:omos:receipt:s1"}
+        ],
+        "outcome": "STEP_FAILED",
+        "failed_step": 99,
+        "error": "harness stopped",
+        "ok": false
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_EXCEEDS_AUTHORITY",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_EXCEEDS_AUTHORITY",
+      "covers_harness_negative_fixture": "run carries a permission decision field",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "permission_decision_ref": "urn:omos:permission-decision:harness-must-not-decide",
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_REQUIRES_ALWAYS_ON",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_REQUIRES_ALWAYS_ON",
+      "covers_harness_negative_fixture": "the harness requires an always-on service",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": true,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_FAIL_SILENT",
+      "expected": "deny",
+      "expected_failure_code": "FAIL_SILENT",
+      "covers_harness_negative_fixture": "error but the run still claims success",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"}
+        ],
+        "outcome": "COMPLETED",
+        "error": "one step was retried without being recorded",
+        "ok": true
+      }
+    }
+  ],
+  "harness_rollback_negative_cases": [
+    {
+      "case_id": "HARNESS_RB_NEG_SIDE_EFFECT_MISSING_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_ROLLBACK_SIDE_EFFECT_UNSPECIFIED",
+      "covers_harness_negative_fixture": "a rollback side effect is missing a field",
+      "rollback": {
+        "removable": true,
+        "fallback": "DIRECT_SKILL_INVOCATION",
+        "side_effects": [
+          {"name": "step_queue", "teardown": "drain and delete any queued orchestration steps"}
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "harness_run_cases": [
+    {
+      "case_id": "HARNESS_RUN_POS_HAPPY",
+      "expected": "allow",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false,
+        "builds_fsm": false,
+        "builds_database": false,
+        "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"},
+          {"step": 2, "capability": "SKILL", "input_ref": "urn:omos:harness-input:s1", "output_ref": "urn:omos:harness-output:s1", "timeout_seconds": 60, "error": null, "receipt_ref": "urn:omos:receipt:s1"},
+          {"step": 3, "capability": "LOOP", "input_ref": "urn:omos:harness-input:l1", "output_ref": "urn:omos:harness-output:l1", "timeout_seconds": 120, "error": null, "receipt_ref": "urn:omos:receipt:l1"}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_RUN_POS_STEP_FAILED_MARKED",
+      "expected": "allow",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false,
+        "builds_fsm": false,
+        "builds_database": false,
+        "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"},
+          {"step": 2, "capability": "SKILL", "input_ref": "urn:omos:harness-input:s1", "output_ref": "urn:omos:harness-output:s1", "timeout_seconds": 60, "error": "skill step exceeded its timeout", "receipt_ref": "urn:omos:receipt:s1"}
+        ],
+        "outcome": "STEP_FAILED",
+        "failed_step": 2,
+        "error": "harness stopped after step 2 failed",
+        "ok": false
+      }
+    }
+  ],
+  "harness_rollback_cases": [
+    {
+      "case_id": "HARNESS_RB_POS_FULL",
+      "expected": "allow",
+      "rollback": {
+        "removable": true,
+        "fallback": "DIRECT_SKILL_INVOCATION",
+        "side_effects": [
+          {"name": "step_queue", "teardown": "drain and delete any queued orchestration steps", "failure_state": "queue not drained -> stale steps replay on re-enable"},
+          {"name": "capability_bindings", "teardown": "release the Hook / Skill / Loop bindings", "failure_state": "bindings still held -> the Harness keeps orchestrating while removed"},
+          {"name": "partial_run_record", "teardown": "discard any half-written step_record", "failure_state": "partial record persisted -> next enable resumes from an inconsistent step index"}
+        ]
+      }
+    },
+    {
+      "case_id": "HARNESS_RB_POS_MIN",
+      "expected": "allow",
+      "rollback": {
+        "removable": true,
+        "fallback": "DIRECT_SKILL_INVOCATION",
+        "side_effects": [
+          {"name": "capability_bindings", "teardown": "release bindings", "failure_state": "bindings still held -> Harness keeps orchestrating while removed"}
+        ]
+      }
+    }
+  ]
+}
