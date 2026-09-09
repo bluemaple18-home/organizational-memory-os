@@ -1,0 +1,91 @@
+# 定點複審驗收 receipt｜SSP-305 AIWR-08 端到端驗收 + 主管進度視圖 / Repair 01
+# review line: .work/handoff/SSP305-REVIEW-20260909.md
+
+review_input:
+  repo: "bluemaple18-home/organizational-memory-os"
+  branch: "cc/ssp305-e2e-manager-view"
+  base_sha: "b07353a7682b5d0cab26be50b8971f5a551a47f6"
+  frozen_review_sha: "54891cc580d4ffaa169628be0e9c91a181f380a9"   # immutable
+  handoff_sha: "166c254"
+  repair_sha: "3c8fcd166c9b63b4d21d49773af34029151e94b1"
+  repair_tree_sha: "c3b46dd05cc1c13968534fb01bb12c58282fbfb7"
+  repair_only_diff_range: "54891cc580d4ffaa169628be0e9c91a181f380a9..3c8fcd166c9b63b4d21d49773af34029151e94b1"
+
+round: 1
+gate_kind: T1 contract slice / targeted re-review
+
+findings_carried_in:
+  - id: F-01
+    severity: P1
+    summary: manager_view.status not bound to final_status
+  - id: F-02
+    severity: P1
+    summary: memory_promotion_gate loosened the SSP-298 promotion_path (only candidate + acceptance required)
+  - id: F-03
+    severity: P1
+    summary: FAILED / BLOCKED / HUMAN_INTERVENTION had no legal terminal path -> DoD not closed
+  - id: F-04
+    severity: P1
+    summary: is_projection not enforced
+  - id: F-05
+    severity: P2
+    summary: no replay of ai-task-card-record allowed_status_transitions
+
+closure:
+  F-01:
+    status: CLOSED
+    fix: "evaluator returns E2E_MANAGER_STATUS_MISMATCH when view[status] != run.final_status"
+    fixture: "E2E_NEG_MANAGER_STATUS_MISMATCH -> E2E_MANAGER_STATUS_MISMATCH"
+  F-02:
+    status: CLOSED
+    fix: >
+      memory_promotion_gate requires the full promotion chain as URNs
+      (raw_evidence_ref, candidate_ref, verification_receipt_ref,
+      personal_acceptance_ref, record_ref); structural asserts bind promotion_refs
+      to boundary promotion_path.ordered_steps and receipts_required;
+      cross_reference adds promotion_path_from / promotion_receipts_from.
+    fixtures:
+      - "E2E_NEG_PROMOTION_CHAIN_INCOMPLETE (only candidate + acceptance) -> E2E_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE"
+      - "E2E_POS_CANCELLED_WITH_PROMOTED_RECORD now carries all 5 chain refs"
+  F-03:
+    status: CLOSED
+    fix: >
+      terminal_events gains block (-> BLOCKED); unsubstantiated_outcome_statuses
+      [FAILED, HUMAN_INTERVENTION] require a non-complete terminal event plus an
+      outcome_evidence_ref URN else E2E_UNSUBSTANTIATED_OUTCOME; a structural
+      assert locks that all five manager_statuses have a terminal path.
+    fixtures:
+      - "E2E_POS_BLOCKED / E2E_POS_FAILED / E2E_POS_HUMAN_INTERVENTION -> allow"
+      - "E2E_NEG_UNSUBSTANTIATED_OUTCOME -> E2E_UNSUBSTANTIATED_OUTCOME"
+  F-04:
+    status: CLOSED
+    fix: "evaluator returns E2E_EXCEEDS_AUTHORITY unless run[is_projection] == true"
+    fixture: "E2E_NEG_NOT_PROJECTION -> E2E_EXCEEDS_AUTHORITY"
+  F-05:
+    status: CLOSED
+    fix: "the trace is replayed against ai-task-card-record allowed_status_transitions -> E2E_TRACE_ILLEGAL_TRANSITION"
+    fixture: "E2E_NEG_ILLEGAL_TRANSITION (start -> cancel -> complete) -> E2E_TRACE_ILLEGAL_TRANSITION"
+
+regression:
+  gate_all_pass: true                 # 18 Ruby validators + std_schema_engine + cross-layer
+  schema_engine_coverage_unchanged: true  # STD01 12/12 excl 11, STD02 16/16 excl 10, STD03 9/9 excl 11
+  positive_fixtures: 5                 # DONE / CANCELLED-with-full-chain / BLOCKED / FAILED / HUMAN_INTERVENTION
+  negative_labels: 16
+  enforcement_parity_replayed: true
+  upstream_specs_untouched: true      # task-card-record / boundary / harness / hook / loop / skill / hermes-adapter
+  validator_loc: 281
+  git_diff_check: clean
+
+binding_integrity:
+  frozen_review_sha_unchanged: true
+  commit_chain: "54891cc -> 166c254 (handoff docs) -> 3c8fcd1 (repair 01)"
+  repair_touched_upstream: false
+
+verdict: GO
+owner_accept: PENDING
+next:
+  merge: "cc/ssp305-e2e-manager-view -> main"
+  milestone: >
+    On merge, Lane B (AIWR automation-execution layer) DoD is closed: SSP-298..SSP-305
+    all ACCEPTED_GO and merged -- boundary, task-card format, Skill, Hook, Loop, Harness,
+    Hermes Adapter, end-to-end acceptance + manager view.

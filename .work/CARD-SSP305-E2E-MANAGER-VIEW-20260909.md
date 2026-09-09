@@ -1,6 +1,6 @@
 ---
 id: SSP305-E2E-MANAGER-VIEW-20260909
-status: IN_REPAIR_01
+status: ACCEPTED_GO_20260909
 type: implementation
 jira: SSP-305
 lane: B
