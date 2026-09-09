@@ -1,0 +1,78 @@
+# 定點複審驗收 receipt｜SSP-301 AIWR-04 Hook / Repair 01
+# review line: .work/handoff/SSP301-REVIEW-20260909.md
+
+review_input:
+  repo: "bluemaple18-home/organizational-memory-os"
+  branch: "cc/ssp301-aiwr-hook"
+  base_sha: "3e8589c86d22f096210fd3a2f260bf4b920a8604"
+  frozen_review_sha: "acafeb44e0cf4bf4d1c761c644d4b4ae5b292215"   # immutable
+  handoff_sha: "d1b61ec"
+  repair_sha: "d04f137ce02a5bfa6223adcdb53be36b7bdcbbfb"
+  repair_only_diff_range: "acafeb44e0cf4bf4d1c761c644d4b4ae5b292215..d04f137ce02a5bfa6223adcdb53be36b7bdcbbfb"
+
+round: 1
+gate_kind: T1 contract slice / targeted re-review
+
+findings_carried_in:
+  - id: F-01
+    severity: P1
+    summary: authority gate bypassable via the disabled early-return in hook_capture_failure
+  - id: F-02
+    severity: P1
+    summary: failure isolation only blocked host_task_impact == "BLOCKED", not other non-isolated values
+  - id: F-03
+    severity: P2
+    summary: same event_key with a conflicting event was a silent first-wins drop
+
+closure:
+  F-01:
+    status: CLOSED
+    fix: >
+      authority (performs_memory_acceptance / writes_company_knowledge /
+      forbidden batch fields) and FAIL_SILENT checks moved ahead of the disabled
+      early-return; disabled only exempts dedupe / ordering / skill-input-shape.
+    negative_fixture: HOOK_CAP_NEG_DISABLED_AUTHORITY_FIELD -> HOOK_EXCEEDS_AUTHORITY
+  F-02:
+    status: CLOSED
+    fix: >
+      EXPECTED_HOST_TASK_IMPACT_ALLOWED = [nil, "UNAFFECTED"]; any other value
+      -> HOOK_FAILURE_BLOCKS_HOST_TASK. spec declares
+      failure_isolation.host_task_impact_allowed: [UNAFFECTED] with a structural
+      assert.
+    negative_fixtures:
+      - HOOK_CAP_NEG_HOST_TASK_NOT_ISOLATED ("FAILED") -> HOOK_FAILURE_BLOCKS_HOST_TASK
+      - HOOK_CAP_NEG_FAILURE_BLOCKS_HOST ("BLOCKED", retained) -> HOOK_FAILURE_BLOCKS_HOST_TASK
+  F-03:
+    status: CLOSED
+    fix: >
+      before dedupe, build an event_key -> event map; a key seen with a
+      different event returns HOOK_DUPLICATE_CONFLICT (fail closed). spec
+      error_contract gains HOOK_DUPLICATE_CONFLICT.
+    negative_fixture: HOOK_CAP_NEG_DUPLICATE_CONFLICT (block vs cancel on one key) -> HOOK_DUPLICATE_CONFLICT
+
+backlog_deferred:
+  - id: ordering-by-occurred-at
+    note: >
+      contract replays the de-duplicated sequence as given and does not require
+      sorting by occurred_at; reviewer explicitly did not open a finding.
+
+regression:
+  gate_all_pass: true                 # 14 Ruby validators + std_schema_engine + cross-layer
+  schema_engine_coverage_unchanged: true  # STD01 12/12 excl 11, STD02 16/16 excl 10, STD03 9/9 excl 11
+  positive_fixtures_still_pass: true   # happy / dedupe / disabled-emits-nothing
+  enforcement_parity_replayed: true   # authority / host_task_impact / event_key conflict / dedupe / disabled-emitting -> RED when removed
+  upstream_specs_untouched: true      # ai-work-record-boundary / ai-task-card-record / ai-work-record-skill
+  negative_labels: 15
+  validator_loc: 301
+  git_diff_check: clean
+
+binding_integrity:
+  frozen_review_sha_unchanged: true
+  commit_chain: "acafeb44 -> d1b61ec (handoff docs) -> d04f137 (repair 01)"
+  repair_touched_upstream: false
+
+verdict: GO
+owner_accept: PENDING
+next:
+  merge: "cc/ssp301-aiwr-hook -> main"
+  then: "Lane B -> SSP-302 (Loop 收口與缺口補登)"
