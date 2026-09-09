@@ -47,6 +47,7 @@ authority:
   accepts_memory: false
   writes_company_knowledge: false
   error_behavior: FAIL_LOUD
+  human_acceptance_gate_position: PERSONAL_ACCEPTANCE
   forbidden_output_fields:
     - personal_acceptance_ref
     - verification_receipt_ref
@@ -57,10 +58,13 @@ error_contract:
   MISSING_INPUT_FIELD: skill.error.missing_input_field
   UNKNOWN_LIFECYCLE_EVENT: skill.error.unknown_lifecycle_event
   SKILL_LIFECYCLE_MUST_START: skill.error.lifecycle_must_start
+  ILLEGAL_STATUS_TRANSITION: skill.error.illegal_status_transition
   SKILL_EXCEEDS_AUTHORITY: skill.error.exceeds_authority
   DRAFT_CARD_INVALID: skill.error.draft_card_invalid
   EVIDENCE_INLINE_CONTENT: skill.error.evidence_inline_content
+  DRY_RUN_NOT_BOOLEAN: skill.error.dry_run_not_boolean
   REPLAYED_STATUS_MISMATCH: skill.error.replayed_status_mismatch
+  DRAFT_CARD_STATUS_MISMATCH: skill.error.draft_card_status_mismatch
   FAIL_SILENT: skill.error.fail_silent
 
 runtime_independence: true
@@ -82,8 +86,12 @@ hard_stops:
 required_negative_fixtures:
   - missing a seed field
   - unknown lifecycle event
+  - skill accepts an illegal lifecycle transition
   - draft card is not contract-valid
+  - draft card copies sensitive content
   - evidence ref carries inline content
+  - dry_run is not a boolean
   - output carries a memory acceptance field
   - replayed status does not match the events
+  - draft card status disagrees with the replay
   - error but output still claims success

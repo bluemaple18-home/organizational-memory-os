@@ -30,10 +30,14 @@ OMOS_URN = /\Aurn:omos:[a-z0-9-]+:.+\z/.freeze
 EXPECTED_SKILL_NEGATIVE_LABELS = [
   "missing a seed field",
   "unknown lifecycle event",
+  "skill accepts an illegal lifecycle transition",
   "draft card is not contract-valid",
+  "draft card copies sensitive content",
   "evidence ref carries inline content",
+  "dry_run is not a boolean",
   "output carries a memory acceptance field",
   "replayed status does not match the events",
+  "draft card status disagrees with the replay",
   "error but output still claims success"
 ].freeze
 
@@ -97,6 +101,11 @@ def urn?(value, pattern)
 end
 
 # 等效於 ai-task-card-record 的 record shape 檢查（資料驅動，讀 card-record spec）。
+# NOTE: 這是 SSP-299 record 檢查的第二份實作 —— repo-wide validator Refactor 卡
+# 會把它抽成共用 helper 讓 SSP-299 / SSP-300 共用。在那之前，本函式必須與
+# validate_ai_task_card_record_contract.rb 的 task_card_record_failure 逐項對齊
+# （唯一刻意省略：SSP-299 的 lifecycle 一致性，改由本卡的 DRAFT_CARD_STATUS_MISMATCH
+# 覆蓋）。
 def draft_card_contract_valid?(card, card_record_spec, boundary_forbidden_fields)
   return false unless card.is_a?(Hash)
 
@@ -107,9 +116,24 @@ def draft_card_contract_valid?(card, card_record_spec, boundary_forbidden_fields
   return false unless card["evidence_refs"].is_a?(Array) && card["evidence_refs"].all? { |ref| urn?(ref, OMOS_URN) }
   return false unless card_record_spec.fetch("status_enum", []).include?(card["status"])
   return false if boundary_forbidden_fields.any? { |field| card.key?(field) }
+  return false if card["sensitive_content_copied"] == true
   return false if card["status"] == "DONE" && card["evidence_refs"].to_a.empty?
 
   true
+end
+
+# 逐步 replay lifecycle events；回傳 [failure_code_or_nil, final_status]。
+def replay_lifecycle(events, card_record_spec)
+  event_map = card_record_spec.fetch("lifecycle_event_to_status", {})
+  transitions = card_record_spec.fetch("allowed_status_transitions", {})
+  status = event_map.fetch(events.first)
+  events.drop(1).each do |event|
+    target = event_map.fetch(event)
+    return ["ILLEGAL_STATUS_TRANSITION", nil] unless transitions.fetch(status, []).include?(target)
+
+    status = target
+  end
+  [nil, status]
 end
 
 # 回傳 nil 或精確 machine failure code。純函式。
@@ -127,6 +151,9 @@ def skill_transform_failure(input, output, card_record_spec, boundary_forbidden_
   return "UNKNOWN_LIFECYCLE_EVENT" if events.any? { |event| !event_map.key?(event) }
   return "SKILL_LIFECYCLE_MUST_START" if events.first != "start"
 
+  replay_code, final_status = replay_lifecycle(events, card_record_spec)
+  return replay_code if replay_code
+
   return "MISSING_INPUT_FIELD" if EXPECTED_OUTPUT_REQUIRED_FIELDS.any? { |field| !output.key?(field) }
 
   return "SKILL_EXCEEDS_AUTHORITY" if output["writes_company_knowledge"] == true
@@ -139,10 +166,12 @@ def skill_transform_failure(input, output, card_record_spec, boundary_forbidden_
   evidence = output["evidence_refs"]
   return "EVIDENCE_INLINE_CONTENT" unless evidence.is_a?(Array) && evidence.all? { |ref| urn?(ref, OMOS_URN) }
 
-  final_status = event_map.fetch(events.last)
-  return "REPLAYED_STATUS_MISMATCH" if output["replayed_status"] != final_status
+  return "DRY_RUN_NOT_BOOLEAN" unless [true, false].include?(output["dry_run"])
 
-  return "FAIL_SILENT" if present?(output["error"]) && output["ok"] == true
+  return "REPLAYED_STATUS_MISMATCH" if output["replayed_status"] != final_status
+  return "DRAFT_CARD_STATUS_MISMATCH" if output.fetch("draft_card", {})["status"] != output["replayed_status"]
+
+  return "FAIL_SILENT" if present?(output["error"]) && output["ok"] != false
 
   nil
 end
@@ -175,6 +204,12 @@ assert(authority["error_behavior"] == "FAIL_LOUD", "authority.error_behavior 必
 assert(
   sorted_set(authority.fetch("forbidden_output_fields", [])) == sorted_set(EXPECTED_FORBIDDEN_OUTPUT_FIELDS),
   "authority.forbidden_output_fields 與鎖定清單不符",
+  failures
+)
+boundary_gate_positions = boundary.dig("automated_step_contract", "allowed_gate_positions").to_a
+assert(
+  present?(authority["human_acceptance_gate_position"]) && boundary_gate_positions.include?(authority["human_acceptance_gate_position"]),
+  "authority.human_acceptance_gate_position 必須存在且 ∈ boundary automated_step_contract.allowed_gate_positions",
   failures
 )
 
