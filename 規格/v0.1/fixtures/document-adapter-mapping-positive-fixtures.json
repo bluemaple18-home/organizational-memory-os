@@ -1,0 +1,57 @@
+{
+  "document_mapping_cases": [
+    {
+      "case_id": "DOC_MAP_POS_PDF",
+      "expected": "allow",
+      "projection": {
+        "source_kind": "PDF",
+        "raw_evidence": {
+          "claimed_field_keys": ["source_identity", "source_version", "payload", "provenance", "digests", "chronology", "access", "source_availability"],
+          "source_identity": {"native_id_basis": "CONTENT_SHA256"},
+          "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"},
+          "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}
+        },
+        "source_anchor": {
+          "profile": "PDF_REGION_V1",
+          "selectors": [{"selector_type": "PDF_REGION"}],
+          "profile_details": {"page": 3, "bbox_normalized": [0.1, 0.2, 0.6, 0.35], "coordinate_origin": "TOP_LEFT"},
+          "normalization_profile": "OMOS_TEXT_NORM_V1",
+          "resolution": {"status": "EXACT_MATCH"}
+        },
+        "normalized_blocks": [
+          {"block_type": "section_header", "content_layer": "TITLE", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]},
+          {"block_type": "paragraph", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a2"]},
+          {"block_type": "table", "content_layer": "TABLE", "attributes": {"table": {"rows": 4, "cols": 3}}, "source_anchor_refs": ["urn:omos:source-anchor:a3"]}
+        ],
+        "ok": true
+      }
+    },
+    {
+      "case_id": "DOC_MAP_POS_MARKDOWN",
+      "expected": "allow",
+      "projection": {
+        "source_kind": "MARKDOWN",
+        "raw_evidence": {
+          "claimed_field_keys": ["source_identity", "payload", "provenance", "digests"],
+          "source_identity": {"native_id_basis": "CONTENT_SHA256"},
+          "payload": {"structured_profile": "TEXT", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:md-1"},
+          "provenance": {"ingestion_mode": "BULK_EXPORT"}
+        },
+        "source_anchor": {
+          "profile": "MARKDOWN_TEXT_V1",
+          "selectors": [{"selector_type": "TEXT_POSITION"}, {"selector_type": "TEXT_QUOTE"}],
+          "profile_details": {"codepoint_start": 120, "codepoint_end": 240, "line_start": 5, "line_end": 8},
+          "normalization_profile": "OMOS_TEXT_NORM_V1",
+          "resolution": {"status": "RELOCATED"}
+        },
+        "normalized_blocks": [
+          {"block_type": "title", "content_layer": "TITLE", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:m1"]},
+          {"block_type": "code", "content_layer": "CODE", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:m2"]},
+          {"block_type": "image", "content_layer": "IMAGE", "attributes": {"asset": {"alt": "diagram"}}, "source_anchor_refs": ["urn:omos:source-anchor:m3"]},
+          {"block_type": "list_item", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:m4"]}
+        ],
+        "ok": true
+      }
+    }
+  ]
+}

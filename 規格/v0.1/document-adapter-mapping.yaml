@@ -1,0 +1,178 @@
+schema:
+  schema_id: urn:omos:schema:document-adapter-mapping:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-09'
+  traces_to:
+    - DOC-ADAPTER-MAPPING
+  builds_on:
+    - 規格/v0.1/raw-evidence-envelope.schema.json
+    - 規格/v0.1/source-anchor.schema.json
+    - 規格/v0.1/normalized-document.schema.json
+    - 規格/v0.1/normalized-document-block.schema.json
+
+purpose:
+  statement: >-
+    A deterministic mapping contract: how a document source (PDF, Markdown)
+    projects onto the three locked STD schemas -- RawEvidenceEnvelope (STD-01),
+    SourceAnchor (STD-02, profile PDF_REGION_V1 / MARKDOWN_TEXT_V1) and
+    NormalizedDocument block subset (STD-03). It does not re-define any STD
+    schema; every projected field name and enum value must be a real member of
+    the target schema (checked by pointer binding). No connector, parser or
+    ingestion runtime.
+  no_second_workflow_authority: true
+
+source_kinds:
+  - PDF
+  - MARKDOWN
+
+raw_evidence_projection:
+  source_system: document
+  entity_type_by_kind:
+    PDF: PDF
+    MARKDOWN: MARKDOWN
+  native_id_basis: CONTENT_SHA256
+  source_version:
+    basis: CONTENT_ONLY
+    kind: CONTENT_DIGEST
+    value_is_null: true
+  payload:
+    structured_profile_by_kind:
+      PDF: BINARY
+      MARKDOWN: TEXT
+    canonicalization_profile: NONE
+    payload_ref_is_reference: true
+  provenance:
+    allowed_ingestion_modes:
+      - MANUAL_UPLOAD
+      - BULK_EXPORT
+  digests:
+    raw_digest_basis: SOURCE_BYTES_SHA256
+    canonical_digest_by_kind:
+      PDF: null
+      MARKDOWN: NORMALIZED_TEXT_SHA256
+  rule: >-
+    every projected raw_evidence field key is a property of
+    raw-evidence-envelope.schema.json and every enum value is a member of that
+    property's enum; payload.payload_ref is a reference string, never inline
+    content (DOC_MAP_PAYLOAD_INLINE); source_identity is content-addressed so the
+    projection is deterministic (DOC_MAP_NONDETERMINISTIC_IDENTITY when a
+    non-content basis is used).
+
+source_anchor_projection:
+  profile_by_kind:
+    PDF: PDF_REGION_V1
+    MARKDOWN: MARKDOWN_TEXT_V1
+  required_selector_type_by_kind:
+    PDF: PDF_REGION
+    MARKDOWN: TEXT_POSITION
+  normalization_profile: OMOS_TEXT_NORM_V1
+  profile_details_shape:
+    PDF_REGION_V1:
+      - page
+      - bbox_normalized
+      - coordinate_origin
+    MARKDOWN_TEXT_V1:
+      - codepoint_start
+      - codepoint_end
+      - line_start
+      - line_end
+  allowed_resolution_status:
+    - EXACT_MATCH
+    - RELOCATED
+    - CONTENT_CHANGED
+    - MISSING
+    - ACCESS_REVOKED
+    - REPRESENTATION_UNAVAILABLE
+    - AMBIGUOUS
+  rule: >-
+    profile matches the source kind (DOC_MAP_PROFILE_MISMATCH); selectors carries
+    at least one entry of required_selector_type (DOC_MAP_SELECTOR_MISSING);
+    profile_details has exactly the profile_details_shape keys for the profile
+    (DOC_MAP_PROFILE_DETAILS_MALFORMED); PDF page is a positive integer and
+    bbox_normalized is four numbers in 0..1; Markdown codepoint_end >
+    codepoint_start and line_end >= line_start >= 1; normalization_profile is the
+    OMOS_TEXT_NORM_V1 const.
+
+normalized_document_projection:
+  allowed_block_types:
+    - title
+    - section_header
+    - paragraph
+    - list_item
+    - code
+    - table
+    - image
+    - unknown
+  content_layer_by_block_type:
+    title: TITLE
+    section_header: TITLE
+    paragraph: BODY
+    list_item: BODY
+    code: CODE
+    table: TABLE
+    image: IMAGE
+    unknown: UNKNOWN
+  attribute_required_by_block_type:
+    table: table
+    image: asset
+  rule: >-
+    every block block_type is in allowed_block_types (DOC_MAP_BLOCK_TYPE_UNKNOWN
+    for anything else, `unknown` itself is allowed); content_layer equals
+    content_layer_by_block_type[block_type] (DOC_MAP_CONTENT_LAYER_MISMATCH); a
+    `table` block carries attributes.table and an `image` block carries
+    attributes.asset (DOC_MAP_TABLE_IMAGE_ATTR_MISSING); every block has a
+    non-empty source_anchor_refs (DOC_MAP_BLOCK_NOT_ANCHORED).
+
+determinism:
+  rule: >-
+    the same source bytes plus the same adapter_id + adapter_version produce a
+    byte-identical projection; identity and version are derived only from
+    content, never from wall-clock or upload order.
+
+error_contract:
+  DOC_MAP_UNKNOWN_SOURCE_KIND: doc-map.error.unknown_source_kind
+  DOC_MAP_FIELD_NOT_IN_TARGET_SCHEMA: doc-map.error.field_not_in_target_schema
+  DOC_MAP_NONDETERMINISTIC_IDENTITY: doc-map.error.nondeterministic_identity
+  DOC_MAP_PAYLOAD_INLINE: doc-map.error.payload_inline
+  DOC_MAP_PROFILE_MISMATCH: doc-map.error.profile_mismatch
+  DOC_MAP_SELECTOR_MISSING: doc-map.error.selector_missing
+  DOC_MAP_PROFILE_DETAILS_MALFORMED: doc-map.error.profile_details_malformed
+  DOC_MAP_BLOCK_TYPE_UNKNOWN: doc-map.error.block_type_unknown
+  DOC_MAP_CONTENT_LAYER_MISMATCH: doc-map.error.content_layer_mismatch
+  DOC_MAP_TABLE_IMAGE_ATTR_MISSING: doc-map.error.table_image_attr_missing
+  DOC_MAP_BLOCK_NOT_ANCHORED: doc-map.error.block_not_anchored
+  FAIL_SILENT: doc-map.error.fail_silent
+
+runtime_independence: true
+
+cross_reference:
+  raw_evidence_schema: 規格/v0.1/raw-evidence-envelope.schema.json
+  source_anchor_schema: 規格/v0.1/source-anchor.schema.json
+  normalized_document_block_schema: 規格/v0.1/normalized-document-block.schema.json
+  must_match:
+    payload_structured_profile_from: raw-evidence-envelope.properties.payload.structured_profile.enum
+    source_anchor_profile_from: source-anchor.properties.profile.enum
+    selector_type_from: source-anchor.properties.selectors.items.selector_type.enum
+    block_type_from: normalized-document-block.properties.block_type.enum
+    content_layer_from: normalized-document-block.properties.content_layer.enum
+
+hard_stops:
+  - no connector / parser / ingestion runtime here
+  - pure mapping tables plus a thin validator; no state machine engine
+  - do not re-define STD-01 / STD-02 / STD-03
+  - no Job Engine / WorkPool / Knowledge DB
+
+required_negative_fixtures:
+  - a source kind outside PDF / MARKDOWN
+  - a projected field is not a property of the target schema
+  - source identity uses a non-content basis
+  - the payload is inline content instead of a reference
+  - the source anchor profile does not match the source kind
+  - the required selector type is missing
+  - profile_details has the wrong key set
+  - a block uses an unknown block type
+  - a block content_layer disagrees with its block type
+  - a table or image block is missing its attributes
+  - a block has no source anchor reference
+  - error but the mapping still claims success
