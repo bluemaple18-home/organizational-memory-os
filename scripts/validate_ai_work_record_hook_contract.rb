@@ -31,15 +31,22 @@ EXPECTED_FORBIDDEN_BATCH_FIELDS = %w[
   canonical_write_receipt_ref
 ].freeze
 OMOS_URN = /\Aurn:omos:[a-z0-9-]+:.+\z/.freeze
+# fail-closed:host_task_impact 只允許「缺值」（key 不存在 => nil）或契約明定的唯一安全值。
+# 其餘任何字串（BLOCKED / FAILED / CANCELLED / MUTATED …）都代表 capture failure 改變了
+# 宿主任務結果,違反 failure_isolation.on_error = ISOLATE_FROM_HOST_TASK。
+EXPECTED_HOST_TASK_IMPACT_ALLOWED = [nil, "UNAFFECTED"].freeze
 
 EXPECTED_HOOK_NEGATIVE_LABELS = [
   "event not in the allowed set",
   "event envelope carries inline content",
   "duplicate event handled non-idempotently",
+  "duplicate event_key with a conflicting event",
   "emitted batch does not start with start",
   "emitted batch contains an illegal transition",
   "capture failure propagates into the host task",
+  "capture reports a non-isolated host task impact",
   "emitted batch carries a memory acceptance field",
+  "hook disabled but batch carries an authority field",
   "emitted batch is not a valid skill input",
   "hook disabled but still emitting events",
   "error but capture still claims success",
@@ -97,8 +104,8 @@ def hook_capture_failure(capture, card_record_spec, allowed_events)
   emitted_events = emitted["lifecycle_events"]
   return "HOOK_MISSING_FIELD" unless emitted_events.is_a?(Array) && emitted.key?("batch")
 
-  # 擷取失敗必須與宿主任務隔離
-  return "HOOK_FAILURE_BLOCKS_HOST_TASK" if capture["host_task_impact"] == "BLOCKED"
+  # 擷取失敗必須與宿主任務隔離(fail-closed:只允許缺值或 UNAFFECTED)。
+  return "HOOK_FAILURE_BLOCKS_HOST_TASK" unless EXPECTED_HOST_TASK_IMPACT_ALLOWED.include?(capture["host_task_impact"])
 
   # envelope 結構 + reference-only
   raw.each do |envelope|
@@ -112,6 +119,23 @@ def hook_capture_failure(capture, card_record_spec, allowed_events)
   # 只擷取允許的 lifecycle events
   return "HOOK_EVENT_NOT_ALLOWED" if raw.any? { |envelope| !allowed_events.include?(envelope["event"]) }
   return "HOOK_EVENT_NOT_ALLOWED" if raw.any? { |envelope| !event_map.key?(envelope["event"]) }
+
+  # 同一 event_key 若帶不同 event = 矛盾的 duplicate,fail closed(不得靜默 first-wins)。
+  seen_event_by_key = {}
+  raw.each do |envelope|
+    key = envelope["event_key"]
+    return "HOOK_DUPLICATE_CONFLICT" if seen_event_by_key.key?(key) && seen_event_by_key[key] != envelope["event"]
+
+    seen_event_by_key[key] = envelope["event"]
+  end
+
+  # authority:停用與否都適用 —— 批次不得帶 acceptance / canonical 欄位或宣稱越權。
+  return "HOOK_EXCEEDS_AUTHORITY" if capture["performs_memory_acceptance"] == true
+  return "HOOK_EXCEEDS_AUTHORITY" if capture["writes_company_knowledge"] == true
+  return "HOOK_EXCEEDS_AUTHORITY" if EXPECTED_FORBIDDEN_BATCH_FIELDS.any? { |field| emitted.key?(field) }
+
+  # fail-loud:停用與否都適用 —— 有 error 但仍宣稱成功。
+  return "FAIL_SILENT" if present?(capture["error"]) && capture["ok"] != false
 
   # 停用狀態:對任何事件流都必須發空批次
   if capture["disabled"] == true
@@ -130,14 +154,6 @@ def hook_capture_failure(capture, card_record_spec, allowed_events)
 
   transition_code = replay_transition_failure(emitted_events, card_record_spec)
   return transition_code if transition_code
-
-  # authority:批次不得帶 acceptance / canonical 欄位或宣稱越權
-  return "HOOK_EXCEEDS_AUTHORITY" if capture["performs_memory_acceptance"] == true
-  return "HOOK_EXCEEDS_AUTHORITY" if capture["writes_company_knowledge"] == true
-  return "HOOK_EXCEEDS_AUTHORITY" if EXPECTED_FORBIDDEN_BATCH_FIELDS.any? { |field| emitted.key?(field) }
-
-  # fail-loud:有 error 但仍宣稱成功
-  return "FAIL_SILENT" if present?(capture["error"]) && capture["ok"] != false
 
   nil
 end
@@ -190,6 +206,11 @@ assert(isolation["on_error"] == "ISOLATE_FROM_HOST_TASK", "failure_isolation.on_
 assert(
   sorted_set(isolation.fetch("forbidden", [])) == sorted_set(EXPECTED_ISOLATION_FORBIDDEN),
   "failure_isolation.forbidden 與鎖定清單不符",
+  failures
+)
+assert(
+  isolation.fetch("host_task_impact_allowed", []) == EXPECTED_HOST_TASK_IMPACT_ALLOWED.compact,
+  "failure_isolation.host_task_impact_allowed 必須剛好是 [UNAFFECTED]（缺值另計）",
   failures
 )
 

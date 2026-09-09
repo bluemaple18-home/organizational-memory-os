@@ -53,6 +53,13 @@ failure_isolation:
     - PROPAGATE
     - RAISE_INTO_HOST
     - BLOCK_HOST_TASK
+  host_task_impact_allowed:
+    - UNAFFECTED
+  host_task_impact_rule: >-
+    A capture reports host_task_impact as either absent or exactly UNAFFECTED.
+    Any other value (BLOCKED, FAILED, CANCELLED, MUTATED, ...) means the capture
+    failure changed the host task outcome and is a contract violation
+    (HOOK_FAILURE_BLOCKS_HOST_TASK), fail-closed.
   note: >-
     Hook exceptions are logged / dropped / queued for retry; the host task
     outcome is never changed by a capture failure.
@@ -106,6 +113,7 @@ error_contract:
   HOOK_EVENT_NOT_ALLOWED: hook.error.event_not_allowed
   HOOK_EVENT_INLINE_CONTENT: hook.error.event_inline_content
   HOOK_DUPLICATE_NOT_IDEMPOTENT: hook.error.duplicate_not_idempotent
+  HOOK_DUPLICATE_CONFLICT: hook.error.duplicate_conflict
   HOOK_BATCH_MUST_START: hook.error.batch_must_start
   HOOK_ILLEGAL_TRANSITION: hook.error.illegal_transition
   HOOK_FAILURE_BLOCKS_HOST_TASK: hook.error.failure_blocks_host_task
@@ -138,10 +146,13 @@ required_negative_fixtures:
   - event not in the allowed set
   - event envelope carries inline content
   - duplicate event handled non-idempotently
+  - duplicate event_key with a conflicting event
   - emitted batch does not start with start
   - emitted batch contains an illegal transition
   - capture failure propagates into the host task
+  - capture reports a non-isolated host task impact
   - emitted batch carries a memory acceptance field
+  - hook disabled but batch carries an authority field
   - emitted batch is not a valid skill input
   - hook disabled but still emitting events
   - error but capture still claims success

@@ -43,6 +43,53 @@
       }
     },
     {
+      "case_id": "HOOK_CAP_NEG_DUPLICATE_CONFLICT",
+      "expected": "deny",
+      "expected_failure_code": "HOOK_DUPLICATE_CONFLICT",
+      "covers_hook_negative_fixture": "duplicate event_key with a conflicting event",
+      "capture": {
+        "raw_events": [
+          {"task_ref": "urn:omos:task-card:66666666-6666-6666-6666-666666666666", "event": "start", "occurred_at": "2026-09-09T01:00:00Z", "event_key": "k-s", "evidence_refs": []},
+          {"task_ref": "urn:omos:task-card:66666666-6666-6666-6666-666666666666", "event": "block", "occurred_at": "2026-09-09T02:00:00Z", "event_key": "k-dup", "evidence_refs": []},
+          {"task_ref": "urn:omos:task-card:66666666-6666-6666-6666-666666666666", "event": "cancel", "occurred_at": "2026-09-09T02:00:05Z", "event_key": "k-dup", "evidence_refs": []}
+        ],
+        "emitted": {"lifecycle_events": ["start", "block"], "batch": [{"event": "start"}, {"event": "block"}]},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HOOK_CAP_NEG_HOST_TASK_NOT_ISOLATED",
+      "expected": "deny",
+      "expected_failure_code": "HOOK_FAILURE_BLOCKS_HOST_TASK",
+      "covers_hook_negative_fixture": "capture reports a non-isolated host task impact",
+      "capture": {
+        "raw_events": [
+          {"task_ref": "urn:omos:task-card:11111111-1111-1111-1111-111111111111", "event": "start", "occurred_at": "2026-09-09T01:00:00Z", "event_key": "k-start", "evidence_refs": []}
+        ],
+        "emitted": {"lifecycle_events": ["start"], "batch": [{"event": "start"}]},
+        "host_task_impact": "FAILED",
+        "ok": false,
+        "error": "capture aborted the host task run"
+      }
+    },
+    {
+      "case_id": "HOOK_CAP_NEG_DISABLED_AUTHORITY_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "HOOK_EXCEEDS_AUTHORITY",
+      "covers_hook_negative_fixture": "hook disabled but batch carries an authority field",
+      "capture": {
+        "raw_events": [
+          {"task_ref": "urn:omos:task-card:33333333-3333-3333-3333-333333333333", "event": "start", "occurred_at": "2026-09-09T01:00:00Z", "event_key": "k-start", "evidence_refs": []}
+        ],
+        "emitted": {
+          "lifecycle_events": [],
+          "batch": [],
+          "canonical_write_receipt_ref": "urn:omos:canonical-write:hook-must-not-set-this"
+        },
+        "disabled": true
+      }
+    },
+    {
       "case_id": "HOOK_CAP_NEG_BATCH_MUST_START",
       "expected": "deny",
       "expected_failure_code": "HOOK_BATCH_MUST_START",
