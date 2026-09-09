@@ -1,0 +1,184 @@
+{
+  "loop_closeout_negative_cases": [
+    {
+      "case_id": "LOOP_NEG_NO_MAX_ITERATIONS",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_UNBOUNDED",
+      "covers_loop_negative_fixture": "run without a positive max_iterations",
+      "run": {
+        "max_iterations": 0,
+        "timeout_seconds": 300,
+        "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_NO_TIMEOUT",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_UNBOUNDED",
+      "covers_loop_negative_fixture": "run without a positive timeout_seconds",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 0,
+        "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_OVER_MAX_ITERATIONS",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_OVER_MAX_ITERATIONS",
+      "covers_loop_negative_fixture": "iterations exceed max_iterations",
+      "run": {
+        "max_iterations": 2,
+        "timeout_seconds": 300,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": []},
+          {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": []},
+          {"iteration": 3, "filled_fields": ["status"], "remaining_gaps": []}
+        ],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_INVALID_OUTCOME",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_INVALID_OUTCOME",
+      "covers_loop_negative_fixture": "outcome is not one of the allowed outcomes",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "RETRYING",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_OUTCOME_CONDITION_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_OUTCOME_CONDITION_MISMATCH",
+      "covers_loop_negative_fixture": "outcome disagrees with the terminal condition",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "CLOSED",
+        "terminal_condition": "TIMEOUT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_SCOPE_EXPANSION",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_SCOPE_EXPANSION",
+      "covers_loop_negative_fixture": "an iteration fills a scope-defining field",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["evidence_refs", "scope"], "remaining_gaps": []}
+        ],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_SKIPPED_HUMAN_DECISION",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_SKIPPED_HUMAN_DECISION",
+      "covers_loop_negative_fixture": "a human-decision gap remains but the run did not stop at a blocker",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["status"], "remaining_gaps": [{"field": "acceptance", "requires_human_decision": true, "auto_fixable": false}]}
+        ],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_UNFIXABLE_NOT_LOUD",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_UNFIXABLE_NOT_LOUD",
+      "covers_loop_negative_fixture": "an unfixable gap remains but the run did not fail loud",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["status"], "remaining_gaps": [{"field": "evidence_refs", "requires_human_decision": false, "auto_fixable": false}]}
+        ],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_EVIDENCE_NOT_PRESERVED",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_EVIDENCE_NOT_PRESERVED",
+      "covers_loop_negative_fixture": "failed loud but the original evidence was not preserved",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["status"], "remaining_gaps": [{"field": "evidence_refs", "requires_human_decision": false, "auto_fixable": false}]}
+        ],
+        "outcome": "FAILED_LOUD",
+        "terminal_condition": "UNFIXABLE",
+        "original_evidence_preserved": false,
+        "error": "cannot auto-fill evidence_refs",
+        "ok": false
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_EXCEEDS_AUTHORITY",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_EXCEEDS_AUTHORITY",
+      "covers_loop_negative_fixture": "run carries a memory acceptance field",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "personal_acceptance_ref": "urn:omos:acceptance:loop-must-not-set-this",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_FAIL_SILENT",
+      "expected": "deny",
+      "expected_failure_code": "FAIL_SILENT",
+      "covers_loop_negative_fixture": "error but the run still claims success",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "error": "one gap was dropped without being filled",
+        "ok": true
+      }
+    }
+  ]
+}

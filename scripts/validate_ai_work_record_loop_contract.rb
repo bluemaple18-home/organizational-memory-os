@@ -1,0 +1,240 @@
+#!/usr/bin/env ruby
+
+# SSP-302 / AIWR-05：收口 Loop 契約 validator。
+# 薄判斷：結構斷言 + 純函式 `loop_closeout_failure(run, ...)` evaluator——
+#   有界（max_iterations + timeout）、iterations 不超過 max、outcome ∈ 鎖定集合且與
+#   terminal_condition 一致、只補 fillable_fields（不擴張 scope）、缺人類決策即停標 blocker、
+#   unfixable 即 FAILED_LOUD 且保留原證據、authority floor、fail-loud。
+# 交叉讀 ai-task-card-record.yaml、ai-work-record-skill.yaml、ai-work-record-boundary.yaml
+# （pointer binding）。沿用 scripts/lib/omos_contract_helpers.rb。
+
+require "json"
+require "yaml"
+require_relative "lib/omos_contract_helpers"
+
+ROOT = File.expand_path("..", __dir__)
+SPEC_PATH = File.join(ROOT, "規格/v0.1/ai-work-record-loop.yaml")
+CARD_RECORD_SPEC_PATH = File.join(ROOT, "規格/v0.1/ai-task-card-record.yaml")
+SKILL_SPEC_PATH = File.join(ROOT, "規格/v0.1/ai-work-record-skill.yaml")
+BOUNDARY_SPEC_PATH = File.join(ROOT, "規格/v0.1/ai-work-record-boundary.yaml")
+POSITIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/ai-work-record-loop-positive-fixtures.json")
+NEGATIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/ai-work-record-loop-negative-fixtures.json")
+
+EXPECTED_TERMINAL_CONDITIONS = %w[
+  ALL_REQUIRED_PRESENT
+  MAX_ITERATIONS_REACHED
+  TIMEOUT
+  BLOCKER_MARKED
+  UNFIXABLE
+].freeze
+EXPECTED_FILLABLE_FIELDS = %w[status evidence_refs].freeze
+EXPECTED_FORBIDDEN_FILL_FIELDS = %w[card_id objective scope constraints acceptance].freeze
+EXPECTED_ITERATION_FIELDS = %w[iteration filled_fields remaining_gaps].freeze
+EXPECTED_OUTCOMES = %w[CLOSED BLOCKED FAILED_LOUD].freeze
+EXPECTED_OUTCOME_CONDITION_MAP = {
+  "CLOSED" => %w[ALL_REQUIRED_PRESENT MAX_ITERATIONS_REACHED],
+  "BLOCKED" => %w[BLOCKER_MARKED],
+  "FAILED_LOUD" => %w[TIMEOUT UNFIXABLE]
+}.freeze
+EXPECTED_FORBIDDEN_RUN_FIELDS = %w[
+  personal_acceptance_ref
+  verification_receipt_ref
+  accepted_for_record
+  canonical_write_receipt_ref
+].freeze
+
+EXPECTED_LOOP_NEGATIVE_LABELS = [
+  "run without a positive max_iterations",
+  "run without a positive timeout_seconds",
+  "iterations exceed max_iterations",
+  "outcome is not one of the allowed outcomes",
+  "outcome disagrees with the terminal condition",
+  "an iteration fills a scope-defining field",
+  "a human-decision gap remains but the run did not stop at a blocker",
+  "an unfixable gap remains but the run did not fail loud",
+  "failed loud but the original evidence was not preserved",
+  "run carries a memory acceptance field",
+  "error but the run still claims success"
+].freeze
+
+def read_json(path)
+  JSON.parse(File.read(path), object_class: StrictJsonObject)
+end
+
+def read_yaml(path)
+  text = File.read(path)
+  assert_unique_yaml_mapping_keys(Psych.parse_stream(text))
+  YAML.safe_load(text, permitted_classes: [], aliases: false)
+end
+
+def assert(condition, message, failures)
+  failures << message unless condition
+end
+
+def sorted_set(values)
+  values.to_a.sort
+end
+
+def positive_integer?(value)
+  value.is_a?(Integer) && value.positive?
+end
+
+# 純函式收口 Loop evaluator。回傳 nil 或精確 machine failure code。
+# run 是自足 fixture 物件:
+#   max_iterations, timeout_seconds, iterations[{iteration, filled_fields[], remaining_gaps[]}],
+#   outcome, terminal_condition, blocker_ref, original_evidence_preserved,
+#   performs_memory_acceptance, writes_company_knowledge, error, ok。
+def loop_closeout_failure(run, fillable_fields, outcome_condition_map)
+  # 1. 有界:缺正整數 max_iterations 或 timeout_seconds
+  return "LOOP_UNBOUNDED" unless positive_integer?(run["max_iterations"]) && positive_integer?(run["timeout_seconds"])
+
+  # 2. authority floor(停用與否都適用)
+  return "LOOP_EXCEEDS_AUTHORITY" if run["performs_memory_acceptance"] == true
+  return "LOOP_EXCEEDS_AUTHORITY" if run["writes_company_knowledge"] == true
+  return "LOOP_EXCEEDS_AUTHORITY" if EXPECTED_FORBIDDEN_RUN_FIELDS.any? { |field| run.key?(field) }
+
+  # 3. fail-loud
+  return "FAIL_SILENT" if present?(run["error"]) && run["ok"] != false
+
+  iterations = run["iterations"]
+  return "LOOP_MISSING_FIELD" unless iterations.is_a?(Array)
+
+  # 4. 迭代不得超過 max_iterations
+  return "LOOP_OVER_MAX_ITERATIONS" if iterations.length > run["max_iterations"]
+
+  # 5. scope lock:每輪 filled_fields 只能是 fillable_fields
+  iterations.each do |iteration|
+    filled = iteration["filled_fields"].to_a
+    return "LOOP_SCOPE_EXPANSION" if filled.any? { |field| !fillable_fields.include?(field) }
+  end
+
+  # 6. outcome 合法性
+  return "LOOP_INVALID_OUTCOME" unless EXPECTED_OUTCOMES.include?(run["outcome"])
+
+  # 7. outcome 與 terminal_condition 一致
+  allowed_conditions = outcome_condition_map.fetch(run["outcome"], [])
+  return "LOOP_OUTCOME_CONDITION_MISMATCH" unless allowed_conditions.include?(run["terminal_condition"])
+
+  # 8. 缺口處置:取最後一輪的 remaining_gaps 當最終狀態
+  final_gaps = iterations.empty? ? [] : iterations.last["remaining_gaps"].to_a
+  human_gaps = final_gaps.select { |gap| gap["requires_human_decision"] == true }
+  unless human_gaps.empty?
+    return "LOOP_SKIPPED_HUMAN_DECISION" unless run["outcome"] == "BLOCKED" && present?(run["blocker_ref"])
+  end
+
+  unfixable_gaps = final_gaps.select { |gap| gap["auto_fixable"] == false && gap["requires_human_decision"] != true }
+  unless unfixable_gaps.empty?
+    return "LOOP_UNFIXABLE_NOT_LOUD" unless run["outcome"] == "FAILED_LOUD"
+  end
+
+  return "LOOP_EVIDENCE_NOT_PRESERVED" if run["outcome"] == "FAILED_LOUD" && run["original_evidence_preserved"] != true
+
+  nil
+end
+
+failures = []
+spec = read_yaml(SPEC_PATH)
+card_record_spec = read_yaml(CARD_RECORD_SPEC_PATH)
+skill_spec = read_yaml(SKILL_SPEC_PATH)
+boundary = read_yaml(BOUNDARY_SPEC_PATH)
+
+schema = spec.fetch("schema", {})
+assert(schema["schema_id"] == "urn:omos:schema:ai-work-record-loop:0.1.0", "schema_id 必須是 ai-work-record-loop:0.1.0", failures)
+assert(schema["version"] == "0.1.0", "schema.version 必須是 0.1.0", failures)
+assert(schema.fetch("traces_to", []).include?("AIWR-05"), "schema.traces_to 必須包含 AIWR-05", failures)
+
+assert(spec.dig("purpose", "no_second_workflow_authority") == true, "purpose.no_second_workflow_authority 必須為 true", failures)
+assert(spec["runtime_independence"] == true, "runtime_independence 必須為 true", failures)
+
+termination = spec.fetch("termination", {})
+assert(
+  sorted_set(termination.fetch("terminal_conditions", [])) == sorted_set(EXPECTED_TERMINAL_CONDITIONS),
+  "termination.terminal_conditions 與鎖定清單不符",
+  failures
+)
+
+scope_lock = spec.fetch("scope_lock", {})
+assert(scope_lock.fetch("fillable_fields", []) == EXPECTED_FILLABLE_FIELDS, "scope_lock.fillable_fields 必須是 [status, evidence_refs]", failures)
+assert(
+  sorted_set(scope_lock.fetch("forbidden_fill_fields", [])) == sorted_set(EXPECTED_FORBIDDEN_FILL_FIELDS),
+  "scope_lock.forbidden_fill_fields 與鎖定清單不符",
+  failures
+)
+# fillable ∪ forbidden 必須剛好涵蓋 ai-task-card-record.fields
+card_fields = card_record_spec.fetch("fields", {}).keys
+assert(
+  sorted_set(EXPECTED_FILLABLE_FIELDS + EXPECTED_FORBIDDEN_FILL_FIELDS) == sorted_set(card_fields),
+  "scope_lock 的 fillable ∪ forbidden 必須剛好等於 ai-task-card-record.fields",
+  failures
+)
+
+run_record = spec.fetch("run_record", {})
+assert(run_record.fetch("iteration_fields", []) == EXPECTED_ITERATION_FIELDS, "run_record.iteration_fields 與鎖定清單不符", failures)
+assert(sorted_set(run_record.fetch("outcomes", [])) == sorted_set(EXPECTED_OUTCOMES), "run_record.outcomes 與鎖定清單不符", failures)
+assert(run_record.fetch("outcome_condition_map", {}) == EXPECTED_OUTCOME_CONDITION_MAP, "run_record.outcome_condition_map 與鎖定對映不符", failures)
+# outcome_condition_map 的值域必須 ⊆ terminal_conditions
+map_conditions = EXPECTED_OUTCOME_CONDITION_MAP.values.flatten.uniq
+assert((map_conditions - EXPECTED_TERMINAL_CONDITIONS).empty?, "outcome_condition_map 的 condition 必須都是 terminal_conditions 成員", failures)
+
+authority = spec.fetch("authority", {})
+assert(authority["performs_memory_acceptance"] == false, "authority.performs_memory_acceptance 必須是 false", failures)
+assert(authority["writes_company_knowledge"] == false, "authority.writes_company_knowledge 必須是 false", failures)
+assert(authority["error_behavior"] == "FAIL_LOUD", "authority.error_behavior 必須是 FAIL_LOUD", failures)
+assert(
+  sorted_set(authority.fetch("forbidden_run_fields", [])) == sorted_set(EXPECTED_FORBIDDEN_RUN_FIELDS),
+  "authority.forbidden_run_fields 與鎖定清單不符",
+  failures
+)
+boundary_error_enum = boundary.dig("automated_step_contract", "error_behavior_enum").to_a
+assert(boundary_error_enum == %w[FAIL_LOUD], "boundary automated_step_contract.error_behavior_enum 必須是 [FAIL_LOUD]", failures)
+assert(authority["error_behavior"] == boundary_error_enum.first, "authority.error_behavior 必須與 boundary error_behavior_enum 一致", failures)
+
+# cross-reference pointer binding
+must_match = spec.dig("cross_reference", "must_match") || {}
+{
+  "card_fields_from" => "ai-task-card-record.fields",
+  "status_enum_from" => "ai-task-card-record.status_enum",
+  "draft_card_from" => "ai-work-record-skill.output_contract.draft_card",
+  "error_behavior_from" => "ai-work-record-boundary.automated_step_contract.error_behavior_enum"
+}.each do |pointer_key, expected_path|
+  assert(must_match[pointer_key] == expected_path, "cross_reference.must_match.#{pointer_key} 必須是 #{expected_path}", failures)
+end
+assert(present?(card_record_spec.fetch("fields", {})), "card-record fields 必須存在且非空", failures)
+assert(present?(card_record_spec.fetch("status_enum", [])), "card-record status_enum 必須存在且非空", failures)
+assert(present?(skill_spec.dig("output_contract", "draft_card_rule")), "skill output_contract.draft_card 規則必須存在", failures)
+assert(present?(boundary.dig("automated_step_contract", "error_behavior_enum")), "boundary error_behavior_enum 必須存在且非空", failures)
+
+assert(
+  sorted_set(spec.fetch("required_negative_fixtures", [])) == sorted_set(EXPECTED_LOOP_NEGATIVE_LABELS),
+  "required_negative_fixtures 與鎖定 label 清單不符",
+  failures
+)
+
+positive = read_json(POSITIVE_FIXTURE_PATH)
+negative = read_json(NEGATIVE_FIXTURE_PATH)
+
+positive.fetch("loop_closeout_cases").each do |test_case|
+  assert(test_case.fetch("expected") == "allow", "#{test_case.fetch("case_id")} loop positive 必須預期 allow", failures)
+  actual = loop_closeout_failure(test_case.fetch("run"), EXPECTED_FILLABLE_FIELDS, EXPECTED_OUTCOME_CONDITION_MAP)
+  assert(actual.nil?, "#{test_case.fetch("case_id")} 預期 allow，實際被拒：#{actual}", failures)
+end
+
+negative.fetch("loop_closeout_negative_cases").each do |test_case|
+  case_id = test_case.fetch("case_id")
+  assert(test_case.fetch("expected") == "deny", "#{case_id} loop negative 必須預期 deny", failures)
+  expected_code = test_case.fetch("expected_failure_code")
+  actual = loop_closeout_failure(test_case.fetch("run"), EXPECTED_FILLABLE_FIELDS, EXPECTED_OUTCOME_CONDITION_MAP)
+  assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
+  assert(actual == expected_code, "#{case_id} 預期 failure code #{expected_code}，實際 #{actual.inspect}", failures)
+end
+
+covered_labels = sorted_set(negative.fetch("loop_closeout_negative_cases").map { |test_case| test_case.fetch("covers_loop_negative_fixture") })
+missing_labels = sorted_set(EXPECTED_LOOP_NEGATIVE_LABELS) - covered_labels
+assert(missing_labels.empty?, "loop negative fixtures 未覆蓋：#{missing_labels.join(", ")}", failures)
+
+if failures.empty?
+  puts "PASS ai work record loop contract validation"
+else
+  failures.each { |failure| warn "FAIL #{failure}" }
+  exit 1
+end

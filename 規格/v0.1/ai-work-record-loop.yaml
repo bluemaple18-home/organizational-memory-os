@@ -1,0 +1,141 @@
+schema:
+  schema_id: urn:omos:schema:ai-work-record-loop:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-09'
+  traces_to:
+    - AIWR-05
+  builds_on:
+    - 規格/v0.1/ai-task-card-record.yaml#fields
+    - 規格/v0.1/ai-work-record-skill.yaml#output_contract
+
+purpose:
+  statement: >-
+    A close-out Loop contract: at task end, inspect the work-record draft for
+    missing required fields and open items, and fill only the necessary
+    evidence / status in bounded iterations. The Loop has an explicit
+    termination (max iterations + timeout + a fixed terminal-condition set), it
+    never widens task scope, it stops and marks a blocker when a gap needs a
+    human decision, and it fails loud while preserving the original evidence
+    when a gap cannot be fixed. The Loop does not re-define the SSP-298
+    boundary, the SSP-299 card format or the SSP-300 Skill I/O — it references
+    them.
+  no_second_workflow_authority: true
+
+termination:
+  max_iterations_rule: positive integer
+  timeout_seconds_rule: positive integer
+  terminal_conditions:
+    - ALL_REQUIRED_PRESENT
+    - MAX_ITERATIONS_REACHED
+    - TIMEOUT
+    - BLOCKER_MARKED
+    - UNFIXABLE
+  unbounded_rule: >-
+    a Loop run without a positive max_iterations or without a positive
+    timeout_seconds is LOOP_UNBOUNDED.
+
+scope_lock:
+  fillable_fields:
+    - status
+    - evidence_refs
+  forbidden_fill_fields:
+    - card_id
+    - objective
+    - scope
+    - constraints
+    - acceptance
+  rule: >-
+    every filled field in every iteration must be one of fillable_fields; any
+    other field (a scope-defining field or an unknown field) is
+    LOOP_SCOPE_EXPANSION.
+
+human_decision_gate:
+  gap_flag: requires_human_decision
+  rule: >-
+    if any remaining gap has requires_human_decision true, the run must end with
+    outcome BLOCKED and a blocker_ref; continuing to fill is
+    LOOP_SKIPPED_HUMAN_DECISION.
+
+unfixable:
+  gap_flag: auto_fixable
+  rule: >-
+    a remaining gap with auto_fixable false that is not a human-decision gap
+    forces outcome FAILED_LOUD with original_evidence_preserved true; a silent
+    drop is LOOP_UNFIXABLE_NOT_LOUD and dropping the original evidence is
+    LOOP_EVIDENCE_NOT_PRESERVED.
+
+run_record:
+  iteration_fields:
+    - iteration
+    - filled_fields
+    - remaining_gaps
+  outcomes:
+    - CLOSED
+    - BLOCKED
+    - FAILED_LOUD
+  outcome_condition_map:
+    CLOSED:
+      - ALL_REQUIRED_PRESENT
+      - MAX_ITERATIONS_REACHED
+    BLOCKED:
+      - BLOCKER_MARKED
+    FAILED_LOUD:
+      - TIMEOUT
+      - UNFIXABLE
+  rule: >-
+    iterations length must be <= max_iterations; outcome must be one of outcomes
+    and its terminal_condition must be in outcome_condition_map[outcome].
+
+authority:
+  performs_memory_acceptance: false
+  writes_company_knowledge: false
+  error_behavior: FAIL_LOUD
+  forbidden_run_fields:
+    - personal_acceptance_ref
+    - verification_receipt_ref
+    - accepted_for_record
+    - canonical_write_receipt_ref
+
+error_contract:
+  LOOP_UNBOUNDED: loop.error.unbounded
+  LOOP_OVER_MAX_ITERATIONS: loop.error.over_max_iterations
+  LOOP_INVALID_OUTCOME: loop.error.invalid_outcome
+  LOOP_OUTCOME_CONDITION_MISMATCH: loop.error.outcome_condition_mismatch
+  LOOP_SCOPE_EXPANSION: loop.error.scope_expansion
+  LOOP_SKIPPED_HUMAN_DECISION: loop.error.skipped_human_decision
+  LOOP_UNFIXABLE_NOT_LOUD: loop.error.unfixable_not_loud
+  LOOP_EVIDENCE_NOT_PRESERVED: loop.error.evidence_not_preserved
+  LOOP_EXCEEDS_AUTHORITY: loop.error.exceeds_authority
+  FAIL_SILENT: loop.error.fail_silent
+
+runtime_independence: true
+
+cross_reference:
+  task_card_record_spec: 規格/v0.1/ai-task-card-record.yaml
+  skill_spec: 規格/v0.1/ai-work-record-skill.yaml
+  boundary_spec: 規格/v0.1/ai-work-record-boundary.yaml
+  must_match:
+    card_fields_from: ai-task-card-record.fields
+    status_enum_from: ai-task-card-record.status_enum
+    draft_card_from: ai-work-record-skill.output_contract.draft_card
+    error_behavior_from: ai-work-record-boundary.automated_step_contract.error_behavior_enum
+
+hard_stops:
+  - no hook / harness / hermes / runtime here
+  - pure function plus data tables only; no state machine engine
+  - do not re-define SSP-298 boundary, SSP-299 card format or SSP-300 Skill I/O
+  - no registry / FSM / database / canonical writer
+
+required_negative_fixtures:
+  - run without a positive max_iterations
+  - run without a positive timeout_seconds
+  - iterations exceed max_iterations
+  - outcome is not one of the allowed outcomes
+  - outcome disagrees with the terminal condition
+  - an iteration fills a scope-defining field
+  - a human-decision gap remains but the run did not stop at a blocker
+  - an unfixable gap remains but the run did not fail loud
+  - failed loud but the original evidence was not preserved
+  - run carries a memory acceptance field
+  - error but the run still claims success

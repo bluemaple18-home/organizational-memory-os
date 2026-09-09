@@ -1,0 +1,68 @@
+{
+  "loop_closeout_cases": [
+    {
+      "case_id": "LOOP_POS_NORMAL_CLOSEOUT",
+      "expected": "allow",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": [{"field": "status", "requires_human_decision": false, "auto_fixable": true}]},
+          {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": []}
+        ],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_POS_CLOSED_AT_MAX_ITERATIONS",
+      "expected": "allow",
+      "run": {
+        "max_iterations": 2,
+        "timeout_seconds": 120,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": []},
+          {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": []}
+        ],
+        "outcome": "CLOSED",
+        "terminal_condition": "MAX_ITERATIONS_REACHED",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_POS_BLOCKED_ON_HUMAN_DECISION",
+      "expected": "allow",
+      "run": {
+        "max_iterations": 3,
+        "timeout_seconds": 200,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": [{"field": "acceptance", "requires_human_decision": true, "auto_fixable": false}]}
+        ],
+        "outcome": "BLOCKED",
+        "terminal_condition": "BLOCKER_MARKED",
+        "blocker_ref": "urn:omos:blocker:needs-owner-sign-off",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_POS_FAILED_LOUD_UNFIXABLE",
+      "expected": "allow",
+      "run": {
+        "max_iterations": 4,
+        "timeout_seconds": 250,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["status"], "remaining_gaps": [{"field": "evidence_refs", "requires_human_decision": false, "auto_fixable": false}]}
+        ],
+        "outcome": "FAILED_LOUD",
+        "terminal_condition": "UNFIXABLE",
+        "original_evidence_preserved": true,
+        "error": "evidence source unavailable, cannot auto-fill evidence_refs",
+        "ok": false
+      }
+    }
+  ]
+}
