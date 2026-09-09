@@ -28,12 +28,19 @@ e2e_trace:
   terminal_events:
     - complete
     - cancel
+    - block
   rule: >-
     lifecycle_trace is a non-empty ordered list of {event, evidence_receipt_ref};
     the first event is `start`, the last is one of terminal_events, every event
     is a key of ai-task-card-record.yaml lifecycle_event_to_status, and every
     evidence_receipt_ref is an omos URN. A missing / out-of-order trace is
     E2E_TRACE_INCOMPLETE; a non-URN receipt is E2E_RECEIPT_NOT_REF.
+  transition_replay_rule: >-
+    the event sequence is replayed against
+    ai-task-card-record.yaml allowed_status_transitions; an event whose target
+    status is not a legal transition from the current status is
+    E2E_TRACE_ILLEGAL_TRANSITION. This binds the e2e trace to the upstream
+    SSP-299 lifecycle contract rather than only checking event membership.
 
 manager_view:
   allowed_fields:
@@ -49,6 +56,9 @@ manager_view:
     MANAGER_VIEW_LEAKS_FIELD. evidence_links entries are all omos URN strings
     (a non-URN entry is MANAGER_VIEW_INLINE_CONTENT). sensitive_content_copied
     true, or a raw_work_body field, is MANAGER_VIEW_LEAKS_CONTENT.
+  status_binding_rule: >-
+    manager_view.status must equal run.final_status; a Jira status that differs
+    from the e2e verdict is E2E_MANAGER_STATUS_MISMATCH.
 
 status_completeness:
   manager_statuses:
@@ -60,17 +70,37 @@ status_completeness:
   terminal_event_to_status:
     complete: DONE
     cancel: CANCELLED
+    block: BLOCKED
+  unsubstantiated_outcome_statuses:
+    - FAILED
+    - HUMAN_INTERVENTION
   rule: >-
-    final_status is one of manager_statuses; when the trace's last event is
-    `complete` final_status must be DONE and when it is `cancel` final_status
-    must be CANCELLED. Anything else is E2E_STATUS_UNMAPPED.
+    final_status is one of manager_statuses. For a mapped status
+    (DONE / CANCELLED / BLOCKED) final_status must equal
+    terminal_event_to_status[last event], otherwise E2E_STATUS_UNMAPPED. For an
+    unsubstantiated_outcome_status (FAILED / HUMAN_INTERVENTION) the trace's
+    last event must not be `complete` and the run must carry an
+    outcome_evidence_ref that is an omos URN, otherwise
+    E2E_UNSUBSTANTIATED_OUTCOME. Every one of the five manager_statuses now has
+    a verifiable terminal path.
 
 memory_promotion_gate:
+  promotion_path_ref: ai-work-record-boundary.promotion_path.ordered_steps
+  promotion_refs:
+    RAW_EVIDENCE_ENVELOPE: raw_evidence_ref
+    PERSONAL_MEMORY_CANDIDATE: candidate_ref
+    VERIFICATION: verification_receipt_ref
+    PERSONAL_ACCEPTANCE: personal_acceptance_ref
+    PERSONAL_MEMORY_RECORD: record_ref
   rule: >-
-    a work_records entry with personal_memory true must carry both a
-    candidate_ref and an acceptance_ref that are omos URNs, otherwise
-    E2E_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE. A WorkRecord never becomes
-    Personal Memory without a Candidate and an Acceptance.
+    a work_records entry with personal_memory true must carry an omos URN for
+    every promotion_refs field (raw_evidence_ref, candidate_ref,
+    verification_receipt_ref, personal_acceptance_ref, record_ref), matching the
+    SSP-298 promotion_path (RAW_EVIDENCE_ENVELOPE -> PERSONAL_MEMORY_CANDIDATE ->
+    VERIFICATION -> PERSONAL_ACCEPTANCE -> PERSONAL_MEMORY_RECORD) with
+    skip_any_step forbidden. Any missing ref is
+    E2E_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE -- the e2e confluence point never
+    accepts a durable-memory promotion that skipped an upstream governance step.
 
 reconstruction:
   reconstructable_from_jira: true
@@ -89,15 +119,25 @@ authority:
     - verification_receipt_ref
     - accepted_for_record
     - canonical_write_receipt_ref
+  rule: >-
+    a run must declare is_projection true; is_projection false or absent is
+    E2E_EXCEEDS_AUTHORITY. performs_acceptance true, is_canonical true, or any
+    forbidden_run_fields key at the run top level is also E2E_EXCEEDS_AUTHORITY.
+    (The forbidden_run_fields are forbidden at the run top level; inside a
+    work_records entry a promoted record legitimately carries
+    verification_receipt_ref / personal_acceptance_ref per memory_promotion_gate.)
 
 error_contract:
   E2E_TRACE_INCOMPLETE: e2e.error.trace_incomplete
+  E2E_TRACE_ILLEGAL_TRANSITION: e2e.error.trace_illegal_transition
   E2E_RECEIPT_NOT_REF: e2e.error.receipt_not_ref
   MANAGER_VIEW_LEAKS_FIELD: e2e.error.manager_view_leaks_field
   MANAGER_VIEW_LEAKS_CONTENT: e2e.error.manager_view_leaks_content
   MANAGER_VIEW_INLINE_CONTENT: e2e.error.manager_view_inline_content
+  E2E_MANAGER_STATUS_MISMATCH: e2e.error.manager_status_mismatch
   E2E_STATUS_UNMAPPED: e2e.error.status_unmapped
   E2E_INVALID_STATUS: e2e.error.invalid_status
+  E2E_UNSUBSTANTIATED_OUTCOME: e2e.error.unsubstantiated_outcome
   E2E_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE: e2e.error.workrecord_promoted_without_acceptance
   MANAGER_VIEW_NOT_RECONSTRUCTABLE: e2e.error.manager_view_not_reconstructable
   E2E_EXCEEDS_AUTHORITY: e2e.error.exceeds_authority
@@ -111,7 +151,10 @@ cross_reference:
   harness_spec: 規格/v0.1/ai-work-record-harness.yaml
   must_match:
     lifecycle_events_from: ai-task-card-record.lifecycle_event_to_status
+    allowed_transitions_from: ai-task-card-record.allowed_status_transitions
     non_acceptance_authority_from: ai-work-record-boundary.non_acceptance_authority.signals
+    promotion_path_from: ai-work-record-boundary.promotion_path.ordered_steps
+    promotion_receipts_from: ai-work-record-boundary.promotion_path.receipts_required
     harness_schema_id_from: ai-work-record-harness.schema.schema_id
     error_behavior_from: ai-work-record-boundary.automated_step_contract.error_behavior_enum
 
@@ -124,13 +167,17 @@ hard_stops:
 required_negative_fixtures:
   - the trace does not start with start
   - the trace does not end on a terminal event
+  - the trace contains an illegal status transition
   - an evidence receipt is not a reference
   - the manager view carries an extra field
   - the manager view copies sensitive content
   - an evidence link is not a reference
+  - the manager view status disagrees with the final status
   - the final status does not match the terminal event
   - the final status is not a manager-visible status
-  - a work record claims personal memory without acceptance
+  - a failed or human-intervention outcome is unsubstantiated
+  - a promoted work record is missing a promotion-chain receipt
   - the run is not reconstructable from jira
+  - the run declares it is not a projection
   - the run carries a canonical write field
   - error but the run still claims success

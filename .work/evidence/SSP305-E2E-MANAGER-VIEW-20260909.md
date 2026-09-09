@@ -79,7 +79,25 @@ exit 1（RED），還原後 `PASS`。12 個 enforcement 全數 load-bearing。
 - 主管可從 Jira 重現：正向案 `manager_view` 帶非空 `status` + `evidence_links`（URN），
   `E2E_NEG_NOT_RECONSTRUCTABLE` 證明 `reconstructable_from_jira: false` 會被擋。
 
-### 上游契約未被改動
+## Repair 01｜大 review NO_GO（4×P1 + 1×P2）
+
+| finding | 修法 | fixture |
+|---|---|---|
+| F-01（P1）manager_view.status 未綁 final_status | evaluator 加 `E2E_MANAGER_STATUS_MISMATCH`（`view["status"] != final_status`） | `E2E_NEG_MANAGER_STATUS_MISMATCH` → `E2E_MANAGER_STATUS_MISMATCH` |
+| F-02（P1）promotion gate 放寬 SSP-298 promotion_path | 要求完整 chain refs `[raw_evidence_ref, candidate_ref, verification_receipt_ref, personal_acceptance_ref, record_ref]` 皆 URN；結構斷言直接讀 boundary `promotion_path.ordered_steps` / `receipts_required` 對齊；`cross_reference` +2 pointer | `E2E_NEG_PROMOTION_CHAIN_INCOMPLETE` → `E2E_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE`；正例改帶完整 5 refs |
+| F-03（P1）FAILED/BLOCKED/HUMAN_INTERVENTION 無合法路徑 | `terminal_events` +`block`；`terminal_event_to_status` +`block: BLOCKED`；新 `unsubstantiated_outcome_statuses: [FAILED, HUMAN_INTERVENTION]`（trace 末非 complete + `outcome_evidence_ref` URN，否則 `E2E_UNSUBSTANTIATED_OUTCOME`）；結構斷言鎖「五 status 都有終止路徑」 | 正例 `E2E_POS_BLOCKED` / `E2E_POS_FAILED` / `E2E_POS_HUMAN_INTERVENTION`；負例 `E2E_NEG_UNSUBSTANTIATED_OUTCOME` |
+| F-04（P1）is_projection 未 enforce | evaluator authority 段首 `return "E2E_EXCEEDS_AUTHORITY" unless run["is_projection"] == true` | `E2E_NEG_NOT_PROJECTION` → `E2E_EXCEEDS_AUTHORITY` |
+| F-05（P2）無 transition replay | evaluator trace 段 replay `ai-task-card-record.allowed_status_transitions` → `E2E_TRACE_ILLEGAL_TRANSITION`；`cross_reference` +`allowed_transitions_from` | `E2E_NEG_ILLEGAL_TRANSITION`（`start → cancel → complete`）→ `E2E_TRACE_ILLEGAL_TRANSITION` |
+
+- `required_negative_fixtures` / `EXPECTED_E2E_NEGATIVE_LABELS` 各 12 → 16；正例 2 → 5。
+- enforcement parity 重跑：`E2E_MANAGER_STATUS_MISMATCH` / promotion 完整 chain（弱化→ candidate+acceptance）/
+  `E2E_UNSUBSTANTIATED_OUTCOME` / `is_projection` 強制 / `E2E_TRACE_ILLEGAL_TRANSITION` /
+  `E2E_STATUS_UNMAPPED`(regression) —— 逐一移除 → `ruby` exit 1（RED）；還原後 `PASS`。
+- 行為 regression：18 Ruby validator + `std_schema_engine`（coverage 不變）+ cross-layer +
+  `git diff --check` 全綠；上游 8 份契約未改動。validator 281 行（< 400）。
+- repair 卡：`.work/CARD-SSP305-REPAIR-01-20260909.md`。原 frozen review SHA `54891cc` 不動。
+
+## 上游契約未被改動
 
 `git diff --name-status b07353a..HEAD` 僅新增 4 檔 + 卡 + evidence + 待辦重整；未碰
 `ai-task-card-record.yaml`／`ai-work-record-boundary.yaml`／`ai-work-record-harness.yaml`／

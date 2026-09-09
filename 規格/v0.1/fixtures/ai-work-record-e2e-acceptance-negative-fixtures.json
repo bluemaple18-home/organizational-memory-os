@@ -6,15 +6,16 @@
       "expected_failure_code": "E2E_TRACE_INCOMPLETE",
       "covers_e2e_negative_fixture": "the trace does not start with start",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "block", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "cancel", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
         ],
-        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
-        "final_status": "DONE",
+        "manager_view": {"objective": "x", "status": "CANCELLED", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "CANCELLED",
         "reconstructable_from_jira": true,
         "work_records": [{"personal_memory": false}],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
       }
     },
     {
@@ -23,6 +24,7 @@
       "expected_failure_code": "E2E_TRACE_INCOMPLETE",
       "covers_e2e_negative_fixture": "the trace does not end on a terminal event",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
           {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
@@ -31,7 +33,26 @@
         "final_status": "DONE",
         "reconstructable_from_jira": true,
         "work_records": [{"personal_memory": false}],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_ILLEGAL_TRANSITION",
+      "expected": "deny",
+      "expected_failure_code": "E2E_TRACE_ILLEGAL_TRANSITION",
+      "covers_e2e_negative_fixture": "the trace contains an illegal status transition",
+      "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "cancel", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "ok": true
       }
     },
     {
@@ -40,15 +61,17 @@
       "expected_failure_code": "E2E_RECEIPT_NOT_REF",
       "covers_e2e_negative_fixture": "an evidence receipt is not a reference",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "receipt-1-inline"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
         ],
         "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
         "final_status": "DONE",
         "reconstructable_from_jira": true,
         "work_records": [{"personal_memory": false}],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
       }
     },
     {
@@ -57,15 +80,17 @@
       "expected_failure_code": "MANAGER_VIEW_LEAKS_FIELD",
       "covers_e2e_negative_fixture": "the manager view carries an extra field",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
         ],
         "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"], "internal_debug_dump": "step-by-step reasoning"},
         "final_status": "DONE",
         "reconstructable_from_jira": true,
         "work_records": [{"personal_memory": false}],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
       }
     },
     {
@@ -74,16 +99,18 @@
       "expected_failure_code": "MANAGER_VIEW_LEAKS_CONTENT",
       "covers_e2e_negative_fixture": "the manager view copies sensitive content",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
         ],
         "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
         "sensitive_content_copied": true,
         "final_status": "DONE",
         "reconstructable_from_jira": true,
         "work_records": [{"personal_memory": false}],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
       }
     },
     {
@@ -92,15 +119,36 @@
       "expected_failure_code": "MANAGER_VIEW_INLINE_CONTENT",
       "covers_e2e_negative_fixture": "an evidence link is not a reference",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
         ],
         "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["see the shared drive folder"]},
         "final_status": "DONE",
         "reconstructable_from_jira": true,
         "work_records": [{"personal_memory": false}],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_MANAGER_STATUS_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "E2E_MANAGER_STATUS_MISMATCH",
+      "covers_e2e_negative_fixture": "the manager view status disagrees with the final status",
+      "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
+        ],
+        "manager_view": {"objective": "x", "status": "FAILED", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "ok": true
       }
     },
     {
@@ -109,15 +157,16 @@
       "expected_failure_code": "E2E_STATUS_UNMAPPED",
       "covers_e2e_negative_fixture": "the final status does not match the terminal event",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "cancel", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
         ],
-        "manager_view": {"objective": "x", "status": "CANCELLED", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
-        "final_status": "CANCELLED",
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "DONE",
         "reconstructable_from_jira": true,
         "work_records": [{"personal_memory": false}],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
       }
     },
     {
@@ -126,34 +175,57 @@
       "expected_failure_code": "E2E_INVALID_STATUS",
       "covers_e2e_negative_fixture": "the final status is not a manager-visible status",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
         ],
         "manager_view": {"objective": "x", "status": "IN_PROGRESS", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
         "final_status": "IN_PROGRESS",
         "reconstructable_from_jira": true,
         "work_records": [{"personal_memory": false}],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
       }
     },
     {
-      "case_id": "E2E_NEG_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE",
+      "case_id": "E2E_NEG_UNSUBSTANTIATED_OUTCOME",
       "expected": "deny",
-      "expected_failure_code": "E2E_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE",
-      "covers_e2e_negative_fixture": "a work record claims personal memory without acceptance",
+      "expected_failure_code": "E2E_UNSUBSTANTIATED_OUTCOME",
+      "covers_e2e_negative_fixture": "a failed or human-intervention outcome is unsubstantiated",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
+        ],
+        "manager_view": {"objective": "x", "status": "FAILED", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "FAILED",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_PROMOTION_CHAIN_INCOMPLETE",
+      "expected": "deny",
+      "expected_failure_code": "E2E_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE",
+      "covers_e2e_negative_fixture": "a promoted work record is missing a promotion-chain receipt",
+      "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
         ],
         "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
         "final_status": "DONE",
         "reconstructable_from_jira": true,
         "work_records": [
-          {"personal_memory": true, "candidate_ref": "urn:omos:candidate:c1"}
+          {"personal_memory": true, "candidate_ref": "urn:omos:candidate:c1", "personal_acceptance_ref": "urn:omos:acceptance:a1"}
         ],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
       }
     },
     {
@@ -162,33 +234,56 @@
       "expected_failure_code": "MANAGER_VIEW_NOT_RECONSTRUCTABLE",
       "covers_e2e_negative_fixture": "the run is not reconstructable from jira",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
         ],
         "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
         "final_status": "DONE",
         "reconstructable_from_jira": false,
         "work_records": [{"personal_memory": false}],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
       }
     },
     {
-      "case_id": "E2E_NEG_EXCEEDS_AUTHORITY",
+      "case_id": "E2E_NEG_NOT_PROJECTION",
+      "expected": "deny",
+      "expected_failure_code": "E2E_EXCEEDS_AUTHORITY",
+      "covers_e2e_negative_fixture": "the run declares it is not a projection",
+      "run": {
+        "is_projection": false, "performs_acceptance": false, "is_canonical": false,
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_EXCEEDS_AUTHORITY_CANONICAL",
       "expected": "deny",
       "expected_failure_code": "E2E_EXCEEDS_AUTHORITY",
       "covers_e2e_negative_fixture": "the run carries a canonical write field",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
+        "canonical_write_receipt_ref": "urn:omos:canonical-write:e2e-must-not-write",
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
         ],
         "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
-        "canonical_write_receipt_ref": "urn:omos:canonical-write:e2e-must-not-write",
         "final_status": "DONE",
         "reconstructable_from_jira": true,
         "work_records": [{"personal_memory": false}],
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
       }
     },
     {
@@ -197,16 +292,18 @@
       "expected_failure_code": "FAIL_SILENT",
       "covers_e2e_negative_fixture": "error but the run still claims success",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
-          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
         ],
         "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
         "final_status": "DONE",
         "reconstructable_from_jira": true,
         "work_records": [{"personal_memory": false}],
         "error": "one lifecycle event was reconstructed without its evidence receipt",
-        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+        "ok": true
       }
     }
   ]

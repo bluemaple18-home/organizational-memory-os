@@ -4,6 +4,7 @@
       "case_id": "E2E_POS_DONE",
       "expected": "allow",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
           {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
@@ -18,12 +19,7 @@
         },
         "final_status": "DONE",
         "reconstructable_from_jira": true,
-        "work_records": [
-          {"personal_memory": false}
-        ],
-        "is_projection": true,
-        "performs_acceptance": false,
-        "is_canonical": false,
+        "work_records": [{"personal_memory": false}],
         "ok": true
       }
     },
@@ -31,6 +27,7 @@
       "case_id": "E2E_POS_CANCELLED_WITH_PROMOTED_RECORD",
       "expected": "allow",
       "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
         "lifecycle_trace": [
           {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-10"},
           {"event": "block", "evidence_receipt_ref": "urn:omos:receipt:e2e-11"},
@@ -46,12 +43,78 @@
         "final_status": "CANCELLED",
         "reconstructable_from_jira": true,
         "work_records": [
-          {"personal_memory": true, "candidate_ref": "urn:omos:candidate:c1", "acceptance_ref": "urn:omos:acceptance:a1"},
+          {"personal_memory": true, "raw_evidence_ref": "urn:omos:raw-evidence:r1", "candidate_ref": "urn:omos:candidate:c1", "verification_receipt_ref": "urn:omos:verification:v1", "personal_acceptance_ref": "urn:omos:acceptance:a1", "record_ref": "urn:omos:personal-memory-record:pm1"},
           {"personal_memory": false}
         ],
-        "is_projection": true,
-        "performs_acceptance": false,
-        "is_canonical": false,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_POS_BLOCKED",
+      "expected": "allow",
+      "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-20"},
+          {"event": "block", "evidence_receipt_ref": "urn:omos:receipt:e2e-21"}
+        ],
+        "manager_view": {
+          "objective": "migrate the legacy index",
+          "status": "BLOCKED",
+          "blockers": "waiting on infra capacity approval",
+          "acceptance_summary": "not yet evaluated; blocked before review",
+          "evidence_links": ["urn:omos:evidence:e2e-d"]
+        },
+        "final_status": "BLOCKED",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_POS_FAILED",
+      "expected": "allow",
+      "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-30"},
+          {"event": "cancel", "evidence_receipt_ref": "urn:omos:receipt:e2e-31"}
+        ],
+        "manager_view": {
+          "objective": "rebuild the projection cache",
+          "status": "FAILED",
+          "blockers": "projection rebuild aborted after repeated errors",
+          "acceptance_summary": "acceptance not reached; task failed",
+          "evidence_links": ["urn:omos:evidence:e2e-e"]
+        },
+        "final_status": "FAILED",
+        "outcome_evidence_ref": "urn:omos:evidence:e2e-failure-report",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "ok": false,
+        "error": "projection rebuild failed after 3 attempts"
+      }
+    },
+    {
+      "case_id": "E2E_POS_HUMAN_INTERVENTION",
+      "expected": "allow",
+      "run": {
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false,
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-40"},
+          {"event": "block", "evidence_receipt_ref": "urn:omos:receipt:e2e-41"}
+        ],
+        "manager_view": {
+          "objective": "promote the shared-context record",
+          "status": "HUMAN_INTERVENTION",
+          "blockers": "needs a manager decision on ACL widening",
+          "acceptance_summary": "pending human decision at the personal acceptance gate",
+          "evidence_links": ["urn:omos:evidence:e2e-f"]
+        },
+        "final_status": "HUMAN_INTERVENTION",
+        "outcome_evidence_ref": "urn:omos:evidence:e2e-decision-request",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
         "ok": true
       }
     }
