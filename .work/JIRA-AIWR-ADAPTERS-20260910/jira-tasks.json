@@ -1,0 +1,133 @@
+{
+  "schema_version": "1.0",
+  "feature_id": "FEAT-20260910-AIWR-ADAPTERS",
+  "project_key": "SSP",
+  "parent": "SSP-287",
+  "related_existing_issues": ["SSP-295", "SSP-297"],
+  "decision": {
+    "status": "OWNER_CONFIRMED_CREATED",
+    "confirmed_at": "2026-09-10",
+    "native_event_authority": "EVIDENCE_ONLY",
+    "work_record_authority": "AIWR_SEMANTIC_GATE",
+    "default_configuration_scope": "PROJECT_OR_LOCAL",
+    "global_rule_rewrite": "FORBIDDEN_BY_DEFAULT"
+  },
+  "execution_order": {
+    "frontier": ["AIWR-09"],
+    "parallel_optional": ["AIWR-10"],
+    "checkpoint_after": ["AIWR-09", "AIWR-10"],
+    "then": ["AIWR-11", "AIWR-12"]
+  },
+  "tasks": [
+    {
+      "id": "AIWR-09",
+      "jira_key": "SSP-307",
+      "summary": "Codex Native Adapter 與 Runtime Probe",
+      "status": "待辦事項",
+      "priority_order": 1,
+      "depends_on": ["SSP-301", "SSP-304"],
+      "blocks": ["AIWR-11"],
+      "relates_to": ["SSP-297"],
+      "scope": [
+        "Codex Desktop／App Server 為第一目標執行面",
+        "官方來源綁定版本、tag 或 commit",
+        "保存真實 lifecycle payload fixtures",
+        "native event 只形成 Evidence／Candidate"
+      ],
+      "acceptance": [
+        "start、block、unblock、submit_review、complete、cancel 有可重現映射",
+        "Hook 缺失、timeout、格式錯誤或不支援時 fail loud",
+        "平台完成事件不得單獨產生 AIWR complete",
+        "Adapter 輸出通過既有 AIWR validator",
+        "project-local 啟用、停用與 rollback 驗證完成"
+      ],
+      "verification": [
+        "runtime smoke probe",
+        "fixture validation",
+        "boundary regression",
+        "mutation probe",
+        "git diff --check"
+      ],
+      "identity_marker": "SSP|FEAT-20260910-AIWR-ADAPTERS|JIRA-DRAFT-AIWR-009"
+    },
+    {
+      "id": "AIWR-10",
+      "jira_key": "SSP-308",
+      "summary": "Claude Code Native Adapter 與 Runtime Probe",
+      "status": "待辦事項",
+      "priority_order": 2,
+      "depends_on": ["SSP-301", "SSP-304"],
+      "blocks": ["AIWR-11"],
+      "relates_to": ["SSP-297"],
+      "scope": [
+        "基準版本 Claude Code v2.1.263",
+        "驗證 TaskCompleted、Stop、StopFailure 與 exit-code",
+        "保存真實 lifecycle payload fixtures",
+        "專案或本機設定優先，不預設改同事全域規則"
+      ],
+      "acceptance": [
+        "start、block、unblock、submit_review、complete、cancel 有可重現映射",
+        "HTTP 錯誤、exit code、timeout 與 malformed payload 有明確處理",
+        "TaskCompleted／Stop 不得單獨產生 AIWR complete",
+        "Adapter 輸出通過既有 AIWR validator",
+        "啟用、停用與 rollback 驗證完成"
+      ],
+      "verification": [
+        "runtime smoke probe",
+        "fixture validation",
+        "boundary regression",
+        "mutation probe",
+        "git diff --check"
+      ],
+      "identity_marker": "SSP|FEAT-20260910-AIWR-ADAPTERS|JIRA-DRAFT-AIWR-010"
+    },
+    {
+      "id": "AIWR-11",
+      "jira_key": "SSP-309",
+      "summary": "Codex／Claude Code 跨平台一致性驗收",
+      "status": "待辦事項",
+      "priority_order": 3,
+      "depends_on": ["AIWR-09", "AIWR-10"],
+      "blocks": ["AIWR-12"],
+      "relates_to": [],
+      "acceptance": [
+        "同一情境在兩平台產生相同核心 WorkRecord",
+        "平台特有欄位只留在 evidence 或 extensions",
+        "缺欄、重複、亂序、失敗、取消與偽完成均 fail closed",
+        "complete 必須通過 AIWR acceptance gate",
+        "conformance matrix、mutation 與 regression receipt 完整"
+      ],
+      "verification": [
+        "cross-platform conformance suite",
+        "mutation probes",
+        "AIWR full regression",
+        "git diff --check"
+      ],
+      "identity_marker": "SSP|FEAT-20260910-AIWR-ADAPTERS|JIRA-DRAFT-AIWR-011"
+    },
+    {
+      "id": "AIWR-12",
+      "jira_key": "SSP-310",
+      "summary": "PM 同事輕量 Pilot 與回退驗收",
+      "status": "待辦事項",
+      "priority_order": 4,
+      "depends_on": ["AIWR-11"],
+      "blocks": [],
+      "relates_to": ["SSP-295"],
+      "acceptance": [
+        "僅一位 PM、一個真實任務、一個先選定的平台執行面",
+        "先 dry-run，再明確啟用",
+        "主管視圖不含 prompt、密鑰或原始對話",
+        "未經人工接受不得升格 Personal Memory",
+        "停用、rollback 與 teardown 無殘留自動寫入"
+      ],
+      "verification": [
+        "single-user dry-run",
+        "real-task acceptance",
+        "sensitive-content check",
+        "rollback and teardown receipt"
+      ],
+      "identity_marker": "SSP|FEAT-20260910-AIWR-ADAPTERS|JIRA-DRAFT-AIWR-012"
+    }
+  ]
+}

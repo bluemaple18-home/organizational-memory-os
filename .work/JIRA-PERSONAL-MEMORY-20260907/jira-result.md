@@ -24,14 +24,16 @@
 ## AI 工作紀錄自動化執行層
 
 - [SSP-287](https://multiforcedatateam.atlassian.net/browse/SSP-287) — `[MVP] 建立 AI 工作紀錄自動化執行層` — 待辦事項
-  - [SSP-298](https://multiforcedatateam.atlassian.net/browse/SSP-298) — AIWR-01 工作紀錄／Personal Memory 邊界
-  - [SSP-299](https://multiforcedatateam.atlassian.net/browse/SSP-299) — AIWR-02 AI 任務卡自動紀錄格式
-  - [SSP-300](https://multiforcedatateam.atlassian.net/browse/SSP-300) — AIWR-03 工作紀錄 Skill
-  - [SSP-301](https://multiforcedatateam.atlassian.net/browse/SSP-301) — AIWR-04 Hook 事件擷取
-  - [SSP-302](https://multiforcedatateam.atlassian.net/browse/SSP-302) — AIWR-05 Loop 收口與缺口補登
-  - [SSP-303](https://multiforcedatateam.atlassian.net/browse/SSP-303) — AIWR-06 輕量 Harness 編排
-  - [SSP-304](https://multiforcedatateam.atlassian.net/browse/SSP-304) — AIWR-07 Hermes 薄 Adapter
-  - [SSP-305](https://multiforcedatateam.atlassian.net/browse/SSP-305) — AIWR-08 端到端驗收與主管進度視圖
+  - [SSP-298](https://multiforcedatateam.atlassian.net/browse/SSP-298) — AIWR-01 工作紀錄／Personal Memory 邊界 — 完成
+  - [SSP-299](https://multiforcedatateam.atlassian.net/browse/SSP-299) — AIWR-02 AI 任務卡自動紀錄格式 — 完成
+  - [SSP-300](https://multiforcedatateam.atlassian.net/browse/SSP-300) — AIWR-03 工作紀錄 Skill — 完成
+  - [SSP-301](https://multiforcedatateam.atlassian.net/browse/SSP-301) — AIWR-04 Hook 事件擷取 — 完成
+  - [SSP-302](https://multiforcedatateam.atlassian.net/browse/SSP-302) — AIWR-05 Loop 收口與缺口補登 — 完成
+  - [SSP-303](https://multiforcedatateam.atlassian.net/browse/SSP-303) — AIWR-06 輕量 Harness 編排 — 完成
+  - [SSP-304](https://multiforcedatateam.atlassian.net/browse/SSP-304) — AIWR-07 Hermes 薄 Adapter — 完成
+  - [SSP-305](https://multiforcedatateam.atlassian.net/browse/SSP-305) — AIWR-08 端到端驗收與主管進度視圖 — 完成
+
+2026-09-10 reconciliation：上述八張共用契約已 merged；後續平台落地票與順序移至 `.work/JIRA-AIWR-ADAPTERS-20260910/`。
 
 ## Links
 
