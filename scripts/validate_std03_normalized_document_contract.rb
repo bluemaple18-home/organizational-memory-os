@@ -4,6 +4,7 @@ require "digest"
 require "json"
 require "set"
 require "yaml"
+require_relative "lib/omos_contract_helpers"
 
 ROOT = File.expand_path("..", __dir__)
 COMMON_VOCAB_PATH = File.join(ROOT, "規格/v0.1/common-vocabulary.yaml")
@@ -55,35 +56,6 @@ RECEIPT_REF = /\Aurn:omos:receipt:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-
 SOURCE_ANCHOR_REF = /\Aurn:omos:source-anchor:[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/.freeze
 LANGUAGE = /\A(?:[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*|und|mul)\z/.freeze
 
-class DuplicateKeyError < StandardError; end
-
-class StrictJsonObject < Hash
-  def []=(key, value)
-    raise DuplicateKeyError, "duplicate JSON object key #{key.inspect}" if key?(key)
-
-    super
-  end
-end
-
-def assert_unique_yaml_mapping_keys(node, path = "$")
-  case node
-  when Psych::Nodes::Stream, Psych::Nodes::Document
-    node.children.each { |child| assert_unique_yaml_mapping_keys(child, path) }
-  when Psych::Nodes::Sequence
-    node.children.each_with_index { |child, index| assert_unique_yaml_mapping_keys(child, "#{path}[#{index}]") }
-  when Psych::Nodes::Mapping
-    seen = {}
-    node.children.each_slice(2) do |key_node, value_node|
-      key = key_node.respond_to?(:value) ? key_node.value : key_node.to_s
-      child_path = "#{path}.#{key}"
-      raise DuplicateKeyError, "duplicate YAML mapping key #{child_path}" if seen.key?(key)
-
-      seen[key] = true
-      assert_unique_yaml_mapping_keys(value_node, child_path)
-    end
-  end
-end
-
 def assert(condition, code, message, failures)
   failures << "#{code}: #{message}" unless condition
 end
@@ -110,10 +82,6 @@ end
 
 def deep_copy(value)
   JSON.parse(JSON.generate(value))
-end
-
-def present?(value)
-  !value.nil? && !(value.respond_to?(:empty?) && value.empty?)
 end
 
 def dig_path(payload, path)

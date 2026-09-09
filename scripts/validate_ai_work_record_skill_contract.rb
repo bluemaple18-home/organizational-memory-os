@@ -7,6 +7,7 @@
 
 require "json"
 require "yaml"
+require_relative "lib/omos_contract_helpers"
 
 ROOT = File.expand_path("..", __dir__)
 SPEC_PATH = File.join(ROOT, "規格/v0.1/ai-work-record-skill.yaml")
@@ -41,35 +42,6 @@ EXPECTED_SKILL_NEGATIVE_LABELS = [
   "error but output still claims success"
 ].freeze
 
-class DuplicateKeyError < StandardError; end
-
-class StrictJsonObject < Hash
-  def []=(key, value)
-    raise DuplicateKeyError, "duplicate JSON object key #{key.inspect}" if key?(key)
-
-    super
-  end
-end
-
-def assert_unique_yaml_mapping_keys(node, path = "$")
-  case node
-  when Psych::Nodes::Stream, Psych::Nodes::Document
-    node.children.each { |child| assert_unique_yaml_mapping_keys(child, path) }
-  when Psych::Nodes::Sequence
-    node.children.each_with_index { |child, index| assert_unique_yaml_mapping_keys(child, "#{path}[#{index}]") }
-  when Psych::Nodes::Mapping
-    seen = {}
-    node.children.each_slice(2) do |key_node, value_node|
-      key = key_node.respond_to?(:value) ? key_node.value : key_node.to_s
-      child_path = "#{path}.#{key}"
-      raise DuplicateKeyError, "duplicate YAML mapping key #{child_path}" if seen.key?(key)
-
-      seen[key] = true
-      assert_unique_yaml_mapping_keys(value_node, child_path)
-    end
-  end
-end
-
 def read_json(path)
   JSON.parse(File.read(path), object_class: StrictJsonObject)
 end
@@ -86,10 +58,6 @@ end
 
 def sorted_set(values)
   values.to_a.sort
-end
-
-def present?(value)
-  !value.nil? && !(value.respond_to?(:empty?) && value.empty?)
 end
 
 def blank_string?(value)
