@@ -82,7 +82,24 @@ exit 1（RED），還原後 `PASS`。11 個 enforcement 全數 load-bearing。
 - 無全員安裝：`HERMES_NEG_ORG_WIDE_INSTALL`（`requires_all_users_install: true`）→
   `HERMES_ORG_WIDE_INSTALL`；`HERMES_NEG_MANDATORY`（`hermes_required: true`）→ `HERMES_MANDATORY`。
 
-### 上游契約未被改動
+## Repair 01｜大 review NO_GO（2×P1 + 2×P2）
+
+| finding | 修法 | 新 fixture → code |
+|---|---|---|
+| F-01（P1）版本支援清單讀 run 自報 | `hermes_adapter_failure` 加 `supported_versions` 參數,caller 傳 `EXPECTED_SUPPORTED_VERSIONS`（= spec）；不再讀 `run["supported_hermes_versions"]` | `HERMES_NEG_SELF_WIDENED_VERSIONS`（run 自報含 `9.9`）→ `HERMES_INCOMPAT_NOT_LOUD` |
+| F-02（P1）宣告 table 未約束實際翻譯 | `MAPPED` 時 `run.hermes_event` 必須在 `hermes_event_map` 恰一筆匹配且 `mapped_to` 一致 → `HERMES_MAPPING_NOT_DECLARED` | `HERMES_NEG_MAPPING_NOT_DECLARED`（table `started→start`、run `started→complete`）→ `HERMES_MAPPING_NOT_DECLARED` |
+| F-03（P2）假 fail-loud | `INCOMPATIBLE_FAIL_LOUD` 必須 `present?(error) && ok == false` → `HERMES_FAKE_FAIL_LOUD` | `HERMES_NEG_FAKE_FAIL_LOUD`（無 error、`ok:true`）→ `HERMES_FAKE_FAIL_LOUD` |
+| F-04（P2）event_map `hermes_event` 未驗 | entry `hermes_event` 必須非空字串且跨 entry 唯一 → `HERMES_EVENT_MAP_MALFORMED` | `HERMES_NEG_EVENT_MAP_NO_KEY`（缺 key）／`HERMES_NEG_EVENT_MAP_DUPLICATE`（同 event 兩義）→ `HERMES_EVENT_MAP_MALFORMED` |
+
+- `required_negative_fixtures` / `EXPECTED_HERMES_NEGATIVE_LABELS` 各 11 → 15。
+- enforcement parity 重跑：`version_ok` 由 spec 清單改回讀 run 自報 / `HERMES_MAPPING_NOT_DECLARED` /
+  `HERMES_FAKE_FAIL_LOUD` / event_map `hermes_event` 非空檢查 / 唯一性檢查 —— 逐一移除 →
+  `ruby` exit 1（RED）；原有 11 個 enforcement 亦重跑保持 load-bearing；全部還原後 `PASS`。
+- 行為 regression：17 Ruby validator + `std_schema_engine`（coverage 不變）+ cross-layer +
+  `git diff --check` 全綠；既有 5 正例仍 PASS；上游 6 份契約未改動。validator 282 行（< 400）。
+- repair 卡：`.work/CARD-SSP304-REPAIR-01-20260909.md`。原 frozen review SHA `5aa7675` 不動。
+
+## 上游契約未被改動
 
 `git diff --name-status df34064..HEAD` 僅新增 4 檔 + 卡 + evidence + 待辦重整；未碰
 `ai-work-record-skill.yaml`／`ai-task-card-record.yaml`／`ai-work-record-harness.yaml`／

@@ -27,10 +27,13 @@ event_mapping:
     - ai-work-record-skill.input_contract.seed_field_keys
   adapter_adds_fields: []
   rule: >-
-    every hermes_event_map entry maps a hermes_event to a mapped_to that is one
-    of allowed_map_targets; anything else is HERMES_MAP_TARGET_UNKNOWN. A
-    non-empty adapter_adds_fields is HERMES_ADAPTER_ADDS_SEMANTICS (the Adapter
-    translates, it never introduces a new field or capability).
+    every hermes_event_map entry has a non-empty string hermes_event that is
+    unique within the map, and a mapped_to that is one of allowed_map_targets.
+    A missing / non-string / duplicate hermes_event or a malformed entry is
+    HERMES_EVENT_MAP_MALFORMED; a mapped_to outside allowed_map_targets is
+    HERMES_MAP_TARGET_UNKNOWN. A non-empty adapter_adds_fields is
+    HERMES_ADAPTER_ADDS_SEMANTICS (the Adapter translates, it never introduces
+    a new field or capability).
 
 authority:
   grants_acceptance: false
@@ -56,11 +59,16 @@ compatibility:
     - "1.0"
     - "1.1"
     - "1.2"
+  version_authority: this spec only (exact string match; no semver normalization)
   on_incompatible: FAIL_LOUD
   adapter_disable: SUPPORTED
   rule: >-
-    a mapping run whose hermes_version is not in supported_hermes_versions must
-    have outcome INCOMPATIBLE_FAIL_LOUD, otherwise HERMES_INCOMPAT_NOT_LOUD.
+    the supported version set is this spec's compatibility.supported_hermes_versions
+    -- a run's own supported_hermes_versions field is never trusted. A mapping
+    run whose hermes_version is not in that set must have outcome
+    INCOMPATIBLE_FAIL_LOUD, otherwise HERMES_INCOMPAT_NOT_LOUD; an
+    INCOMPATIBLE_FAIL_LOUD outcome must itself carry a real failure signal
+    (error present and ok == false), otherwise HERMES_FAKE_FAIL_LOUD.
 
 no_org_wide_install:
   requires_all_users_install: false
@@ -79,10 +87,15 @@ mapping_run:
     - DISABLED
   output_ref_rule: adapter_output_ref is an omos URN string (reference only).
   rule: >-
-    outcome not in outcomes is HERMES_INVALID_OUTCOME; outcome MAPPED with a
-    mapped_to not in allowed_map_targets is HERMES_MAP_TARGET_UNKNOWN; a
-    non-URN adapter_output_ref is HERMES_OUTPUT_NOT_REF; outcome DISABLED while
-    adapter_output_ref is still present is HERMES_DISABLED_STILL_MAPPING.
+    outcome not in outcomes is HERMES_INVALID_OUTCOME; a non-URN
+    adapter_output_ref on a MAPPED run is HERMES_OUTPUT_NOT_REF; outcome DISABLED
+    while adapter_output_ref is still present is HERMES_DISABLED_STILL_MAPPING.
+  mapping_binding_rule: >-
+    on a MAPPED run, run.hermes_event must have exactly one entry in
+    hermes_event_map and that entry's mapped_to must equal run.mapped_to. A
+    missing mapping, a duplicate/conflicting mapping, or a mapped_to mismatch is
+    HERMES_MAPPING_NOT_DECLARED -- the declared table binds the actual
+    translation, the Adapter may not re-map at run time.
 
 disable_and_rollback:
   disable_switch: true
@@ -108,10 +121,13 @@ disable_and_rollback:
 
 error_contract:
   HERMES_MAP_TARGET_UNKNOWN: hermes.error.map_target_unknown
+  HERMES_EVENT_MAP_MALFORMED: hermes.error.event_map_malformed
   HERMES_ADAPTER_ADDS_SEMANTICS: hermes.error.adapter_adds_semantics
+  HERMES_MAPPING_NOT_DECLARED: hermes.error.mapping_not_declared
   HERMES_EXCEEDS_AUTHORITY: hermes.error.exceeds_authority
   HERMES_MANDATORY: hermes.error.mandatory
   HERMES_INCOMPAT_NOT_LOUD: hermes.error.incompat_not_loud
+  HERMES_FAKE_FAIL_LOUD: hermes.error.fake_fail_loud
   HERMES_INVALID_OUTCOME: hermes.error.invalid_outcome
   HERMES_OUTPUT_NOT_REF: hermes.error.output_not_ref
   HERMES_ORG_WIDE_INSTALL: hermes.error.org_wide_install
@@ -145,6 +161,10 @@ required_negative_fixtures:
   - a run carries a permission decision field
   - the run declares hermes as required
   - an incompatible hermes version did not fail loud
+  - the run self-widened its supported hermes versions
+  - the mapped run does not match the declared event map
+  - an incompatible outcome without a real failure signal
+  - an event map entry has no event key or a duplicate
   - outcome is not one of the allowed outcomes
   - the adapter output is not a reference
   - the adapter requires an org-wide install

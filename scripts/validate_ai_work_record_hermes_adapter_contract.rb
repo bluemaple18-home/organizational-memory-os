@@ -40,6 +40,10 @@ EXPECTED_HERMES_NEGATIVE_LABELS = [
   "a run carries a permission decision field",
   "the run declares hermes as required",
   "an incompatible hermes version did not fail loud",
+  "the run self-widened its supported hermes versions",
+  "the mapped run does not match the declared event map",
+  "an incompatible outcome without a real failure signal",
+  "an event map entry has no event key or a duplicate",
   "outcome is not one of the allowed outcomes",
   "the adapter output is not a reference",
   "the adapter requires an org-wide install",
@@ -76,7 +80,7 @@ end
 #   hermes_required, core_flow_blocked_without_hermes, requires_all_users_install,
 #   supported_hermes_versions[], hermes_event, mapped_to, adapter_output_ref,
 #   hermes_version, outcome, grants_acceptance/permission/canonical_writer, error, ok。
-def hermes_adapter_failure(run, allowed_map_targets)
+def hermes_adapter_failure(run, allowed_map_targets, supported_versions)
   # 1. authority(不取得 acceptance / permission / canonical writer)
   return "HERMES_EXCEEDS_AUTHORITY" if run["grants_acceptance"] == true
   return "HERMES_EXCEEDS_AUTHORITY" if run["grants_permission"] == true
@@ -93,19 +97,25 @@ def hermes_adapter_failure(run, allowed_map_targets)
   # 4. 非全員安裝
   return "HERMES_ORG_WIDE_INSTALL" if run["requires_all_users_install"] == true
 
-  # 5. Adapter 只翻譯,不加語意
+  # 5. Adapter 只翻譯,不加語意 —— event_map 結構、hermes_event 非空且唯一、mapped_to 合法
   return "HERMES_ADAPTER_ADDS_SEMANTICS" unless run["adapter_adds_fields"].to_a.empty?
   event_map = run["hermes_event_map"]
-  return "HERMES_MAP_TARGET_UNKNOWN" unless event_map.is_a?(Array) && !event_map.empty?
+  return "HERMES_EVENT_MAP_MALFORMED" unless event_map.is_a?(Array) && !event_map.empty?
+  seen_events = []
   event_map.each do |entry|
-    return "HERMES_MAP_TARGET_UNKNOWN" unless entry.is_a?(Hash) && allowed_map_targets.include?(entry["mapped_to"])
+    return "HERMES_EVENT_MAP_MALFORMED" unless entry.is_a?(Hash)
+
+    hermes_event = entry["hermes_event"]
+    return "HERMES_EVENT_MAP_MALFORMED" unless hermes_event.is_a?(String) && !hermes_event.strip.empty?
+    return "HERMES_EVENT_MAP_MALFORMED" if seen_events.include?(hermes_event)
+
+    seen_events << hermes_event
+    return "HERMES_MAP_TARGET_UNKNOWN" unless allowed_map_targets.include?(entry["mapped_to"])
   end
 
-  # 6. mapping_run outcome / output ref / 版本相容
+  # 6. mapping_run outcome / 版本相容(支援清單由鎖定 spec 傳入,不信任 run 自報)
   return "HERMES_INVALID_OUTCOME" unless EXPECTED_HERMES_OUTCOMES.include?(run["outcome"])
-
-  supported = run["supported_hermes_versions"].to_a
-  version_ok = supported.include?(run["hermes_version"])
+  version_ok = supported_versions.include?(run["hermes_version"])
 
   if run["outcome"] == "DISABLED"
     return "HERMES_DISABLED_STILL_MAPPING" if present?(run["adapter_output_ref"])
@@ -114,11 +124,20 @@ def hermes_adapter_failure(run, allowed_map_targets)
   end
 
   return "HERMES_INCOMPAT_NOT_LOUD" if !version_ok && run["outcome"] != "INCOMPATIBLE_FAIL_LOUD"
-  return nil if run["outcome"] == "INCOMPATIBLE_FAIL_LOUD"
+  if run["outcome"] == "INCOMPATIBLE_FAIL_LOUD"
+    return "HERMES_FAKE_FAIL_LOUD" unless present?(run["error"]) && run["ok"] == false
+
+    return nil
+  end
 
   # outcome == MAPPED
   return "HERMES_OUTPUT_NOT_REF" unless urn?(run["adapter_output_ref"])
   return "HERMES_MAP_TARGET_UNKNOWN" unless allowed_map_targets.include?(run["mapped_to"])
+  # 實際翻譯必須對應 hermes_event_map 中宣告的那一筆(不得執行期改映射)
+  declared = event_map.select { |entry| entry["hermes_event"] == run["hermes_event"] }
+  unless declared.length == 1 && declared.first["mapped_to"] == run["mapped_to"]
+    return "HERMES_MAPPING_NOT_DECLARED"
+  end
 
   nil
 end
@@ -222,7 +241,7 @@ negative = read_json(NEGATIVE_FIXTURE_PATH)
 
 positive.fetch("hermes_adapter_cases").each do |test_case|
   assert(test_case.fetch("expected") == "allow", "#{test_case.fetch("case_id")} hermes adapter positive 必須預期 allow", failures)
-  actual = hermes_adapter_failure(test_case.fetch("run"), allowed_map_targets)
+  actual = hermes_adapter_failure(test_case.fetch("run"), allowed_map_targets, EXPECTED_SUPPORTED_VERSIONS)
   assert(actual.nil?, "#{test_case.fetch("case_id")} 預期 allow，實際被拒：#{actual}", failures)
 end
 
@@ -237,7 +256,7 @@ negative.fetch("hermes_adapter_negative_cases").each do |test_case|
   case_id = test_case.fetch("case_id")
   assert(test_case.fetch("expected") == "deny", "#{case_id} hermes adapter negative 必須預期 deny", failures)
   expected_code = test_case.fetch("expected_failure_code")
-  actual = hermes_adapter_failure(test_case.fetch("run"), allowed_map_targets)
+  actual = hermes_adapter_failure(test_case.fetch("run"), allowed_map_targets, EXPECTED_SUPPORTED_VERSIONS)
   assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
   assert(actual == expected_code, "#{case_id} 預期 failure code #{expected_code}，實際 #{actual.inspect}", failures)
 end

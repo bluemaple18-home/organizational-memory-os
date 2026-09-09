@@ -108,6 +108,112 @@
       }
     },
     {
+      "case_id": "HERMES_NEG_SELF_WIDENED_VERSIONS",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_INCOMPAT_NOT_LOUD",
+      "covers_hermes_negative_fixture": "the run self-widened its supported hermes versions",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2", "9.9"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "9.9",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_MAPPING_NOT_DECLARED",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_MAPPING_NOT_DECLARED",
+      "covers_hermes_negative_fixture": "the mapped run does not match the declared event map",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "complete",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.0",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_FAKE_FAIL_LOUD",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_FAKE_FAIL_LOUD",
+      "covers_hermes_negative_fixture": "an incompatible outcome without a real failure signal",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": null,
+        "hermes_version": "9.9",
+        "outcome": "INCOMPATIBLE_FAIL_LOUD",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_EVENT_MAP_NO_KEY",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_EVENT_MAP_MALFORMED",
+      "covers_hermes_negative_fixture": "an event map entry has no event key or a duplicate",
+      "run": {
+        "hermes_event_map": [
+          {"mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.0",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_EVENT_MAP_DUPLICATE",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_EVENT_MAP_MALFORMED",
+      "covers_hermes_negative_fixture": "an event map entry has no event key or a duplicate",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"},
+          {"hermes_event": "hermes.task.started", "mapped_to": "complete"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.0",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
       "case_id": "HERMES_NEG_INVALID_OUTCOME",
       "expected": "deny",
       "expected_failure_code": "HERMES_INVALID_OUTCOME",
