@@ -1,0 +1,149 @@
+{
+  "fixture_id": "ai-task-card-record-negative-fixtures-v0.1",
+  "task_card_record_negative_cases": [
+    {
+      "case_id": "TCR_NEG_MISSING_SCOPE",
+      "covers_record_negative_fixture": "task card missing a required field",
+      "expected_failure_code": "CARD_MISSING_REQUIRED_FIELD",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-9001-7aaa-8bbb-111111111111",
+        "objective": "A card with no scope.",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "OPEN",
+        "evidence_refs": []
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TCR_NEG_DONE_EMPTY_EVIDENCE",
+      "covers_record_negative_fixture": "status DONE with empty evidence_refs",
+      "expected_failure_code": "CARD_DONE_WITHOUT_EVIDENCE",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-9002-7aaa-8bbb-111111111111",
+        "objective": "Claim done with no evidence.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "DONE",
+        "evidence_refs": []
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TCR_NEG_DONE_EMPTY_ACCEPTANCE",
+      "covers_record_negative_fixture": "status DONE with empty acceptance",
+      "expected_failure_code": "CARD_MISSING_REQUIRED_FIELD",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-9003-7aaa-8bbb-111111111111",
+        "objective": "Claim done with a blank acceptance.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "   ",
+        "status": "DONE",
+        "evidence_refs": [
+          "urn:omos:evidence:0198e910-9903-7aaa-8bbb-111111111111"
+        ]
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TCR_NEG_SENSITIVE_CONTENT_COPIED",
+      "covers_record_negative_fixture": "sensitive content copied into the card",
+      "expected_failure_code": "CARD_SENSITIVE_CONTENT_COPIED",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-9004-7aaa-8bbb-111111111111",
+        "objective": "Card that pasted a secret instead of referencing it.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "OPEN",
+        "evidence_refs": [],
+        "sensitive_content_copied": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TCR_NEG_BOUNDARY_FORBIDDEN_FIELD",
+      "covers_record_negative_fixture": "boundary forbidden field present on the card",
+      "expected_failure_code": "CARD_CARRIES_FORBIDDEN_FIELD",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-9005-7aaa-8bbb-111111111111",
+        "objective": "Card carrying a memory acceptance receipt.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "IN_REVIEW",
+        "evidence_refs": [],
+        "personal_acceptance_ref": "urn:omos:acceptance:0198e910-9905-7aaa-8bbb-111111111111"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TCR_NEG_INVALID_CARD_ID",
+      "covers_record_negative_fixture": "card_id is not a task-card URN string",
+      "expected_failure_code": "CARD_INVALID_FIELD_TYPE",
+      "card": {
+        "card_id": 12345,
+        "objective": "Card whose id is a number.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "OPEN",
+        "evidence_refs": []
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TCR_NEG_INVALID_EVIDENCE_REF",
+      "covers_record_negative_fixture": "evidence_refs contains a non-URN entry",
+      "expected_failure_code": "CARD_INVALID_FIELD_TYPE",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-9007-7aaa-8bbb-111111111111",
+        "objective": "Card with a bad evidence ref.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "OPEN",
+        "evidence_refs": ["not-a-urn", 123]
+      },
+      "expected": "deny"
+    }
+  ],
+  "lifecycle_replay_negative_cases": [
+    {
+      "case_id": "TCR_LC_NEG_ILLEGAL_TRANSITION",
+      "covers_record_negative_fixture": "illegal status transition",
+      "expected_failure_code": "CARD_ILLEGAL_STATUS_TRANSITION",
+      "events": ["start", "complete"],
+      "final_status": "DONE",
+      "expected": "deny"
+    },
+    {
+      "case_id": "TCR_LC_NEG_UNKNOWN_EVENT",
+      "covers_record_negative_fixture": "unknown lifecycle event",
+      "expected_failure_code": "CARD_UNKNOWN_LIFECYCLE_EVENT",
+      "events": ["start", "frobnicate"],
+      "final_status": "OPEN",
+      "expected": "deny"
+    }
+  ],
+  "integrated_reconstruction_negative_cases": [
+    {
+      "case_id": "TCR_IR_NEG_STATUS_MISMATCH",
+      "covers_record_negative_fixture": "card status disagrees with the replayed lifecycle",
+      "expected_failure_code": "CARD_STATUS_LIFECYCLE_MISMATCH",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-9006-7aaa-8bbb-111111111111",
+        "objective": "Card marked OPEN but its events replay to DONE.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "n/a",
+        "status": "OPEN",
+        "evidence_refs": []
+      },
+      "lifecycle_events": ["start", "submit_review", "complete"],
+      "expected": "deny"
+    }
+  ]
+}

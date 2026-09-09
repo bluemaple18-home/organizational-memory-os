@@ -1,6 +1,6 @@
 ---
 id: SSP298-AIWR-BOUNDARY-20260907
-status: DRAFT_OWNER_REVIEW
+status: ACCEPTED_GO_20260908
 type: implementation
 jira: SSP-298
 lane: B

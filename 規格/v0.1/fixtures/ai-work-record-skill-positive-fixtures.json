@@ -1,0 +1,63 @@
+{
+  "fixture_id": "ai-work-record-skill-positive-fixtures-v0.1",
+  "skill_transform_cases": [
+    {
+      "case_id": "SKILL_POS_START_REVIEW_COMPLETE",
+      "input": {
+        "lifecycle_events": ["start", "submit_review", "complete"],
+        "seed_fields": {
+          "objective": "Land the SSP-300 work-record Skill contract slice.",
+          "scope": "ai-work-record-skill.yaml + validator + fixtures",
+          "constraints": "pure function; no hook/loop/harness; do not re-define SSP-298/299",
+          "acceptance": "validator PASS with 7 required negative labels covered"
+        }
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-1001-7aaa-8bbb-111111111111",
+          "objective": "Land the SSP-300 work-record Skill contract slice.",
+          "scope": "ai-work-record-skill.yaml + validator + fixtures",
+          "constraints": "pure function; no hook/loop/harness; do not re-define SSP-298/299",
+          "acceptance": "validator PASS with 7 required negative labels covered",
+          "status": "DONE",
+          "evidence_refs": [
+            "urn:omos:evidence:0198eb00-2001-7aaa-8bbb-111111111111"
+          ]
+        },
+        "evidence_refs": [
+          "urn:omos:evidence:0198eb00-2001-7aaa-8bbb-111111111111"
+        ],
+        "dry_run": false,
+        "replayed_status": "DONE"
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "SKILL_POS_DRY_RUN_OPEN",
+      "input": {
+        "lifecycle_events": ["start"],
+        "seed_fields": {
+          "objective": "Draft a fresh card.",
+          "scope": "n/a",
+          "constraints": "n/a",
+          "acceptance": "n/a"
+        }
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-1002-7aaa-8bbb-111111111111",
+          "objective": "Draft a fresh card.",
+          "scope": "n/a",
+          "constraints": "n/a",
+          "acceptance": "n/a",
+          "status": "OPEN",
+          "evidence_refs": []
+        },
+        "evidence_refs": [],
+        "dry_run": true,
+        "replayed_status": "OPEN"
+      },
+      "expected": "allow"
+    }
+  ]
+}

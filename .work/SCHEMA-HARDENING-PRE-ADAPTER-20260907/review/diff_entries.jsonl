@@ -1,0 +1,14 @@
+{"added_lines": 13, "binary": false, "old_path": null, "path": ".ai/codex_task_schema_hardening_pre_adapter.md", "removed_lines": 0, "status": "M", "untracked": false}
+{"added_lines": 59, "binary": false, "old_path": null, "path": ".work/CARD-SCHEMA-HARDENING-PRE-ADAPTER-20260907.md", "removed_lines": 0, "status": "M", "untracked": false}
+{"added_lines": 75, "binary": false, "old_path": null, "path": ".work/evidence/SCHEMA-HARDENING-PRE-ADAPTER-20260907.md", "removed_lines": 0, "status": "M", "untracked": false}
+{"added_lines": 31, "binary": false, "old_path": null, "path": "scripts/validate_cc_cross_layer_contract.py", "removed_lines": 1, "status": "M", "untracked": false}
+{"added_lines": 38, "binary": false, "old_path": null, "path": "scripts/validate_personal_memory_contract.rb", "removed_lines": 3, "status": "M", "untracked": false}
+{"added_lines": 33, "binary": false, "old_path": null, "path": "scripts/validate_std00_contract.rb", "removed_lines": 2, "status": "M", "untracked": false}
+{"added_lines": 47, "binary": false, "old_path": null, "path": "scripts/validate_std01_raw_evidence_contract.rb", "removed_lines": 4, "status": "M", "untracked": false}
+{"added_lines": 44, "binary": false, "old_path": null, "path": "scripts/validate_std02_source_anchor_contract.rb", "removed_lines": 5, "status": "M", "untracked": false}
+{"added_lines": 46, "binary": false, "old_path": null, "path": "scripts/validate_std03_normalized_document_contract.rb", "removed_lines": 4, "status": "M", "untracked": false}
+{"added_lines": 87, "binary": false, "old_path": null, "path": "scripts/validate_std_schema_engine.py", "removed_lines": 26, "status": "M", "untracked": false}
+{"added_lines": 2, "binary": false, "old_path": null, "path": "\"/346/226/207/344/273/266//345/276/205/350/276/246/351/207/215/346/225/264.md\"", "removed_lines": 0, "status": "M", "untracked": false}
+{"added_lines": 93, "binary": false, "old_path": null, "path": "\"/350/246/217/346/240/274/v0.1/fixtures/std-02-source-anchor-negative-fixtures.json\"", "removed_lines": 0, "status": "M", "untracked": false}
+{"added_lines": 22, "binary": false, "old_path": null, "path": "\"/350/246/217/346/240/274/v0.1/fixtures/std-03-normalized-document-negative-fixtures.json\"", "removed_lines": 1, "status": "M", "untracked": false}
+{"added_lines": 3, "binary": false, "old_path": null, "path": "\"/350/246/217/346/240/274/v0.1/source-anchor.schema.json\"", "removed_lines": 3, "status": "M", "untracked": false}

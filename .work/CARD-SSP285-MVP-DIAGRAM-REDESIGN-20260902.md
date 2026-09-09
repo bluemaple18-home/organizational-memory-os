@@ -1,0 +1,8 @@
+# CARD-SSP285-MVP-DIAGRAM-REDESIGN-20260902
+
+- objective：`KM-SLICE-SSP285-01` 將現有 KM 工程圖縮限為 SSP-285 真正的 MVP 閉環；traces_to=`US-001,US-002,US-003,FR-001..FR-006,SC-001..SC-004`；只交付可獨立開啟的繁中互動 HTML。
+- scope：覆寫 visualization fragment `km-mvp-engineering-tunnel.html`，並以 Visualize `render.py` 重產 workspace standalone `km-mvp-engineering-tunnel.html`；主流程固定為 8 節點：①分類／目錄／範本 ②人工文字／Markdown 收錄 ③必要 metadata 驗證 ④Proposal ⑤人工 Review ⑥Approved 正式知識 ⑦基本搜尋／結果／來源／版本／引用／找不到 ⑧更新→Superseded／Archived→歷史；另設「種子知識＋代表性查詢＋操作文件＋已知限制」驗收軌。
+- constraints：禁止 Jira／外部 write；禁止外部同步、Jira connector/Webhook、OCR／多媒體 parser、LLM 擷取、Agent Team、Hook／預算／重試引擎、CloudEvents／UUIDv7／W3C PROV／OpenLineage、DeepEval 平台、canonical-writer 微服務、Qdrant／向量／圖／混合檢索、Answer Bot、複雜多租戶／ACL；不寫供應商與框架選型；必要 metadata 需具體列出 `title, summary, source, status, version, owner, last_reviewed_at`。
+- acceptance：所有卡預設正常亮度；僅 hover/focus 啟動 active＋一跳關聯，無關卡及線降亮；mouseleave/focusout 回全圖，click/tap 只更新詳情；流程連線清楚且 M08 新修訂只回 Proposal，不直接改 Approved；找不到可信答案明示「找不到」；狀態字串精確包含 `Proposal → Review → Approved → Superseded／Archived`；320/736/1024、light/dark、鍵盤、console 無錯，沒有線穿卡／標籤；票面 7 deliverables、5 acceptance、4 non-goals 有可見 trace。
+- evidence_and_route：change_mode=`redesign`、surface=`read`、visual_route=`quiet relationship-first MVP workflow`；standard→`gpt-5.6-terra medium`；TDD 不適用（單一視覺 artifact），改採 fragment policy scan＋JS syntax＋edge/node/term assertions＋Visualize render＋browser screenshot/hover/console evidence；完成後回報實際檔案、驗證結果與 residual risk，主線負責最終驗收。
+- status：`PARTIAL_ACCEPTED`；8 nodes／8 edges、ticket scope、fragment/standalone 一致性、JS/render/diff assertions 通過；browser runtime 因 `file://` URL policy `BLOCKED_BY_POLICY`，未宣稱 320/736/1024 light/dark/hover/console 已通過。

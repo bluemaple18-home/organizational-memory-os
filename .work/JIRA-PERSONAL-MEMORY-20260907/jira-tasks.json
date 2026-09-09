@@ -1,0 +1,342 @@
+{
+  "schema_version": "1.0",
+  "feature_id": "FEAT-20260907-d65b",
+  "project_key": "SSP",
+  "existing_parent": "MNG-305",
+  "relates_to": "SSP-285",
+  "issue_type_mapping": {
+    "main": "任務",
+    "child": "子任務"
+  },
+  "defaults": {
+    "priority": "P2",
+    "assignee": null,
+    "start_date": null,
+    "due_date": null,
+    "labels": ["pm-handoff", "employee-memory"]
+  },
+  "main_tasks": [
+    {
+      "id": "JIRA-DRAFT-EPM-000",
+      "summary": "[MVP] 建立員工個人記憶閉環",
+      "status_after_create": "待辦事項",
+      "user_story": "身為公司知識產品 Owner，我希望員工能把 Jira 與文件中的工作 Evidence 沉澱為受權限保護、可引用、可修正的個人記憶，以便保留個人工作脈絡，並透過審核將適合內容升格為組織知識。",
+      "acceptance": [
+        "Jira 與 Document Evidence 可追溯至 RawEvidenceEnvelope 與 SourceAnchor。",
+        "Candidate、Accepted Personal Memory 與 Company Knowledge 維持不同資源及 lifecycle。",
+        "未授權、過期或不適用的個人記憶不進入模型上下文。",
+        "Correction 不覆寫歷史；Promotion 無法跳過 redaction、review 與 single writer。",
+        "產品部完成一條 Jira＋Document 的端到端 pilot。"
+      ],
+      "dod": "EMEM-02～06 全部驗收；權限與 promotion 負例通過；EMEM-07／08 不納入本次 MVP 完成判定。",
+      "traces_to": ["EMEM-00", "EMEM-01", "EMEM-02", "EMEM-03", "EMEM-04", "EMEM-05", "EMEM-06"],
+      "children": [
+        {
+          "id": "JIRA-DRAFT-EPM-001",
+          "summary": "EMEM-00｜個人範圍、Ownership 與 Privacy Contract（歷史補登）",
+          "status_after_create": "完成",
+          "user_story": "身為員工，我希望清楚知道不同 personal scope 下誰能讀取、刪除、匯出或升格我的記憶，以免 PERSONAL 被解讀成公司可任意搜尋。",
+          "acceptance": [
+            "三種 scope mode 有明確 ownership、visibility 與 consent／notice。",
+            "Employee、Manager、Admin、Reviewer、System 權限可由政策表達。",
+            "Retention、legal hold、offboarding、export、delete 有明確語意。",
+            "Source ACL 是權限上限，Admin 不會自動取得全部個人記憶。"
+          ],
+          "dod": "既有 validator、正負 fixtures、獨立 review 與主線驗收均通過；證據 commit 8ac5c24。",
+          "traces_to": ["EMEM-00", "employee_memory_scope_modes", "ownership_visibility_contract"],
+          "depends_on": []
+        },
+        {
+          "id": "JIRA-DRAFT-EPM-002",
+          "summary": "EMEM-01｜Personal Memory Candidate／Record Contract（歷史補登）",
+          "status_after_create": "完成",
+          "user_story": "身為員工，我希望待確認的記憶候選與正式接受的個人記憶保持分離，以免模型建議或工作完成訊息直接成為長期記憶。",
+          "acceptance": [
+            "Candidate、Record、SupportLink、ConflictSet 有可驗證契約。",
+            "Candidate 不可只改 status 就變成 Record。",
+            "Record 必須具備 Evidence、SourceAnchor、verification 與 personal acceptance。",
+            "暫時 task／branch／runtime 狀態預設拒絕成為長期記憶。"
+          ],
+          "dod": "既有 resource validator、正負 fixtures、修復與獨立複驗均通過；證據 commit 8ac5c24。",
+          "traces_to": ["EMEM-01", "personal_memory_resource_contracts", "not_long_lived_memory_by_default"],
+          "depends_on": ["JIRA-DRAFT-EPM-001"]
+        },
+        {
+          "id": "JIRA-DRAFT-EPM-003",
+          "summary": "Personal Knowledge｜定義 L1～L4 能力等級契約",
+          "status_after_create": "待辦事項",
+          "user_story": "身為產品 Owner，我希望所有員工共用同一 Personal Memory contract，並以 L1～L4 控制自動化深度，以便逐步導入而不分裂資料語意。",
+          "acceptance": [
+            "L1 可人工收錄、確認、Recall 與 Citation。",
+            "L2 可自動 ingest、去重、版本與 ACL 處理，但 Candidate 仍待確認。",
+            "L3 可跨來源關聯、提示 conflict／freshness／missing evidence。",
+            "L4 可主動提出 correction／promotion，但不可跳過 authority gate。",
+            "等級降低不取消 Permission、Provenance 與 Single Writer safety floor。"
+          ],
+          "dod": "四級能力矩陣、合法升降級與安全負例可由 machine-readable profile 驗證。",
+          "traces_to": ["capability_levels", "EMEM-02"],
+          "depends_on": ["JIRA-DRAFT-EPM-001", "JIRA-DRAFT-EPM-002"]
+        },
+        {
+          "id": "JIRA-DRAFT-EPM-004",
+          "summary": "EMEM-02｜Personal Evidence Profile 與來源映射",
+          "status_after_create": "待辦事項",
+          "user_story": "身為不同角色的員工，我希望獲准的 Jira 與文件來源映射到同一 Evidence contract，以便個人記憶不依賴特定工具或第二套資料模型。",
+          "acceptance": [
+            "EmployeeMemoryProfile 可表達 connector grants、capture scope、consent 與政策引用。",
+            "Document／Jira 只映射到既有 RawEvidence、SourceAnchor、NormalizedDocument。",
+            "Source ACL、版本與 lineage 不因 personal profile 遺失或放寬。",
+            "未授權來源、暫時 Jira 狀態及 runtime completion 均 fail closed。",
+            "Schema、正負 fixtures、validator 與 cross-layer regression 全數通過。"
+          ],
+          "dod": "Profile、Document mapping、Jira mapping 與驗證證據完成；不部署 connector。",
+          "traces_to": ["EMEM-02", "employee_memory_profile_minimum", "phase_1_pilot.first_sources"],
+          "depends_on": ["JIRA-DRAFT-EPM-003", "STD-00", "STD-01", "STD-02", "STD-03"]
+        },
+        {
+          "id": "JIRA-DRAFT-EPM-005",
+          "summary": "EMEM-03｜Recall 與 MemoryContextPack",
+          "status_after_create": "待辦事項",
+          "user_story": "身為員工，我希望依目前目的取回適用、最新且有引用的個人記憶，以便在有限上下文內使用可信資訊。",
+          "acceptance": [
+            "輸入包含 intent、requester、scope 與 context budget。",
+            "權限過濾在 retrieval／LLM 前完成。",
+            "輸出包含 memory refs、source refs、freshness 與 permission decision。",
+            "過期、不適用或因預算省略的內容有明確 gap notice。",
+            "不存在搜尋全部員工個人記憶後再靠 prompt 防洩漏的路徑。"
+          ],
+          "dod": "合法、拒絕、過期與超預算案例可重現，並有 citation 與 permission receipt。",
+          "traces_to": ["EMEM-03", "recall_context_pack", "personal_memory_governance"],
+          "depends_on": ["JIRA-DRAFT-EPM-002"]
+        },
+        {
+          "id": "JIRA-DRAFT-EPM-006",
+          "summary": "EMEM-04｜Correction 與 Supersession",
+          "status_after_create": "待辦事項",
+          "user_story": "身為員工，我希望修正過時或錯誤的個人記憶並保留原始歷史，以便內容可以更新且仍可稽核。",
+          "acceptance": [
+            "Correction 由 Evidence 與 Proposal 啟動。",
+            "Amend、Invalidate、Supersede 有明確狀態與 receipt。",
+            "舊 Record 不會被原地覆寫。",
+            "修正前必須完成 verification 與 acceptance。",
+            "缺 Evidence、跳過 acceptance 與 history erasure 負例均被拒絕。"
+          ],
+          "dod": "Correction lifecycle、正負 fixtures、validator 與歷史追溯驗證完成。",
+          "traces_to": ["EMEM-04", "correction_flow", "CORRECTION_CREATES_REVISION_NOT_HISTORY_ERASURE"],
+          "depends_on": ["JIRA-DRAFT-EPM-002"]
+        },
+        {
+          "id": "JIRA-DRAFT-EPM-007",
+          "summary": "EMEM-05｜PERSONAL 到 Shared Promotion Proposal",
+          "status_after_create": "待辦事項",
+          "user_story": "身為員工，我希望提議把適合共享的個人記憶升格為團隊或公司知識，以便分享成果而不擴大私人內容或來源權限。",
+          "acceptance": [
+            "Promotion 建立新 Proposal，不直接複製 Personal Record。",
+            "Evidence、source ACL、ownership、visibility 與 redaction 均被檢查。",
+            "Verification 與 Reviewer approval 不可跳過。",
+            "Shared canonical resource 使用新 identity。",
+            "只有 Canonical Single Writer 能完成正式寫入。"
+          ],
+          "dod": "直接 copy、confidence promotion、缺 redaction／review／writer 等負例全部通過。",
+          "traces_to": ["EMEM-05", "promotion_flow", "promotion_widening_gate"],
+          "depends_on": ["JIRA-DRAFT-EPM-001", "JIRA-DRAFT-EPM-002", "Permission-Retention-Deletion", "Canonical-Direct-Write-Audit"]
+        },
+        {
+          "id": "JIRA-DRAFT-EPM-008",
+          "summary": "EMEM-06｜產品部 Jira＋Document Vertical Pilot",
+          "status_after_create": "待辦事項",
+          "user_story": "身為產品部員工，我希望從 Jira 與文件建立、接受、回憶、修正及提議共享個人記憶，以便驗證完整產品價值與治理邊界。",
+          "acceptance": [
+            "Jira 與 Document 各完成一條 Evidence 到 Candidate 路徑。",
+            "員工可以接受或拒絕 Candidate。",
+            "Recall 有 citation、freshness 與 gap notice。",
+            "Correction 保留歷史。",
+            "跨員工讀取、缺 redaction／review／writer 均被拒絕。"
+          ],
+          "dod": "端到端 acceptance report 完成，所有 P0／P1 正負案例通過。",
+          "traces_to": ["EMEM-06", "phase_1_pilot.slice"],
+          "depends_on": ["JIRA-DRAFT-EPM-004", "JIRA-DRAFT-EPM-005", "JIRA-DRAFT-EPM-006", "JIRA-DRAFT-EPM-007"]
+        },
+        {
+          "id": "JIRA-DRAFT-EPM-009",
+          "summary": "EMEM-07｜角色 Profile（MVP 後評估）",
+          "status_after_create": "待辦事項",
+          "user_story": "身為平台管理者，我希望用 profile 設定角色來源與預設政策但不分裂核心 lifecycle，以便 PM、RD、MD、Sales 使用同一標準。",
+          "acceptance": [
+            "Profile 只設定來源、priority、sensitivity、retention 與 review。",
+            "Extension 必須 namespaced。",
+            "Profile 不得改 Evidence identity、核心 schema 或 promotion gate。"
+          ],
+          "dod": "產品部 pilot 穩定後，至少 PM Profile 通過共用 validator；未觸發前維持 Deferred。",
+          "traces_to": ["EMEM-07", "role_profiles"],
+          "depends_on": ["JIRA-DRAFT-EPM-008"]
+        },
+        {
+          "id": "JIRA-DRAFT-EPM-010",
+          "summary": "EMEM-08｜AI Core Developer Adapter（Optional）",
+          "status_after_create": "待辦事項",
+          "user_story": "身為開發者，我希望把已接受的 AI Core lesson、decision 與 receipt 作為個人記憶來源，以便重用工程經驗而不讓 AI Core 成為全員依賴。",
+          "acceptance": [
+            "只接收 accepted result、Git artifact、review 或 execution receipt。",
+            "Task state、branch、worktree、runtime completion 預設拒絕。",
+            "AI Core 實體資料夾不成為公司 schema。",
+            "Adapter 不取得 acceptance 或 canonical writer authority。"
+          ],
+          "dod": "只有 pilot 明確觸發後才施工；未觸發前維持 Optional／Deferred。",
+          "traces_to": ["EMEM-08", "ai_core_donor_mapping", "runtime_policy"],
+          "depends_on": ["JIRA-DRAFT-EPM-008"]
+        }
+      ]
+    },
+    {
+      "id": "JIRA-DRAFT-AIWR-000",
+      "summary": "[MVP] 建立 AI 工作紀錄自動化執行層（非 Personal Memory Authority）",
+      "status_after_create": "待辦事項",
+      "labels": ["pm-handoff", "ai-work-record"],
+      "user_story": "身為使用 AI 的同事，我希望任務過程能自動形成一致、可驗證的工作紀錄，以便交接與回報，同時不把 runtime 狀態直接當成長期個人記憶。",
+      "acceptance": [
+        "AI 任務事件可產生一致的工作紀錄草稿與 evidence reference。",
+        "Skill、Hook、Loop、Harness、Hermes 各自維持單一責任與可替換邊界。",
+        "Runtime completion 只形成 Work Context／Candidate，不直接成為 Accepted Memory。",
+        "所有自動步驟可 dry-run、fail loud，並停在人類 acceptance gate。",
+        "一般員工不需要安裝完整 AI Core 或常駐 agent daemon。"
+      ],
+      "dod": "八個子任務驗收完成；端到端產生一張符合 contract 的工作紀錄，且未繞過 personal memory acceptance。",
+      "traces_to": ["AIWR-00", "runtime_policy", "not_long_lived_memory_by_default"],
+      "children": [
+        {
+          "id": "JIRA-DRAFT-AIWR-001",
+          "summary": "AIWR-01｜鎖定 AI 工作紀錄與 Personal Memory 邊界",
+          "status_after_create": "待辦事項",
+          "user_story": "身為產品 Owner，我希望先定義 Task Card、WorkRecord、Evidence 與 Memory Candidate 的邊界，以免自動化把執行狀態誤升為長期記憶。",
+          "acceptance": [
+            "Task Card 是工作控制／回報資料，不是 Personal Memory。",
+            "可升格內容必須先成 Evidence，再形成 Candidate。",
+            "Branch、worktree、runtime done 與 model confidence 不具 acceptance authority。",
+            "輸入、輸出、錯誤與人工 gate 有明確契約。"
+          ],
+          "dod": "邊界契約與負例獲 Owner 接受，沒有第二套 workflow authority。",
+          "traces_to": ["AIWR-01", "runtime_policy", "not_long_lived_memory_by_default"],
+          "depends_on": []
+        },
+        {
+          "id": "JIRA-DRAFT-AIWR-002",
+          "summary": "AIWR-02｜AI 任務卡自動紀錄格式",
+          "status_after_create": "待辦事項",
+          "user_story": "身為使用 AI 的同事，我希望每次任務都自動產生固定格式的卡片，以便主管能看到目標、狀態、結果與證據。",
+          "acceptance": [
+            "卡片包含 objective、scope、constraints、acceptance、status 與 evidence refs。",
+            "開始、阻塞、完成與取消事件有確定性狀態映射。",
+            "缺必要欄位時 fail closed，不產生假完成。",
+            "敏感內容只存 reference，不複製進卡片。"
+          ],
+          "dod": "正負 fixtures 與 validator 通過，至少一個真實任務可重建同一張卡。",
+          "traces_to": ["AIWR-02"],
+          "depends_on": ["JIRA-DRAFT-AIWR-001"]
+        },
+        {
+          "id": "JIRA-DRAFT-AIWR-003",
+          "summary": "AIWR-03｜工作紀錄 Skill",
+          "status_after_create": "待辦事項",
+          "user_story": "身為 AI 使用者，我希望以單一 Skill 將任務輸入轉為合規工作紀錄，以便不同 AI 工具沿用相同格式。",
+          "acceptance": [
+            "Skill 只負責事件到工作紀錄草稿的轉換。",
+            "輸入／輸出 schema、dry-run 與錯誤訊息明確。",
+            "Skill 不直接接受 Memory 或寫 Company Knowledge。",
+            "沒有 runtime 特定狀態時仍可獨立測試。"
+          ],
+          "dod": "Skill 以 fixtures 通過正向、缺欄位與越權負例；可由至少一個 runtime 呼叫。",
+          "traces_to": ["AIWR-03"],
+          "depends_on": ["JIRA-DRAFT-AIWR-002"]
+        },
+        {
+          "id": "JIRA-DRAFT-AIWR-004",
+          "summary": "AIWR-04｜Hook 事件擷取",
+          "status_after_create": "待辦事項",
+          "user_story": "身為 AI 使用者，我希望在任務開始、更新與完成時自動觸發紀錄，以減少人工漏記。",
+          "acceptance": [
+            "Hook 只擷取允許的 lifecycle events。",
+            "重複事件可冪等處理，失敗不阻斷原始任務。",
+            "Hook 不讀取未授權內容，也不執行 memory acceptance。",
+            "可關閉並回退為手動 Skill 呼叫。"
+          ],
+          "dod": "Hook 正常、重複、缺權限與停用案例通過；rollback 有證據。",
+          "traces_to": ["AIWR-04"],
+          "depends_on": ["JIRA-DRAFT-AIWR-003"]
+        },
+        {
+          "id": "JIRA-DRAFT-AIWR-005",
+          "summary": "AIWR-05｜Loop 收口與缺口補登",
+          "status_after_create": "待辦事項",
+          "user_story": "身為任務 Owner，我希望在工作結束時檢查缺失欄位與未完成事項，以便卡片在交接前完整但不陷入無限重試。",
+          "acceptance": [
+            "Loop 有明確終止條件、最大次數與 timeout。",
+            "只補必要 evidence／status，不擴張任務 scope。",
+            "缺人類決策時停止並標記 blocker。",
+            "無法修復時 fail loud，保留原始證據。"
+          ],
+          "dod": "正常收口、缺欄位、需要人類決策與超限案例通過。",
+          "traces_to": ["AIWR-05"],
+          "depends_on": ["JIRA-DRAFT-AIWR-003"]
+        },
+        {
+          "id": "JIRA-DRAFT-AIWR-006",
+          "summary": "AIWR-06｜輕量 Harness 編排",
+          "status_after_create": "待辦事項",
+          "user_story": "身為產品維護者，我希望用輕量 Harness 串接 Skill、Hook 與 Loop，以便統一執行與驗證但不建立第二套 runtime。",
+          "acceptance": [
+            "Harness 僅編排既有能力，不建立 registry、FSM 或資料庫。",
+            "每一步 input／output、timeout、錯誤與 receipt 可追溯。",
+            "預設單 agent／順序執行，只有量測缺口才 fan-out。",
+            "可移除並退回直接呼叫 Skill。"
+          ],
+          "dod": "最小 happy path、單步失敗與 rollback 驗證通過，無常駐服務依賴。",
+          "traces_to": ["AIWR-06"],
+          "depends_on": ["JIRA-DRAFT-AIWR-004", "JIRA-DRAFT-AIWR-005"]
+        },
+        {
+          "id": "JIRA-DRAFT-AIWR-007",
+          "summary": "AIWR-07｜Hermes 薄 Adapter",
+          "status_after_create": "待辦事項",
+          "user_story": "身為 Hermes 使用者，我希望 Hermes 能呼叫同一工作紀錄契約，以便替換 executor 而不改變資料與治理語意。",
+          "acceptance": [
+            "Adapter 只映射 Hermes event 與既有 Skill I/O。",
+            "Hermes 不取得 acceptance、permission 或 canonical writer authority。",
+            "未安裝 Hermes 時核心流程仍可使用。",
+            "版本不相容時 fail loud 並可停用 Adapter。"
+          ],
+          "dod": "Hermes mapping、compatibility 負例與停用回退通過；無全員安裝要求。",
+          "traces_to": ["AIWR-07", "runtime_policy"],
+          "depends_on": ["JIRA-DRAFT-AIWR-006"]
+        },
+        {
+          "id": "JIRA-DRAFT-AIWR-008",
+          "summary": "AIWR-08｜端到端驗收與主管進度視圖",
+          "status_after_create": "待辦事項",
+          "user_story": "身為主管，我希望從 Jira 看見 AI 任務從開始到收口的進度、結果與阻塞，以便不讀取敏感工作內容也能掌握交付。",
+          "acceptance": [
+            "一個真實任務可產生開始、更新、完成與 evidence receipt。",
+            "Jira 顯示目標、狀態、阻塞、驗收與證據連結。",
+            "敏感內容不被複製到主管視圖。",
+            "失敗、取消與人工介入都有明確狀態。",
+            "WorkRecord 只有經 Candidate／Acceptance 才可成為 Personal Memory。"
+          ],
+          "dod": "端到端正向與 fail-closed 驗收完成，主管可從 Jira 重現進度判定。",
+          "traces_to": ["AIWR-08"],
+          "depends_on": ["JIRA-DRAFT-AIWR-002", "JIRA-DRAFT-AIWR-003", "JIRA-DRAFT-AIWR-004", "JIRA-DRAFT-AIWR-005", "JIRA-DRAFT-AIWR-006", "JIRA-DRAFT-AIWR-007"]
+        }
+      ]
+    }
+  ],
+  "external_mutations_after_confirmation": {
+    "create": {"tasks": 2, "subtasks": 18},
+    "transition_to_done": ["JIRA-DRAFT-EPM-001", "JIRA-DRAFT-EPM-002"],
+    "links": [
+      "JIRA-DRAFT-EPM-000 relates to SSP-285",
+      "JIRA-DRAFT-AIWR-000 relates to SSP-285",
+      "JIRA-DRAFT-AIWR-000 relates to JIRA-DRAFT-EPM-000"
+    ],
+    "attachments": [],
+    "comments": []
+  }
+}

@@ -1,0 +1,220 @@
+{
+  "fixture_id": "ai-work-record-skill-negative-fixtures-v0.1",
+  "skill_transform_negative_cases": [
+    {
+      "case_id": "SKILL_NEG_MISSING_SEED_FIELD",
+      "covers_skill_negative_fixture": "missing a seed field",
+      "expected_failure_code": "MISSING_INPUT_FIELD",
+      "input": {
+        "lifecycle_events": ["start"],
+        "seed_fields": {
+          "objective": "Card with no scope seed.",
+          "constraints": "n/a",
+          "acceptance": "n/a"
+        }
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9001-7aaa-8bbb-111111111111",
+          "objective": "x", "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "OPEN", "evidence_refs": []
+        },
+        "evidence_refs": [], "dry_run": true, "replayed_status": "OPEN"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "SKILL_NEG_UNKNOWN_LIFECYCLE_EVENT",
+      "covers_skill_negative_fixture": "unknown lifecycle event",
+      "expected_failure_code": "UNKNOWN_LIFECYCLE_EVENT",
+      "input": {
+        "lifecycle_events": ["start", "frobnicate"],
+        "seed_fields": {"objective": "x", "scope": "x", "constraints": "x", "acceptance": "x"}
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9002-7aaa-8bbb-111111111111",
+          "objective": "x", "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "OPEN", "evidence_refs": []
+        },
+        "evidence_refs": [], "dry_run": true, "replayed_status": "OPEN"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "SKILL_NEG_DRAFT_CARD_INVALID",
+      "covers_skill_negative_fixture": "draft card is not contract-valid",
+      "expected_failure_code": "DRAFT_CARD_INVALID",
+      "input": {
+        "lifecycle_events": ["start"],
+        "seed_fields": {"objective": "x", "scope": "x", "constraints": "x", "acceptance": "x"}
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9003-7aaa-8bbb-111111111111",
+          "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "OPEN", "evidence_refs": []
+        },
+        "evidence_refs": [], "dry_run": true, "replayed_status": "OPEN"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "SKILL_NEG_EVIDENCE_INLINE_CONTENT",
+      "covers_skill_negative_fixture": "evidence ref carries inline content",
+      "expected_failure_code": "EVIDENCE_INLINE_CONTENT",
+      "input": {
+        "lifecycle_events": ["start"],
+        "seed_fields": {"objective": "x", "scope": "x", "constraints": "x", "acceptance": "x"}
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9004-7aaa-8bbb-111111111111",
+          "objective": "x", "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "OPEN", "evidence_refs": []
+        },
+        "evidence_refs": [
+          "urn:omos:evidence:0198eb00-9404-7aaa-8bbb-111111111111",
+          {"inline": "pasted secret instead of a reference"}
+        ],
+        "dry_run": true,
+        "replayed_status": "OPEN"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "SKILL_NEG_OUTPUT_CARRIES_MEMORY_ACCEPTANCE",
+      "covers_skill_negative_fixture": "output carries a memory acceptance field",
+      "expected_failure_code": "SKILL_EXCEEDS_AUTHORITY",
+      "input": {
+        "lifecycle_events": ["start"],
+        "seed_fields": {"objective": "x", "scope": "x", "constraints": "x", "acceptance": "x"}
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9005-7aaa-8bbb-111111111111",
+          "objective": "x", "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "OPEN", "evidence_refs": []
+        },
+        "evidence_refs": [], "dry_run": true, "replayed_status": "OPEN",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198eb00-9505-7aaa-8bbb-111111111111"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "SKILL_NEG_REPLAYED_STATUS_MISMATCH",
+      "covers_skill_negative_fixture": "replayed status does not match the events",
+      "expected_failure_code": "REPLAYED_STATUS_MISMATCH",
+      "input": {
+        "lifecycle_events": ["start", "submit_review", "complete"],
+        "seed_fields": {"objective": "x", "scope": "x", "constraints": "x", "acceptance": "x"}
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9006-7aaa-8bbb-111111111111",
+          "objective": "x", "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "DONE",
+          "evidence_refs": ["urn:omos:evidence:0198eb00-9606-7aaa-8bbb-111111111111"]
+        },
+        "evidence_refs": ["urn:omos:evidence:0198eb00-9606-7aaa-8bbb-111111111111"],
+        "dry_run": false,
+        "replayed_status": "OPEN"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "SKILL_NEG_FAIL_SILENT",
+      "covers_skill_negative_fixture": "error but output still claims success",
+      "expected_failure_code": "FAIL_SILENT",
+      "input": {
+        "lifecycle_events": ["start"],
+        "seed_fields": {"objective": "x", "scope": "x", "constraints": "x", "acceptance": "x"}
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9007-7aaa-8bbb-111111111111",
+          "objective": "x", "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "OPEN", "evidence_refs": []
+        },
+        "evidence_refs": [], "dry_run": true, "replayed_status": "OPEN",
+        "error": "adapter threw, event stream truncated"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "SKILL_NEG_ILLEGAL_LIFECYCLE_TRANSITION",
+      "covers_skill_negative_fixture": "skill accepts an illegal lifecycle transition",
+      "expected_failure_code": "ILLEGAL_STATUS_TRANSITION",
+      "input": {
+        "lifecycle_events": ["start", "complete"],
+        "seed_fields": {"objective": "x", "scope": "x", "constraints": "x", "acceptance": "x"}
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9008-7aaa-8bbb-111111111111",
+          "objective": "x", "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "DONE",
+          "evidence_refs": ["urn:omos:evidence:0198eb00-9608-7aaa-8bbb-111111111111"]
+        },
+        "evidence_refs": ["urn:omos:evidence:0198eb00-9608-7aaa-8bbb-111111111111"],
+        "dry_run": false, "replayed_status": "DONE"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "SKILL_NEG_DRAFT_CARD_SENSITIVE_CONTENT",
+      "covers_skill_negative_fixture": "draft card copies sensitive content",
+      "expected_failure_code": "DRAFT_CARD_INVALID",
+      "input": {
+        "lifecycle_events": ["start"],
+        "seed_fields": {"objective": "x", "scope": "x", "constraints": "x", "acceptance": "x"}
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9009-7aaa-8bbb-111111111111",
+          "objective": "x", "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "OPEN", "evidence_refs": [],
+          "sensitive_content_copied": true
+        },
+        "evidence_refs": [], "dry_run": true, "replayed_status": "OPEN"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "SKILL_NEG_DRY_RUN_NOT_BOOLEAN",
+      "covers_skill_negative_fixture": "dry_run is not a boolean",
+      "expected_failure_code": "DRY_RUN_NOT_BOOLEAN",
+      "input": {
+        "lifecycle_events": ["start"],
+        "seed_fields": {"objective": "x", "scope": "x", "constraints": "x", "acceptance": "x"}
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9010-7aaa-8bbb-111111111111",
+          "objective": "x", "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "OPEN", "evidence_refs": []
+        },
+        "evidence_refs": [], "dry_run": "banana", "replayed_status": "OPEN"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "SKILL_NEG_DRAFT_CARD_STATUS_MISMATCH",
+      "covers_skill_negative_fixture": "draft card status disagrees with the replay",
+      "expected_failure_code": "DRAFT_CARD_STATUS_MISMATCH",
+      "input": {
+        "lifecycle_events": ["start"],
+        "seed_fields": {"objective": "x", "scope": "x", "constraints": "x", "acceptance": "x"}
+      },
+      "output": {
+        "draft_card": {
+          "card_id": "urn:omos:task-card:0198eb00-9011-7aaa-8bbb-111111111111",
+          "objective": "x", "scope": "x", "constraints": "x", "acceptance": "x",
+          "status": "IN_REVIEW", "evidence_refs": []
+        },
+        "evidence_refs": [], "dry_run": true, "replayed_status": "OPEN"
+      },
+      "expected": "deny"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 ---
 id: SSP300-WORK-RECORD-SKILL-20260909
-status: DRAFT_OWNER_REVIEW
+status: ACCEPTED_GO_20260909
 type: implementation
 jira: SSP-300
 lane: B

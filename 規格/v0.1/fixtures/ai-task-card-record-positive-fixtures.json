@@ -1,0 +1,65 @@
+{
+  "fixture_id": "ai-task-card-record-positive-fixtures-v0.1",
+  "task_card_record_cases": [
+    {
+      "case_id": "TCR_POS_OPEN_MINIMAL",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-1001-7aaa-8bbb-111111111111",
+        "objective": "Land the SSP-299 task card record contract slice.",
+        "scope": "ai-task-card-record.yaml + validator + fixtures",
+        "constraints": "no skill/hook/loop/harness; do not re-define SSP-298 boundary",
+        "acceptance": "validator PASS with 7 required negative labels covered",
+        "status": "OPEN",
+        "evidence_refs": []
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "TCR_POS_DONE_WITH_EVIDENCE",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-1002-7aaa-8bbb-111111111111",
+        "objective": "Ship the document adapter mapping slice.",
+        "scope": "document adapter mapping",
+        "constraints": "reuse STD-01/02/03",
+        "acceptance": "independent review GO",
+        "status": "DONE",
+        "evidence_refs": [
+          "urn:omos:evidence:0198e910-2001-7aaa-8bbb-111111111111"
+        ]
+      },
+      "expected": "allow"
+    }
+  ],
+  "lifecycle_replay_cases": [
+    {
+      "case_id": "TCR_LC_POS_START_REVIEW_COMPLETE",
+      "events": ["start", "submit_review", "complete"],
+      "final_status": "DONE",
+      "expected": "allow"
+    },
+    {
+      "case_id": "TCR_LC_POS_START_BLOCK_UNBLOCK_CANCEL",
+      "events": ["start", "block", "unblock", "cancel"],
+      "final_status": "CANCELLED",
+      "expected": "allow"
+    }
+  ],
+  "integrated_reconstruction_cases": [
+    {
+      "case_id": "TCR_IR_POS_CONSISTENT",
+      "card": {
+        "card_id": "urn:omos:task-card:0198e910-1003-7aaa-8bbb-111111111111",
+        "objective": "A card whose status matches its lifecycle.",
+        "scope": "n/a",
+        "constraints": "n/a",
+        "acceptance": "independent review GO",
+        "status": "DONE",
+        "evidence_refs": [
+          "urn:omos:evidence:0198e910-2003-7aaa-8bbb-111111111111"
+        ]
+      },
+      "lifecycle_events": ["start", "submit_review", "complete"],
+      "expected": "allow"
+    }
+  ]
+}

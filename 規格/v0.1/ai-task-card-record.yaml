@@ -1,0 +1,117 @@
+schema:
+  schema_id: urn:omos:schema:ai-task-card-record:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-08'
+  traces_to:
+    - AIWR-02
+  builds_on: 規格/v0.1/ai-work-record-boundary.yaml#authority_boundary.task_card
+
+purpose:
+  statement: >-
+    A machine-readable record format for an AI task card so every task
+    reconstructs the same card, lifecycle events map deterministically to
+    status, and a missing field never yields a false completion. It extends the
+    SSP-298 task_card boundary with field-level format and event mapping; it
+    does not re-define that boundary or the promotion path.
+  no_second_workflow_authority: true
+
+fields:
+  card_id:
+    type: urn
+    required: true
+  objective:
+    type: string
+    required: true
+    non_empty: true
+  scope:
+    type: string
+    required: true
+    non_empty: true
+  constraints:
+    type: string
+    required: true
+    non_empty: true
+  acceptance:
+    type: string
+    required: true
+    non_empty: true
+  status:
+    type: enum
+    required: true
+  evidence_refs:
+    type: urn_array
+    required: true
+
+status_enum:
+  - OPEN
+  - BLOCKED
+  - IN_REVIEW
+  - DONE
+  - CANCELLED
+
+allowed_status_transitions:
+  OPEN:
+    - BLOCKED
+    - IN_REVIEW
+    - CANCELLED
+  BLOCKED:
+    - OPEN
+    - CANCELLED
+  IN_REVIEW:
+    - OPEN
+    - DONE
+    - CANCELLED
+  DONE: []
+  CANCELLED: []
+
+lifecycle_event_to_status:
+  start: OPEN
+  block: BLOCKED
+  unblock: OPEN
+  submit_review: IN_REVIEW
+  complete: DONE
+  cancel: CANCELLED
+
+fail_closed_rules:
+  - missing any required field
+  - status is DONE but evidence_refs is empty
+  - status is DONE but acceptance is empty
+  - a status transition not in allowed_status_transitions
+  - a lifecycle event not in lifecycle_event_to_status
+  - sensitive content copied instead of referenced
+  - a forbidden_field from the boundary contract present on the card
+
+reconstruction:
+  deterministic: true
+  rule: >-
+    Replaying the same ordered lifecycle_events over the same seed fields must
+    produce the same card. The first event must be `start`. Each event maps to a
+    target status via lifecycle_event_to_status; every step must be in
+    allowed_status_transitions for the current status. The final card status
+    equals lifecycle_event_to_status of the last event.
+
+cross_reference:
+  boundary_spec: 規格/v0.1/ai-work-record-boundary.yaml
+  task_card_path: authority_boundary.task_card
+  must_match:
+    is_personal_memory: false
+    status_enum_from: authority_boundary.task_card.status_enum
+    required_fields_from: authority_boundary.task_card.required_fields
+    forbidden_fields_from: authority_boundary.task_card.forbidden_fields
+    forbidden_authority_from: authority_boundary.task_card.forbidden_authority
+
+hard_stops:
+  - no skill / hook / loop / harness / hermes / runtime here
+  - allowed_status_transitions is a data table, not a state machine engine
+  - do not re-define the SSP-298 task_card boundary or promotion path
+  - no registry / FSM / database / canonical writer
+
+required_negative_fixtures:
+  - task card missing a required field
+  - status DONE with empty evidence_refs
+  - status DONE with empty acceptance
+  - illegal status transition
+  - unknown lifecycle event
+  - sensitive content copied into the card
+  - boundary forbidden field present on the card
