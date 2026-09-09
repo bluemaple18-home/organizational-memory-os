@@ -1,0 +1,78 @@
+# 定點複審驗收 receipt｜SSP-303 AIWR-06 輕量 Harness / Repair 01
+# review line: .work/handoff/SSP303-REVIEW-20260909.md
+
+review_input:
+  repo: "bluemaple18-home/organizational-memory-os"
+  branch: "cc/ssp303-harness"
+  base_sha: "47c8ea46a0c11d2fbcf5920ba98fda13ffb2efdb"
+  frozen_review_sha: "bf0891887a807a0f23968e1183d9375cb80682af"   # immutable
+  handoff_sha: "777b345"
+  repair_sha: "a2d7c29e1010bba12d11430157dcc091612e6bfb"
+  repair_tree_sha: "678bb8b2c6da7fe9324e9a15fda1a03be568da89"
+  repair_only_diff_range: "bf0891887a807a0f23968e1183d9375cb80682af..a2d7c29e1010bba12d11430157dcc091612e6bfb"
+
+round: 1
+gate_kind: T1 contract slice / targeted re-review
+
+findings_carried_in:
+  - id: F-01
+    severity: P1
+    summary: STEP_FAILED enforcement did not bind failed_step to the step that actually errored
+  - id: F-02
+    severity: P1
+    summary: HARNESS_SECOND_RUNTIME only scanned four named builds_* flags; builds_scheduler:true passed
+  - id: F-03
+    severity: P2
+    summary: step numbers not required contiguous from 1, contradicting the rollback partial_run_record failure_state
+
+closure:
+  F-01:
+    status: CLOSED
+    fix: >
+      STEP_FAILED now requires error_steps (the set of step numbers with a
+      present error) to equal exactly [failed_step] -- the Harness is sequential
+      single-agent and stops at the first failure. Covers both "failed_step
+      points at a non-error step" and "more than one errored step".
+      HARNESS_FAILED_STEP_MISMATCH.
+    fixtures:
+      - HARNESS_NEG_FAILED_STEP_MISMATCH (step 2 error, failed_step 1) -> HARNESS_FAILED_STEP_MISMATCH
+      - HARNESS_NEG_MULTI_ERROR_STEPS (steps 1 and 2 both error) -> HARNESS_FAILED_STEP_MISMATCH
+  F-02:
+    status: CLOSED
+    fix: >
+      HARNESS_SECOND_RUNTIME is fail-closed: run.keys.any? { |k|
+      k.start_with?("builds_") && run[k] == true }. spec no_second_runtime adds
+      named builds_scheduler / builds_queue (false) and a fail-closed rule;
+      EXPECTED_SECOND_RUNTIME_FLAGS now locks 6 flags false structurally.
+    fixture: HARNESS_NEG_SECOND_RUNTIME_UNLISTED (builds_scheduler:true) -> HARNESS_SECOND_RUNTIME
+  F-03:
+    status: CLOSED
+    fix: >
+      after the step loop, steps.map { step } must equal (1..steps.length).to_a
+      else HARNESS_STEP_INDEX_GAP. spec step_failure gains step_index_rule.
+    fixture: HARNESS_NEG_STEP_INDEX_GAP (step numbers [1, 3]) -> HARNESS_STEP_INDEX_GAP
+
+not_reopened:
+  - measured-gap fan-out is a defined sequential-single-agent exception (fan_out:true + measured_gap_ref URN passes)
+  - "error: false / 0" under present? leans toward a false reject, not an authority bypass
+
+regression:
+  gate_all_pass: true                 # 16 Ruby validators + std_schema_engine + cross-layer
+  schema_engine_coverage_unchanged: true  # STD01 12/12 excl 11, STD02 16/16 excl 10, STD03 9/9 excl 11
+  positive_fixtures_still_pass: true   # 4 (HARNESS_RUN_POS_STEP_FAILED_MARKED: error_steps == [2] == [failed_step], steps [1,2] contiguous)
+  enforcement_parity_replayed: true   # fail-closed builds_* scan / HARNESS_STEP_INDEX_GAP / HARNESS_FAILED_STEP_MISMATCH / == [failed_step] weakened to include? -> RED
+  upstream_specs_untouched: true      # hook / skill / loop / boundary / task-card-record
+  negative_labels: 17
+  validator_loc: 281
+  git_diff_check: clean
+
+binding_integrity:
+  frozen_review_sha_unchanged: true
+  commit_chain: "bf08918 -> 777b345 (handoff docs) -> a2d7c29 (repair 01)"
+  repair_touched_upstream: false
+
+verdict: GO
+owner_accept: PENDING
+next:
+  merge: "cc/ssp303-harness -> main"
+  then: "Lane B -> SSP-304 (AIWR-07 Hermes 薄 Adapter)"

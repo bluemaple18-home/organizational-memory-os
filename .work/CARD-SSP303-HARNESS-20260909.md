@@ -1,6 +1,6 @@
 ---
 id: SSP303-HARNESS-20260909
-status: IN_REPAIR_01
+status: ACCEPTED_GO_20260909
 type: implementation
 jira: SSP-303
 lane: B
