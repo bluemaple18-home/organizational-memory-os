@@ -1,6 +1,6 @@
 ---
 id: SSP302-LOOP-CLOSEOUT-20260909
-status: IMPLEMENTED_AWAITING_BIG_REVIEW
+status: IN_REPAIR_01
 type: implementation
 jira: SSP-302
 lane: B

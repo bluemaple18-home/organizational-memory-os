@@ -25,6 +25,7 @@ purpose:
 termination:
   max_iterations_rule: positive integer
   timeout_seconds_rule: positive integer
+  elapsed_seconds_rule: non-negative integer, measured wall-clock run time
   terminal_conditions:
     - ALL_REQUIRED_PRESENT
     - MAX_ITERATIONS_REACHED
@@ -32,8 +33,14 @@ termination:
     - BLOCKER_MARKED
     - UNFIXABLE
   unbounded_rule: >-
-    a Loop run without a positive max_iterations or without a positive
-    timeout_seconds is LOOP_UNBOUNDED.
+    a Loop run without a positive max_iterations, without a positive
+    timeout_seconds, or without a verifiable non-negative elapsed_seconds is
+    LOOP_UNBOUNDED.
+  timeout_enforcement_rule: >-
+    elapsed_seconds must be compared against timeout_seconds. If
+    elapsed_seconds > timeout_seconds the run may only pass when it ended with
+    outcome FAILED_LOUD and terminal_condition TIMEOUT; otherwise it is
+    LOOP_OVER_TIMEOUT. timeout is enforcement, not metadata.
 
 scope_lock:
   fillable_fields:
@@ -66,10 +73,22 @@ unfixable:
     LOOP_EVIDENCE_NOT_PRESERVED.
 
 run_record:
+  run_time_field: elapsed_seconds
   iteration_fields:
     - iteration
     - filled_fields
     - remaining_gaps
+  iteration_shape_rule: >-
+    every iteration is a mapping carrying all of iteration_fields; filled_fields
+    and remaining_gaps are arrays. A missing field is LOOP_MALFORMED_ITERATION,
+    fail-closed (a missing remaining_gaps is never read as "no gaps").
+  mandatory_stop_rule: >-
+    remaining_gaps is checked on every iteration, not only the last. The first
+    iteration whose remaining_gaps contains a requires_human_decision gap must
+    be the last iteration with outcome BLOCKED and a blocker_ref
+    (LOOP_SKIPPED_HUMAN_DECISION otherwise); the first iteration whose
+    remaining_gaps contains a non-human auto_fixable:false gap must be the last
+    iteration with outcome FAILED_LOUD (LOOP_UNFIXABLE_NOT_LOUD otherwise).
   outcomes:
     - CLOSED
     - BLOCKED
@@ -99,7 +118,9 @@ authority:
 
 error_contract:
   LOOP_UNBOUNDED: loop.error.unbounded
+  LOOP_OVER_TIMEOUT: loop.error.over_timeout
   LOOP_OVER_MAX_ITERATIONS: loop.error.over_max_iterations
+  LOOP_MALFORMED_ITERATION: loop.error.malformed_iteration
   LOOP_INVALID_OUTCOME: loop.error.invalid_outcome
   LOOP_OUTCOME_CONDITION_MISMATCH: loop.error.outcome_condition_mismatch
   LOOP_SCOPE_EXPANSION: loop.error.scope_expansion
@@ -130,12 +151,17 @@ hard_stops:
 required_negative_fixtures:
   - run without a positive max_iterations
   - run without a positive timeout_seconds
+  - run without a verifiable elapsed_seconds
+  - elapsed_seconds exceeds timeout_seconds without failing loud
   - iterations exceed max_iterations
+  - an iteration is missing a required field
   - outcome is not one of the allowed outcomes
   - outcome disagrees with the terminal condition
   - an iteration fills a scope-defining field
   - a human-decision gap remains but the run did not stop at a blocker
+  - a human-decision gap appears mid-run but the run continued
   - an unfixable gap remains but the run did not fail loud
+  - an unfixable gap appears mid-run but the run continued
   - failed loud but the original evidence was not preserved
   - run carries a memory acceptance field
   - error but the run still claims success

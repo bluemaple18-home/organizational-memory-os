@@ -8,6 +8,7 @@
       "run": {
         "max_iterations": 0,
         "timeout_seconds": 300,
+        "elapsed_seconds": 100,
         "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
         "outcome": "CLOSED",
         "terminal_condition": "ALL_REQUIRED_PRESENT",
@@ -23,6 +24,38 @@
       "run": {
         "max_iterations": 5,
         "timeout_seconds": 0,
+        "elapsed_seconds": 100,
+        "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_NO_ELAPSED",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_UNBOUNDED",
+      "covers_loop_negative_fixture": "run without a verifiable elapsed_seconds",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_OVER_TIMEOUT",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_OVER_TIMEOUT",
+      "covers_loop_negative_fixture": "elapsed_seconds exceeds timeout_seconds without failing loud",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "elapsed_seconds": 500,
         "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
         "outcome": "CLOSED",
         "terminal_condition": "ALL_REQUIRED_PRESENT",
@@ -38,10 +71,29 @@
       "run": {
         "max_iterations": 2,
         "timeout_seconds": 300,
+        "elapsed_seconds": 100,
         "iterations": [
           {"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": []},
           {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": []},
           {"iteration": 3, "filled_fields": ["status"], "remaining_gaps": []}
+        ],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_MALFORMED_ITERATION",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_MALFORMED_ITERATION",
+      "covers_loop_negative_fixture": "an iteration is missing a required field",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "elapsed_seconds": 100,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["status"]}
         ],
         "outcome": "CLOSED",
         "terminal_condition": "ALL_REQUIRED_PRESENT",
@@ -57,6 +109,7 @@
       "run": {
         "max_iterations": 5,
         "timeout_seconds": 300,
+        "elapsed_seconds": 100,
         "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
         "outcome": "RETRYING",
         "terminal_condition": "ALL_REQUIRED_PRESENT",
@@ -72,9 +125,10 @@
       "run": {
         "max_iterations": 5,
         "timeout_seconds": 300,
+        "elapsed_seconds": 100,
         "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
         "outcome": "CLOSED",
-        "terminal_condition": "TIMEOUT",
+        "terminal_condition": "BLOCKER_MARKED",
         "original_evidence_preserved": true,
         "ok": true
       }
@@ -87,6 +141,7 @@
       "run": {
         "max_iterations": 5,
         "timeout_seconds": 300,
+        "elapsed_seconds": 100,
         "iterations": [
           {"iteration": 1, "filled_fields": ["evidence_refs", "scope"], "remaining_gaps": []}
         ],
@@ -97,13 +152,14 @@
       }
     },
     {
-      "case_id": "LOOP_NEG_SKIPPED_HUMAN_DECISION",
+      "case_id": "LOOP_NEG_HUMAN_GAP_REMAINS",
       "expected": "deny",
       "expected_failure_code": "LOOP_SKIPPED_HUMAN_DECISION",
       "covers_loop_negative_fixture": "a human-decision gap remains but the run did not stop at a blocker",
       "run": {
         "max_iterations": 5,
         "timeout_seconds": 300,
+        "elapsed_seconds": 100,
         "iterations": [
           {"iteration": 1, "filled_fields": ["status"], "remaining_gaps": [{"field": "acceptance", "requires_human_decision": true, "auto_fixable": false}]}
         ],
@@ -114,13 +170,34 @@
       }
     },
     {
-      "case_id": "LOOP_NEG_UNFIXABLE_NOT_LOUD",
+      "case_id": "LOOP_NEG_HUMAN_GAP_MIDWAY",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_SKIPPED_HUMAN_DECISION",
+      "covers_loop_negative_fixture": "a human-decision gap appears mid-run but the run continued",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "elapsed_seconds": 100,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": [{"field": "acceptance", "requires_human_decision": true, "auto_fixable": false}]},
+          {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": []}
+        ],
+        "outcome": "BLOCKED",
+        "terminal_condition": "BLOCKER_MARKED",
+        "blocker_ref": "urn:omos:blocker:late-marked",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_UNFIXABLE_REMAINS",
       "expected": "deny",
       "expected_failure_code": "LOOP_UNFIXABLE_NOT_LOUD",
       "covers_loop_negative_fixture": "an unfixable gap remains but the run did not fail loud",
       "run": {
         "max_iterations": 5,
         "timeout_seconds": 300,
+        "elapsed_seconds": 100,
         "iterations": [
           {"iteration": 1, "filled_fields": ["status"], "remaining_gaps": [{"field": "evidence_refs", "requires_human_decision": false, "auto_fixable": false}]}
         ],
@@ -131,6 +208,26 @@
       }
     },
     {
+      "case_id": "LOOP_NEG_UNFIXABLE_MIDWAY",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_UNFIXABLE_NOT_LOUD",
+      "covers_loop_negative_fixture": "an unfixable gap appears mid-run but the run continued",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "elapsed_seconds": 100,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": [{"field": "evidence_refs", "requires_human_decision": false, "auto_fixable": false}]},
+          {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": []}
+        ],
+        "outcome": "FAILED_LOUD",
+        "terminal_condition": "UNFIXABLE",
+        "original_evidence_preserved": true,
+        "error": "gap resurfaced then was suppressed",
+        "ok": false
+      }
+    },
+    {
       "case_id": "LOOP_NEG_EVIDENCE_NOT_PRESERVED",
       "expected": "deny",
       "expected_failure_code": "LOOP_EVIDENCE_NOT_PRESERVED",
@@ -138,6 +235,7 @@
       "run": {
         "max_iterations": 5,
         "timeout_seconds": 300,
+        "elapsed_seconds": 100,
         "iterations": [
           {"iteration": 1, "filled_fields": ["status"], "remaining_gaps": [{"field": "evidence_refs", "requires_human_decision": false, "auto_fixable": false}]}
         ],
@@ -156,6 +254,7 @@
       "run": {
         "max_iterations": 5,
         "timeout_seconds": 300,
+        "elapsed_seconds": 100,
         "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
         "outcome": "CLOSED",
         "terminal_condition": "ALL_REQUIRED_PRESENT",
@@ -172,6 +271,7 @@
       "run": {
         "max_iterations": 5,
         "timeout_seconds": 300,
+        "elapsed_seconds": 100,
         "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
         "outcome": "CLOSED",
         "terminal_condition": "ALL_REQUIRED_PRESENT",

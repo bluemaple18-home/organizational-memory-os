@@ -87,7 +87,25 @@ git diff --check   clean
   `outcome: FAILED_LOUD` + `original_evidence_preserved: true`）→ allow；
   `LOOP_NEG_UNFIXABLE_NOT_LOUD` / `LOOP_NEG_EVIDENCE_NOT_PRESERVED` → 拒。
 
-### 上游契約未被改動
+## Repair 01｜大 review NO_GO（2×P1 + 1×P2 + 1×P3）
+
+| finding | 修法 | 新 fixture → code |
+|---|---|---|
+| F-01（P1）timeout 是 metadata 不是 enforcement | run record 加 `elapsed_seconds`（非負整數，入 bounded 檢查）；新 `LOOP_OVER_TIMEOUT`：`elapsed > timeout` 且非 `FAILED_LOUD+TIMEOUT` 收尾 → 拒 | `LOOP_NEG_NO_ELAPSED` → `LOOP_UNBOUNDED`；`LOOP_NEG_OVER_TIMEOUT` → `LOOP_OVER_TIMEOUT`；正例 `LOOP_POS_TIMEOUT_TERMINATED`（305>300 但 FAILED_LOUD+TIMEOUT）→ allow |
+| F-02（P1）mandatory-stop gap 只看最後一輪 | 改逐輪 `each_with_index`：第一個帶 human-decision / 非人類 unfixable gap 的 iteration 必須是最後一輪且 outcome 對應 BLOCKED / FAILED_LOUD | `LOOP_NEG_HUMAN_GAP_MIDWAY`（iter1 human、iter2 清、outcome BLOCKED）→ `LOOP_SKIPPED_HUMAN_DECISION`；`LOOP_NEG_UNFIXABLE_MIDWAY`（iter1 unfixable、iter2 清、outcome FAILED_LOUD）→ `LOOP_UNFIXABLE_NOT_LOUD` |
+| F-03（P2）iteration 三欄未 fail-closed 驗 | 每個 iteration 驗 `iteration_fields` 齊備且 `filled_fields`/`remaining_gaps` 為 Array → `LOOP_MALFORMED_ITERATION` | `LOOP_NEG_MALFORMED_ITERATION`（缺 `remaining_gaps`）→ `LOOP_MALFORMED_ITERATION` |
+| F-04（P3）CLOSED+MAX_ITERATIONS_REACHED 留普通缺口 | reviewer 判 spec 定義問題、非 evaluator 偷漏、不阻塞 → 記 `文件/待辦重整.md` 規範債 backlog，本 repair 不改契約 | — |
+
+- `required_negative_fixtures` / `EXPECTED_LOOP_NEGATIVE_LABELS` 各 11 → 16。
+- enforcement parity 重跑：`elapsed_seconds` 入 bounded 檢查 / `LOOP_OVER_TIMEOUT` /
+  `LOOP_MALFORMED_ITERATION` / F-02 `index == last_index` guard（兩處）/ F-02 改回「只看最後一輪」
+  —— 逐一移除 → `ruby` exit 1（RED）；原有 10 個 enforcement 亦重跑保持 load-bearing；全部還原後 `PASS`。
+- 行為 regression：15 Ruby validator + `std_schema_engine`（coverage 不變）+ cross-layer +
+  `git diff --check` 全綠；4 個既有正例補 `elapsed_seconds` 後仍 PASS + 1 新正例；上游 4 份契約
+  （boundary / task-card-record / skill / hook）未改動。validator 269 行（< 400）。
+- repair 卡：`.work/CARD-SSP302-REPAIR-01-20260909.md`。原 frozen review SHA `165209195` 不動。
+
+## 上游契約未被改動
 
 `git diff --name-status b0e0fee..HEAD` 僅新增 4 檔 + 卡 + evidence + 待辦重整；未碰
 `ai-work-record-boundary.yaml`／`ai-task-card-record.yaml`／`ai-work-record-skill.yaml`／

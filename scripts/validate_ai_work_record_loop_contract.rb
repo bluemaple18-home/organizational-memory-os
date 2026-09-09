@@ -46,12 +46,17 @@ EXPECTED_FORBIDDEN_RUN_FIELDS = %w[
 EXPECTED_LOOP_NEGATIVE_LABELS = [
   "run without a positive max_iterations",
   "run without a positive timeout_seconds",
+  "run without a verifiable elapsed_seconds",
+  "elapsed_seconds exceeds timeout_seconds without failing loud",
   "iterations exceed max_iterations",
+  "an iteration is missing a required field",
   "outcome is not one of the allowed outcomes",
   "outcome disagrees with the terminal condition",
   "an iteration fills a scope-defining field",
   "a human-decision gap remains but the run did not stop at a blocker",
+  "a human-decision gap appears mid-run but the run continued",
   "an unfixable gap remains but the run did not fail loud",
+  "an unfixable gap appears mid-run but the run continued",
   "failed loud but the original evidence was not preserved",
   "run carries a memory acceptance field",
   "error but the run still claims success"
@@ -79,52 +84,76 @@ def positive_integer?(value)
   value.is_a?(Integer) && value.positive?
 end
 
+def non_negative_integer?(value)
+  value.is_a?(Integer) && value >= 0
+end
+
+def timeout_terminated?(run)
+  run["outcome"] == "FAILED_LOUD" && run["terminal_condition"] == "TIMEOUT"
+end
+
 # 純函式收口 Loop evaluator。回傳 nil 或精確 machine failure code。
 # run 是自足 fixture 物件:
-#   max_iterations, timeout_seconds, iterations[{iteration, filled_fields[], remaining_gaps[]}],
+#   max_iterations, timeout_seconds, elapsed_seconds,
+#   iterations[{iteration, filled_fields[], remaining_gaps[]}],
 #   outcome, terminal_condition, blocker_ref, original_evidence_preserved,
 #   performs_memory_acceptance, writes_company_knowledge, error, ok。
 def loop_closeout_failure(run, fillable_fields, outcome_condition_map)
-  # 1. 有界:缺正整數 max_iterations 或 timeout_seconds
-  return "LOOP_UNBOUNDED" unless positive_integer?(run["max_iterations"]) && positive_integer?(run["timeout_seconds"])
+  # 1. 有界:缺正整數 max_iterations / timeout_seconds,或缺可驗的非負 elapsed_seconds
+  return "LOOP_UNBOUNDED" unless positive_integer?(run["max_iterations"]) &&
+                                 positive_integer?(run["timeout_seconds"]) &&
+                                 non_negative_integer?(run["elapsed_seconds"])
 
-  # 2. authority floor(停用與否都適用)
+  # 2. timeout 是 enforcement:elapsed 超過 timeout 只有在 FAILED_LOUD + TIMEOUT 收尾時才可過
+  return "LOOP_OVER_TIMEOUT" if run["elapsed_seconds"] > run["timeout_seconds"] && !timeout_terminated?(run)
+
+  # 3. authority floor(停用與否都適用)
   return "LOOP_EXCEEDS_AUTHORITY" if run["performs_memory_acceptance"] == true
   return "LOOP_EXCEEDS_AUTHORITY" if run["writes_company_knowledge"] == true
   return "LOOP_EXCEEDS_AUTHORITY" if EXPECTED_FORBIDDEN_RUN_FIELDS.any? { |field| run.key?(field) }
 
-  # 3. fail-loud
+  # 4. fail-loud
   return "FAIL_SILENT" if present?(run["error"]) && run["ok"] != false
 
   iterations = run["iterations"]
   return "LOOP_MISSING_FIELD" unless iterations.is_a?(Array)
 
-  # 4. 迭代不得超過 max_iterations
+  # 5. 迭代不得超過 max_iterations
   return "LOOP_OVER_MAX_ITERATIONS" if iterations.length > run["max_iterations"]
 
-  # 5. scope lock:每輪 filled_fields 只能是 fillable_fields
+  # 6. 每個 iteration fail-closed 驗三欄齊備且 filled_fields / remaining_gaps 為 Array
   iterations.each do |iteration|
-    filled = iteration["filled_fields"].to_a
-    return "LOOP_SCOPE_EXPANSION" if filled.any? { |field| !fillable_fields.include?(field) }
+    unless iteration.is_a?(Hash) && EXPECTED_ITERATION_FIELDS.all? { |field| iteration.key?(field) } &&
+           iteration["filled_fields"].is_a?(Array) && iteration["remaining_gaps"].is_a?(Array)
+      return "LOOP_MALFORMED_ITERATION"
+    end
   end
 
-  # 6. outcome 合法性
+  # 7. scope lock:每輪 filled_fields 只能是 fillable_fields
+  iterations.each do |iteration|
+    return "LOOP_SCOPE_EXPANSION" if iteration["filled_fields"].any? { |field| !fillable_fields.include?(field) }
+  end
+
+  # 8. outcome 合法性
   return "LOOP_INVALID_OUTCOME" unless EXPECTED_OUTCOMES.include?(run["outcome"])
 
-  # 7. outcome 與 terminal_condition 一致
+  # 9. outcome 與 terminal_condition 一致
   allowed_conditions = outcome_condition_map.fetch(run["outcome"], [])
   return "LOOP_OUTCOME_CONDITION_MISMATCH" unless allowed_conditions.include?(run["terminal_condition"])
 
-  # 8. 缺口處置:取最後一輪的 remaining_gaps 當最終狀態
-  final_gaps = iterations.empty? ? [] : iterations.last["remaining_gaps"].to_a
-  human_gaps = final_gaps.select { |gap| gap["requires_human_decision"] == true }
-  unless human_gaps.empty?
-    return "LOOP_SKIPPED_HUMAN_DECISION" unless run["outcome"] == "BLOCKED" && present?(run["blocker_ref"])
-  end
-
-  unfixable_gaps = final_gaps.select { |gap| gap["auto_fixable"] == false && gap["requires_human_decision"] != true }
-  unless unfixable_gaps.empty?
-    return "LOOP_UNFIXABLE_NOT_LOUD" unless run["outcome"] == "FAILED_LOUD"
+  # 10. mandatory-stop gap 逐輪檢查:第一個帶 human-decision / non-human unfixable 缺口的
+  #     iteration 必須就是最後一輪,且 outcome 對應 BLOCKED / FAILED_LOUD。
+  last_index = iterations.length - 1
+  iterations.each_with_index do |iteration, index|
+    gaps = iteration["remaining_gaps"]
+    if gaps.any? { |gap| gap["requires_human_decision"] == true }
+      unless index == last_index && run["outcome"] == "BLOCKED" && present?(run["blocker_ref"])
+        return "LOOP_SKIPPED_HUMAN_DECISION"
+      end
+    end
+    if gaps.any? { |gap| gap["auto_fixable"] == false && gap["requires_human_decision"] != true }
+      return "LOOP_UNFIXABLE_NOT_LOUD" unless index == last_index && run["outcome"] == "FAILED_LOUD"
+    end
   end
 
   return "LOOP_EVIDENCE_NOT_PRESERVED" if run["outcome"] == "FAILED_LOUD" && run["original_evidence_preserved"] != true

@@ -6,6 +6,7 @@
       "run": {
         "max_iterations": 5,
         "timeout_seconds": 300,
+        "elapsed_seconds": 120,
         "iterations": [
           {"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": [{"field": "status", "requires_human_decision": false, "auto_fixable": true}]},
           {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": []}
@@ -22,6 +23,7 @@
       "run": {
         "max_iterations": 2,
         "timeout_seconds": 120,
+        "elapsed_seconds": 90,
         "iterations": [
           {"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": []},
           {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": []}
@@ -38,6 +40,7 @@
       "run": {
         "max_iterations": 3,
         "timeout_seconds": 200,
+        "elapsed_seconds": 60,
         "iterations": [
           {"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": [{"field": "acceptance", "requires_human_decision": true, "auto_fixable": false}]}
         ],
@@ -54,6 +57,7 @@
       "run": {
         "max_iterations": 4,
         "timeout_seconds": 250,
+        "elapsed_seconds": 100,
         "iterations": [
           {"iteration": 1, "filled_fields": ["status"], "remaining_gaps": [{"field": "evidence_refs", "requires_human_decision": false, "auto_fixable": false}]}
         ],
@@ -61,6 +65,23 @@
         "terminal_condition": "UNFIXABLE",
         "original_evidence_preserved": true,
         "error": "evidence source unavailable, cannot auto-fill evidence_refs",
+        "ok": false
+      }
+    },
+    {
+      "case_id": "LOOP_POS_TIMEOUT_TERMINATED",
+      "expected": "allow",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "elapsed_seconds": 305,
+        "iterations": [
+          {"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}
+        ],
+        "outcome": "FAILED_LOUD",
+        "terminal_condition": "TIMEOUT",
+        "original_evidence_preserved": true,
+        "error": "timeout budget exhausted before close-out completed",
         "ok": false
       }
     }
