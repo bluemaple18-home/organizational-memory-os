@@ -1,0 +1,17 @@
+review_line: SSP292-REVIEW-20260908
+round: targeted_re_review_01
+review_input:
+  base_sha: 07ce413f4e3019941d7421eb4b784db660d59d62
+  repair_sha: 2b507a0f71044be76e0a8fb3150088a4b3194867
+  tree_sha: 34c89cbdad452d64abbba754deffc006e245a955
+  binding: PASS
+  zero_mutation: PASS
+closure: {SSP292-RV-001: CLOSED, SSP292-RV-002: CLOSED, SSP292-RV-003: CLOSED, SSP292-RV-004: CLOSED}
+counts: {P0: 0, P1: 0, P2: 0, P3: 0}
+regression: PASS
+external_verdict: GO
+mainline_acceptance: {self_verify: PASS, gates_rerun_local: PASS, owner_acceptance: ACCEPTED_20260909}
+non_blocking_backlog:
+  - not_applicable_filtered_count uses .to_i; add integer/non-negative scalar constraint in a later schema-hardening pass
+original_review_commit_immutable: 6bdf56f982955e0badceb8e9b342faa987e207af
+outcome: {card_status: ACCEPTED_GO_20260909, jira: "SSP-292 -> Done (Owner applies)", lane_a_next: SSP-293}

@@ -1,6 +1,6 @@
 ---
 id: SSP293-CORRECTION-SUPERSESSION-20260909
-status: DRAFT_OWNER_REVIEW
+status: ACCEPTED_GO_20260909
 type: implementation
 jira: SSP-293
 lane: A

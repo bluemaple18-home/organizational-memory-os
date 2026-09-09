@@ -41,6 +41,154 @@ EXPECTED_CAPABILITY_LEVELS = %w[
   L4
 ].freeze
 EXPECTED_CAPABILITY_KEYS = (EXPECTED_CAPABILITY_LEVELS + %w[same_contract_all_levels]).freeze
+LEVEL_ORDER = %w[L1 L2 L3 L4].freeze
+
+EXPECTED_MATRIX_CAPABILITIES = %w[
+  manual_capture
+  candidate_generation
+  employee_confirmation
+  basic_recall_with_citation
+  automatic_source_ingestion
+  deterministic_dedup_version_acl_retention
+  automatic_candidate_queue
+  cross_source_object_linking
+  workrecord_correlation
+  conflict_freshness_gap_suggestion
+  context_aware_recall
+  promotion_suggestion
+  continuous_stale_conflict_gap_monitoring
+  correction_proposal
+  promotion_proposal
+  projection_rebuild_regression_evaluation
+].freeze
+
+EXPECTED_LEVEL_GRANTS = {
+  "L1" => %w[manual_capture candidate_generation employee_confirmation basic_recall_with_citation],
+  "L2" => %w[automatic_source_ingestion deterministic_dedup_version_acl_retention automatic_candidate_queue],
+  "L3" => %w[cross_source_object_linking workrecord_correlation conflict_freshness_gap_suggestion context_aware_recall promotion_suggestion],
+  "L4" => %w[continuous_stale_conflict_gap_monitoring correction_proposal promotion_proposal projection_rebuild_regression_evaluation]
+}.freeze
+
+EXPECTED_CAPABILITY_SAFETY_FLOOR = %w[
+  permission_before_retrieval
+  provenance_required
+  canonical_single_writer
+  candidate_not_auto_accepted_by_level
+  promotion_requires_widening_gate
+].freeze
+
+L4_AUTHORITY_GATED_ACTIONS = %w[correction_proposal promotion_proposal].freeze
+
+EXPECTED_CAPABILITY_NEGATIVE_LABELS = [
+  "level claims capability above its grant",
+  "downgrade removes a safety-floor invariant",
+  "L4 action bypasses the authority gate",
+  "profile references a non-existent level",
+  "level transition skips a step",
+  "capability level forks the core contract"
+].freeze
+
+EXPECTED_RECALL_REQUEST_FIELDS = %w[
+  intent
+  requester_identity
+  requester_scope
+  ownership_mode
+  visibility_scope
+  context_budget
+].freeze
+
+EXPECTED_CONTEXT_PACK_FIELDS = %w[
+  pack_id
+  request_ref
+  permission_decision_ref
+  permission_decision_before_selection
+  permission_decision_covered_memory_refs
+  selected_memories
+  source_refs
+  applicability
+  freshness
+  permission_intersection_refs
+  not_applicable_filtered_count
+  omitted_or_gap_notice
+  budget_usage
+].freeze
+
+# 這幾個 pack 欄位必須有實值（不是只有 key）。
+CONTEXT_PACK_PRESENT_FIELDS = %w[pack_id request_ref permission_decision_ref].freeze
+EXPECTED_INTERSECTION_ENTRY_FIELDS = %w[memory_ref intersection_ref].freeze
+RECALL_FORBIDDEN_SEARCH_STRATEGIES = {
+  "GLOBAL_THEN_PROMPT_GUARD" => "SEARCH_ALL_THEN_PROMPT_GUARD",
+  "UNRESTRICTED_GLOBAL_SEARCH" => "UNRESTRICTED_GLOBAL_SEARCH"
+}.freeze
+
+EXPECTED_RECALL_GAP_REASONS = %w[STALE_PRESENT NOT_APPLICABLE_FILTERED BUDGET_OMITTED].freeze
+EXPECTED_RECALL_FORBIDDEN = %w[
+  SEARCH_ALL_THEN_PROMPT_GUARD
+  UNRESTRICTED_GLOBAL_SEARCH
+  STALE_WITHOUT_FRESHNESS
+  CROSS_OWNER_WITHOUT_INTERSECTION
+].freeze
+
+EXPECTED_RECALL_NEGATIVE_LABELS = [
+  "recall request missing a required field",
+  "permission decision scope narrower than selected set",
+  "search all personal memory then rely on prompt guard",
+  "stale memory returned without freshness marker",
+  "budget-omitted memory without a gap notice",
+  "cross-owner selection without permission intersection"
+].freeze
+
+EXPECTED_CORRECTION_KINDS = {
+  "AMEND" => "SUPERSEDED",
+  "INVALIDATE" => "INVALIDATED",
+  "SUPERSEDE" => "SUPERSEDED"
+}.freeze
+
+EXPECTED_CORRECTION_PROPOSAL_FIELDS = %w[
+  proposal_id
+  tenant_id
+  employee_owner_ref
+  target_record_ref
+  correction_kind
+  correction_evidence_refs
+  proposed_by
+  chronology.created_at
+].freeze
+
+EXPECTED_SUPERSESSION_RECEIPT_FIELDS = %w[
+  receipt_id
+  tenant_id
+  employee_owner_ref
+  origin_proposal_ref
+  target_record_ref
+  correction_kind
+  old_record_ref
+  resulting_record_status
+  verification_status
+  chronology.created_at
+].freeze
+# verification_receipt_ref / personal_acceptance_ref 不放 required list —— 由 gate
+# 分支強制（缺 → CORRECTION_SKIPS_VERIFICATION / CORRECTION_SKIPS_ACCEPTANCE），
+# 才不會被通用 missing-field 檢查先攔掉、失去語意。
+EXPECTED_CORRECTION_GATE_FIELDS = %w[verification_receipt_ref personal_acceptance_ref].freeze
+
+EXPECTED_CORRECTION_FORBIDDEN = %w[
+  history_erasure
+  in_place_record_overwrite
+  skip_verification
+  skip_acceptance
+  receipt_mutation
+].freeze
+
+EXPECTED_CORRECTION_NEGATIVE_LABELS = [
+  "correction proposal without correction evidence",
+  "supersession receipt skips verification",
+  "supersession receipt skips acceptance",
+  "correction overwrites the record in place",
+  "supersession receipt erases history",
+  "correction kind maps to the wrong lifecycle status",
+  "supersession receipt mutated after the fact"
+].freeze
 
 EXPECTED_BACKLOG = (0..8).map { |number| format("EMEM_%02d", number) }.freeze
 EXPECTED_BACKLOG_DOC = EXPECTED_BACKLOG.map { |item| item.tr("_", "-") }.freeze
@@ -167,6 +315,16 @@ end
 
 def allowed_resource_ref?(value, resource_kind)
   value.is_a?(String) && value.start_with?("urn:omos:personal-memory:#{resource_kind}:")
+end
+
+OMOS_URN_PATTERN = /\Aurn:omos:[a-z0-9-]+:.+\z/.freeze
+
+def omos_urn?(value, namespace)
+  value.is_a?(String) && value.start_with?("urn:omos:#{namespace}:") && OMOS_URN_PATTERN.match?(value)
+end
+
+def dig_dotted(payload, dotted)
+  dotted.split(".").reduce(payload) { |cursor, key| cursor.is_a?(Hash) ? cursor[key] : nil }
 end
 
 def enum_from(spec, *path)
@@ -418,6 +576,150 @@ def evaluate_request(policy, request)
   "deny"
 end
 
+def effective_capability_grant(level)
+  index = LEVEL_ORDER.index(level)
+  return nil if index.nil?
+
+  LEVEL_ORDER[0..index].flat_map { |lvl| EXPECTED_LEVEL_GRANTS.fetch(lvl) }
+end
+
+# Returns nil when the capability profile is contract-valid, otherwise the exact
+# machine failure code. Fixtures declare the expected code so that an unrelated
+# rejection cannot stand in for real coverage.
+def capability_profile_failure(profile)
+  level = profile["capability_level"]
+  return "UNKNOWN_CAPABILITY_LEVEL" unless LEVEL_ORDER.include?(level)
+  return "LEVEL_FORKS_CORE_CONTRACT" if profile["forks_core_contract"] == true
+
+  granted = effective_capability_grant(level)
+  claimed = profile["claimed_capabilities"].to_a
+  return "CAPABILITY_ABOVE_LEVEL_GRANT" if claimed.any? { |capability| !granted.include?(capability) }
+
+  if level == "L4" && !(claimed & L4_AUTHORITY_GATED_ACTIONS).empty? && profile["authority_gate_satisfied"] != true
+    return "L4_ACTION_BYPASSES_AUTHORITY_GATE"
+  end
+
+  if profile.key?("safety_floor_state")
+    floor = profile.fetch("safety_floor_state", {})
+    return "SAFETY_FLOOR_INVARIANT_MISSING" if EXPECTED_CAPABILITY_SAFETY_FLOOR.any? { |invariant| floor[invariant] != true }
+  end
+
+  nil
+end
+
+# Returns nil when the level transition is contract-valid, otherwise the exact
+# machine failure code.
+def level_transition_failure(spec, transition)
+  from_level = transition["from"]
+  to_level = transition["to"]
+  return "UNKNOWN_CAPABILITY_LEVEL" unless LEVEL_ORDER.include?(from_level) && LEVEL_ORDER.include?(to_level)
+
+  contract = spec.fetch("level_transitions")
+  is_upgrade = LEVEL_ORDER.index(to_level) > LEVEL_ORDER.index(from_level)
+  allowed = if is_upgrade
+              contract.dig("allowed_upgrades", from_level).to_a
+            else
+              contract.dig("allowed_downgrades", from_level).to_a
+            end
+  return "LEVEL_TRANSITION_NOT_SINGLE_STEP" unless allowed.include?(to_level)
+  return "LEVEL_TRANSITION_UNAUTHORIZED_ACTOR" unless transition["authorized_actor"] == true
+  return "LEVEL_TRANSITION_REASON_NOT_RECORDED" unless transition["reason_recorded"] == true
+  return "LEVEL_TRANSITION_FORKS_CORE_CONTRACT" if transition["forks_core_contract"] == true
+
+  unless is_upgrade
+    floor = transition.fetch("safety_floor_after", {})
+    return "DOWNGRADE_REMOVES_SAFETY_FLOOR" if EXPECTED_CAPABILITY_SAFETY_FLOOR.any? { |invariant| floor[invariant] != true }
+  end
+
+  nil
+end
+
+# Thin recall-contract check: no retrieval engine, only MemoryContextPack shape,
+# permission ordering, gap-notice, and the forbidden search-all-then-prompt-guard
+# path. `request` and `pack` are self-contained fixture objects. Returns nil or
+# the exact machine failure code.
+def context_pack_failure(request, pack)
+  return "RECALL_REQUEST_MISSING_FIELD" if EXPECTED_RECALL_REQUEST_FIELDS.any? { |field| !present?(request[field]) }
+  return "CONTEXT_PACK_MISSING_FIELD" if EXPECTED_CONTEXT_PACK_FIELDS.any? { |field| !pack.key?(field) }
+  return "CONTEXT_PACK_MISSING_FIELD" if CONTEXT_PACK_PRESENT_FIELDS.any? { |field| !present?(pack[field]) }
+  return "CONTEXT_PACK_MISSING_FIELD" unless pack["permission_decision_covered_memory_refs"].is_a?(Array)
+  return "CONTEXT_PACK_MISSING_FIELD" unless pack["permission_intersection_refs"].is_a?(Array)
+
+  forbidden_search_code = RECALL_FORBIDDEN_SEARCH_STRATEGIES[pack["search_strategy"]]
+  return forbidden_search_code if forbidden_search_code
+
+  return "PERMISSION_DECISION_AFTER_SELECTION" if pack["permission_decision_before_selection"] != true
+
+  selected = pack["selected_memories"].to_a
+  selected_refs = selected.map { |memory| memory["memory_ref"] }
+  covered_refs = pack["permission_decision_covered_memory_refs"].to_a
+  return "PERMISSION_DECISION_SCOPE_TOO_NARROW" unless (selected_refs - covered_refs).empty?
+
+  intersection_refs = pack["permission_intersection_refs"].to_a
+  requester = request["requester_identity"]
+  selected.each do |memory|
+    next if memory["owner_ref"] == requester
+
+    entry = intersection_refs.find { |candidate| candidate["memory_ref"] == memory["memory_ref"] }
+    return "CROSS_OWNER_WITHOUT_INTERSECTION" if entry.nil? || !present?(entry["intersection_ref"])
+  end
+
+  gap_reasons = pack["omitted_or_gap_notice"].to_a.map { |notice| notice["reason"] }
+  return "STALE_WITHOUT_FRESHNESS" if selected.any? { |memory| memory["freshness"] == "STALE" } &&
+                                      !(pack.dig("freshness", "stale_present") == true && gap_reasons.include?("STALE_PRESENT"))
+  return "BUDGET_OMITTED_WITHOUT_NOTICE" if pack.dig("budget_usage", "omitted_count").to_i.positive? &&
+                                            !gap_reasons.include?("BUDGET_OMITTED")
+  return "NOT_APPLICABLE_WITHOUT_NOTICE" if pack["not_applicable_filtered_count"].to_i.positive? &&
+                                            !gap_reasons.include?("NOT_APPLICABLE_FILTERED")
+
+  nil
+end
+
+# Thin correction-proposal check. Returns nil or the exact machine failure code.
+def correction_proposal_failure(proposal)
+  (EXPECTED_CORRECTION_PROPOSAL_FIELDS - ["correction_evidence_refs"]).each do |field|
+    return "CORRECTION_PROPOSAL_MISSING_FIELD" unless present?(dig_dotted(proposal, field))
+  end
+  return "CORRECTION_PROPOSAL_MISSING_FIELD" unless proposal.key?("correction_evidence_refs")
+  return "CORRECTION_PROPOSAL_INVALID_ID" unless allowed_resource_ref?(proposal["proposal_id"], "correction-proposal")
+  return "CORRECTION_TARGET_NOT_RECORD" unless allowed_resource_ref?(proposal["target_record_ref"], "record")
+  return "CORRECTION_KIND_INVALID" unless EXPECTED_CORRECTION_KINDS.key?(proposal["correction_kind"])
+  evidence_refs = proposal["correction_evidence_refs"]
+  unless evidence_refs.is_a?(Array) && !evidence_refs.empty? && evidence_refs.all? { |ref| omos_urn?(ref, "evidence") }
+    return "CORRECTION_MISSING_EVIDENCE"
+  end
+
+  nil
+end
+
+# Thin supersession-receipt check. Enforces the verify->accept gate, the
+# correction_kind -> lifecycle mapping, no in-place overwrite, receipt
+# immutability, and no history erasure. Returns nil or the exact code.
+def supersession_receipt_failure(receipt)
+  return "SUPERSESSION_RECEIPT_MISSING_FIELD" if EXPECTED_SUPERSESSION_RECEIPT_FIELDS.any? { |field| !present?(dig_dotted(receipt, field)) }
+  return "SUPERSESSION_RECEIPT_INVALID_ID" unless allowed_resource_ref?(receipt["receipt_id"], "supersession-receipt")
+  return "SUPERSESSION_RECEIPT_INVALID_ID" unless allowed_resource_ref?(receipt["old_record_ref"], "record")
+
+  return "CORRECTION_RECEIPT_MUTATED" if receipt["mutated"] == true || present?(receipt["receipt_superseded_by"])
+  return "CORRECTION_HISTORY_ERASURE" if receipt["history_erasure"] == true
+  return "CORRECTION_IN_PLACE_OVERWRITE" if receipt["in_place_overwrite"] == true || present?(receipt["in_place_content_patch"])
+
+  return "CORRECTION_KIND_INVALID" unless EXPECTED_CORRECTION_KINDS.key?(receipt["correction_kind"])
+  return "CORRECTION_SKIPS_VERIFICATION" if receipt["verification_status"] != "PASS"
+  return "CORRECTION_SKIPS_VERIFICATION" unless omos_urn?(receipt["verification_receipt_ref"], "verification")
+  return "CORRECTION_SKIPS_ACCEPTANCE" unless omos_urn?(receipt["personal_acceptance_ref"], "acceptance")
+
+  expected_status = EXPECTED_CORRECTION_KINDS.fetch(receipt["correction_kind"])
+  return "CORRECTION_KIND_LIFECYCLE_MISMATCH" if receipt["resulting_record_status"] != expected_status
+
+  if receipt["correction_kind"] == "SUPERSEDE"
+    return "CORRECTION_SUPERSEDE_MISSING_NEW_RECORD" unless allowed_resource_ref?(receipt["new_record_ref"], "record")
+    return "CORRECTION_SUPERSEDE_MISSING_NEW_RECORD" if receipt["new_record_ref"] == receipt["old_record_ref"]
+  end
+
+  nil
+end
+
 failures = []
 spec = read_yaml(SPEC_PATH)
 common_vocab = read_yaml(COMMON_VOCAB_PATH)
@@ -480,6 +782,172 @@ assert(contract.dig("promotion_widening_gate", "required").to_a.include?("review
 capability_levels = spec.fetch("capability_levels", {})
 assert(sorted_set(capability_levels.keys) == sorted_set(EXPECTED_CAPABILITY_KEYS), "capability_levels 必須只包含 L1～L4 與 same_contract_all_levels", failures)
 assert(capability_levels["same_contract_all_levels"] == true, "L1～L4 必須共用同一核心契約", failures)
+assert(capability_levels.dig("L4", "authority_gate_required") == true, "capability_levels.L4 authority_gate_required 必須維持 true", failures)
+
+capability_matrix = spec.fetch("capability_matrix", {})
+assert(
+  sorted_set(capability_matrix.fetch("capabilities", [])) == sorted_set(EXPECTED_MATRIX_CAPABILITIES),
+  "capability_matrix.capabilities 必須剛好是鎖定的 phase-1 capability 清單",
+  failures
+)
+assert(capability_matrix["cumulative"] == true, "capability_matrix.cumulative 必須為 true", failures)
+matrix_grants = capability_matrix.fetch("grants", {})
+assert(sorted_set(matrix_grants.keys) == sorted_set(LEVEL_ORDER), "capability_matrix.grants 必須剛好涵蓋 L1～L4", failures)
+LEVEL_ORDER.each do |level|
+  assert(
+    matrix_grants[level].to_a == EXPECTED_LEVEL_GRANTS.fetch(level),
+    "capability_matrix.grants.#{level} 與鎖定 grant 不符",
+    failures
+  )
+end
+all_grant_rows = LEVEL_ORDER.flat_map { |level| matrix_grants[level].to_a }
+assert(all_grant_rows.uniq.length == all_grant_rows.length, "capability_matrix.grants 各級不得重複列同一 capability", failures)
+assert(
+  sorted_set(all_grant_rows) == sorted_set(EXPECTED_MATRIX_CAPABILITIES),
+  "capability_matrix.grants 各級聯集必須等於 capabilities",
+  failures
+)
+assert(
+  capability_matrix.dig("level_gated_actions", "L4").to_a == L4_AUTHORITY_GATED_ACTIONS,
+  "capability_matrix.level_gated_actions.L4 必須是 correction_proposal 與 promotion_proposal",
+  failures
+)
+
+level_transitions = spec.fetch("level_transitions", {})
+assert(level_transitions["single_step_only"] == true, "level_transitions.single_step_only 必須為 true", failures)
+assert(level_transitions.dig("allowed_upgrades", "L1").to_a == %w[L2], "L1 只能升級到 L2", failures)
+assert(level_transitions.dig("allowed_upgrades", "L2").to_a == %w[L3], "L2 只能升級到 L3", failures)
+assert(level_transitions.dig("allowed_upgrades", "L3").to_a == %w[L4], "L3 只能升級到 L4", failures)
+assert(level_transitions.dig("allowed_upgrades", "L4").to_a.empty?, "L4 之上不得有升級目標", failures)
+assert(level_transitions.dig("allowed_downgrades", "L4").to_a == %w[L3], "L4 只能降級到 L3", failures)
+assert(level_transitions.dig("allowed_downgrades", "L3").to_a == %w[L2], "L3 只能降級到 L2", failures)
+assert(level_transitions.dig("allowed_downgrades", "L2").to_a == %w[L1], "L2 只能降級到 L1", failures)
+assert(level_transitions.dig("allowed_downgrades", "L1").to_a.empty?, "L1 之下不得有降級目標", failures)
+assert(
+  sorted_set(level_transitions.fetch("transition_requirements", [])) == sorted_set(%w[authorized_actor reason_recorded]),
+  "level transition 必須要求 authorized_actor 與 reason_recorded",
+  failures
+)
+assert(level_transitions.dig("downgrade_rules", "must_preserve_safety_floor") == true, "降級必須保留 safety floor", failures)
+assert(level_transitions.dig("downgrade_rules", "reduces_automation_depth_only") == true, "降級只減自動化深度必須為 true", failures)
+assert(
+  sorted_set(level_transitions.fetch("forbidden", [])) == sorted_set(%w[multi_step_jump unauthorized_actor downgrade_that_removes_safety_floor transition_that_forks_core_contract]),
+  "level_transitions.forbidden 必須剛好是四個鎖定禁止項",
+  failures
+)
+
+capability_safety_floor = spec.fetch("capability_safety_floor", {})
+assert(
+  sorted_set(capability_safety_floor.fetch("invariants", [])) == sorted_set(EXPECTED_CAPABILITY_SAFETY_FLOOR),
+  "capability_safety_floor.invariants 與鎖定清單不符",
+  failures
+)
+assert(capability_safety_floor["applies_to_all_levels"] == true, "capability_safety_floor 必須適用所有 level", failures)
+assert(capability_safety_floor["downgrade_preserves_all_invariants"] == true, "capability_safety_floor 降級不得移除任一不變項", failures)
+assert(
+  capability_safety_floor.dig("l4_authority_gate", "authority_gate_required") == true,
+  "capability_safety_floor.l4_authority_gate.authority_gate_required 必須為 true",
+  failures
+)
+assert(
+  capability_safety_floor.dig("l4_authority_gate", "gated_actions").to_a == L4_AUTHORITY_GATED_ACTIONS,
+  "capability_safety_floor.l4_authority_gate.gated_actions 必須是 correction_proposal 與 promotion_proposal",
+  failures
+)
+
+recall = spec.fetch("recall_context_pack", {})
+assert(recall["permission_strategy"] == "INTERSECTION", "recall_context_pack.permission_strategy 必須是 INTERSECTION", failures)
+assert(recall["unrestricted_global_personal_memory_search"] == "forbidden", "recall_context_pack 必須禁止 unrestricted global search", failures)
+recall_contract = recall.fetch("contract", {})
+assert(
+  recall_contract.fetch("request_required_fields", []) == EXPECTED_RECALL_REQUEST_FIELDS,
+  "recall_context_pack.contract.request_required_fields 與鎖定清單不符",
+  failures
+)
+assert(
+  recall_contract.fetch("pack_required_fields", []) == EXPECTED_CONTEXT_PACK_FIELDS,
+  "recall_context_pack.contract.pack_required_fields 與鎖定清單不符",
+  failures
+)
+assert(recall_contract.dig("permission_ordering", "decision_before_candidate_set") == true, "recall permission decision 必須先於 candidate set", failures)
+assert(recall_contract.dig("permission_ordering", "decision_scope_covers_selected") == true, "recall permission decision scope 必須涵蓋 selected", failures)
+assert(
+  sorted_set(recall_contract.fetch("gap_notice_reasons", [])) == sorted_set(EXPECTED_RECALL_GAP_REASONS),
+  "recall_context_pack.contract.gap_notice_reasons 與鎖定清單不符",
+  failures
+)
+assert(
+  sorted_set(recall_contract.fetch("forbidden", [])) == sorted_set(EXPECTED_RECALL_FORBIDDEN),
+  "recall_context_pack.contract.forbidden 與鎖定清單不符",
+  failures
+)
+assert(
+  spec.dig("contract_registry", "define_for_employee_memory", "MemoryContextPack", "required_fields_ref") == "recall_context_pack.contract.pack_required_fields",
+  "MemoryContextPack.required_fields_ref 必須指向 recall_context_pack.contract.pack_required_fields",
+  failures
+)
+assert(
+  recall_contract.fetch("permission_intersection_entry_fields", []) == EXPECTED_INTERSECTION_ENTRY_FIELDS,
+  "recall_context_pack.contract.permission_intersection_entry_fields 必須是 [memory_ref, intersection_ref]",
+  failures
+)
+assert(
+  recall_contract.fetch("forbidden_search_strategies", {}) == RECALL_FORBIDDEN_SEARCH_STRATEGIES,
+  "recall_context_pack.contract.forbidden_search_strategies 與鎖定對映表不符",
+  failures
+)
+
+correction_flow = spec.fetch("correction_flow", {})
+assert(correction_flow["history_erasure"] == "forbidden", "correction_flow.history_erasure 必須 forbidden", failures)
+correction_contract = correction_flow.fetch("contract", {})
+assert(correction_contract.fetch("correction_kinds", {}) == EXPECTED_CORRECTION_KINDS, "correction_flow.contract.correction_kinds 與鎖定映射不符", failures)
+assert(
+  correction_contract.fetch("proposal_required_fields", []) == EXPECTED_CORRECTION_PROPOSAL_FIELDS,
+  "correction_flow.contract.proposal_required_fields 與鎖定清單不符",
+  failures
+)
+assert(
+  correction_contract.fetch("supersession_receipt_required_fields", []) == EXPECTED_SUPERSESSION_RECEIPT_FIELDS,
+  "correction_flow.contract.supersession_receipt_required_fields 與鎖定清單不符",
+  failures
+)
+assert(correction_contract.dig("gate", "verification_status_must_be") == "PASS", "correction gate verification_status_must_be 必須是 PASS", failures)
+assert(
+  sorted_set(correction_contract.dig("gate", "requires").to_a) == sorted_set(EXPECTED_CORRECTION_GATE_FIELDS),
+  "correction gate requires 必須是 verification_receipt_ref 與 personal_acceptance_ref",
+  failures
+)
+assert(
+  sorted_set(correction_contract.fetch("gate_enforced_fields", [])) == sorted_set(EXPECTED_CORRECTION_GATE_FIELDS),
+  "correction_flow.contract.gate_enforced_fields 必須是 verification_receipt_ref 與 personal_acceptance_ref",
+  failures
+)
+assert(correction_contract["supersede_requires_new_record_ref"] == true, "SUPERSEDE 必須要求 new_record_ref", failures)
+assert(correction_contract["immutable_receipt"] == true, "correction_flow.contract.immutable_receipt 必須為 true", failures)
+assert(
+  sorted_set(correction_contract.fetch("forbidden", [])) == sorted_set(EXPECTED_CORRECTION_FORBIDDEN),
+  "correction_flow.contract.forbidden 與鎖定清單不符",
+  failures
+)
+assert(
+  spec.dig("contract_registry", "define_for_employee_memory", "MemoryCorrectionProposal", "required_fields_ref") == "correction_flow.contract.proposal_required_fields",
+  "MemoryCorrectionProposal.required_fields_ref 必須指向 proposal_required_fields",
+  failures
+)
+assert(
+  spec.dig("contract_registry", "define_for_employee_memory", "MemorySupersessionReceipt", "required_fields_ref") == "correction_flow.contract.supersession_receipt_required_fields",
+  "MemorySupersessionReceipt.required_fields_ref 必須指向 supersession_receipt_required_fields",
+  failures
+)
+# correction_kind 映射的目標 status 必須是 PersonalMemoryRecord lifecycle 的合法值
+pmr_record_statuses = spec.dig("personal_memory_resource_contracts", "enums", "record_status").to_a
+pmr_active_transitions = spec.dig(
+  "personal_memory_resource_contracts", "resources", "PersonalMemoryRecord", "lifecycle", "allowed_transitions", "ACTIVE"
+).to_a
+EXPECTED_CORRECTION_KINDS.each_value do |status|
+  assert(pmr_record_statuses.include?(status), "correction_kind 目標 status #{status} 必須是 record_status enum 成員", failures)
+  assert(pmr_active_transitions.include?(status), "correction_kind 目標 status #{status} 必須是 PersonalMemoryRecord ACTIVE 的合法 transition", failures)
+end
 
 resource_contracts = spec.fetch("personal_memory_resource_contracts", {})
 assert(resource_contracts["version"] == "0.1.0", "personal_memory_resource_contracts.version 必須是 0.1.0", failures)
@@ -544,6 +1012,104 @@ assert(missing_negative_labels.empty?, "negative fixtures 未覆蓋：#{missing_
 covered_resource_negative_labels = sorted_set(negative_resource_cases.map { |test_case| test_case.fetch("covers_resource_negative_fixture") })
 missing_resource_negative_labels = sorted_set(EXPECTED_RESOURCE_NEGATIVE_LABELS) - covered_resource_negative_labels
 assert(missing_resource_negative_labels.empty?, "resource negative fixtures 未覆蓋：#{missing_resource_negative_labels.to_a.join(", ")}", failures)
+
+capability_profile_cases = read_json(POSITIVE_FIXTURE_PATH).fetch("capability_profile_cases")
+level_transition_cases = read_json(POSITIVE_FIXTURE_PATH).fetch("level_transition_cases")
+capability_profile_negative_cases = read_json(NEGATIVE_FIXTURE_PATH).fetch("capability_profile_negative_cases")
+level_transition_negative_cases = read_json(NEGATIVE_FIXTURE_PATH).fetch("level_transition_negative_cases")
+
+capability_profile_cases.each do |test_case|
+  assert(test_case.fetch("expected") == "allow", "#{test_case.fetch("case_id")} capability profile positive fixture 必須預期 allow", failures)
+  actual = capability_profile_failure(test_case.fetch("profile"))
+  assert(actual.nil?, "#{test_case.fetch("case_id")} 預期 allow，實際被拒：#{actual}", failures)
+end
+
+level_transition_cases.each do |test_case|
+  assert(test_case.fetch("expected") == "allow", "#{test_case.fetch("case_id")} level transition positive fixture 必須預期 allow", failures)
+  actual = level_transition_failure(spec, test_case.fetch("transition"))
+  assert(actual.nil?, "#{test_case.fetch("case_id")} 預期 allow，實際被拒：#{actual}", failures)
+end
+
+capability_profile_negative_cases.each do |test_case|
+  case_id = test_case.fetch("case_id")
+  assert(test_case.fetch("expected") == "deny", "#{case_id} capability profile negative fixture 必須預期 deny", failures)
+  expected_code = test_case.fetch("expected_failure_code")
+  actual = capability_profile_failure(test_case.fetch("profile"))
+  assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
+  assert(actual == expected_code, "#{case_id} 預期 failure code #{expected_code}，實際 #{actual.inspect}", failures)
+end
+
+level_transition_negative_cases.each do |test_case|
+  case_id = test_case.fetch("case_id")
+  assert(test_case.fetch("expected") == "deny", "#{case_id} level transition negative fixture 必須預期 deny", failures)
+  expected_code = test_case.fetch("expected_failure_code")
+  actual = level_transition_failure(spec, test_case.fetch("transition"))
+  assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
+  assert(actual == expected_code, "#{case_id} 預期 failure code #{expected_code}，實際 #{actual.inspect}", failures)
+end
+
+covered_capability_negative_labels = sorted_set(
+  (capability_profile_negative_cases + level_transition_negative_cases).map { |test_case| test_case.fetch("covers_capability_negative_fixture") }
+)
+missing_capability_negative_labels = sorted_set(EXPECTED_CAPABILITY_NEGATIVE_LABELS) - covered_capability_negative_labels
+assert(missing_capability_negative_labels.empty?, "capability negative fixtures 未覆蓋：#{missing_capability_negative_labels.to_a.join(", ")}", failures)
+
+context_pack_cases = read_json(POSITIVE_FIXTURE_PATH).fetch("context_pack_cases")
+context_pack_negative_cases = read_json(NEGATIVE_FIXTURE_PATH).fetch("context_pack_negative_cases")
+
+context_pack_cases.each do |test_case|
+  assert(test_case.fetch("expected") == "allow", "#{test_case.fetch("case_id")} context pack positive fixture 必須預期 allow", failures)
+  actual = context_pack_failure(test_case.fetch("request"), test_case.fetch("pack"))
+  assert(actual.nil?, "#{test_case.fetch("case_id")} 預期 allow，實際被拒：#{actual}", failures)
+end
+
+context_pack_negative_cases.each do |test_case|
+  case_id = test_case.fetch("case_id")
+  assert(test_case.fetch("expected") == "deny", "#{case_id} context pack negative fixture 必須預期 deny", failures)
+  expected_code = test_case.fetch("expected_failure_code")
+  actual = context_pack_failure(test_case.fetch("request"), test_case.fetch("pack"))
+  assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
+  assert(actual == expected_code, "#{case_id} 預期 failure code #{expected_code}，實際 #{actual.inspect}", failures)
+end
+
+covered_recall_negative_labels = sorted_set(context_pack_negative_cases.map { |test_case| test_case.fetch("covers_recall_negative_fixture") })
+missing_recall_negative_labels = sorted_set(EXPECTED_RECALL_NEGATIVE_LABELS) - covered_recall_negative_labels
+assert(missing_recall_negative_labels.empty?, "recall negative fixtures 未覆蓋：#{missing_recall_negative_labels.to_a.join(", ")}", failures)
+
+correction_proposal_cases = read_json(POSITIVE_FIXTURE_PATH).fetch("correction_proposal_cases")
+supersession_receipt_cases = read_json(POSITIVE_FIXTURE_PATH).fetch("supersession_receipt_cases")
+correction_proposal_negative_cases = read_json(NEGATIVE_FIXTURE_PATH).fetch("correction_proposal_negative_cases")
+supersession_receipt_negative_cases = read_json(NEGATIVE_FIXTURE_PATH).fetch("supersession_receipt_negative_cases")
+
+correction_proposal_cases.each do |test_case|
+  assert(test_case.fetch("expected") == "allow", "#{test_case.fetch("case_id")} correction proposal positive 必須預期 allow", failures)
+  actual = correction_proposal_failure(test_case.fetch("proposal"))
+  assert(actual.nil?, "#{test_case.fetch("case_id")} 預期 allow，實際被拒：#{actual}", failures)
+end
+
+supersession_receipt_cases.each do |test_case|
+  assert(test_case.fetch("expected") == "allow", "#{test_case.fetch("case_id")} supersession receipt positive 必須預期 allow", failures)
+  actual = supersession_receipt_failure(test_case.fetch("receipt"))
+  assert(actual.nil?, "#{test_case.fetch("case_id")} 預期 allow，實際被拒：#{actual}", failures)
+end
+
+[[correction_proposal_negative_cases, method(:correction_proposal_failure), "proposal"],
+ [supersession_receipt_negative_cases, method(:supersession_receipt_failure), "receipt"]].each do |cases, evaluator, key|
+  cases.each do |test_case|
+    case_id = test_case.fetch("case_id")
+    assert(test_case.fetch("expected") == "deny", "#{case_id} correction negative 必須預期 deny", failures)
+    expected_code = test_case.fetch("expected_failure_code")
+    actual = evaluator.call(test_case.fetch(key))
+    assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
+    assert(actual == expected_code, "#{case_id} 預期 failure code #{expected_code}，實際 #{actual.inspect}", failures)
+  end
+end
+
+covered_correction_negative_labels = sorted_set(
+  (correction_proposal_negative_cases + supersession_receipt_negative_cases).map { |test_case| test_case.fetch("covers_correction_negative_fixture") }
+)
+missing_correction_negative_labels = sorted_set(EXPECTED_CORRECTION_NEGATIVE_LABELS) - covered_correction_negative_labels
+assert(missing_correction_negative_labels.empty?, "correction negative fixtures 未覆蓋：#{missing_correction_negative_labels.to_a.join(", ")}", failures)
 
 if failures.empty?
   puts "PASS personal memory contract validation"

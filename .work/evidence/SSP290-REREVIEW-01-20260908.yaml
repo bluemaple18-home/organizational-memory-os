@@ -1,0 +1,26 @@
+review_line: SSP290-REVIEW-20260907
+round: targeted_re_review_01
+review_input:
+  repository: bluemaple18-home/organizational-memory-os
+  base_sha: d5b7c54fc87a78b1b7cba93faa4b8216239c7564
+  repair_sha: 73313c8a2da731a49dc0120a1dce479dcea601af
+  tree_sha: cf4113f4e7394cf1e31b94ba67209c79d7e93888
+  allowlist_count: 4
+  binding: PASS
+  zero_mutation: PASS
+closure:
+  SSP290-RV-001: CLOSED
+  SSP290-RV-002: CLOSED
+  SSP290-RV-003: CLOSED
+counts: {P0: 0, P1: 0, P2: 0, P3: 0}
+regression: PASS
+external_verdict: GO
+mainline_acceptance:
+  self_verify: PASS  # branch clean, repair_sha parent == d5b7c54, worktree zero-mutation
+  gates_rerun_local: PASS  # personal-memory + STD-00~03 + schema engine + cross-layer + git diff --check
+  owner_acceptance: ACCEPTED_20260908
+original_review_commit_immutable: a93313d18884b0dd73b33632e813d18b7f255b7b
+outcome:
+  card_status: ACCEPTED_GO_20260908
+  jira: SSP-290 -> Done (to be applied by Owner)
+  lane_a_next: SSP-292

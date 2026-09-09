@@ -1,6 +1,6 @@
 ---
 id: SSP292-RECALL-CONTEXT-PACK-20260908
-status: DRAFT_OWNER_REVIEW
+status: ACCEPTED_GO_20260909
 type: implementation
 jira: SSP-292
 lane: A

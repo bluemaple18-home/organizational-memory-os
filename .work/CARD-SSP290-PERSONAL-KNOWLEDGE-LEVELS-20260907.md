@@ -1,6 +1,6 @@
 ---
 id: SSP290-PERSONAL-KNOWLEDGE-LEVELS-20260907
-status: DRAFT_OWNER_REVIEW
+status: ACCEPTED_GO_20260908
 type: implementation
 jira: SSP-290
 lane: A

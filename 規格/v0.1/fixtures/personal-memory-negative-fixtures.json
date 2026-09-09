@@ -1142,5 +1142,777 @@
       ],
       "expected": "deny"
     }
+  ],
+  "capability_profile_negative_cases": [
+    {
+      "case_id": "CAP_NEG_L1_CLAIMS_L3_CAPABILITY",
+      "covers_capability_negative_fixture": "level claims capability above its grant",
+      "expected_failure_code": "CAPABILITY_ABOVE_LEVEL_GRANT",
+      "profile": {
+        "capability_level": "L1",
+        "claimed_capabilities": [
+          "manual_capture",
+          "cross_source_object_linking"
+        ]
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CAP_NEG_L4_AUTO_PROMOTE_WITHOUT_GATE",
+      "covers_capability_negative_fixture": "L4 action bypasses the authority gate",
+      "expected_failure_code": "L4_ACTION_BYPASSES_AUTHORITY_GATE",
+      "profile": {
+        "capability_level": "L4",
+        "claimed_capabilities": [
+          "promotion_proposal"
+        ],
+        "authority_gate_satisfied": false
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CAP_NEG_PROFILE_UNKNOWN_LEVEL",
+      "covers_capability_negative_fixture": "profile references a non-existent level",
+      "expected_failure_code": "UNKNOWN_CAPABILITY_LEVEL",
+      "profile": {
+        "capability_level": "L5",
+        "claimed_capabilities": []
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CAP_NEG_LEVEL_FORKS_CORE_CONTRACT",
+      "covers_capability_negative_fixture": "capability level forks the core contract",
+      "expected_failure_code": "LEVEL_FORKS_CORE_CONTRACT",
+      "profile": {
+        "capability_level": "L2",
+        "claimed_capabilities": [
+          "manual_capture"
+        ],
+        "forks_core_contract": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CAP_NEG_SAFETY_FLOOR_INVARIANT_MISSING",
+      "covers_capability_negative_fixture": "capability profile drops a safety-floor invariant",
+      "expected_failure_code": "SAFETY_FLOOR_INVARIANT_MISSING",
+      "profile": {
+        "capability_level": "L3",
+        "claimed_capabilities": [
+          "manual_capture"
+        ],
+        "safety_floor_state": {
+          "permission_before_retrieval": false,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "deny"
+    }
+  ],
+  "level_transition_negative_cases": [
+    {
+      "case_id": "TR_NEG_L1_TO_L3_MULTI_STEP_JUMP",
+      "covers_capability_negative_fixture": "level transition skips a step",
+      "expected_failure_code": "LEVEL_TRANSITION_NOT_SINGLE_STEP",
+      "transition": {
+        "from": "L1",
+        "to": "L3",
+        "authorized_actor": true,
+        "reason_recorded": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TR_NEG_DOWNGRADE_DROPS_PERMISSION_FLOOR",
+      "covers_capability_negative_fixture": "downgrade removes a safety-floor invariant",
+      "expected_failure_code": "DOWNGRADE_REMOVES_SAFETY_FLOOR",
+      "transition": {
+        "from": "L3",
+        "to": "L2",
+        "authorized_actor": true,
+        "reason_recorded": true,
+        "safety_floor_after": {
+          "permission_before_retrieval": false,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TR_NEG_UNAUTHORIZED_ACTOR",
+      "covers_capability_negative_fixture": "level transition without an authorized actor",
+      "expected_failure_code": "LEVEL_TRANSITION_UNAUTHORIZED_ACTOR",
+      "transition": {
+        "from": "L1",
+        "to": "L2",
+        "authorized_actor": false,
+        "reason_recorded": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TR_NEG_REASON_NOT_RECORDED",
+      "covers_capability_negative_fixture": "level transition without a recorded reason",
+      "expected_failure_code": "LEVEL_TRANSITION_REASON_NOT_RECORDED",
+      "transition": {
+        "from": "L1",
+        "to": "L2",
+        "authorized_actor": true,
+        "reason_recorded": false
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "TR_NEG_FORKS_CORE_CONTRACT",
+      "covers_capability_negative_fixture": "level transition forks the core contract",
+      "expected_failure_code": "LEVEL_TRANSITION_FORKS_CORE_CONTRACT",
+      "transition": {
+        "from": "L2",
+        "to": "L3",
+        "authorized_actor": true,
+        "reason_recorded": true,
+        "forks_core_contract": true
+      },
+      "expected": "deny"
+    }
+  ],
+  "context_pack_negative_cases": [
+    {
+      "case_id": "CTXPACK_NEG_REQUEST_MISSING_BUDGET",
+      "covers_recall_negative_fixture": "recall request missing a required field",
+      "expected_failure_code": "RECALL_REQUEST_MISSING_FIELD",
+      "request": {
+        "intent": "recall something",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY"
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9001-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9002-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9003-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [],
+        "selected_memories": [],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 0,
+          "budget": 4000,
+          "omitted_count": 0
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_DECISION_SCOPE_TOO_NARROW",
+      "covers_recall_negative_fixture": "permission decision scope narrower than selected set",
+      "expected_failure_code": "PERMISSION_DECISION_SCOPE_TOO_NARROW",
+      "request": {
+        "intent": "recall",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9011-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9012-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9013-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-9101-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9101-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "FRESH"
+          },
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9102-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "FRESH"
+          }
+        ],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 500,
+          "budget": 4000,
+          "omitted_count": 0
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_SEARCH_ALL_THEN_PROMPT_GUARD",
+      "covers_recall_negative_fixture": "search all personal memory then rely on prompt guard",
+      "expected_failure_code": "SEARCH_ALL_THEN_PROMPT_GUARD",
+      "request": {
+        "intent": "recall",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9021-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9022-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9023-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [],
+        "selected_memories": [],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 0,
+          "budget": 4000,
+          "omitted_count": 0
+        },
+        "search_strategy": "GLOBAL_THEN_PROMPT_GUARD"
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_STALE_WITHOUT_FRESHNESS",
+      "covers_recall_negative_fixture": "stale memory returned without freshness marker",
+      "expected_failure_code": "STALE_WITHOUT_FRESHNESS",
+      "request": {
+        "intent": "recall",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9031-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9032-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9033-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-9201-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9201-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "STALE"
+          }
+        ],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 500,
+          "budget": 4000,
+          "omitted_count": 0
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_BUDGET_OMITTED_WITHOUT_NOTICE",
+      "covers_recall_negative_fixture": "budget-omitted memory without a gap notice",
+      "expected_failure_code": "BUDGET_OMITTED_WITHOUT_NOTICE",
+      "request": {
+        "intent": "recall",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 2000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9041-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9042-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9043-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-9301-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9301-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "FRESH"
+          }
+        ],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [
+          {
+            "reason": "NOT_APPLICABLE_FILTERED",
+            "detail": "one off-intent memory dropped"
+          }
+        ],
+        "budget_usage": {
+          "used": 1900,
+          "budget": 2000,
+          "omitted_count": 3
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_CROSS_OWNER_WITHOUT_INTERSECTION",
+      "covers_recall_negative_fixture": "cross-owner selection without permission intersection",
+      "expected_failure_code": "CROSS_OWNER_WITHOUT_INTERSECTION",
+      "request": {
+        "intent": "recall shared context",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "WORK_CONTEXT",
+        "ownership_mode": "JOINT_WORK_CONTEXT",
+        "visibility_scope": "WORK_CONTEXT_PARTICIPANTS",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9051-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9052-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9053-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-9401-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9401-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-bbbb-7aaa-8bbb-222222222222",
+            "freshness": "FRESH"
+          }
+        ],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 500,
+          "budget": 4000,
+          "omitted_count": 0
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_CROSS_OWNER_EMPTY_INTERSECTION_REF",
+      "covers_recall_negative_fixture": "cross-owner selection with an empty intersection ref",
+      "expected_failure_code": "CROSS_OWNER_WITHOUT_INTERSECTION",
+      "request": {
+        "intent": "recall shared context",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "WORK_CONTEXT",
+        "ownership_mode": "JOINT_WORK_CONTEXT",
+        "visibility_scope": "WORK_CONTEXT_PARTICIPANTS",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9061-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9062-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9063-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-9501-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9501-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-bbbb-7aaa-8bbb-222222222222",
+            "freshness": "FRESH"
+          }
+        ],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9501-7aaa-8bbb-111111111111",
+            "intersection_ref": ""
+          }
+        ],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 500,
+          "budget": 4000,
+          "omitted_count": 0
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_NULL_DECISION_REF",
+      "covers_recall_negative_fixture": "permission decision ref is null",
+      "expected_failure_code": "CONTEXT_PACK_MISSING_FIELD",
+      "request": {
+        "intent": "recall",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9071-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9072-7aaa-8bbb-111111111111",
+        "permission_decision_ref": null,
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [],
+        "selected_memories": [],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 0,
+          "budget": 4000,
+          "omitted_count": 0
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_NOT_APPLICABLE_WITHOUT_NOTICE",
+      "covers_recall_negative_fixture": "not-applicable filtered memory without a gap notice",
+      "expected_failure_code": "NOT_APPLICABLE_WITHOUT_NOTICE",
+      "request": {
+        "intent": "recall",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9081-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9082-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9083-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-9601-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9601-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "FRESH"
+          }
+        ],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 2,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 500,
+          "budget": 4000,
+          "omitted_count": 0
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CTXPACK_NEG_UNRESTRICTED_GLOBAL_SEARCH",
+      "covers_recall_negative_fixture": "unrestricted global personal memory search",
+      "expected_failure_code": "UNRESTRICTED_GLOBAL_SEARCH",
+      "request": {
+        "intent": "recall",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-9091-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-9092-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-9093-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [],
+        "selected_memories": [],
+        "source_refs": [],
+        "applicability": {},
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 0,
+          "budget": 4000,
+          "omitted_count": 0
+        },
+        "search_strategy": "UNRESTRICTED_GLOBAL_SEARCH"
+      },
+      "expected": "deny"
+    }
+  ],
+  "correction_proposal_negative_cases": [
+    {
+      "case_id": "CORR_PROP_NEG_NO_EVIDENCE",
+      "covers_correction_negative_fixture": "correction proposal without correction evidence",
+      "expected_failure_code": "CORRECTION_MISSING_EVIDENCE",
+      "proposal": {
+        "proposal_id": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "correction_evidence_refs": [],
+        "proposed_by": "EMPLOYEE",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:01Z"
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_PROP_NEG_INVALID_EVIDENCE_REF",
+      "covers_correction_negative_fixture": "correction proposal with a non-empty but invalid evidence ref",
+      "expected_failure_code": "CORRECTION_MISSING_EVIDENCE",
+      "proposal": {
+        "proposal_id": "urn:omos:personal-memory:correction-proposal:0198ea00-9002-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "correction_evidence_refs": [{"fake": true}],
+        "proposed_by": "EMPLOYEE",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:01Z"
+        }
+      },
+      "expected": "deny"
+    }
+  ],
+  "supersession_receipt_negative_cases": [
+    {
+      "case_id": "CORR_RECEIPT_NEG_SKIPS_VERIFICATION",
+      "covers_correction_negative_fixture": "supersession receipt skips verification",
+      "expected_failure_code": "CORRECTION_SKIPS_VERIFICATION",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9011-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "NOT_RUN",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9301-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9401-7aaa-8bbb-111111111111",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_SKIPS_ACCEPTANCE",
+      "covers_correction_negative_fixture": "supersession receipt skips acceptance",
+      "expected_failure_code": "CORRECTION_SKIPS_ACCEPTANCE",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9012-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9302-7aaa-8bbb-111111111111",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_IN_PLACE_OVERWRITE",
+      "covers_correction_negative_fixture": "correction overwrites the record in place",
+      "expected_failure_code": "CORRECTION_IN_PLACE_OVERWRITE",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9013-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9303-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9403-7aaa-8bbb-111111111111",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        },
+        "in_place_content_patch": {
+          "statement_or_structured_content": "silently rewritten"
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_HISTORY_ERASURE",
+      "covers_correction_negative_fixture": "supersession receipt erases history",
+      "expected_failure_code": "CORRECTION_HISTORY_ERASURE",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9014-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9304-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9404-7aaa-8bbb-111111111111",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        },
+        "history_erasure": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_KIND_LIFECYCLE_MISMATCH",
+      "covers_correction_negative_fixture": "correction kind maps to the wrong lifecycle status",
+      "expected_failure_code": "CORRECTION_KIND_LIFECYCLE_MISMATCH",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9015-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "INVALIDATED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9305-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9405-7aaa-8bbb-111111111111",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_MUTATED_AFTER_THE_FACT",
+      "covers_correction_negative_fixture": "supersession receipt mutated after the fact",
+      "expected_failure_code": "CORRECTION_RECEIPT_MUTATED",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9016-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9306-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9406-7aaa-8bbb-111111111111",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        },
+        "mutated": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_FAKE_VERIFICATION_REF",
+      "covers_correction_negative_fixture": "gate accepts a non-ref verification value",
+      "expected_failure_code": "CORRECTION_SKIPS_VERIFICATION",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9017-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": 123,
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9407-7aaa-8bbb-111111111111",
+        "chronology": {"created_at": "2026-09-09T00:00:02Z"}
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_FAKE_ACCEPTANCE_REF",
+      "covers_correction_negative_fixture": "gate accepts a non-ref acceptance value",
+      "expected_failure_code": "CORRECTION_SKIPS_ACCEPTANCE",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9018-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9308-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": true,
+        "chronology": {"created_at": "2026-09-09T00:00:02Z"}
+      },
+      "expected": "deny"
+    }
   ]
 }

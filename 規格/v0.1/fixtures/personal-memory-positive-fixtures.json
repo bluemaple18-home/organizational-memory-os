@@ -406,5 +406,365 @@
       ],
       "expected": "allow"
     }
+  ],
+  "capability_profile_cases": [
+    {
+      "case_id": "CAP_POS_L1_BASIC",
+      "profile": {
+        "capability_level": "L1",
+        "claimed_capabilities": [
+          "manual_capture",
+          "candidate_generation",
+          "employee_confirmation",
+          "basic_recall_with_citation"
+        ],
+        "safety_floor_state": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CAP_POS_L2_AUTOMATION",
+      "profile": {
+        "capability_level": "L2",
+        "claimed_capabilities": [
+          "manual_capture",
+          "candidate_generation",
+          "employee_confirmation",
+          "basic_recall_with_citation",
+          "automatic_source_ingestion",
+          "deterministic_dedup_version_acl_retention",
+          "automatic_candidate_queue"
+        ],
+        "safety_floor_state": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CAP_POS_L3_INTELLIGENT",
+      "profile": {
+        "capability_level": "L3",
+        "claimed_capabilities": [
+          "manual_capture",
+          "candidate_generation",
+          "employee_confirmation",
+          "basic_recall_with_citation",
+          "automatic_source_ingestion",
+          "deterministic_dedup_version_acl_retention",
+          "automatic_candidate_queue",
+          "cross_source_object_linking",
+          "workrecord_correlation",
+          "conflict_freshness_gap_suggestion",
+          "context_aware_recall",
+          "promotion_suggestion"
+        ],
+        "safety_floor_state": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CAP_POS_L4_AUTONOMOUS_GATED",
+      "profile": {
+        "capability_level": "L4",
+        "claimed_capabilities": [
+          "manual_capture",
+          "candidate_generation",
+          "employee_confirmation",
+          "basic_recall_with_citation",
+          "automatic_source_ingestion",
+          "deterministic_dedup_version_acl_retention",
+          "automatic_candidate_queue",
+          "cross_source_object_linking",
+          "workrecord_correlation",
+          "conflict_freshness_gap_suggestion",
+          "context_aware_recall",
+          "promotion_suggestion",
+          "continuous_stale_conflict_gap_monitoring",
+          "correction_proposal",
+          "promotion_proposal",
+          "projection_rebuild_regression_evaluation"
+        ],
+        "authority_gate_satisfied": true,
+        "safety_floor_state": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CAP_POS_L3_PARTIAL_CLAIM_NO_FLOOR_STATE",
+      "profile": {
+        "capability_level": "L3",
+        "claimed_capabilities": [
+          "manual_capture",
+          "cross_source_object_linking"
+        ]
+      },
+      "expected": "allow"
+    }
+  ],
+  "level_transition_cases": [
+    {
+      "case_id": "TR_POS_UP_L1_L2",
+      "transition": {
+        "from": "L1",
+        "to": "L2",
+        "authorized_actor": true,
+        "reason_recorded": true
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "TR_POS_UP_L3_L4",
+      "transition": {
+        "from": "L3",
+        "to": "L4",
+        "authorized_actor": true,
+        "reason_recorded": true
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "TR_POS_DOWN_L4_L3_FLOOR_PRESERVED",
+      "transition": {
+        "from": "L4",
+        "to": "L3",
+        "authorized_actor": true,
+        "reason_recorded": true,
+        "safety_floor_after": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "TR_POS_DOWN_L2_L1_FLOOR_PRESERVED",
+      "transition": {
+        "from": "L2",
+        "to": "L1",
+        "authorized_actor": true,
+        "reason_recorded": true,
+        "safety_floor_after": {
+          "permission_before_retrieval": true,
+          "provenance_required": true,
+          "canonical_single_writer": true,
+          "candidate_not_auto_accepted_by_level": true,
+          "promotion_requires_widening_gate": true
+        }
+      },
+      "expected": "allow"
+    }
+  ],
+  "context_pack_cases": [
+    {
+      "case_id": "CTXPACK_POS_FRESH_SELF_ONLY",
+      "request": {
+        "intent": "recall my PM handoff-card preferences",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "PERSONAL",
+        "ownership_mode": "EMPLOYEE_CONTROLLED",
+        "visibility_scope": "SELF_ONLY",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-0001-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-0002-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-0003-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-1001-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-1001-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "FRESH"
+          }
+        ],
+        "source_refs": [
+          "urn:omos:evidence:0198e900-2001-7aaa-8bbb-111111111111"
+        ],
+        "applicability": {
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "applies_to_refs": [
+            "urn:omos:project:personal-memory-standard"
+          ]
+        },
+        "freshness": {
+          "stale_present": false
+        },
+        "permission_intersection_refs": [],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [],
+        "budget_usage": {
+          "used": 1200,
+          "budget": 4000,
+          "omitted_count": 0
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CTXPACK_POS_STALE_BUDGET_CROSS_OWNER_ALL_NOTICED",
+      "request": {
+        "intent": "recall shared work-context decisions for the pilot",
+        "requester_identity": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "requester_scope": "WORK_CONTEXT",
+        "ownership_mode": "JOINT_WORK_CONTEXT",
+        "visibility_scope": "WORK_CONTEXT_PARTICIPANTS",
+        "context_budget": 4000
+      },
+      "pack": {
+        "pack_id": "urn:omos:memory-context-pack:0198e900-0011-7aaa-8bbb-111111111111",
+        "request_ref": "urn:omos:recall-request:0198e900-0012-7aaa-8bbb-111111111111",
+        "permission_decision_ref": "urn:omos:permission-decision:0198e900-0013-7aaa-8bbb-111111111111",
+        "permission_decision_before_selection": true,
+        "permission_decision_covered_memory_refs": [
+          "urn:omos:personal-memory:record:0198e900-1101-7aaa-8bbb-111111111111",
+          "urn:omos:personal-memory:record:0198e900-1102-7aaa-8bbb-111111111111",
+          "urn:omos:personal-memory:record:0198e900-1103-7aaa-8bbb-111111111111"
+        ],
+        "selected_memories": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-1101-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "FRESH"
+          },
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-1102-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-bbbb-7aaa-8bbb-222222222222",
+            "freshness": "FRESH"
+          },
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-1103-7aaa-8bbb-111111111111",
+            "owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+            "freshness": "STALE"
+          }
+        ],
+        "source_refs": [
+          "urn:omos:evidence:0198e900-2101-7aaa-8bbb-111111111111"
+        ],
+        "applicability": {
+          "scope_mode": "SHARED_WORK_CONTEXT",
+          "applies_to_refs": [
+            "urn:omos:project:product-department-pilot"
+          ]
+        },
+        "freshness": {
+          "stale_present": true
+        },
+        "permission_intersection_refs": [
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-1102-7aaa-8bbb-111111111111",
+            "intersection_ref": "urn:omos:permission-intersection:0198e900-3001-7aaa-8bbb-111111111111"
+          }
+        ],
+        "not_applicable_filtered_count": 0,
+        "omitted_or_gap_notice": [
+          {
+            "reason": "STALE_PRESENT",
+            "detail": "record ...1103 is stale and shown with a freshness flag"
+          },
+          {
+            "reason": "BUDGET_OMITTED",
+            "detail": "2 lower-priority memories omitted for the 4000 token budget"
+          }
+        ],
+        "budget_usage": {
+          "used": 3800,
+          "budget": 4000,
+          "omitted_count": 2
+        }
+      },
+      "expected": "allow"
+    }
+  ],
+  "correction_proposal_cases": [
+    {
+      "case_id": "CORR_PROP_POS_AMEND",
+      "proposal": {
+        "proposal_id": "urn:omos:personal-memory:correction-proposal:0198ea00-0001-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-1001-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "correction_evidence_refs": [
+          "urn:omos:evidence:0198ea00-2001-7aaa-8bbb-111111111111"
+        ],
+        "proposed_by": "EMPLOYEE",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:01Z"
+        }
+      },
+      "expected": "allow"
+    }
+  ],
+  "supersession_receipt_cases": [
+    {
+      "case_id": "CORR_RECEIPT_POS_AMEND",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-0011-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-0001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-1001-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-1001-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-3001-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-4001-7aaa-8bbb-111111111111",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        }
+      },
+      "expected": "allow"
+    },
+    {
+      "case_id": "CORR_RECEIPT_POS_SUPERSEDE_NEW_RECORD",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-0012-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-0002-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-1002-7aaa-8bbb-111111111111",
+        "correction_kind": "SUPERSEDE",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-1002-7aaa-8bbb-111111111111",
+        "new_record_ref": "urn:omos:personal-memory:record:0198ea00-1003-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-3002-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-4002-7aaa-8bbb-111111111111",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:03Z"
+        }
+      },
+      "expected": "allow"
+    }
   ]
 }
