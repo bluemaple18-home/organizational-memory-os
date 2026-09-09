@@ -1,0 +1,59 @@
+{
+  "e2e_acceptance_cases": [
+    {
+      "case_id": "E2E_POS_DONE",
+      "expected": "allow",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-3"}
+        ],
+        "manager_view": {
+          "objective": "ship the personal-memory harness contract slice",
+          "status": "DONE",
+          "blockers": "none",
+          "acceptance_summary": "all acceptance criteria met, gate suite green",
+          "evidence_links": ["urn:omos:evidence:e2e-a", "urn:omos:evidence:e2e-b"]
+        },
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [
+          {"personal_memory": false}
+        ],
+        "is_projection": true,
+        "performs_acceptance": false,
+        "is_canonical": false,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_POS_CANCELLED_WITH_PROMOTED_RECORD",
+      "expected": "allow",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-10"},
+          {"event": "block", "evidence_receipt_ref": "urn:omos:receipt:e2e-11"},
+          {"event": "cancel", "evidence_receipt_ref": "urn:omos:receipt:e2e-12"}
+        ],
+        "manager_view": {
+          "objective": "evaluate the vendor connector",
+          "status": "CANCELLED",
+          "blockers": "vendor withdrew the trial",
+          "acceptance_summary": "cancelled before acceptance; no criteria evaluated",
+          "evidence_links": ["urn:omos:evidence:e2e-c"]
+        },
+        "final_status": "CANCELLED",
+        "reconstructable_from_jira": true,
+        "work_records": [
+          {"personal_memory": true, "candidate_ref": "urn:omos:candidate:c1", "acceptance_ref": "urn:omos:acceptance:a1"},
+          {"personal_memory": false}
+        ],
+        "is_projection": true,
+        "performs_acceptance": false,
+        "is_canonical": false,
+        "ok": true
+      }
+    }
+  ]
+}

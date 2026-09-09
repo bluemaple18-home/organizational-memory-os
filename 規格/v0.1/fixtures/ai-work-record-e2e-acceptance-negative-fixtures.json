@@ -1,0 +1,213 @@
+{
+  "e2e_acceptance_negative_cases": [
+    {
+      "case_id": "E2E_NEG_TRACE_NOT_START",
+      "expected": "deny",
+      "expected_failure_code": "E2E_TRACE_INCOMPLETE",
+      "covers_e2e_negative_fixture": "the trace does not start with start",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "block", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_TRACE_NOT_TERMINAL",
+      "expected": "deny",
+      "expected_failure_code": "E2E_TRACE_INCOMPLETE",
+      "covers_e2e_negative_fixture": "the trace does not end on a terminal event",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "submit_review", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_RECEIPT_NOT_REF",
+      "expected": "deny",
+      "expected_failure_code": "E2E_RECEIPT_NOT_REF",
+      "covers_e2e_negative_fixture": "an evidence receipt is not a reference",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "receipt-1-inline"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_MANAGER_VIEW_EXTRA_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "MANAGER_VIEW_LEAKS_FIELD",
+      "covers_e2e_negative_fixture": "the manager view carries an extra field",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"], "internal_debug_dump": "step-by-step reasoning"},
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_MANAGER_VIEW_SENSITIVE",
+      "expected": "deny",
+      "expected_failure_code": "MANAGER_VIEW_LEAKS_CONTENT",
+      "covers_e2e_negative_fixture": "the manager view copies sensitive content",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "sensitive_content_copied": true,
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_EVIDENCE_LINK_INLINE",
+      "expected": "deny",
+      "expected_failure_code": "MANAGER_VIEW_INLINE_CONTENT",
+      "covers_e2e_negative_fixture": "an evidence link is not a reference",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["see the shared drive folder"]},
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_STATUS_UNMAPPED",
+      "expected": "deny",
+      "expected_failure_code": "E2E_STATUS_UNMAPPED",
+      "covers_e2e_negative_fixture": "the final status does not match the terminal event",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "CANCELLED", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "CANCELLED",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_INVALID_STATUS",
+      "expected": "deny",
+      "expected_failure_code": "E2E_INVALID_STATUS",
+      "covers_e2e_negative_fixture": "the final status is not a manager-visible status",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "IN_PROGRESS", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "IN_PROGRESS",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE",
+      "expected": "deny",
+      "expected_failure_code": "E2E_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE",
+      "covers_e2e_negative_fixture": "a work record claims personal memory without acceptance",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [
+          {"personal_memory": true, "candidate_ref": "urn:omos:candidate:c1"}
+        ],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_NOT_RECONSTRUCTABLE",
+      "expected": "deny",
+      "expected_failure_code": "MANAGER_VIEW_NOT_RECONSTRUCTABLE",
+      "covers_e2e_negative_fixture": "the run is not reconstructable from jira",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "DONE",
+        "reconstructable_from_jira": false,
+        "work_records": [{"personal_memory": false}],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_EXCEEDS_AUTHORITY",
+      "expected": "deny",
+      "expected_failure_code": "E2E_EXCEEDS_AUTHORITY",
+      "covers_e2e_negative_fixture": "the run carries a canonical write field",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "canonical_write_receipt_ref": "urn:omos:canonical-write:e2e-must-not-write",
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    },
+    {
+      "case_id": "E2E_NEG_FAIL_SILENT",
+      "expected": "deny",
+      "expected_failure_code": "FAIL_SILENT",
+      "covers_e2e_negative_fixture": "error but the run still claims success",
+      "run": {
+        "lifecycle_trace": [
+          {"event": "start", "evidence_receipt_ref": "urn:omos:receipt:e2e-1"},
+          {"event": "complete", "evidence_receipt_ref": "urn:omos:receipt:e2e-2"}
+        ],
+        "manager_view": {"objective": "x", "status": "DONE", "blockers": "none", "acceptance_summary": "ok", "evidence_links": ["urn:omos:evidence:e"]},
+        "final_status": "DONE",
+        "reconstructable_from_jira": true,
+        "work_records": [{"personal_memory": false}],
+        "error": "one lifecycle event was reconstructed without its evidence receipt",
+        "is_projection": true, "performs_acceptance": false, "is_canonical": false, "ok": true
+      }
+    }
+  ]
+}

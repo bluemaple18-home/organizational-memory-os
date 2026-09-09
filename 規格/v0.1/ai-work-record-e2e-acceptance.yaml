@@ -1,0 +1,136 @@
+schema:
+  schema_id: urn:omos:schema:ai-work-record-e2e-acceptance:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-09'
+  traces_to:
+    - AIWR-08
+  builds_on:
+    - 規格/v0.1/ai-task-card-record.yaml
+    - 規格/v0.1/ai-work-record-boundary.yaml
+    - 規格/v0.1/ai-work-record-harness.yaml
+
+purpose:
+  statement: >-
+    An end-to-end acceptance and manager-view contract: a real task produces a
+    complete lifecycle trace (each step carrying an evidence receipt reference);
+    the manager view projects only objective, status, blockers, an acceptance
+    summary and evidence links, never sensitive content; every terminal state
+    (done / failed / cancelled / blocked / human intervention) has an explicit
+    manager-visible status; a WorkRecord becomes Personal Memory only through a
+    Candidate and an Acceptance; and a manager can reconstruct progress from the
+    Jira view alone. It does not re-define the SSP-298..SSP-304 contracts — it
+    references them.
+  no_second_workflow_authority: true
+
+e2e_trace:
+  first_event: start
+  terminal_events:
+    - complete
+    - cancel
+  rule: >-
+    lifecycle_trace is a non-empty ordered list of {event, evidence_receipt_ref};
+    the first event is `start`, the last is one of terminal_events, every event
+    is a key of ai-task-card-record.yaml lifecycle_event_to_status, and every
+    evidence_receipt_ref is an omos URN. A missing / out-of-order trace is
+    E2E_TRACE_INCOMPLETE; a non-URN receipt is E2E_RECEIPT_NOT_REF.
+
+manager_view:
+  allowed_fields:
+    - objective
+    - status
+    - blockers
+    - acceptance_summary
+    - evidence_links
+  reference_only_fields:
+    - evidence_links
+  rule: >-
+    the manager_view field set is exactly allowed_fields; any extra field is
+    MANAGER_VIEW_LEAKS_FIELD. evidence_links entries are all omos URN strings
+    (a non-URN entry is MANAGER_VIEW_INLINE_CONTENT). sensitive_content_copied
+    true, or a raw_work_body field, is MANAGER_VIEW_LEAKS_CONTENT.
+
+status_completeness:
+  manager_statuses:
+    - DONE
+    - FAILED
+    - CANCELLED
+    - BLOCKED
+    - HUMAN_INTERVENTION
+  terminal_event_to_status:
+    complete: DONE
+    cancel: CANCELLED
+  rule: >-
+    final_status is one of manager_statuses; when the trace's last event is
+    `complete` final_status must be DONE and when it is `cancel` final_status
+    must be CANCELLED. Anything else is E2E_STATUS_UNMAPPED.
+
+memory_promotion_gate:
+  rule: >-
+    a work_records entry with personal_memory true must carry both a
+    candidate_ref and an acceptance_ref that are omos URNs, otherwise
+    E2E_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE. A WorkRecord never becomes
+    Personal Memory without a Candidate and an Acceptance.
+
+reconstruction:
+  reconstructable_from_jira: true
+  rule: >-
+    reconstructable_from_jira must be true and the manager_view must carry a
+    non-empty status and a non-empty evidence_links, otherwise
+    MANAGER_VIEW_NOT_RECONSTRUCTABLE.
+
+authority:
+  is_projection: true
+  performs_acceptance: false
+  is_canonical: false
+  error_behavior: FAIL_LOUD
+  forbidden_run_fields:
+    - personal_acceptance_ref
+    - verification_receipt_ref
+    - accepted_for_record
+    - canonical_write_receipt_ref
+
+error_contract:
+  E2E_TRACE_INCOMPLETE: e2e.error.trace_incomplete
+  E2E_RECEIPT_NOT_REF: e2e.error.receipt_not_ref
+  MANAGER_VIEW_LEAKS_FIELD: e2e.error.manager_view_leaks_field
+  MANAGER_VIEW_LEAKS_CONTENT: e2e.error.manager_view_leaks_content
+  MANAGER_VIEW_INLINE_CONTENT: e2e.error.manager_view_inline_content
+  E2E_STATUS_UNMAPPED: e2e.error.status_unmapped
+  E2E_INVALID_STATUS: e2e.error.invalid_status
+  E2E_WORKRECORD_PROMOTED_WITHOUT_ACCEPTANCE: e2e.error.workrecord_promoted_without_acceptance
+  MANAGER_VIEW_NOT_RECONSTRUCTABLE: e2e.error.manager_view_not_reconstructable
+  E2E_EXCEEDS_AUTHORITY: e2e.error.exceeds_authority
+  FAIL_SILENT: e2e.error.fail_silent
+
+runtime_independence: true
+
+cross_reference:
+  task_card_record_spec: 規格/v0.1/ai-task-card-record.yaml
+  boundary_spec: 規格/v0.1/ai-work-record-boundary.yaml
+  harness_spec: 規格/v0.1/ai-work-record-harness.yaml
+  must_match:
+    lifecycle_events_from: ai-task-card-record.lifecycle_event_to_status
+    non_acceptance_authority_from: ai-work-record-boundary.non_acceptance_authority.signals
+    harness_schema_id_from: ai-work-record-harness.schema.schema_id
+    error_behavior_from: ai-work-record-boundary.automated_step_contract.error_behavior_enum
+
+hard_stops:
+  - no jira write / connector / UI / runtime here
+  - pure function plus data tables only; no state machine engine
+  - do not re-define the SSP-298..SSP-304 contracts
+  - no canonical writer; the manager view is projection only
+
+required_negative_fixtures:
+  - the trace does not start with start
+  - the trace does not end on a terminal event
+  - an evidence receipt is not a reference
+  - the manager view carries an extra field
+  - the manager view copies sensitive content
+  - an evidence link is not a reference
+  - the final status does not match the terminal event
+  - the final status is not a manager-visible status
+  - a work record claims personal memory without acceptance
+  - the run is not reconstructable from jira
+  - the run carries a canonical write field
+  - error but the run still claims success
