@@ -13,6 +13,7 @@
 
 require "json"
 require "yaml"
+require "time"
 require_relative "lib/omos_contract_helpers"
 
 ROOT = File.expand_path("..", __dir__)
@@ -32,14 +33,34 @@ EXPECTED_FIELD_ID_BY_KIND = {
   "SUMMARY" => "summary", "DESCRIPTION" => "description",
   "COMMENT_BODY" => "comment", "ADF_TEXT_NODE" => "description"
 }.freeze
+# json_pointer 前綴（不帶尾斜線）；實際 pointer 必須 == prefix 或以 "prefix/" 開頭
+# （純 start_with?(prefix) 會讓 /fields/description_extra 這種 prefix bypass 過關）。
 EXPECTED_JSON_POINTER_PREFIX_BY_KIND = {
   "SUMMARY" => "/fields/summary", "DESCRIPTION" => "/fields/description",
-  "COMMENT_BODY" => "/fields/comment/comments/", "ADF_TEXT_NODE" => "/fields/description"
+  "COMMENT_BODY" => "/fields/comment/comments", "ADF_TEXT_NODE" => "/fields/description"
 }.freeze
 ISSUE_ID_PATTERN = /\A[0-9]+\z/.freeze
 SHA256_PATTERN = /\Asha256:[0-9a-f]{64}\z/.freeze
-# 皆以 UTC "Z" 正規化的 RFC3339 timestamp，字典序即時間序。
-RFC3339_UTC_PATTERN = /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z\z/.freeze
+
+# RFC3339 timestamp -> Time，parse 失敗回 nil。用真正 parse 比較，不用字串比較
+# （字串比較下 "2026-09-05T12:00:00.1Z" < "2026-09-05T12:00:00Z"，fractional 秒會判錯）。
+def parse_instant(value)
+  return nil unless value.is_a?(String)
+
+  Time.iso8601(value)
+rescue ArgumentError
+  nil
+end
+
+# pointer 是否真正定址到該 field：== prefix 或位於 prefix 之下。
+def json_pointer_addresses_field?(pointer, prefix)
+  pointer.is_a?(String) && (pointer == prefix || pointer.start_with?("#{prefix}/"))
+end
+
+# identity 需 cloud_id / issue_id 皆非空。
+def identity_complete?(identity)
+  identity.is_a?(Hash) && present?(identity["cloud_id"]) && present?(identity["issue_id"])
+end
 
 EXPECTED_JIRA_MAP_NEGATIVE_LABELS = [
   "a field kind outside SUMMARY / DESCRIPTION / COMMENT_BODY / ADF_TEXT_NODE",
@@ -54,10 +75,14 @@ EXPECTED_JIRA_MAP_NEGATIVE_LABELS = [
   "profile_details has the wrong key set",
   "the anchor field id does not match the field kind",
   "the anchor json pointer does not address the mapped field",
+  "the anchor json pointer only shares a prefix with the mapped field",
   "reconciliation changes an existing evidence identity",
+  "reconciliation omits the before or after evidence identity",
   "reconciliation before and after evidence identity differ",
+  "the reconciliation current identity does not match the projected identity",
   "an issue key rename is not recorded as a source alias",
   "reconciliation version decision disagrees with the observed version order",
+  "a fractional-second newer version is still ordered as newer",
   "reconciliation drops a detected gap without emitting evidence",
   "error but the mapping still claims success"
 ].freeze
@@ -113,8 +138,8 @@ def jira_mapping_failure(projection, target)
   end
   return "JIRA_MAP_SECONDARY_DIGEST_MALFORMED" unless version["secondary_digest"].is_a?(String) &&
                                                      SHA256_PATTERN.match?(version["secondary_digest"])
-  return "JIRA_MAP_VERSION_VALUE_INVALID" unless version["value"].is_a?(String) &&
-                                                RFC3339_UTC_PATTERN.match?(version["value"])
+  version_instant = parse_instant(version["value"])
+  return "JIRA_MAP_VERSION_VALUE_INVALID" if version_instant.nil?
 
   anchor = projection["source_anchor"] || {}
   return "JIRA_MAP_PROFILE_MISMATCH" unless anchor["profile"] == "JIRA_CLOUD_ENTITY_SEGMENT_V1" &&
@@ -137,8 +162,12 @@ def jira_mapping_failure(projection, target)
   return "JIRA_MAP_PROFILE_DETAILS_MALFORMED" unless anchor["normalization_profile"] == "OMOS_TEXT_NORM_V1"
 
   return "JIRA_MAP_FIELD_ID_KIND_MISMATCH" unless details["field_id"] == EXPECTED_FIELD_ID_BY_KIND.fetch(kind)
-  return "JIRA_MAP_JSON_POINTER_FIELD_MISMATCH" unless details["json_pointer"].is_a?(String) &&
-                                                      details["json_pointer"].start_with?(EXPECTED_JSON_POINTER_PREFIX_BY_KIND.fetch(kind))
+  return "JIRA_MAP_JSON_POINTER_FIELD_MISMATCH" unless json_pointer_addresses_field?(
+    details["json_pointer"], EXPECTED_JSON_POINTER_PREFIX_BY_KIND.fetch(kind)
+  )
+
+  # 當輪實際 projected identity（來自 anchor profile_details，不是 caller 自報的 flag）。
+  projected_identity = { "cloud_id" => details["cloud_id"], "issue_id" => details["issue_id"] }
 
   reconciliation = projection["reconciliation"]
   if reconciliation.is_a?(Hash)
@@ -146,25 +175,26 @@ def jira_mapping_failure(projection, target)
 
     previous_identity = identity_pair(reconciliation["previous_identity"])
     current_identity = identity_pair(reconciliation["current_identity"])
-    if previous_identity && current_identity
-      return "JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT" unless previous_identity == current_identity
+    # identity 為 reconciliation 必填，且 cloud_id / issue_id 皆不得為空。
+    unless identity_complete?(previous_identity) && identity_complete?(current_identity)
+      return "JIRA_MAP_RECONCILIATION_IDENTITY_INCOMPLETE"
     end
+    return "JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT" unless previous_identity == current_identity
+    # current_identity 必須等於當輪實際 projected identity。
+    return "JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT" unless current_identity == projected_identity
 
     key_change = reconciliation["issue_key_change"]
     if key_change.is_a?(Hash)
       alias_values = raw["source_aliases"].to_a.map { |entry| entry.is_a?(Hash) ? entry["value"] : entry }
-      identity_stable = previous_identity.nil? || current_identity.nil? || previous_identity == current_identity
-      unless identity_stable && alias_values.include?(key_change["to"])
-        return "JIRA_MAP_ISSUE_KEY_RENAME_NOT_ALIASED"
-      end
+      return "JIRA_MAP_ISSUE_KEY_RENAME_NOT_ALIASED" unless alias_values.include?(key_change["to"])
     end
 
     decision = reconciliation["decision"]
     if present?(decision)
-      previous_value = reconciliation.dig("previous_version", "value")
-      current_value = reconciliation.dig("current_version", "value") || version["value"]
-      if previous_value.is_a?(String) && current_value.is_a?(String)
-        ordered_new = current_value > previous_value
+      previous_instant = parse_instant(reconciliation.dig("previous_version", "value"))
+      current_instant = parse_instant(reconciliation.dig("current_version", "value")) || version_instant
+      if previous_instant && current_instant
+        ordered_new = current_instant > previous_instant
         mismatch = (decision == "NEW_EVIDENCE" && !ordered_new) || (decision == "NOOP" && ordered_new)
         return "JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH" if mismatch
       end
@@ -176,6 +206,54 @@ def jira_mapping_failure(projection, target)
   end
 
   nil
+end
+
+# F-01 regression 修補：compact projection 與完整 STD instance 不得是兩套脫鉤測資。
+# 逐項綁定 mapping-critical 欄位（identity / source_version / profile / field_id /
+# json_pointer / payload / provenance），確保「schema-valid instance」確實是「依這份
+# mapping 產生的」。
+def projection_instance_consistency(test_case)
+  problems = []
+  projection = test_case.fetch("projection")
+  raw_instance = test_case.fetch("raw_evidence_instance")
+  anchor_instance = test_case.fetch("source_anchor_instance")
+  proj_details = projection.dig("source_anchor", "profile_details") || {}
+  inst_details = anchor_instance["profile_details"] || {}
+
+  problems << "source_anchor.profile" unless projection.dig("source_anchor", "profile") == anchor_instance["profile"]
+  %w[field_id json_pointer cloud_id issue_id].each do |key|
+    problems << "profile_details.#{key}" unless proj_details[key] == inst_details[key]
+  end
+
+  proj_version = projection.dig("raw_evidence", "source_version") || {}
+  inst_version = raw_instance["source_version"] || {}
+  %w[basis kind value secondary_digest].each do |key|
+    problems << "source_version.#{key}" unless proj_version[key] == inst_version[key]
+  end
+
+  proj_payload = projection.dig("raw_evidence", "payload") || {}
+  inst_payload = raw_instance["payload"] || {}
+  %w[structured_profile canonicalization_profile payload_ref].each do |key|
+    problems << "payload.#{key}" unless proj_payload[key] == inst_payload[key]
+  end
+
+  problems << "provenance.ingestion_mode" unless projection.dig("raw_evidence", "provenance", "ingestion_mode") ==
+                                                raw_instance.dig("provenance", "ingestion_mode")
+  problems << "raw_evidence_instance.source_system" unless raw_instance.dig("source_identity", "source_system") == "jira-cloud"
+  problems << "projected native_id_basis" unless projection.dig("raw_evidence", "source_identity", "native_id_basis") == "JIRA_CLOUD_ID_PLUS_ISSUE_ID"
+  # Jira 的 evidence identity = (cloud_id, issue_id)；native_id 即 issue_id。
+  problems << "raw_evidence_instance.native_id == issue_id" unless raw_instance.dig("source_identity", "native_id") == inst_details["issue_id"]
+  problems << "source_anchor_instance.native_id == issue_id" unless anchor_instance.dig("source_identity", "native_id") == inst_details["issue_id"]
+
+  reconciliation = projection["reconciliation"]
+  if reconciliation.is_a?(Hash) && reconciliation["current_identity"].is_a?(Hash)
+    current = reconciliation["current_identity"]
+    unless current["cloud_id"] == inst_details["cloud_id"] && current["issue_id"] == inst_details["issue_id"]
+      problems << "reconciliation.current_identity == instance identity"
+    end
+  end
+
+  problems
 end
 
 failures = []
@@ -279,6 +357,8 @@ positive.fetch("jira_mapping_cases").each do |test_case|
   assert(actual.nil?, "#{case_id} 預期 allow，實際被拒：#{actual}", failures)
   assert(test_case.key?("raw_evidence_instance"), "#{case_id} 必須帶完整 raw_evidence_instance（instance gate 用）", failures)
   assert(test_case.key?("source_anchor_instance"), "#{case_id} 必須帶完整 source_anchor_instance（instance gate 用）", failures)
+  mismatches = projection_instance_consistency(test_case)
+  assert(mismatches.empty?, "#{case_id} projection 與完整 STD instance 不一致：#{mismatches.join(", ")}", failures)
 end
 
 negative.fetch("jira_mapping_negative_cases").each do |test_case|

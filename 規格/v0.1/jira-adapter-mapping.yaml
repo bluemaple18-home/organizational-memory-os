@@ -76,8 +76,10 @@ raw_evidence_projection:
     source_version.secondary_digest matches ^sha256:[0-9a-f]{64}$
     (JIRA_MAP_SECONDARY_DIGEST_MALFORMED otherwise);
     source_version.value is a present RFC3339 timestamp — the observed Jira issue
-    updated time — so reconciliation can order versions
-    (JIRA_MAP_VERSION_VALUE_INVALID otherwise).
+    updated time — that the validator parses to a real instant
+    (JIRA_MAP_VERSION_VALUE_INVALID otherwise); version ordering in reconciliation
+    is decided by comparing parsed instants, never by comparing the raw strings,
+    so a fractional-second-newer value is still ordered as newer.
 
 source_anchor_projection:
   profile: JIRA_CLOUD_ENTITY_SEGMENT_V1
@@ -102,7 +104,7 @@ source_anchor_projection:
   json_pointer_prefix_by_kind:
     SUMMARY: /fields/summary
     DESCRIPTION: /fields/description
-    COMMENT_BODY: /fields/comment/comments/
+    COMMENT_BODY: /fields/comment/comments
     ADF_TEXT_NODE: /fields/description
   allowed_resolution_status:
     - EXACT_MATCH
@@ -122,10 +124,13 @@ source_anchor_projection:
     normalization_profile is the OMOS_TEXT_NORM_V1 const;
     profile_details.field_id equals field_id_by_kind[field_kind]
     (JIRA_MAP_FIELD_ID_KIND_MISMATCH otherwise) and profile_details.json_pointer
-    starts with json_pointer_prefix_by_kind[field_kind] so the anchor addresses
-    the mapped field (JIRA_MAP_JSON_POINTER_FIELD_MISMATCH otherwise). The locked
-    Jira anchor profile schema leaves field_id as any non-empty string, so this
-    field_kind -> field_id / json_pointer binding is enforced only here.
+    either equals json_pointer_prefix_by_kind[field_kind] or begins with that
+    prefix followed by "/" so the anchor addresses the mapped field and not a
+    sibling that merely shares a prefix such as /fields/description_extra
+    (JIRA_MAP_JSON_POINTER_FIELD_MISMATCH otherwise). The locked Jira anchor
+    profile schema leaves field_id as any non-empty string and only checks JSON
+    Pointer syntax, so this field_kind -> field_id / json_pointer binding is
+    enforced only here.
 
 reconciliation:
   triggers:
@@ -134,6 +139,7 @@ reconciliation:
   identity_components:
     - cloud_id
     - issue_id
+  identity_required: true
   version_decisions:
     - NEW_EVIDENCE
     - NOOP
@@ -142,14 +148,41 @@ reconciliation:
     secondary_digest against the last known evidence; a strictly newer value
     yields a new evidence record (decision NEW_EVIDENCE) and an older or equal
     value is a no-op (decision NOOP); a decision that disagrees with the observed
-    value order is JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH. When a run
-    carries previous_identity and current_identity they are compared
-    component-wise on (cloud_id, issue_id) and any difference is
+    value order — instants parsed, not strings — is
+    JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH. Every reconciliation run
+    carries both previous_identity and current_identity, each with a non-null
+    cloud_id and issue_id (JIRA_MAP_RECONCILIATION_IDENTITY_INCOMPLETE otherwise);
+    they are compared component-wise on (cloud_id, issue_id) and any difference is
     JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT regardless of a self-reported
-    changed_identity flag; a run that self-reports changed_identity true is
-    JIRA_MAP_RECONCILIATION_CHANGES_IDENTITY. Reconciliation never drops a
-    detected gap without emitting evidence or a quality gap
-    (JIRA_MAP_RECONCILIATION_SILENT_GAP).
+    changed_identity flag; current_identity must also equal the run's actual
+    projected identity taken from source_anchor.profile_details.cloud_id /
+    issue_id (JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT otherwise). A run that
+    self-reports changed_identity true is JIRA_MAP_RECONCILIATION_CHANGES_IDENTITY.
+    Reconciliation never drops a detected gap without emitting evidence or a
+    quality gap (JIRA_MAP_RECONCILIATION_SILENT_GAP).
+
+projection_instance_consistency:
+  rule: >-
+    a positive fixture's compact projection and its full raw_evidence_instance /
+    source_anchor_instance are not two independent datasets: the validator binds
+    them field by field so the schema-valid instance is provably the one this
+    mapping produced.
+  bound_fields:
+    - source_anchor.profile
+    - source_anchor.profile_details.field_id
+    - source_anchor.profile_details.json_pointer
+    - source_anchor.profile_details.cloud_id
+    - source_anchor.profile_details.issue_id
+    - raw_evidence.source_version.basis
+    - raw_evidence.source_version.kind
+    - raw_evidence.source_version.value
+    - raw_evidence.source_version.secondary_digest
+    - raw_evidence.payload.structured_profile
+    - raw_evidence.payload.canonicalization_profile
+    - raw_evidence.payload.payload_ref
+    - raw_evidence.provenance.ingestion_mode
+    - raw_evidence_instance.source_identity.native_id == profile_details.issue_id
+    - reconciliation.current_identity == instance (cloud_id, issue_id)
 
 determinism:
   rule: >-
@@ -183,6 +216,7 @@ error_contract:
   JIRA_MAP_FIELD_ID_KIND_MISMATCH: jira-map.error.field_id_kind_mismatch
   JIRA_MAP_JSON_POINTER_FIELD_MISMATCH: jira-map.error.json_pointer_field_mismatch
   JIRA_MAP_RECONCILIATION_CHANGES_IDENTITY: jira-map.error.reconciliation_changes_identity
+  JIRA_MAP_RECONCILIATION_IDENTITY_INCOMPLETE: jira-map.error.reconciliation_identity_incomplete
   JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT: jira-map.error.reconciliation_identity_drift
   JIRA_MAP_ISSUE_KEY_RENAME_NOT_ALIASED: jira-map.error.issue_key_rename_not_aliased
   JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH: jira-map.error.reconciliation_version_decision_mismatch
@@ -223,10 +257,14 @@ required_negative_fixtures:
   - profile_details has the wrong key set
   - the anchor field id does not match the field kind
   - the anchor json pointer does not address the mapped field
+  - the anchor json pointer only shares a prefix with the mapped field
   - reconciliation changes an existing evidence identity
+  - reconciliation omits the before or after evidence identity
   - reconciliation before and after evidence identity differ
+  - the reconciliation current identity does not match the projected identity
   - an issue key rename is not recorded as a source alias
   - reconciliation version decision disagrees with the observed version order
+  - a fractional-second newer version is still ordered as newer
   - reconciliation drops a detected gap without emitting evidence
   - error but the mapping still claims success
 

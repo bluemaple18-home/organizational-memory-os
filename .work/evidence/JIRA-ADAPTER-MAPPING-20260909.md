@@ -159,3 +159,71 @@ git add -A && git diff --cached --check                      clean
 | `規格/v0.1/fixtures/jira-adapter-mapping-instance-negative-fixtures.json` | 新（3 instance-schema 負例） | — |
 
 validator 306 / companion 113，守 `.agentskills/docs/coding-standards.md` §2（< 400）。
+
+---
+
+## Repair 02（2026-09-10）— Repair 01 再 review NO_GO(P1=4) 針對性修復
+
+卡：`.work/CARD-JIRA-ADAPTER-MAPPING-REPAIR-02-20260910.md`。原 review SHA `170da7f`、Repair 01
+`733a9e3` 皆不動；repair-02 delta = `733a9e3..<repair-02 SHA>`。集中修三件核心事 + json pointer
+boundary，不改架構。
+
+### F-03 identity 必填 + 綁實際 projected identity
+
+- reconciliation 存在時 `previous_identity` / `current_identity` 皆必填、`cloud_id`/`issue_id`
+  不得為空 → `JIRA_MAP_RECONCILIATION_IDENTITY_INCOMPLETE`（新 code）。
+- `current_identity` 必須等於 `{cloud_id: profile_details.cloud_id, issue_id: profile_details.issue_id}`
+  → 否則 `JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT`。移除 rename 的「identity 沒帶＝穩定」退讓。
+- YAML `reconciliation.identity_required: true` + rule 改寫。
+- 負例：`RECONCILIATION_IDENTITY_INCOMPLETE`（只帶 previous）、`RECONCILIATION_CURRENT_NOT_PROJECTED`
+  （previous==current 但 ≠ projected）；`SILENT_GAP` / `VERSION_DECISION_MISMATCH` 補 matching identity。
+
+### F-02 version ordering 真 parse 比較
+
+- `parse_instant` = `Time.iso8601`（`require "time"`）；`JIRA_MAP_VERSION_VALUE_INVALID` 改判
+  parse 成功與否，移除自寫 `RFC3339_UTC_PATTERN`。
+- decision 版本序：`current_instant > previous_instant`（Time 比較，非字串）。
+- 負例：`VERSION_DECISION_FRACTIONAL`（NOOP + previous `12:00:00Z` / current `12:00:00.100Z`）。
+
+### F-04 json pointer 真正定址
+
+- `json_pointer_addresses_field?(pointer, prefix)` = `pointer == prefix || pointer.start_with?("#{prefix}/")`。
+- `COMMENT_BODY` prefix `/fields/comment/comments/` → `/fields/comment/comments`（validator 常數 +
+  YAML 同步）。
+- 負例：`JSON_POINTER_PREFIX_BYPASS`（DESCRIPTION，`/fields/description_extra`）。
+
+### F-01 regression — projection ↔ full STD instance 逐項綁定
+
+- `projection_instance_consistency(test_case)`：逐項比對 compact projection 與完整 instance 的
+  mapping-critical 欄位（profile / profile_details.{field_id,json_pointer,cloud_id,issue_id} /
+  source_version.{basis,kind,value,secondary_digest} / payload.{structured_profile,
+  canonicalization_profile,payload_ref} / provenance.ingestion_mode / source_system /
+  native_id == issue_id / reconciliation.current_identity == instance identity）。任一不符 RED。
+- YAML 新增 `projection_instance_consistency` 區塊（rule + bound_fields）。
+
+### 修復後 gate
+
+```
+ruby validate_jira_adapter_mapping_contract.rb               PASS
+validate_jira_adapter_mapping_instances.py (uv)              PASS (positive_instances=6, instance_negatives=3)
+全 19 Ruby validators（含 AIWR / personal-memory regression）  PASS
+validate_std_schema_engine.py (uv)                           PASS (STD01 12/12, STD02 16/16, STD03 9/9)
+validate_cc_cross_layer_contract.py (uv)                     PASS
+enforcement parity（cp-based restore）：
+  neutralize IDENTITY_INCOMPLETE return                      RED
+  neutralize current==projected 檢查                         RED
+  parse_instant 比較換回字串比較                             RED（fractional 負例不再被拒）
+  json_pointer helper 換回裸 start_with?(prefix)             RED（prefix-bypass 負例不再被拒）
+  positive instance json_pointer / field_id drift            RED（projection↔instance 不一致）
+git add -A && git diff --cached --check                      clean
+```
+
+### 交付物（Repair 02）
+
+| 檔 | 動作 |
+|---|---|
+| `規格/v0.1/jira-adapter-mapping.yaml` | 改（reconciliation.identity_required + rule；json_pointer_prefix COMMENT_BODY；source_version rule；json pointer rule；新 projection_instance_consistency 區塊；error_contract +1；negative label +4） |
+| `scripts/validate_jira_adapter_mapping_contract.rb` | 改（parse_instant / json_pointer_addresses_field? / identity_complete? helper；reconciliation 必填 identity + 綁 projected；version 決策 parse 比較；projection_instance_consistency；386 行） |
+| `規格/v0.1/fixtures/jira-adapter-mapping-negative-fixtures.json` | 改（+4 負例；2 個既有 reconciliation 負例補 matching identity） |
+
+validator 386 行、companion 113 行（< 400）。

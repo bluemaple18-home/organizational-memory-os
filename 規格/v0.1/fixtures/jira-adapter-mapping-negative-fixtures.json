@@ -193,7 +193,7 @@
         "field_kind": "DESCRIPTION",
         "raw_evidence": {"claimed_field_keys": ["source_identity", "source_version", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_aliases": [{"value": "K-1"}], "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-01T00:00:00Z", "secondary_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:x"}, "provenance": {"ingestion_mode": "POLL"}},
         "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
-        "reconciliation": {"decision": "NEW_EVIDENCE", "previous_version": {"value": "2026-09-10T00:00:00Z"}, "current_version": {"value": "2026-08-01T00:00:00Z"}},
+        "reconciliation": {"decision": "NEW_EVIDENCE", "previous_version": {"value": "2026-09-10T00:00:00Z"}, "current_version": {"value": "2026-08-01T00:00:00Z"}, "previous_identity": {"cloud_id": "c", "issue_id": "1"}, "current_identity": {"cloud_id": "c", "issue_id": "1"}},
         "ok": true
       }
     },
@@ -206,7 +206,58 @@
         "field_kind": "DESCRIPTION",
         "raw_evidence": {"claimed_field_keys": ["source_identity", "source_version", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_aliases": [{"value": "K-1"}], "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-28T05:58:20Z", "secondary_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:x"}, "provenance": {"ingestion_mode": "POLL"}},
         "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
-        "reconciliation": {"detected_gap": true, "changed_identity": false, "emitted_evidence_or_gap": false},
+        "reconciliation": {"detected_gap": true, "changed_identity": false, "emitted_evidence_or_gap": false, "previous_identity": {"cloud_id": "c", "issue_id": "1"}, "current_identity": {"cloud_id": "c", "issue_id": "1"}},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_JSON_POINTER_PREFIX_BYPASS",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_JSON_POINTER_FIELD_MISMATCH",
+      "covers_jira_map_negative_fixture": "the anchor json pointer only shares a prefix with the mapped field",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "source_version", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_aliases": [{"value": "K-1"}], "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-28T05:58:20Z", "secondary_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:x"}, "provenance": {"ingestion_mode": "WEBHOOK"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description_extra", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_RECONCILIATION_IDENTITY_INCOMPLETE",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_RECONCILIATION_IDENTITY_INCOMPLETE",
+      "covers_jira_map_negative_fixture": "reconciliation omits the before or after evidence identity",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "source_version", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_aliases": [{"value": "K-1"}], "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-28T05:58:20Z", "secondary_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:x"}, "provenance": {"ingestion_mode": "POLL"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "reconciliation": {"changed_identity": false, "previous_identity": {"cloud_id": "c", "issue_id": "1"}},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_RECONCILIATION_CURRENT_NOT_PROJECTED",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT",
+      "covers_jira_map_negative_fixture": "the reconciliation current identity does not match the projected identity",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "source_version", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_aliases": [{"value": "K-1"}], "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-28T05:58:20Z", "secondary_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:x"}, "provenance": {"ingestion_mode": "POLL"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "reconciliation": {"changed_identity": false, "previous_identity": {"cloud_id": "c", "issue_id": "9"}, "current_identity": {"cloud_id": "c", "issue_id": "9"}},
+        "ok": true
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_NEG_VERSION_DECISION_FRACTIONAL",
+      "expected": "deny",
+      "expected_failure_code": "JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH",
+      "covers_jira_map_negative_fixture": "a fractional-second newer version is still ordered as newer",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {"claimed_field_keys": ["source_identity", "source_version", "payload", "provenance"], "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"}, "source_aliases": [{"value": "K-1"}], "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-09-05T12:00:00Z", "secondary_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"}, "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:blob:x"}, "provenance": {"ingestion_mode": "POLL"}},
+        "source_anchor": {"profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1", "selectors": [{"selector_type": "JSON_POINTER"}], "profile_details": {"deployment_type": "CLOUD", "cloud_id": "c", "entity_type": "issue", "issue_id": "1", "issue_key_alias": "K-1", "field_id": "description", "json_pointer": "/fields/description", "renderer_profile": "adf", "renderer_version": "1.0", "text_selector": {"representation_ref": "r", "representation_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000", "start": 0, "end": 1, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "x", "prefix": "", "suffix": ""}}, "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "reconciliation": {"decision": "NOOP", "previous_version": {"value": "2026-09-05T12:00:00Z"}, "current_version": {"value": "2026-09-05T12:00:00.100Z"}, "previous_identity": {"cloud_id": "c", "issue_id": "1"}, "current_identity": {"cloud_id": "c", "issue_id": "1"}},
         "ok": true
       }
     },
