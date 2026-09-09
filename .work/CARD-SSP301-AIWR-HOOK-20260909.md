@@ -1,6 +1,6 @@
 ---
 id: SSP301-AIWR-HOOK-20260909
-status: DRAFT_OWNER_REVIEW
+status: IMPLEMENTED_AWAITING_BIG_REVIEW
 type: implementation
 jira: SSP-301
 lane: B
