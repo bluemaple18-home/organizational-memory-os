@@ -65,6 +65,78 @@
       }
     },
     {
+      "case_id": "HARNESS_NEG_SECOND_RUNTIME_UNLISTED",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_SECOND_RUNTIME",
+      "covers_harness_negative_fixture": "the harness builds an unlisted second-runtime component",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "builds_scheduler": true,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_STEP_INDEX_GAP",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_STEP_INDEX_GAP",
+      "covers_harness_negative_fixture": "step numbers are not contiguous from 1",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"},
+          {"step": 3, "capability": "SKILL", "input_ref": "urn:omos:harness-input:s1", "output_ref": "urn:omos:harness-output:s1", "timeout_seconds": 60, "error": null, "receipt_ref": "urn:omos:receipt:s1"}
+        ],
+        "outcome": "COMPLETED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_FAILED_STEP_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_FAILED_STEP_MISMATCH",
+      "covers_harness_negative_fixture": "STEP_FAILED but failed_step is not the step that errored",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": null, "receipt_ref": "urn:omos:receipt:h1"},
+          {"step": 2, "capability": "SKILL", "input_ref": "urn:omos:harness-input:s1", "output_ref": "urn:omos:harness-output:s1", "timeout_seconds": 60, "error": "skill step raised", "receipt_ref": "urn:omos:receipt:s1"}
+        ],
+        "outcome": "STEP_FAILED",
+        "failed_step": 1,
+        "error": "harness stopped",
+        "ok": false
+      }
+    },
+    {
+      "case_id": "HARNESS_NEG_MULTI_ERROR_STEPS",
+      "expected": "deny",
+      "expected_failure_code": "HARNESS_FAILED_STEP_MISMATCH",
+      "covers_harness_negative_fixture": "STEP_FAILED with more than one errored step",
+      "run": {
+        "execution_mode": "SEQUENTIAL_SINGLE_AGENT",
+        "builds_registry": false, "builds_fsm": false, "builds_database": false, "builds_canonical_writer": false,
+        "requires_always_on_service": false,
+        "steps": [
+          {"step": 1, "capability": "HOOK", "input_ref": "urn:omos:harness-input:h1", "output_ref": "urn:omos:harness-output:h1", "timeout_seconds": 30, "error": "hook step raised", "receipt_ref": "urn:omos:receipt:h1"},
+          {"step": 2, "capability": "SKILL", "input_ref": "urn:omos:harness-input:s1", "output_ref": "urn:omos:harness-output:s1", "timeout_seconds": 60, "error": "skill step raised too", "receipt_ref": "urn:omos:receipt:s1"}
+        ],
+        "outcome": "STEP_FAILED",
+        "failed_step": 1,
+        "error": "harness stopped",
+        "ok": false
+      }
+    },
+    {
       "case_id": "HARNESS_NEG_STEP_NOT_TRACEABLE",
       "expected": "deny",
       "expected_failure_code": "HARNESS_STEP_NOT_TRACEABLE",

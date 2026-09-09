@@ -23,7 +23,16 @@ NEGATIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/ai-work-record-har
 
 EXPECTED_ALLOWED_CAPABILITIES = %w[HOOK SKILL LOOP].freeze
 EXPECTED_EXECUTION_MODE = "SEQUENTIAL_SINGLE_AGENT"
-EXPECTED_SECOND_RUNTIME_FLAGS = %w[builds_registry builds_fsm builds_database builds_canonical_writer].freeze
+# 具名的 second-runtime 旗標(結構斷言鎖 false)。evaluator 另做 fail-closed 的
+# `builds_*` 前綴掃描,任何未列名的 builds_* 旗標為 true 也一律拒。
+EXPECTED_SECOND_RUNTIME_FLAGS = %w[
+  builds_registry
+  builds_fsm
+  builds_database
+  builds_canonical_writer
+  builds_scheduler
+  builds_queue
+].freeze
 EXPECTED_STEP_FIELDS = %w[step capability input_ref output_ref timeout_seconds error receipt_ref].freeze
 EXPECTED_STEP_URN_FIELDS = %w[input_ref output_ref receipt_ref].freeze
 EXPECTED_HARNESS_OUTCOMES = %w[COMPLETED STEP_FAILED].freeze
@@ -43,9 +52,13 @@ EXPECTED_HARNESS_NEGATIVE_LABELS = [
   "the harness builds a registry / FSM / database / canonical writer",
   "an executed step is missing a traceability field",
   "a step reference is not a URN",
+  "step numbers are not contiguous from 1",
   "outcome is not one of the allowed outcomes",
   "a step failed silently while the run claims COMPLETED",
   "outcome STEP_FAILED without naming a failed step",
+  "STEP_FAILED but failed_step is not the step that errored",
+  "STEP_FAILED with more than one errored step",
+  "the harness builds an unlisted second-runtime component",
   "run carries a permission decision field",
   "the harness requires an always-on service",
   "a rollback side effect is missing a field",
@@ -86,8 +99,8 @@ end
 #   requires_always_on_service, performs_memory_acceptance, writes_company_knowledge,
 #   makes_permission_decisions, error, ok。
 def harness_run_failure(run, allowed_capabilities)
-  # 1. 不建第二套 runtime
-  return "HARNESS_SECOND_RUNTIME" if EXPECTED_SECOND_RUNTIME_FLAGS.any? { |flag| run[flag] == true }
+  # 1. 不建第二套 runtime —— fail-closed:任何 builds_* 旗標(具名或未列名)為 true 一律拒。
+  return "HARNESS_SECOND_RUNTIME" if run.keys.any? { |key| key.to_s.start_with?("builds_") && run[key] == true }
 
   # 2. 不依賴常駐服務
   return "HARNESS_REQUIRES_ALWAYS_ON" if run["requires_always_on_service"] == true
@@ -116,13 +129,18 @@ def harness_run_failure(run, allowed_capabilities)
     return "HARNESS_UNJUSTIFIED_FANOUT" if step["fan_out"] == true && !urn?(step["measured_gap_ref"])
   end
 
-  # 5. 單步失敗必須 loud 且標記
+  # step 編號必須從 1 起連續遞增(否則就是 partial / malformed run record)
+  step_numbers = steps.map { |step| step["step"] }
+  return "HARNESS_STEP_INDEX_GAP" unless step_numbers == (1..steps.length).to_a
+
+  # 5. 單步失敗必須 loud 且標記,且 failed_step 綁定真正 error 的那一步
   return "HARNESS_INVALID_OUTCOME" unless EXPECTED_HARNESS_OUTCOMES.include?(run["outcome"])
-  step_has_error = steps.any? { |step| present?(step["error"]) }
-  return "HARNESS_SILENT_STEP_FAILURE" if step_has_error && run["outcome"] == "COMPLETED"
+  error_steps = steps.select { |step| present?(step["error"]) }.map { |step| step["step"] }
+  return "HARNESS_SILENT_STEP_FAILURE" if !error_steps.empty? && run["outcome"] == "COMPLETED"
   if run["outcome"] == "STEP_FAILED"
-    step_numbers = steps.map { |step| step["step"] }
     return "HARNESS_STEP_FAILURE_UNMARKED" unless step_numbers.include?(run["failed_step"])
+    # 順序單 agent 於首個失敗即停:恰好一個 error step,且就是 failed_step。
+    return "HARNESS_FAILED_STEP_MISMATCH" unless error_steps == [run["failed_step"]]
   end
 
   nil

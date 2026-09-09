@@ -40,9 +40,13 @@ no_second_runtime:
   builds_fsm: false
   builds_database: false
   builds_canonical_writer: false
+  builds_scheduler: false
+  builds_queue: false
   rule: >-
-    any of these true is HARNESS_SECOND_RUNTIME. The Harness is orchestration
-    over existing capabilities, not a new runtime.
+    fail-closed: any builds_* flag true on a run, whether named here or not
+    (builds_scheduler, builds_queue, builds_message_bus, ...), is
+    HARNESS_SECOND_RUNTIME. The Harness is orchestration over existing
+    capabilities, not a new runtime.
 
 step_record:
   required_fields:
@@ -70,7 +74,15 @@ step_failure:
   rule: >-
     a step whose error is present while the run outcome is COMPLETED is
     HARNESS_SILENT_STEP_FAILURE; an outcome STEP_FAILED must name a failed_step
-    that is one of the run's steps, otherwise HARNESS_STEP_FAILURE_UNMARKED.
+    that is one of the run's steps (HARNESS_STEP_FAILURE_UNMARKED otherwise) and
+    that failed_step must be exactly the step that errored -- since execution is
+    sequential single-agent and stops at the first failure, the set of
+    error-bearing steps must equal [failed_step], otherwise
+    HARNESS_FAILED_STEP_MISMATCH.
+  step_index_rule: >-
+    step numbers must be 1..N contiguous; a gap means a partial / malformed run
+    record (HARNESS_STEP_INDEX_GAP), the same inconsistency the rollback
+    partial_run_record side effect is meant to detect.
 
 authority:
   performs_memory_acceptance: false
@@ -118,9 +130,11 @@ error_contract:
   HARNESS_SECOND_RUNTIME: harness.error.second_runtime
   HARNESS_STEP_NOT_TRACEABLE: harness.error.step_not_traceable
   HARNESS_STEP_REF_NOT_URN: harness.error.step_ref_not_urn
+  HARNESS_STEP_INDEX_GAP: harness.error.step_index_gap
   HARNESS_INVALID_OUTCOME: harness.error.invalid_outcome
   HARNESS_SILENT_STEP_FAILURE: harness.error.silent_step_failure
   HARNESS_STEP_FAILURE_UNMARKED: harness.error.step_failure_unmarked
+  HARNESS_FAILED_STEP_MISMATCH: harness.error.failed_step_mismatch
   HARNESS_EXCEEDS_AUTHORITY: harness.error.exceeds_authority
   HARNESS_REQUIRES_ALWAYS_ON: harness.error.requires_always_on
   HARNESS_ROLLBACK_MISSING_FIELD: harness.error.rollback_missing_field
@@ -151,11 +165,15 @@ required_negative_fixtures:
   - the run did not execute in sequential single-agent mode
   - a step fans out without a measured gap ref
   - the harness builds a registry / FSM / database / canonical writer
+  - the harness builds an unlisted second-runtime component
   - an executed step is missing a traceability field
   - a step reference is not a URN
+  - step numbers are not contiguous from 1
   - outcome is not one of the allowed outcomes
   - a step failed silently while the run claims COMPLETED
   - outcome STEP_FAILED without naming a failed step
+  - STEP_FAILED but failed_step is not the step that errored
+  - STEP_FAILED with more than one errored step
   - run carries a permission decision field
   - the harness requires an always-on service
   - a rollback side effect is missing a field
