@@ -1,0 +1,11 @@
+review_line: SSP300-REVIEW-20260909
+round: targeted_re_review_01
+review_input: {base_sha: cf15496d1030660ae29e578459f650aaa1b8bdaf, repair_sha: f630164860f0d5124d4e6a4eefc6cf28deaa8176, tree_sha: b92729305c87a7f4574109ff26d00d60775a7b87, binding: PASS, zero_mutation: PASS}
+closure: {SSP300-RV-001: CLOSED, SSP300-RV-002: CLOSED, SSP300-RV-003: CLOSED, SSP300-RV-004: CLOSED, SSP300-RV-005: CLOSED, SSP300-RV-006: CLOSED}
+counts: {P0: 0, P1: 0, P2: 0, P3: 0}
+regression: PASS
+external_verdict: GO
+mainline_acceptance: {self_verify: PASS, gates_rerun_local: PASS, owner_acceptance: ACCEPTED_20260909}
+known_debt: "draft_card_contract_valid? is a second copy of SSP-299 card-shape check; repo-wide validator Refactor card will extract a shared helper."
+original_review_commit_immutable: ce154ecd642c9e7198ef84925ea497297d5cb2f8
+outcome: {card_status: ACCEPTED_GO_20260909, jira: "SSP-300 -> Done (Owner applies)", lane_b_next: "repo-wide validator Refactor card, then SSP-301"}
