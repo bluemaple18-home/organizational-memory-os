@@ -1,0 +1,10 @@
+review_line: SSP293-REVIEW-20260909
+round: targeted_re_review_01
+review_input: {base_sha: 1f0fbc6b10028e73ff9698d7605ef58eb6aafbe6, repair_sha: 0b58535b8e9ff318915ac49f9bf15176ae2e8650, tree_sha: d5e67f9d75c2f16978c1b75a6a77601216c847aa, binding: PASS, zero_mutation: PASS}
+closure: {SSP293-RV-001: CLOSED, SSP293-RV-002: CLOSED, SSP293-RV-003: CLOSED, SSP293-RV-004: CLOSED}
+counts: {P0: 0, P1: 0, P2: 0, P3: 0}
+regression: PASS
+external_verdict: GO
+mainline_acceptance: {self_verify: PASS, gates_rerun_local: PASS, owner_acceptance: ACCEPTED_20260909}
+original_review_commit_immutable: 8ca640b1417189bd8d8637c7035afa00843e96c3
+outcome: {card_status: ACCEPTED_GO_20260909, jira: "SSP-293 -> Done (Owner applies)", lane_a_next: "repo-wide validator Refactor card, then SSP-294"}
