@@ -2,17 +2,22 @@
 #
 # 跨所有 OMOS 契約 validator 共用的最小 helper。
 #
-# 只放「目前每個 validator 都逐字相同」的部分:duplicate-key fail-closed 的
-# JSON / YAML 讀取基礎元件,以及 present? 判斷。
+# 兩層:
+#   1. 每個 validator 都逐字相同的部分:duplicate-key fail-closed 的
+#      JSON / YAML 讀取基礎元件(DuplicateKeyError / StrictJsonObject /
+#      assert_unique_yaml_mapping_keys),以及 present? 判斷。
+#   2. personal-memory 家族(personal-memory / resource / capability / recall /
+#      correction)共用的簡單 I/O 與判斷:read_json / read_yaml / assert(3-arg)/
+#      sorted_set(Set 版)/ allowed_resource_ref?。
 #
-# 刻意不放:
-#   - read_json / read_yaml —— STD-01/02/03 用 (path, failures) 變體(collect
-#     failures + rescue),其餘用 (path);兩者行為不同,各自留在檔內。
-#   - assert —— STD-01/02 用 (condition, code, message, failures)(code: prefix),
-#     其餘用 (condition, message, failures);arity 不同,各自留在檔內。
-#   - sorted_set —— personal-memory 用 Set、AIWR 用 sorted Array;各自留在檔內。
+# 刻意不放(arity 或行為不同,各自留在檔內並在 require 之後覆蓋):
+#   - STD-01/02/03 的 read_json / read_yaml —— (path, failures) 變體
+#     (collect failures + rescue)。
+#   - STD-01/02 的 assert —— (condition, code, message, failures),code: prefix。
+#   - AIWR 的 sorted_set —— 回傳排序後的 Array,不是 Set。
 
 require "json"
+require "set"
 require "yaml"
 
 class DuplicateKeyError < StandardError; end
@@ -46,4 +51,30 @@ end
 
 def present?(value)
   !value.nil? && !(value.respond_to?(:empty?) && value.empty?)
+end
+
+# --- personal-memory 家族(personal-memory / resource / capability / recall /
+# correction)共用的簡單 I/O 與判斷。STD-01/02/03 與 AIWR validator 仍各自帶
+# 不同 arity 的本地版本,在 require 之後定義並覆蓋這裡,因此加入這些不改變其行為。
+
+def read_json(path)
+  JSON.parse(File.read(path), object_class: StrictJsonObject)
+end
+
+def read_yaml(path)
+  text = File.read(path)
+  assert_unique_yaml_mapping_keys(Psych.parse_stream(text))
+  YAML.safe_load(text, permitted_classes: [], aliases: false)
+end
+
+def assert(condition, message, failures)
+  failures << message unless condition
+end
+
+def sorted_set(values)
+  values.to_set
+end
+
+def allowed_resource_ref?(value, resource_kind)
+  value.is_a?(String) && value.start_with?("urn:omos:personal-memory:#{resource_kind}:")
 end

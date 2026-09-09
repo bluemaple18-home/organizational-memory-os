@@ -43,7 +43,11 @@ validator 拒絕。Ruby 的欄位檢查僅是從 schema 導出的 defensive mirr
 | STD-01 semantic／cross-event rules | `scripts/validate_std01_raw_evidence_contract.rb` | `ruby scripts/validate_std01_raw_evidence_contract.rb` |
 | STD-02 cross-resource／fixture isolation | `scripts/validate_std02_source_anchor_contract.rb` | `ruby scripts/validate_std02_source_anchor_contract.rb` |
 | Candidate→Support→Anchor→RawEvidence binding | `規格/v0.1/fixtures/cc-schema-foundation-cross-layer-fixtures.json` | `UV_CACHE_DIR=/tmp/cc-schema-foundation-uv uv run --script scripts/validate_cc_cross_layer_contract.py` |
-| Personal memory resource constraints | `規格/v0.1/personal-harness-integration.yaml` | `ruby scripts/validate_personal_memory_contract.rb` |
+| Personal memory scope／ownership／actor-action policy（EMEM-00） | `規格/v0.1/personal-harness-integration.yaml` | `ruby scripts/validate_personal_memory_contract.rb` |
+| Personal memory resource constraints（EMEM-01 / PMCORE-02） | 同上 | `ruby scripts/validate_personal_memory_resource_contract.rb` |
+| Personal knowledge L1~L4 capability matrix／transitions（SSP-290） | 同上 | `ruby scripts/validate_personal_capability_contract.rb` |
+| Recall／MemoryContextPack contract（SSP-292） | 同上 | `ruby scripts/validate_recall_context_pack_contract.rb` |
+| Correction／Supersession contract（SSP-293） | 同上 | `ruby scripts/validate_correction_flow_contract.rb` |
 | Review snapshot integrity | fixed commit、allowlist、commit SHA/blob digest | Mainline commit 後填入 handoff，不得預填或偽造。 |
 
 ## Review handoff template

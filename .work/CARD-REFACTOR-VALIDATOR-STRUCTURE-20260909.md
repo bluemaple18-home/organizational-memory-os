@@ -1,10 +1,15 @@
 ---
 id: REFACTOR-VALIDATOR-STRUCTURE-20260909
-status: DRAFT_OWNER_REVIEW
+status: IMPLEMENTED_AWAITING_BIG_REVIEW
 type: refactor
 mode: REFACTOR_STRICT
 lane: A+B（共用,兩 lane 匯流點）
 ---
+
+> 進度（2026-09-09）：S01 = commit `7b9c714`；S02 = 待 checkpoint commit。S03 DEFER 至 backlog。
+> 行為不變已驗（golden 逐字 + 8 條 mutation 探針）。詳見
+> `.work/evidence/REFACTOR-VALIDATOR-STRUCTURE-20260909.md`。大 review 交接卡：
+> `.work/handoff/REFACTOR-VALIDATOR-STRUCTURE-REVIEW-20260909.md`。
 
 # Repo-wide validator 結構 Refactor
 
