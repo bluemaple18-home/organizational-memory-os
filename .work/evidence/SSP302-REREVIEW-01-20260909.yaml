@@ -1,0 +1,96 @@
+# 定點複審驗收 receipt｜SSP-302 AIWR-05 Loop 收口 / Repair 01
+# review line: .work/handoff/SSP302-REVIEW-20260909.md
+
+review_input:
+  repo: "bluemaple18-home/organizational-memory-os"
+  branch: "cc/ssp302-loop-closeout"
+  base_sha: "b0e0fee7dc355989e79d2bab9c4238ac785f3f23"
+  frozen_review_sha: "165209195df226d425f6e0f4e2150aa8ec5a70e7"   # immutable
+  handoff_sha: "3c2078b"
+  repair_sha: "63673ae6433e141f43fb8ba9b3cce955a3c53a35"
+  repair_only_diff_range: "165209195df226d425f6e0f4e2150aa8ec5a70e7..63673ae6433e141f43fb8ba9b3cce955a3c53a35"
+
+round: 1
+gate_kind: T1 contract slice / targeted re-review
+
+findings_carried_in:
+  - id: F-01
+    severity: P1
+    summary: timeout_seconds was metadata only, never compared against a run time quantity
+  - id: F-02
+    severity: P1
+    summary: mandatory-stop gaps checked only on the last iteration; a mid-run gap could be "cleared" next iteration
+  - id: F-03
+    severity: P2
+    summary: iterations not fail-closed validated for their three fields; a missing remaining_gaps read as "no gaps"
+  - id: F-04
+    severity: P3
+    summary: CLOSED + MAX_ITERATIONS_REACHED may still leave ordinary auto_fixable gaps (spec-definition question)
+
+closure:
+  F-01:
+    status: CLOSED
+    fix: >
+      run record carries elapsed_seconds (non-negative integer, part of the
+      bounded check); elapsed_seconds > timeout_seconds only passes when the run
+      ended outcome FAILED_LOUD + terminal_condition TIMEOUT, else
+      LOOP_OVER_TIMEOUT. spec termination gains elapsed_seconds_rule /
+      timeout_enforcement_rule.
+    fixtures:
+      - LOOP_NEG_NO_ELAPSED -> LOOP_UNBOUNDED
+      - LOOP_NEG_OVER_TIMEOUT (elapsed 500 > timeout 300, outcome CLOSED) -> LOOP_OVER_TIMEOUT
+      - LOOP_POS_TIMEOUT_TERMINATED (elapsed 305 > 300 but FAILED_LOUD + TIMEOUT) -> allow
+  F-02:
+    status: CLOSED
+    fix: >
+      mandatory-stop gaps are checked per iteration (each_with_index). The first
+      iteration whose remaining_gaps holds a requires_human_decision gap must be
+      the last with outcome BLOCKED + blocker_ref; the first with a non-human
+      auto_fixable:false gap must be the last with outcome FAILED_LOUD.
+    fixtures:
+      - LOOP_NEG_HUMAN_GAP_MIDWAY (iter1 human gap, iter2 clears it, outcome BLOCKED) -> LOOP_SKIPPED_HUMAN_DECISION
+      - LOOP_NEG_UNFIXABLE_MIDWAY (iter1 unfixable, iter2 clears it, outcome FAILED_LOUD) -> LOOP_UNFIXABLE_NOT_LOUD
+  F-03:
+    status: CLOSED
+    fix: >
+      every iteration is fail-closed validated for iteration_fields presence and
+      Array-typed filled_fields / remaining_gaps -> LOOP_MALFORMED_ITERATION.
+    fixture: LOOP_NEG_MALFORMED_ITERATION (missing remaining_gaps) -> LOOP_MALFORMED_ITERATION
+  F-04:
+    status: DEFERRED
+    note: spec-definition question, reviewer kept as P3 backlog; repair did not change the contract.
+
+findings_new_this_round:
+  - id: F-05
+    severity: P2
+    status: DEFERRED_TO_BACKLOG
+    summary: >
+      terminal_condition TIMEOUT is not required to have elapsed_seconds >
+      timeout_seconds, so a run can declare a premature TIMEOUT close-out. This
+      is fail-closed leaning (an unnecessary fail-loud) and does not reintroduce
+      the F-01 boundedness bypass; reviewer explicitly did not block GO.
+    backlog: 文件/待辦重整.md 規範債 backlog
+
+regression:
+  gate_all_pass: true                 # 15 Ruby validators + std_schema_engine + cross-layer
+  schema_engine_coverage_unchanged: true  # STD01 12/12 excl 11, STD02 16/16 excl 10, STD03 9/9 excl 11
+  positive_fixtures_still_pass: true   # 4 existing (elapsed_seconds added) + 1 new timeout-terminated
+  enforcement_parity_replayed: true   # elapsed-in-bounded / LOOP_OVER_TIMEOUT / LOOP_MALFORMED_ITERATION / per-iteration index guard (x2) / revert-to-last-only -> RED
+  upstream_specs_untouched: true      # boundary / task-card-record / skill / hook
+  negative_labels: 16
+  validator_loc: 269
+  git_diff_check: clean
+
+binding_integrity:
+  frozen_review_sha_unchanged: true
+  commit_chain: "165209195 -> 3c2078b (handoff docs) -> 63673ae (repair 01)"
+  repair_touched_upstream: false
+
+verdict: GO
+owner_accept: PENDING
+next:
+  merge: "cc/ssp302-loop-closeout -> main"
+  then: "Lane B -> SSP-303 (AIWR-06 輕量 Harness 編排)"
+  backlog:
+    - "F-05: terminal_condition TIMEOUT should also require elapsed_seconds > timeout_seconds (bidirectional consistency)"
+    - "F-04: clarify whether CLOSED means fully closed; if so ALL_REQUIRED_PRESENT only, MAX_ITERATIONS_REACHED needs a non-success outcome"

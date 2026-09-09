@@ -1,6 +1,6 @@
 ---
 id: SSP302-LOOP-CLOSEOUT-20260909
-status: IN_REPAIR_01
+status: ACCEPTED_GO_20260909
 type: implementation
 jira: SSP-302
 lane: B
