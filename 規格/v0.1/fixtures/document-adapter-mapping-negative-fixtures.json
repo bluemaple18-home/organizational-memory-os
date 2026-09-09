@@ -5,157 +5,104 @@
       "expected": "deny",
       "expected_failure_code": "DOC_MAP_UNKNOWN_SOURCE_KIND",
       "covers_doc_map_negative_fixture": "a source kind outside PDF / MARKDOWN",
-      "projection": {
-        "source_kind": "HTML",
-        "raw_evidence": {"claimed_field_keys": ["payload"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "TEXT", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:x"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "MARKDOWN_TEXT_V1", "selectors": [{"selector_type": "TEXT_POSITION"}], "profile_details": {"codepoint_start": 0, "codepoint_end": 1, "line_start": 1, "line_end": 1}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [],
-        "ok": true
-      }
-    },
-    {
-      "case_id": "DOC_MAP_NEG_FIELD_NOT_IN_TARGET_SCHEMA",
-      "expected": "deny",
-      "expected_failure_code": "DOC_MAP_FIELD_NOT_IN_TARGET_SCHEMA",
-      "covers_doc_map_negative_fixture": "a projected field is not a property of the target schema",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance", "custom_ranking_score"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "PDF_REGION_V1", "selectors": [{"selector_type": "PDF_REGION"}], "profile_details": {"page": 1, "bbox_normalized": [0, 0, 1, 1], "coordinate_origin": "TOP_LEFT"}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "paragraph", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]}],
-        "ok": true
-      }
-    },
-    {
-      "case_id": "DOC_MAP_NEG_NONDETERMINISTIC_IDENTITY",
-      "expected": "deny",
-      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
-      "covers_doc_map_negative_fixture": "source identity uses a non-content basis",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance"], "source_identity": {"native_id_basis": "UPLOAD_SEQUENCE"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "PDF_REGION_V1", "selectors": [{"selector_type": "PDF_REGION"}], "profile_details": {"page": 1, "bbox_normalized": [0, 0, 1, 1], "coordinate_origin": "TOP_LEFT"}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "paragraph", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]}],
-        "ok": true
-      }
-    },
-    {
-      "case_id": "DOC_MAP_NEG_PAYLOAD_INLINE",
-      "expected": "deny",
-      "expected_failure_code": "DOC_MAP_PAYLOAD_INLINE",
-      "covers_doc_map_negative_fixture": "the payload is inline content instead of a reference",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1", "inline_content": "%PDF-1.7 ...bytes..."}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "PDF_REGION_V1", "selectors": [{"selector_type": "PDF_REGION"}], "profile_details": {"page": 1, "bbox_normalized": [0, 0, 1, 1], "coordinate_origin": "TOP_LEFT"}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "paragraph", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]}],
-        "ok": true
-      }
+      "source_kind": "HTML",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "MARKDOWN_TEXT_V1", "selector_types": ["TEXT_POSITION"], "profile_details_keys": ["codepoint_range", "line_range", "line_number_basis", "heading_path", "selected_text"], "blocks": []},
+      "ok": true
     },
     {
       "case_id": "DOC_MAP_NEG_PROFILE_MISMATCH",
       "expected": "deny",
       "expected_failure_code": "DOC_MAP_PROFILE_MISMATCH",
       "covers_doc_map_negative_fixture": "the source anchor profile does not match the source kind",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "MARKDOWN_TEXT_V1", "selectors": [{"selector_type": "TEXT_POSITION"}], "profile_details": {"codepoint_start": 0, "codepoint_end": 5, "line_start": 1, "line_end": 1}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "paragraph", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]}],
-        "ok": true
-      }
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "MARKDOWN_TEXT_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "ok": true
     },
     {
       "case_id": "DOC_MAP_NEG_SELECTOR_MISSING",
       "expected": "deny",
       "expected_failure_code": "DOC_MAP_SELECTOR_MISSING",
       "covers_doc_map_negative_fixture": "the required selector type is missing",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "PDF_REGION_V1", "selectors": [{"selector_type": "TEXT_QUOTE"}], "profile_details": {"page": 1, "bbox_normalized": [0, 0, 1, 1], "coordinate_origin": "TOP_LEFT"}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "paragraph", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]}],
-        "ok": true
-      }
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["TEXT_QUOTE"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "ok": true
     },
     {
-      "case_id": "DOC_MAP_NEG_PROFILE_DETAILS_MALFORMED",
+      "case_id": "DOC_MAP_NEG_PROFILE_DETAILS_NOT_LOCKED_SHAPE",
       "expected": "deny",
-      "expected_failure_code": "DOC_MAP_PROFILE_DETAILS_MALFORMED",
-      "covers_doc_map_negative_fixture": "profile_details has the wrong key set",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "PDF_REGION_V1", "selectors": [{"selector_type": "PDF_REGION"}], "profile_details": {"page": 1, "bbox_normalized": [0, 0, 1, 1]}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "paragraph", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]}],
-        "ok": true
-      }
-    },
-    {
-      "case_id": "DOC_MAP_NEG_BLOCK_TYPE_UNKNOWN",
-      "expected": "deny",
-      "expected_failure_code": "DOC_MAP_BLOCK_TYPE_UNKNOWN",
-      "covers_doc_map_negative_fixture": "a block uses an unknown block type",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "PDF_REGION_V1", "selectors": [{"selector_type": "PDF_REGION"}], "profile_details": {"page": 1, "bbox_normalized": [0, 0, 1, 1], "coordinate_origin": "TOP_LEFT"}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "sidebar", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]}],
-        "ok": true
-      }
+      "expected_failure_code": "DOC_MAP_PROFILE_DETAILS_NOT_LOCKED_SHAPE",
+      "covers_doc_map_negative_fixture": "profile_details is not the locked profile-schema shape",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "bbox_normalized", "coordinate_origin"], "blocks": []},
+      "ok": true
     },
     {
       "case_id": "DOC_MAP_NEG_CONTENT_LAYER_MISMATCH",
       "expected": "deny",
       "expected_failure_code": "DOC_MAP_CONTENT_LAYER_MISMATCH",
       "covers_doc_map_negative_fixture": "a block content_layer disagrees with its block type",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "PDF_REGION_V1", "selectors": [{"selector_type": "PDF_REGION"}], "profile_details": {"page": 1, "bbox_normalized": [0, 0, 1, 1], "coordinate_origin": "TOP_LEFT"}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "paragraph", "content_layer": "CODE", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]}],
-        "ok": true
-      }
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": [{"block_type": "paragraph", "content_layer": "CODE", "attribute_keys": [], "anchored": true}]},
+      "ok": true
     },
     {
       "case_id": "DOC_MAP_NEG_TABLE_IMAGE_ATTR_MISSING",
       "expected": "deny",
       "expected_failure_code": "DOC_MAP_TABLE_IMAGE_ATTR_MISSING",
       "covers_doc_map_negative_fixture": "a table or image block is missing its attributes",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "PDF_REGION_V1", "selectors": [{"selector_type": "PDF_REGION"}], "profile_details": {"page": 1, "bbox_normalized": [0, 0, 1, 1], "coordinate_origin": "TOP_LEFT"}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "table", "content_layer": "TABLE", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]}],
-        "ok": true
-      }
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": [{"block_type": "table", "content_layer": "TABLE", "attribute_keys": [], "anchored": true}]},
+      "ok": true
     },
     {
       "case_id": "DOC_MAP_NEG_BLOCK_NOT_ANCHORED",
       "expected": "deny",
       "expected_failure_code": "DOC_MAP_BLOCK_NOT_ANCHORED",
       "covers_doc_map_negative_fixture": "a block has no source anchor reference",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "PDF_REGION_V1", "selectors": [{"selector_type": "PDF_REGION"}], "profile_details": {"page": 1, "bbox_normalized": [0, 0, 1, 1], "coordinate_origin": "TOP_LEFT"}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "paragraph", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": []}],
-        "ok": true
-      }
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": [{"block_type": "paragraph", "content_layer": "BODY", "attribute_keys": [], "anchored": false}]},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_PAYLOAD_INLINE",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_PAYLOAD_INLINE",
+      "covers_doc_map_negative_fixture": "the payload is inline content instead of a reference",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "payload_inline": true, "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_NONDETERMINISTIC_IDENTITY_BASIS",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "source identity uses a non-content basis",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "UPLOAD_SEQUENCE", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_NONDETERMINISTIC_TWO_RUNS",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "two runs with identical inputs produce a different projection",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "determinism": {"two_runs": [
+        {"inputs": {"content_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "adapter_id": "document-pdf-adapter", "adapter_version": "0.1.0"}, "projection_digest": "sha256:aaaa000000000000000000000000000000000000000000000000000000000000"},
+        {"inputs": {"content_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "adapter_id": "document-pdf-adapter", "adapter_version": "0.1.0"}, "projection_digest": "sha256:bbbb000000000000000000000000000000000000000000000000000000000000"}
+      ]},
+      "ok": true
     },
     {
       "case_id": "DOC_MAP_NEG_FAIL_SILENT",
       "expected": "deny",
       "expected_failure_code": "FAIL_SILENT",
       "covers_doc_map_negative_fixture": "error but the mapping still claims success",
-      "projection": {
-        "source_kind": "PDF",
-        "raw_evidence": {"claimed_field_keys": ["payload", "provenance"], "source_identity": {"native_id_basis": "CONTENT_SHA256"}, "payload": {"structured_profile": "BINARY", "canonicalization_profile": "NONE", "payload_ref": "urn:omos:blob:pdf-1"}, "provenance": {"ingestion_mode": "MANUAL_UPLOAD"}},
-        "source_anchor": {"profile": "PDF_REGION_V1", "selectors": [{"selector_type": "PDF_REGION"}], "profile_details": {"page": 1, "bbox_normalized": [0, 0, 1, 1], "coordinate_origin": "TOP_LEFT"}, "normalization_profile": "OMOS_TEXT_NORM_V1", "resolution": {"status": "EXACT_MATCH"}},
-        "normalized_blocks": [{"block_type": "paragraph", "content_layer": "BODY", "attributes": {}, "source_anchor_refs": ["urn:omos:source-anchor:a1"]}],
-        "error": "one block was emitted without a source anchor and dropped",
-        "ok": true
-      }
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "error": "one block was emitted without a source anchor and dropped",
+      "ok": true
     }
   ]
 }
