@@ -1,0 +1,89 @@
+schema:
+  schema_id: urn:omos:schema:ai-work-record-skill:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-09'
+  traces_to:
+    - AIWR-03
+  builds_on:
+    - 規格/v0.1/ai-work-record-boundary.yaml#automated_step_contract
+    - 規格/v0.1/ai-task-card-record.yaml#fields
+
+purpose:
+  statement: >-
+    A single Skill contract: transform lifecycle events plus seed fields into a
+    compliant work-record draft. Pure transformation, runtime-independent. The
+    Skill does not accept memory and does not write company knowledge, and it
+    does not re-define the SSP-298 automated-step contract or the SSP-299 card
+    format — it references them.
+  no_second_workflow_authority: true
+
+input_contract:
+  required_fields:
+    - lifecycle_events
+    - seed_fields
+  seed_field_keys:
+    - objective
+    - scope
+    - constraints
+    - acceptance
+  lifecycle_events_rule: >-
+    non-empty; first event is `start`; every event is a key of
+    ai-task-card-record.yaml lifecycle_event_to_status.
+
+output_contract:
+  required_fields:
+    - draft_card
+    - evidence_refs
+    - dry_run
+    - replayed_status
+  draft_card_rule: must be a contract-valid ai-task-card-record card.
+  evidence_refs_rule: >-
+    every entry is an omos URN string; reference only, never inline content.
+  replayed_status_rule: >-
+    equals the ai-task-card-record replay final status of lifecycle_events.
+
+authority:
+  accepts_memory: false
+  writes_company_knowledge: false
+  error_behavior: FAIL_LOUD
+  forbidden_output_fields:
+    - personal_acceptance_ref
+    - verification_receipt_ref
+    - accepted_for_record
+    - canonical_write_receipt_ref
+
+error_contract:
+  MISSING_INPUT_FIELD: skill.error.missing_input_field
+  UNKNOWN_LIFECYCLE_EVENT: skill.error.unknown_lifecycle_event
+  SKILL_LIFECYCLE_MUST_START: skill.error.lifecycle_must_start
+  SKILL_EXCEEDS_AUTHORITY: skill.error.exceeds_authority
+  DRAFT_CARD_INVALID: skill.error.draft_card_invalid
+  EVIDENCE_INLINE_CONTENT: skill.error.evidence_inline_content
+  REPLAYED_STATUS_MISMATCH: skill.error.replayed_status_mismatch
+  FAIL_SILENT: skill.error.fail_silent
+
+runtime_independence: true
+
+cross_reference:
+  boundary_spec: 規格/v0.1/ai-work-record-boundary.yaml
+  task_card_record_spec: 規格/v0.1/ai-task-card-record.yaml
+  must_match:
+    lifecycle_events_from: ai-task-card-record.lifecycle_event_to_status
+    gate_positions_from: ai-work-record-boundary.automated_step_contract.allowed_gate_positions
+    non_acceptance_authority_from: ai-work-record-boundary.non_acceptance_authority.signals
+
+hard_stops:
+  - no hook / loop / harness / hermes / runtime here
+  - pure function plus data tables only; no state machine engine
+  - do not re-define SSP-298 automated_step or SSP-299 card format
+  - no registry / FSM / database / canonical writer
+
+required_negative_fixtures:
+  - missing a seed field
+  - unknown lifecycle event
+  - draft card is not contract-valid
+  - evidence ref carries inline content
+  - output carries a memory acceptance field
+  - replayed status does not match the events
+  - error but output still claims success
