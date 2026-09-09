@@ -1,0 +1,87 @@
+# 定點複審驗收 receipt｜Repo-wide validator 結構 Refactor / Repair 01
+# review line: .work/handoff/REFACTOR-VALIDATOR-STRUCTURE-REVIEW-20260909.md
+
+review_input:
+  repo: "bluemaple18-home/organizational-memory-os"
+  branch: "cc/refactor-validator-structure"
+  base_sha: "93288287034885b425f5600a10a89d4c140cc9b8"        # main
+  frozen_review_sha: "f3bb423b03e18097ba21110b9a68144c57785414"  # S02, immutable
+  handoff_sha: "42dad48ae566c60ff0421d395ec5b9088559df05"
+  repair_sha: "d4934a5b1a32244ab8eb8e3be8f8d11540c87e56"
+  repair_tree_sha: "dd2c8ab41a0112df0bf27a41db248b164ccf552b"
+  repair_only_diff_range: "42dad48ae566c60ff0421d395ec5b9088559df05..d4934a5b1a32244ab8eb8e3be8f8d11540c87e56"
+
+scope:
+  s01_sha: "7b9c714ce253a5ff1d52810c0175a7e7ac3e8eb4"
+  s02_sha: "f3bb423b03e18097ba21110b9a68144c57785414"
+  s03: DEFERRED_TO_BACKLOG
+
+round: 1
+gate_kind: REFACTOR_STRICT / behaviour-invariance
+
+findings_carried_in:
+  - id: F-01
+    severity: P1
+    summary: >
+      S02 split narrowed the surviving `ruby scripts/validate_personal_memory_contract.rb`
+      entry command to EMEM-00 only; a caller still invoking only that command would
+      get a false green when the capability / resource / recall / correction slices break.
+
+closure:
+  F-01:
+    status: CLOSED
+    fix: >
+      Old file name restored as a backward-compatible fail-closed aggregator that runs the
+      five slice validators (scope / resource / capability / recall / correction) via Open3
+      and re-emits the byte-identical "PASS personal memory contract validation" only when
+      all pass. EMEM-00 body moved verbatim to validate_personal_memory_scope_contract.rb.
+    mutation_parity_via_old_command:
+      command: "ruby scripts/validate_personal_memory_contract.rb"
+      probes:
+        - slice: scope
+          mutation: "legal_hold_overrides_delete_and_purge true->false"
+          result: "RED (exit 1, FAIL legal hold 必須覆蓋 delete/purge)"
+        - slice: resource
+          mutation: "MemoryConflictSet.forbidden_authority drop winner_selection"
+          result: "RED (exit 1, FAIL MemoryConflictSet 必須禁止自行選 winner)"
+        - slice: capability
+          mutation: "capability_matrix.cumulative true->false"
+          result: "RED (exit 1, FAIL capability_matrix.cumulative 必須為 true)"
+        - slice: recall
+          mutation: "recall_context_pack.permission_strategy INTERSECTION->UNION"
+          result: "RED (exit 1, FAIL recall_context_pack.permission_strategy 必須是 INTERSECTION)"
+        - slice: correction
+          mutation: "correction_flow.contract.immutable_receipt true->false"
+          result: "RED (exit 1, FAIL correction_flow.contract.immutable_receipt 必須為 true)"
+      restored: "PASS personal memory contract validation (exit 0); spec yaml diff clean"
+
+regression:
+  aggregator_stdout_exit_vs_golden: byte_identical      # /tmp/golden/validate_personal_memory_contract.out
+  other_base_validators_vs_golden: byte_identical        # std00-03, ai-work-record x3
+  cross_layer_vs_golden: byte_identical
+  schema_engine: PASS
+  schema_engine_coverage_unchanged: true                 # STD01 12/12 excl 11, STD02 16/16 excl 10, STD03 9/9 excl 11
+  slice_validators_direct: [PASS, PASS, PASS, PASS, PASS]  # scope, resource, capability, recall, correction
+  git_diff_check: clean
+
+binding_integrity:
+  frozen_review_sha_unchanged: true
+  commit_chain: "f3bb423 -> 42dad48 (handoff docs) -> d4934a5 (repair 01)"
+  repair_touched_evaluators_or_fixtures: false
+
+acceptance:
+  compliance:
+    ruby_validators_under_400: "12 of 14"
+    over_400_remaining: ["validate_std01_raw_evidence_contract.rb (525)", "validate_std02_source_anchor_contract.rb (512)", "validate_std_schema_engine.py (436)"]
+    over_400_disposition: "LOCKED_OWNER_ACCEPTED — card scope = helper extraction only, structural split → backlog"
+  behaviour_invariant: true
+  all_gates_green: true
+
+verdict: GO
+owner_accept: PENDING
+next:
+  merge: "cc/refactor-validator-structure -> main"
+  then: "Lane A -> SSP-294 (EMEM-05 Promotion), Lane B -> SSP-301 (AIWR-04 Hook)"
+  backlog:
+    - "STD-01/02 + std_schema_engine.py structural split (needs Owner decision to reopen LOCKED_OWNER_ACCEPTED)"
+    - "SSP-299/300 draft-card shape dedup (S03)"

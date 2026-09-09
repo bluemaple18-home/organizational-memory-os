@@ -1,17 +1,19 @@
 ---
 id: REFACTOR-VALIDATOR-STRUCTURE-20260909
-status: IMPLEMENTED_AWAITING_BIG_REVIEW
+status: ACCEPTED_GO_20260909
 type: refactor
 mode: REFACTOR_STRICT
 lane: A+B（共用,兩 lane 匯流點）
 ---
 
 > 進度（2026-09-09）：S01 = `7b9c714`；S02 = `f3bb423`（frozen review SHA）；S03 DEFER 至 backlog。
-> 大 review `NO_GO`（1×P1 F-01：舊入口 coverage 縮窄）→ repair 01：舊檔名改 aggregator、
-> EMEM-00 搬 `validate_personal_memory_scope_contract.rb`，舊命令補 5 條 mutation parity。
-> repair 卡：`.work/CARD-REFACTOR-VALIDATOR-STRUCTURE-REPAIR-01-20260909.md`。待定點複審。
+> 大 review `NO_GO`（1×P1 F-01：舊入口 coverage 縮窄）→ repair 01 = `d4934a5`：舊檔名改
+> fail-closed aggregator、EMEM-00 搬 `validate_personal_memory_scope_contract.rb`，舊命令補
+> 5 條 mutation parity。定點複審 `GO`，F-01 CLOSED，regression PASS。
+> receipt：`.work/evidence/REFACTOR-VALIDATOR-STRUCTURE-REREVIEW-01-20260909.yaml`。
+> repair 卡：`.work/CARD-REFACTOR-VALIDATOR-STRUCTURE-REPAIR-01-20260909.md`。
 > evidence：`.work/evidence/REFACTOR-VALIDATOR-STRUCTURE-20260909.md`。
-> 大 review 交接卡：`.work/handoff/REFACTOR-VALIDATOR-STRUCTURE-REVIEW-20260909.md`。
+> 交接卡：`.work/handoff/REFACTOR-VALIDATOR-STRUCTURE-REVIEW-20260909.md`。
 
 # Repo-wide validator 結構 Refactor
 
