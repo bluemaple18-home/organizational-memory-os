@@ -1,0 +1,232 @@
+{
+  "hermes_adapter_negative_cases": [
+    {
+      "case_id": "HERMES_NEG_MAP_TARGET_UNKNOWN",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_MAP_TARGET_UNKNOWN",
+      "covers_hermes_negative_fixture": "a mapping targets something outside the existing skill I/O",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"},
+          {"hermes_event": "hermes.task.deploy", "mapped_to": "deploy"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.0",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_ADAPTER_ADDS_SEMANTICS",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_ADAPTER_ADDS_SEMANTICS",
+      "covers_hermes_negative_fixture": "the adapter declares an added field",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": ["hermes_priority"],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.0",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_EXCEEDS_AUTHORITY",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_EXCEEDS_AUTHORITY",
+      "covers_hermes_negative_fixture": "a run carries a permission decision field",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "permission_decision_ref": "urn:omos:permission-decision:hermes-must-not-decide",
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.0",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_MANDATORY",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_MANDATORY",
+      "covers_hermes_negative_fixture": "the run declares hermes as required",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": true,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.0",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_INCOMPAT_NOT_LOUD",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_INCOMPAT_NOT_LOUD",
+      "covers_hermes_negative_fixture": "an incompatible hermes version did not fail loud",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "9.9",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_INVALID_OUTCOME",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_INVALID_OUTCOME",
+      "covers_hermes_negative_fixture": "outcome is not one of the allowed outcomes",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.0",
+        "outcome": "PENDING",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_OUTPUT_NOT_REF",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_OUTPUT_NOT_REF",
+      "covers_hermes_negative_fixture": "the adapter output is not a reference",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "mapped-output-1",
+        "hermes_version": "1.0",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_ORG_WIDE_INSTALL",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_ORG_WIDE_INSTALL",
+      "covers_hermes_negative_fixture": "the adapter requires an org-wide install",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": true,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.0",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_DISABLED_STILL_MAPPING",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_DISABLED_STILL_MAPPING",
+      "covers_hermes_negative_fixture": "the adapter is disabled but still mapping",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:should-not-exist-when-disabled",
+        "hermes_version": "1.0",
+        "outcome": "DISABLED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_NEG_FAIL_SILENT",
+      "expected": "deny",
+      "expected_failure_code": "FAIL_SILENT",
+      "covers_hermes_negative_fixture": "error but the run still claims success",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.0",
+        "outcome": "MAPPED",
+        "error": "one hermes event was dropped during translation",
+        "ok": true
+      }
+    }
+  ],
+  "hermes_rollback_negative_cases": [
+    {
+      "case_id": "HERMES_RB_NEG_SIDE_EFFECT_MISSING_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "HERMES_ROLLBACK_SIDE_EFFECT_UNSPECIFIED",
+      "covers_hermes_negative_fixture": "a rollback side effect is missing a field",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {"name": "event_subscription", "teardown": "unsubscribe from the Hermes event stream"}
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "hermes_adapter_cases": [
+    {
+      "case_id": "HERMES_POS_MAPPED",
+      "expected": "allow",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"},
+          {"hermes_event": "hermes.task.review", "mapped_to": "submit_review"},
+          {"hermes_event": "hermes.task.done", "mapped_to": "complete"},
+          {"hermes_event": "hermes.task.goal", "mapped_to": "objective"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:hermes-map:m1",
+        "hermes_version": "1.1",
+        "outcome": "MAPPED",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "HERMES_POS_INCOMPATIBLE_FAIL_LOUD",
+      "expected": "allow",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": null,
+        "hermes_version": "2.0",
+        "outcome": "INCOMPATIBLE_FAIL_LOUD",
+        "error": "hermes 2.0 is outside supported_hermes_versions",
+        "ok": false
+      }
+    },
+    {
+      "case_id": "HERMES_POS_DISABLED",
+      "expected": "allow",
+      "run": {
+        "hermes_event_map": [
+          {"hermes_event": "hermes.task.started", "mapped_to": "start"}
+        ],
+        "adapter_adds_fields": [],
+        "hermes_required": false,
+        "requires_all_users_install": false,
+        "supported_hermes_versions": ["1.0", "1.1", "1.2"],
+        "hermes_event": "hermes.task.started",
+        "mapped_to": "start",
+        "adapter_output_ref": null,
+        "hermes_version": "1.0",
+        "outcome": "DISABLED",
+        "ok": true
+      }
+    }
+  ],
+  "hermes_rollback_cases": [
+    {
+      "case_id": "HERMES_RB_POS_FULL",
+      "expected": "allow",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {"name": "event_subscription", "teardown": "unsubscribe the Adapter from the Hermes event stream", "failure_state": "still subscribed -> the Adapter keeps mapping while disabled"},
+          {"name": "version_probe_cache", "teardown": "clear the cached Hermes version probe result", "failure_state": "stale probe -> an incompatible version is treated as compatible on re-enable"},
+          {"name": "partial_event_map", "teardown": "discard any half-loaded hermes_event_map", "failure_state": "partial map persisted -> some Hermes events resolve and others do not"}
+        ]
+      }
+    },
+    {
+      "case_id": "HERMES_RB_POS_MIN",
+      "expected": "allow",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {"name": "event_subscription", "teardown": "unsubscribe from the Hermes event stream", "failure_state": "still subscribed -> Adapter keeps mapping while disabled"}
+        ]
+      }
+    }
+  ]
+}

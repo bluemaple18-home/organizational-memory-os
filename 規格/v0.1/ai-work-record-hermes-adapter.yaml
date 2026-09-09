@@ -1,0 +1,153 @@
+schema:
+  schema_id: urn:omos:schema:ai-work-record-hermes-adapter:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-09'
+  traces_to:
+    - AIWR-07
+  builds_on:
+    - 規格/v0.1/ai-work-record-skill.yaml
+    - 規格/v0.1/ai-task-card-record.yaml
+    - 規格/v0.1/ai-work-record-harness.yaml
+
+purpose:
+  statement: >-
+    A thin Hermes Adapter contract: map Hermes events onto the existing Skill
+    I/O (a lifecycle event or a seed field) and nothing more. Hermes gains no
+    acceptance, permission or canonical-writer authority; the core flow runs
+    without Hermes installed; an incompatible Hermes version fails loud and the
+    Adapter can be disabled to fall back to the core flow; there is no org-wide
+    install requirement. It does not re-define the SSP-298..SSP-303 contracts —
+    it references them.
+  no_second_workflow_authority: true
+
+event_mapping:
+  mapped_to_sources:
+    - ai-task-card-record.lifecycle_event_to_status (keys)
+    - ai-work-record-skill.input_contract.seed_field_keys
+  adapter_adds_fields: []
+  rule: >-
+    every hermes_event_map entry maps a hermes_event to a mapped_to that is one
+    of allowed_map_targets; anything else is HERMES_MAP_TARGET_UNKNOWN. A
+    non-empty adapter_adds_fields is HERMES_ADAPTER_ADDS_SEMANTICS (the Adapter
+    translates, it never introduces a new field or capability).
+
+authority:
+  grants_acceptance: false
+  grants_permission: false
+  grants_canonical_writer: false
+  error_behavior: FAIL_LOUD
+  forbidden_run_fields:
+    - personal_acceptance_ref
+    - verification_receipt_ref
+    - accepted_for_record
+    - canonical_write_receipt_ref
+    - permission_decision_ref
+
+optional_dependency:
+  hermes_required: false
+  core_flow_without_hermes: SUPPORTED
+  rule: >-
+    a run that declares hermes_required true or core_flow_blocked_without_hermes
+    true is HERMES_MANDATORY.
+
+compatibility:
+  supported_hermes_versions:
+    - "1.0"
+    - "1.1"
+    - "1.2"
+  on_incompatible: FAIL_LOUD
+  adapter_disable: SUPPORTED
+  rule: >-
+    a mapping run whose hermes_version is not in supported_hermes_versions must
+    have outcome INCOMPATIBLE_FAIL_LOUD, otherwise HERMES_INCOMPAT_NOT_LOUD.
+
+no_org_wide_install:
+  requires_all_users_install: false
+  rule: requires_all_users_install true is HERMES_ORG_WIDE_INSTALL.
+
+mapping_run:
+  fields:
+    - hermes_event
+    - mapped_to
+    - adapter_output_ref
+    - hermes_version
+    - outcome
+  outcomes:
+    - MAPPED
+    - INCOMPATIBLE_FAIL_LOUD
+    - DISABLED
+  output_ref_rule: adapter_output_ref is an omos URN string (reference only).
+  rule: >-
+    outcome not in outcomes is HERMES_INVALID_OUTCOME; outcome MAPPED with a
+    mapped_to not in allowed_map_targets is HERMES_MAP_TARGET_UNKNOWN; a
+    non-URN adapter_output_ref is HERMES_OUTPUT_NOT_REF; outcome DISABLED while
+    adapter_output_ref is still present is HERMES_DISABLED_STILL_MAPPING.
+
+disable_and_rollback:
+  disable_switch: true
+  fallback: CORE_FLOW_DIRECT
+  side_effects:
+    - name: event_subscription
+      teardown: unsubscribe the Adapter from the Hermes event stream
+      failure_state: >-
+        still subscribed -> the Adapter keeps mapping while disabled; detected
+        by a run emitted with a non-empty adapter_output_ref under disabled
+        state (HERMES_DISABLED_STILL_MAPPING).
+    - name: version_probe_cache
+      teardown: clear the cached Hermes version probe result
+      failure_state: >-
+        stale probe -> an incompatible version is treated as compatible on
+        re-enable; remediation is a forced re-probe.
+    - name: partial_event_map
+      teardown: discard any half-loaded hermes_event_map
+      failure_state: >-
+        partial map persisted -> some Hermes events resolve and others do not
+        after re-enable; detected by a hermes_event_map entry whose mapped_to
+        is empty.
+
+error_contract:
+  HERMES_MAP_TARGET_UNKNOWN: hermes.error.map_target_unknown
+  HERMES_ADAPTER_ADDS_SEMANTICS: hermes.error.adapter_adds_semantics
+  HERMES_EXCEEDS_AUTHORITY: hermes.error.exceeds_authority
+  HERMES_MANDATORY: hermes.error.mandatory
+  HERMES_INCOMPAT_NOT_LOUD: hermes.error.incompat_not_loud
+  HERMES_INVALID_OUTCOME: hermes.error.invalid_outcome
+  HERMES_OUTPUT_NOT_REF: hermes.error.output_not_ref
+  HERMES_ORG_WIDE_INSTALL: hermes.error.org_wide_install
+  HERMES_DISABLED_STILL_MAPPING: hermes.error.disabled_still_mapping
+  HERMES_ROLLBACK_MISSING_FIELD: hermes.error.rollback_missing_field
+  HERMES_ROLLBACK_SIDE_EFFECT_UNSPECIFIED: hermes.error.rollback_side_effect_unspecified
+  FAIL_SILENT: hermes.error.fail_silent
+
+runtime_independence: true
+
+cross_reference:
+  skill_spec: 規格/v0.1/ai-work-record-skill.yaml
+  task_card_record_spec: 規格/v0.1/ai-task-card-record.yaml
+  harness_spec: 規格/v0.1/ai-work-record-harness.yaml
+  boundary_spec: 規格/v0.1/ai-work-record-boundary.yaml
+  must_match:
+    lifecycle_events_from: ai-task-card-record.lifecycle_event_to_status
+    seed_field_keys_from: ai-work-record-skill.input_contract.seed_field_keys
+    harness_schema_id_from: ai-work-record-harness.schema.schema_id
+    error_behavior_from: ai-work-record-boundary.automated_step_contract.error_behavior_enum
+
+hard_stops:
+  - no hermes runtime / event bus / connector here
+  - pure function plus data tables only; no state machine engine
+  - do not re-define the SSP-298..SSP-303 contracts
+  - no registry / FSM / database / canonical writer
+
+required_negative_fixtures:
+  - a mapping targets something outside the existing skill I/O
+  - the adapter declares an added field
+  - a run carries a permission decision field
+  - the run declares hermes as required
+  - an incompatible hermes version did not fail loud
+  - outcome is not one of the allowed outcomes
+  - the adapter output is not a reference
+  - the adapter requires an org-wide install
+  - the adapter is disabled but still mapping
+  - a rollback side effect is missing a field
+  - error but the run still claims success
