@@ -43,6 +43,16 @@ FORMAT_CHECKER = FormatChecker()
 
 POSITIVE_FIXTURE = "規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json"
 INSTANCE_NEGATIVE_FIXTURE = "規格/v0.1/fixtures/document-adapter-mapping-instance-negative-fixtures.json"
+MAPPING_SPEC = "規格/v0.1/document-adapter-mapping.yaml"
+
+# 必須逐字等於 document-adapter-mapping.yaml 的 required_instance_negative_fixtures
+# （Ruby validator 已把 yaml 綁到它自己的 EXPECTED_INSTANCE_NEGATIVE_LABELS；此處為第二道
+# 防線，確保 instance_negative case 不被刪、covers 逐字、case_id 唯一）。
+REQUIRED_INSTANCE_NEGATIVE_LABELS = [
+    "a projected RawEvidenceEnvelope is missing a locked required field",
+    "a projected SourceAnchor uses the old custom profile_details shape",
+    "a projected block table attribute has the wrong nested shape",
+]
 
 
 class DuplicateKeyError(ValueError):
@@ -98,7 +108,21 @@ def main() -> int:
                 failures.append(f"POSITIVE_BLOCK_INVALID:{name}[{index}]:{errors[0].message}")
 
     negative = load_json(INSTANCE_NEGATIVE_FIXTURE)
-    for case in negative["instance_negative_cases"]:
+    cases = negative["instance_negative_cases"]
+
+    covers = sorted(case.get("covers", "") for case in cases)
+    if covers != sorted(REQUIRED_INSTANCE_NEGATIVE_LABELS):
+        failures.append(f"INSTANCE_NEGATIVE_COVERAGE_MISMATCH:{covers}")
+    case_ids = [case.get("case_id") for case in cases]
+    if len(case_ids) != len(set(case_ids)):
+        failures.append(f"INSTANCE_NEGATIVE_DUPLICATE_CASE_ID:{case_ids}")
+
+    spec_text = (ROOT / MAPPING_SPEC).read_text(encoding="utf-8")
+    for label in REQUIRED_INSTANCE_NEGATIVE_LABELS:
+        if label not in spec_text:
+            failures.append(f"INSTANCE_NEGATIVE_LABEL_NOT_IN_SPEC:{label}")
+
+    for case in cases:
         name = case["case_id"]
         target = case["target_schema"]
         schema_id = TARGET_SCHEMA_ID.get(target)

@@ -60,7 +60,15 @@ raw_evidence_projection:
     otherwise); payload.payload_ref is a reference string, never inline content
     (DOC_MAP_PAYLOAD_INLINE); source_identity.native_id_basis is CONTENT_SHA256
     so identity is content-addressed (DOC_MAP_NONDETERMINISTIC_IDENTITY
-    otherwise).
+    otherwise). Every value in this block is bound by the thin validator: the
+    enum-valued keys (payload.structured_profile_by_kind,
+    payload.canonicalization_profile, provenance.allowed_ingestion_modes,
+    source_version.basis / .kind) must be members of the matching
+    raw-evidence-envelope.schema.json enum, and every positive fixture's
+    raw_evidence_instance must agree with this mapping for its source kind
+    (source_system, entity_type, structured_profile, canonicalization_profile,
+    ingestion_mode, source_version.basis / .kind) -- the spec and the fixtures
+    cannot drift apart.
 
 source_anchor_projection:
   profile_by_kind:
@@ -150,12 +158,35 @@ deterministic_derivation:
     - digests
     - idempotency_key
     - projection_digest
+  identity_bearing_fields:
+    - raw_evidence/source_identity/native_id
+    - raw_evidence/source_version
+    - raw_evidence/digests
+    - raw_evidence/idempotency_key
+    - raw_evidence/payload/payload_ref
+  excluded_from_canonical_digest:
+    - raw_evidence/chronology/observed_at
+    - raw_evidence/chronology/received_at
+    - raw_evidence/chronology/persisted_at
+    - raw_evidence/provenance/source_observation_receipt_ref
+    - raw_evidence/provenance/adapter_activity_ref
+    - raw_evidence/provenance/lineage_receipt_ref
+    - raw_evidence/activity_refs
+    - source_anchor/resolution/resolved_at
+    - source_anchor/resolution/resolver_version
   rule: >-
-    native_id, source_version, digests, idempotency_key and the whole projection
-    are a pure function of (content_digest, adapter_id, adapter_version). Two
-    runs with identical inputs must produce an identical projection_digest; a
-    difference is DOC_MAP_NONDETERMINISTIC_IDENTITY. Nothing in the projection
-    derives from wall-clock, upload order or delivery sequence.
+    projection_digest is the SHA256 of the canonical JSON (object keys sorted
+    recursively) of the projected surface {raw_evidence, source_anchor, blocks}
+    with every excluded_from_canonical_digest path removed. The validator
+    computes this digest itself from the fixture instances -- a fixture never
+    supplies a projection_digest. Two runs with identical
+    (content_digest, adapter_id, adapter_version) that differ only in
+    excluded_from_canonical_digest paths must produce an identical
+    projection_digest and byte-identical identity_bearing_fields; any other
+    difference is DOC_MAP_NONDETERMINISTIC_IDENTITY. The excluded paths are the
+    ingestion-time / wall-clock surface (observed/received/persisted timestamps,
+    per-run receipt / activity / observation refs); nothing in the deterministic
+    surface derives from wall-clock, upload order or delivery sequence.
 
 error_contract:
   DOC_MAP_UNKNOWN_SOURCE_KIND: doc-map.error.unknown_source_kind

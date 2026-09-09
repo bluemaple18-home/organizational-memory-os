@@ -153,3 +153,83 @@ git add -A && git diff --cached --check                       clean
 | `規格/v0.1/fixtures/document-adapter-mapping-instance-negative-fixtures.json` | 新（3 instance-schema 負例） | — |
 
 validator 222 / companion 128，守 `.agentskills/docs/coding-standards.md` §2（< 400）。
+
+---
+
+## Repair 02（2026-09-10）— Repair 01 再 review NO_GO(P1=2, P2=1) 針對性修復
+
+卡：`.work/CARD-DOC-ADAPTER-MAPPING-REPAIR-02-20260910.md`。原 review SHA `c2e184f`、Repair 01
+`faddb8c` 皆不動；repair-02 delta = `faddb8c..<repair-02 SHA>`。只做 review 指定的兩件核心事
+＋ P2，不擴 scope。
+
+### 核心 1 — mapping table ↔ spec/fixture 重新綁定（關 F-02 regression）
+
+- Ruby validator 補回 `raw_evidence_projection` 結構斷言：enum-valued 值必須是對應
+  `raw-evidence-envelope.schema.json` enum 成員（`structured_profile_by_kind` /
+  `canonicalization_profile` / `allowed_ingestion_modes` / `source_version.basis` / `.kind`），
+  且鎖定 `source_system == document` / `native_id_basis == CONTENT_SHA256` /
+  `entity_type_by_kind` / `structured_profile_by_kind == {PDF: BINARY, MARKDOWN: TEXT}` /
+  `allowed_ingestion_modes == [MANUAL_UPLOAD, BULK_EXPORT]` /
+  `source_version.basis == CONTENT_ONLY` / `.kind == CONTENT_DIGEST`。
+- **spec ↔ fixture 一致**：每個 positive 的 `raw_evidence_instance` / `source_anchor_instance` /
+  `block_instances` 必須與 mapping table 對該 source kind 的宣告逐欄一致（source_system /
+  entity_type / structured_profile / canonicalization_profile / ingestion_mode /
+  source_version.basis·kind / anchor profile / required selector / normalization_profile /
+  每個 block content_layer）。YAML 或 fixture 任一側漂移即 RED。
+- YAML `raw_evidence_projection.rule` 補綁定說明。
+
+### 核心 2 — determinism 由 validator 實算 canonical projection digest（關 F-03）
+
+- YAML `deterministic_derivation` 新增 `identity_bearing_fields`（跨 run 必 byte-identical）+
+  `excluded_from_canonical_digest`（ingestion-time / wall-clock surface：observed/received/
+  persisted 時間、per-run receipt/activity/observation refs、activity_refs、
+  source_anchor.resolution.resolved_at/resolver_version），並定義 `projection_digest` =
+  `{raw_evidence, source_anchor, blocks}` 去除 excluded path 後遞迴 sorted-key canonical JSON
+  的 SHA256。fixture 不再提供任何 digest。
+- validator 帶 `DETERMINISTIC_EXCLUDED_PATHS` / `IDENTITY_BEARING_FIELDS` 常數，斷言 YAML
+  兩份清單逐字等於常數。
+- positive：`determinism.two_runs`（自報 digest）→ `determinism.runtime_only_patch`（只落在
+  excluded path 的 pointer→值）。validator：patch key 全 ∈ excluded；
+  `projection_digest(base) == projection_digest(patched)`；identity-bearing 欄位逐欄不變；
+  拒收殘留 `two_runs` / 自報 `projection_digest`。
+- negative：`DOC_MAP_NEG_NONDETERMINISTIC_TWO_RUNS` → `DOC_MAP_NEG_NONDETERMINISTIC_STABLE_FIELD_DRIFT`
+  （`base_case_ref: DOC_MAP_POS_PDF` + `stable_field_mutation` 改 raw_digest / native_id）。
+  validator 取實際 instance、apply mutation、自算兩份 canonical digest 必須不同，否則 RED；
+  且 mutation 不能只落在 excluded path。
+
+### P2 — required_instance_negative_fixtures 變活契約
+
+- Ruby validator 讀 instance-negative fixture 檔，斷言 `covers` 排序剛好等於
+  `required_instance_negative_fixtures`（並綁到 Ruby 常數）、`case_id` 唯一、每個 case 帶
+  `target_schema` / `expected_result == REJECT` / `instance`。
+- Python companion 加第二道防線：`covers` 排序等於硬編清單、`case_id` 唯一、每個 label 必須
+  出現在 mapping spec 檔。刪任一 case → Ruby + Python 皆 RED。
+
+### 檔案大小 / 重構
+
+`validate_document_adapter_mapping_contract.rb` 373 行（< 400）。通用 `deep_dup` / `*_path` /
+`canonical_json` 下沉到 `scripts/lib/omos_contract_helpers.rb`（+40 行），既有 validator 行為
+不變。
+
+### 修復後 gate
+
+```
+ruby validate_document_adapter_mapping_contract.rb           PASS
+validate_document_adapter_mapping_instances.py (uv)          PASS (positive_instances=10, instance_negatives=3)
+全 19 Ruby validators（含共用 lib 下沉回歸）                  PASS
+validate_std_schema_engine.py (uv)                           PASS (STD01 12/12, STD02 16/16, STD03 9/9)
+validate_cc_cross_layer_contract.py (uv)                     PASS
+enforcement parity（cp-based restore，11 項）                 全數 RED，還原 PASS
+git add -A && git diff --cached --check                      clean
+```
+
+### 交付物（Repair 02）
+
+| 檔 | 動作 |
+|---|---|
+| `規格/v0.1/document-adapter-mapping.yaml` | 改（deterministic_derivation +identity_bearing_fields/+excluded_from_canonical_digest；raw_evidence_projection.rule 綁定說明） |
+| `scripts/validate_document_adapter_mapping_contract.rb` | 改（raw_evidence_projection 結構斷言回歸 + spec↔fixture 一致 + 實算 canonical projection digest + instance-negative 活契約；373 行） |
+| `scripts/validate_document_adapter_mapping_instances.py` | 改（instance-negative coverage / case_id / label-in-spec 第二道防線） |
+| `scripts/lib/omos_contract_helpers.rb` | 改（下沉 deep_dup / *_path / canonical_json，+40 行） |
+| `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（two_runs → runtime_only_patch，×2 case） |
+| `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（determinism 負例換成 base_case_ref + stable_field_mutation，covers label 不變） |

@@ -82,16 +82,13 @@
       "ok": true
     },
     {
-      "case_id": "DOC_MAP_NEG_NONDETERMINISTIC_TWO_RUNS",
+      "case_id": "DOC_MAP_NEG_NONDETERMINISTIC_STABLE_FIELD_DRIFT",
       "expected": "deny",
       "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
       "covers_doc_map_negative_fixture": "two runs with identical inputs produce a different projection",
-      "source_kind": "PDF",
-      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
-      "determinism": {"two_runs": [
-        {"inputs": {"content_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "adapter_id": "document-pdf-adapter", "adapter_version": "0.1.0"}, "projection_digest": "sha256:aaaa000000000000000000000000000000000000000000000000000000000000"},
-        {"inputs": {"content_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "adapter_id": "document-pdf-adapter", "adapter_version": "0.1.0"}, "projection_digest": "sha256:bbbb000000000000000000000000000000000000000000000000000000000000"}
-      ]},
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "declared inputs (content_digest, adapter_id, adapter_version) unchanged; a stable identity-bearing field drifts so the validator's own canonical projection digest must differ",
+      "stable_field_mutation": {"raw_evidence/digests/raw_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999", "raw_evidence/source_identity/native_id": "sha256-drifted"},
       "ok": true
     },
     {

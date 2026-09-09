@@ -48,24 +48,20 @@
         ]
       },
       "determinism": {
-        "two_runs": [
-          {
-            "inputs": {
-              "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-              "adapter_id": "document-pdf-adapter",
-              "adapter_version": "0.1.0"
-            },
-            "projection_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
-          },
-          {
-            "inputs": {
-              "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-              "adapter_id": "document-pdf-adapter",
-              "adapter_version": "0.1.0"
-            },
-            "projection_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
-          }
-        ]
+        "inputs": {
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "adapter_id": "document-pdf-adapter",
+          "adapter_version": "0.1.0"
+        },
+        "runtime_only_patch": {
+          "raw_evidence/chronology/observed_at": "2027-02-02T02:02:02Z",
+          "raw_evidence/chronology/received_at": "2027-02-02T02:02:03Z",
+          "raw_evidence/chronology/persisted_at": "2027-02-02T02:02:04Z",
+          "raw_evidence/provenance/source_observation_receipt_ref": "urn:omos:receipt:ffffffff-0000-7aaa-8bbb-999999999999",
+          "raw_evidence/provenance/adapter_activity_ref": "urn:omos:activity:ffffffff-0001-7aaa-8bbb-999999999999",
+          "source_anchor/resolution/resolved_at": "2027-02-02T02:02:05.000Z",
+          "source_anchor/resolution/resolver_version": "doc-adapter-v2"
+        }
       },
       "raw_evidence_instance": {
         "schema_version": "omos.evidence.raw.v0.1",
@@ -384,24 +380,18 @@
         ]
       },
       "determinism": {
-        "two_runs": [
-          {
-            "inputs": {
-              "content_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-              "adapter_id": "document-markdown-adapter",
-              "adapter_version": "0.1.0"
-            },
-            "projection_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
-          },
-          {
-            "inputs": {
-              "content_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-              "adapter_id": "document-markdown-adapter",
-              "adapter_version": "0.1.0"
-            },
-            "projection_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
-          }
-        ]
+        "inputs": {
+          "content_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "adapter_id": "document-markdown-adapter",
+          "adapter_version": "0.1.0"
+        },
+        "runtime_only_patch": {
+          "raw_evidence/chronology/observed_at": "2027-03-03T03:03:03Z",
+          "raw_evidence/chronology/received_at": "2027-03-03T03:03:04Z",
+          "raw_evidence/chronology/persisted_at": "2027-03-03T03:03:05Z",
+          "raw_evidence/provenance/adapter_activity_ref": "urn:omos:activity:ffffffff-0002-7aaa-8bbb-999999999999",
+          "source_anchor/resolution/resolved_at": "2027-03-03T03:03:06.000Z"
+        }
       },
       "raw_evidence_instance": {
         "schema_version": "omos.evidence.raw.v0.1",

@@ -78,3 +78,43 @@ end
 def allowed_resource_ref?(value, resource_kind)
   value.is_a?(String) && value.start_with?("urn:omos:personal-memory:#{resource_kind}:")
 end
+
+# --- 通用結構工具：deep dup / "a/b/c" path 存取 / sorted-key canonical JSON。
+# adapter-mapping validator 用來自算 canonical projection digest（fixture 不提供 digest）。
+
+def deep_dup(obj)
+  case obj
+  when Hash then obj.each_with_object({}) { |(key, value), acc| acc[key] = deep_dup(value) }
+  when Array then obj.map { |value| deep_dup(value) }
+  else obj
+  end
+end
+
+def dig_parent(root, path)
+  segments = path.split("/")
+  leaf = segments.pop
+  node = segments.inject(root) { |acc, seg| acc.is_a?(Hash) ? acc[seg] : nil }
+  [node, leaf]
+end
+
+def read_path(root, path)
+  path.split("/").inject(root) { |acc, seg| acc.is_a?(Hash) ? acc[seg] : nil }
+end
+
+def delete_path(root, path)
+  node, leaf = dig_parent(root, path)
+  node.delete(leaf) if node.is_a?(Hash)
+end
+
+def set_path(root, path, value)
+  node, leaf = dig_parent(root, path)
+  node[leaf] = value if node.is_a?(Hash)
+end
+
+def canonical_json(obj)
+  case obj
+  when Hash then "{#{obj.keys.sort.map { |key| "#{key.to_json}:#{canonical_json(obj[key])}" }.join(",")}}"
+  when Array then "[#{obj.map { |value| canonical_json(value) }.join(",")}]"
+  else obj.to_json
+  end
+end
