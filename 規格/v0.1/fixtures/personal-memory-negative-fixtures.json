@@ -1565,13 +1565,22 @@
         ],
         "source_refs": [],
         "applicability": {},
-        "freshness": {"stale_present": false},
+        "freshness": {
+          "stale_present": false
+        },
         "permission_intersection_refs": [
-          {"memory_ref": "urn:omos:personal-memory:record:0198e900-9501-7aaa-8bbb-111111111111", "intersection_ref": ""}
+          {
+            "memory_ref": "urn:omos:personal-memory:record:0198e900-9501-7aaa-8bbb-111111111111",
+            "intersection_ref": ""
+          }
         ],
         "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [],
-        "budget_usage": {"used": 500, "budget": 4000, "omitted_count": 0}
+        "budget_usage": {
+          "used": 500,
+          "budget": 4000,
+          "omitted_count": 0
+        }
       },
       "expected": "deny"
     },
@@ -1596,11 +1605,17 @@
         "selected_memories": [],
         "source_refs": [],
         "applicability": {},
-        "freshness": {"stale_present": false},
+        "freshness": {
+          "stale_present": false
+        },
         "permission_intersection_refs": [],
         "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [],
-        "budget_usage": {"used": 0, "budget": 4000, "omitted_count": 0}
+        "budget_usage": {
+          "used": 0,
+          "budget": 4000,
+          "omitted_count": 0
+        }
       },
       "expected": "deny"
     },
@@ -1633,11 +1648,17 @@
         ],
         "source_refs": [],
         "applicability": {},
-        "freshness": {"stale_present": false},
+        "freshness": {
+          "stale_present": false
+        },
         "permission_intersection_refs": [],
         "not_applicable_filtered_count": 2,
         "omitted_or_gap_notice": [],
-        "budget_usage": {"used": 500, "budget": 4000, "omitted_count": 0}
+        "budget_usage": {
+          "used": 500,
+          "budget": 4000,
+          "omitted_count": 0
+        }
       },
       "expected": "deny"
     },
@@ -1662,11 +1683,17 @@
         "selected_memories": [],
         "source_refs": [],
         "applicability": {},
-        "freshness": {"stale_present": false},
+        "freshness": {
+          "stale_present": false
+        },
         "permission_intersection_refs": [],
         "not_applicable_filtered_count": 0,
         "omitted_or_gap_notice": [],
-        "budget_usage": {"used": 0, "budget": 4000, "omitted_count": 0},
+        "budget_usage": {
+          "used": 0,
+          "budget": 4000,
+          "omitted_count": 0
+        },
         "search_strategy": "UNRESTRICTED_GLOBAL_SEARCH"
       },
       "expected": "deny"
@@ -1685,7 +1712,27 @@
         "correction_kind": "AMEND",
         "correction_evidence_refs": [],
         "proposed_by": "EMPLOYEE",
-        "created_at": "2026-09-09T00:00:01Z"
+        "chronology": {
+          "created_at": "2026-09-09T00:00:01Z"
+        }
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_PROP_NEG_INVALID_EVIDENCE_REF",
+      "covers_correction_negative_fixture": "correction proposal with a non-empty but invalid evidence ref",
+      "expected_failure_code": "CORRECTION_MISSING_EVIDENCE",
+      "proposal": {
+        "proposal_id": "urn:omos:personal-memory:correction-proposal:0198ea00-9002-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "correction_evidence_refs": [{"fake": true}],
+        "proposed_by": "EMPLOYEE",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:01Z"
+        }
       },
       "expected": "deny"
     }
@@ -1707,7 +1754,9 @@
         "verification_status": "NOT_RUN",
         "verification_receipt_ref": "urn:omos:verification:0198ea00-9301-7aaa-8bbb-111111111111",
         "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9401-7aaa-8bbb-111111111111",
-        "created_at": "2026-09-09T00:00:02Z"
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        }
       },
       "expected": "deny"
     },
@@ -1726,7 +1775,9 @@
         "resulting_record_status": "SUPERSEDED",
         "verification_status": "PASS",
         "verification_receipt_ref": "urn:omos:verification:0198ea00-9302-7aaa-8bbb-111111111111",
-        "created_at": "2026-09-09T00:00:02Z"
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        }
       },
       "expected": "deny"
     },
@@ -1746,8 +1797,12 @@
         "verification_status": "PASS",
         "verification_receipt_ref": "urn:omos:verification:0198ea00-9303-7aaa-8bbb-111111111111",
         "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9403-7aaa-8bbb-111111111111",
-        "created_at": "2026-09-09T00:00:02Z",
-        "in_place_content_patch": {"statement_or_structured_content": "silently rewritten"}
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        },
+        "in_place_content_patch": {
+          "statement_or_structured_content": "silently rewritten"
+        }
       },
       "expected": "deny"
     },
@@ -1767,7 +1822,9 @@
         "verification_status": "PASS",
         "verification_receipt_ref": "urn:omos:verification:0198ea00-9304-7aaa-8bbb-111111111111",
         "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9404-7aaa-8bbb-111111111111",
-        "created_at": "2026-09-09T00:00:02Z",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        },
         "history_erasure": true
       },
       "expected": "deny"
@@ -1788,7 +1845,9 @@
         "verification_status": "PASS",
         "verification_receipt_ref": "urn:omos:verification:0198ea00-9305-7aaa-8bbb-111111111111",
         "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9405-7aaa-8bbb-111111111111",
-        "created_at": "2026-09-09T00:00:02Z"
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        }
       },
       "expected": "deny"
     },
@@ -1808,8 +1867,50 @@
         "verification_status": "PASS",
         "verification_receipt_ref": "urn:omos:verification:0198ea00-9306-7aaa-8bbb-111111111111",
         "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9406-7aaa-8bbb-111111111111",
-        "created_at": "2026-09-09T00:00:02Z",
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        },
         "mutated": true
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_FAKE_VERIFICATION_REF",
+      "covers_correction_negative_fixture": "gate accepts a non-ref verification value",
+      "expected_failure_code": "CORRECTION_SKIPS_VERIFICATION",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9017-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": 123,
+        "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-9407-7aaa-8bbb-111111111111",
+        "chronology": {"created_at": "2026-09-09T00:00:02Z"}
+      },
+      "expected": "deny"
+    },
+    {
+      "case_id": "CORR_RECEIPT_NEG_FAKE_ACCEPTANCE_REF",
+      "covers_correction_negative_fixture": "gate accepts a non-ref acceptance value",
+      "expected_failure_code": "CORRECTION_SKIPS_ACCEPTANCE",
+      "receipt": {
+        "receipt_id": "urn:omos:personal-memory:supersession-receipt:0198ea00-9018-7aaa-8bbb-111111111111",
+        "tenant_id": "tenant-example",
+        "employee_owner_ref": "urn:omos:employee:0198e6d0-aaaa-7aaa-8bbb-111111111111",
+        "origin_proposal_ref": "urn:omos:personal-memory:correction-proposal:0198ea00-9001-7aaa-8bbb-111111111111",
+        "target_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "correction_kind": "AMEND",
+        "old_record_ref": "urn:omos:personal-memory:record:0198ea00-9101-7aaa-8bbb-111111111111",
+        "resulting_record_status": "SUPERSEDED",
+        "verification_status": "PASS",
+        "verification_receipt_ref": "urn:omos:verification:0198ea00-9308-7aaa-8bbb-111111111111",
+        "personal_acceptance_ref": true,
+        "chronology": {"created_at": "2026-09-09T00:00:02Z"}
       },
       "expected": "deny"
     }

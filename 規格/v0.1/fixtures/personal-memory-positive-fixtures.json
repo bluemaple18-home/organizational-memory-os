@@ -717,7 +717,9 @@
           "urn:omos:evidence:0198ea00-2001-7aaa-8bbb-111111111111"
         ],
         "proposed_by": "EMPLOYEE",
-        "created_at": "2026-09-09T00:00:01Z"
+        "chronology": {
+          "created_at": "2026-09-09T00:00:01Z"
+        }
       },
       "expected": "allow"
     }
@@ -737,7 +739,9 @@
         "verification_status": "PASS",
         "verification_receipt_ref": "urn:omos:verification:0198ea00-3001-7aaa-8bbb-111111111111",
         "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-4001-7aaa-8bbb-111111111111",
-        "created_at": "2026-09-09T00:00:02Z"
+        "chronology": {
+          "created_at": "2026-09-09T00:00:02Z"
+        }
       },
       "expected": "allow"
     },
@@ -756,7 +760,9 @@
         "verification_status": "PASS",
         "verification_receipt_ref": "urn:omos:verification:0198ea00-3002-7aaa-8bbb-111111111111",
         "personal_acceptance_ref": "urn:omos:acceptance:0198ea00-4002-7aaa-8bbb-111111111111",
-        "created_at": "2026-09-09T00:00:03Z"
+        "chronology": {
+          "created_at": "2026-09-09T00:00:03Z"
+        }
       },
       "expected": "allow"
     }

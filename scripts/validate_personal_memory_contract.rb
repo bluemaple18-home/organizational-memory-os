@@ -152,7 +152,7 @@ EXPECTED_CORRECTION_PROPOSAL_FIELDS = %w[
   correction_kind
   correction_evidence_refs
   proposed_by
-  created_at
+  chronology.created_at
 ].freeze
 
 EXPECTED_SUPERSESSION_RECEIPT_FIELDS = %w[
@@ -165,7 +165,7 @@ EXPECTED_SUPERSESSION_RECEIPT_FIELDS = %w[
   old_record_ref
   resulting_record_status
   verification_status
-  created_at
+  chronology.created_at
 ].freeze
 # verification_receipt_ref / personal_acceptance_ref 不放 required list —— 由 gate
 # 分支強制（缺 → CORRECTION_SKIPS_VERIFICATION / CORRECTION_SKIPS_ACCEPTANCE），
@@ -315,6 +315,16 @@ end
 
 def allowed_resource_ref?(value, resource_kind)
   value.is_a?(String) && value.start_with?("urn:omos:personal-memory:#{resource_kind}:")
+end
+
+OMOS_URN_PATTERN = /\Aurn:omos:[a-z0-9-]+:.+\z/.freeze
+
+def omos_urn?(value, namespace)
+  value.is_a?(String) && value.start_with?("urn:omos:#{namespace}:") && OMOS_URN_PATTERN.match?(value)
+end
+
+def dig_dotted(payload, dotted)
+  dotted.split(".").reduce(payload) { |cursor, key| cursor.is_a?(Hash) ? cursor[key] : nil }
 end
 
 def enum_from(spec, *path)
@@ -668,13 +678,16 @@ end
 # Thin correction-proposal check. Returns nil or the exact machine failure code.
 def correction_proposal_failure(proposal)
   (EXPECTED_CORRECTION_PROPOSAL_FIELDS - ["correction_evidence_refs"]).each do |field|
-    return "CORRECTION_PROPOSAL_MISSING_FIELD" unless present?(proposal[field])
+    return "CORRECTION_PROPOSAL_MISSING_FIELD" unless present?(dig_dotted(proposal, field))
   end
   return "CORRECTION_PROPOSAL_MISSING_FIELD" unless proposal.key?("correction_evidence_refs")
   return "CORRECTION_PROPOSAL_INVALID_ID" unless allowed_resource_ref?(proposal["proposal_id"], "correction-proposal")
   return "CORRECTION_TARGET_NOT_RECORD" unless allowed_resource_ref?(proposal["target_record_ref"], "record")
   return "CORRECTION_KIND_INVALID" unless EXPECTED_CORRECTION_KINDS.key?(proposal["correction_kind"])
-  return "CORRECTION_MISSING_EVIDENCE" unless proposal["correction_evidence_refs"].is_a?(Array) && !proposal["correction_evidence_refs"].empty?
+  evidence_refs = proposal["correction_evidence_refs"]
+  unless evidence_refs.is_a?(Array) && !evidence_refs.empty? && evidence_refs.all? { |ref| omos_urn?(ref, "evidence") }
+    return "CORRECTION_MISSING_EVIDENCE"
+  end
 
   nil
 end
@@ -683,7 +696,7 @@ end
 # correction_kind -> lifecycle mapping, no in-place overwrite, receipt
 # immutability, and no history erasure. Returns nil or the exact code.
 def supersession_receipt_failure(receipt)
-  return "SUPERSESSION_RECEIPT_MISSING_FIELD" if EXPECTED_SUPERSESSION_RECEIPT_FIELDS.any? { |field| !present?(receipt[field]) }
+  return "SUPERSESSION_RECEIPT_MISSING_FIELD" if EXPECTED_SUPERSESSION_RECEIPT_FIELDS.any? { |field| !present?(dig_dotted(receipt, field)) }
   return "SUPERSESSION_RECEIPT_INVALID_ID" unless allowed_resource_ref?(receipt["receipt_id"], "supersession-receipt")
   return "SUPERSESSION_RECEIPT_INVALID_ID" unless allowed_resource_ref?(receipt["old_record_ref"], "record")
 
@@ -693,8 +706,8 @@ def supersession_receipt_failure(receipt)
 
   return "CORRECTION_KIND_INVALID" unless EXPECTED_CORRECTION_KINDS.key?(receipt["correction_kind"])
   return "CORRECTION_SKIPS_VERIFICATION" if receipt["verification_status"] != "PASS"
-  return "CORRECTION_SKIPS_VERIFICATION" unless present?(receipt["verification_receipt_ref"])
-  return "CORRECTION_SKIPS_ACCEPTANCE" unless present?(receipt["personal_acceptance_ref"])
+  return "CORRECTION_SKIPS_VERIFICATION" unless omos_urn?(receipt["verification_receipt_ref"], "verification")
+  return "CORRECTION_SKIPS_ACCEPTANCE" unless omos_urn?(receipt["personal_acceptance_ref"], "acceptance")
 
   expected_status = EXPECTED_CORRECTION_KINDS.fetch(receipt["correction_kind"])
   return "CORRECTION_KIND_LIFECYCLE_MISMATCH" if receipt["resulting_record_status"] != expected_status
@@ -928,8 +941,12 @@ assert(
 )
 # correction_kind 映射的目標 status 必須是 PersonalMemoryRecord lifecycle 的合法值
 pmr_record_statuses = spec.dig("personal_memory_resource_contracts", "enums", "record_status").to_a
+pmr_active_transitions = spec.dig(
+  "personal_memory_resource_contracts", "resources", "PersonalMemoryRecord", "lifecycle", "allowed_transitions", "ACTIVE"
+).to_a
 EXPECTED_CORRECTION_KINDS.each_value do |status|
   assert(pmr_record_statuses.include?(status), "correction_kind 目標 status #{status} 必須是 record_status enum 成員", failures)
+  assert(pmr_active_transitions.include?(status), "correction_kind 目標 status #{status} 必須是 PersonalMemoryRecord ACTIVE 的合法 transition", failures)
 end
 
 resource_contracts = spec.fetch("personal_memory_resource_contracts", {})

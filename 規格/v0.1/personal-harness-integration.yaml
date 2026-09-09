@@ -1235,7 +1235,7 @@ correction_flow:
       - correction_kind
       - correction_evidence_refs
       - proposed_by
-      - created_at
+      - chronology.created_at
     supersession_receipt_required_fields:
       - receipt_id
       - tenant_id
@@ -1246,7 +1246,7 @@ correction_flow:
       - old_record_ref
       - resulting_record_status
       - verification_status
-      - created_at
+      - chronology.created_at
     gate_enforced_fields:
       - verification_receipt_ref
       - personal_acceptance_ref
