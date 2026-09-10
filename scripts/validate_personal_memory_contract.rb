@@ -3,8 +3,8 @@
 # Backward-compatible aggregator。
 #
 # refactor 前這支是單一 monolith,一次驗 personal-memory 契約的全部面向。
-# S02 把實作拆成五個 slice validator 後,這支保留原檔名與原行為:依序、
-# fail-closed 執行五個 slice,全數 PASS 才印出與 refactor 前逐字相同的
+# S02 把實作拆成多個 slice validator 後,這支保留原檔名與原行為:依序、
+# fail-closed 執行全部 slice,全數 PASS 才印出與 refactor 前逐字相同的
 # 「PASS personal memory contract validation」;任一 slice RED 就轉發其
 # stdout/stderr 並以 exit 1 結束。
 #
@@ -19,6 +19,7 @@ SLICE_VALIDATORS = %w[
   validate_personal_memory_scope_contract
   validate_personal_memory_resource_contract
   validate_personal_capability_contract
+  validate_personal_evidence_profile_contract
   validate_recall_context_pack_contract
   validate_correction_flow_contract
 ].freeze

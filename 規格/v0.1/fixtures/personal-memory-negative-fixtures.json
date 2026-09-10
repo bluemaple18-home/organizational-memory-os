@@ -1914,5 +1914,1179 @@
       },
       "expected": "deny"
     }
+  ],
+  "evidence_profile_negative_cases": [
+    {
+      "case_id": "EPROFILE_NEG_MEMORY_POLICY_FIELD_MISSING",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_PROFILE_FIELD_MISSING",
+      "covers_evidence_profile_negative_fixture": "profile missing a required memory policy field"
+    },
+    {
+      "case_id": "EPROFILE_NEG_CLAIMS_CANONICAL_DIRECT_WRITE",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL",
+          "CANONICAL_DIRECT_WRITE"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_EXCEEDS_AUTHORITY",
+      "covers_evidence_profile_negative_fixture": "profile claiming canonical direct write authority"
+    },
+    {
+      "case_id": "EPROFILE_NEG_UNKNOWN_ROLE_PROFILE",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "GROWTH_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_UNKNOWN_ROLE_PROFILE",
+      "covers_evidence_profile_negative_fixture": "unknown role profile"
+    },
+    {
+      "case_id": "EPROFILE_NEG_CAPABILITY_LEVEL_OFF_MATRIX",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L5",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_INVALID_CAPABILITY_LEVEL",
+      "covers_evidence_profile_negative_fixture": "capability level outside the upstream levels"
+    },
+    {
+      "case_id": "EPROFILE_NEG_SCOPE_MODE_OFF_CONTRACT",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "EMPLOYEE_PUBLIC",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_INVALID_SCOPE_MODE",
+      "covers_evidence_profile_negative_fixture": "scope mode outside the upstream modes"
+    },
+    {
+      "case_id": "EPROFILE_NEG_OWNERSHIP_MODE_OFF_CONTRACT",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "EMPLOYEE_OWNED_FOREVER",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_INVALID_OWNERSHIP_MODE",
+      "covers_evidence_profile_negative_fixture": "ownership mode outside the upstream modes"
+    },
+    {
+      "case_id": "EPROFILE_NEG_VISIBILITY_SCOPE_OFF_CONTRACT",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "COMPANY_WIDE",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_INVALID_VISIBILITY_SCOPE",
+      "covers_evidence_profile_negative_fixture": "visibility scope outside the upstream scopes"
+    },
+    {
+      "case_id": "EPROFILE_NEG_CAPTURE_OF_ANOTHER_EMPLOYEE",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-2099",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_TENANT_OR_EMPLOYEE_MISMATCH",
+      "covers_evidence_profile_negative_fixture": "capture belonging to a different employee"
+    },
+    {
+      "case_id": "EPROFILE_NEG_SOURCE_NOT_IN_CATALOG",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "CRM_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_SOURCE_NOT_DECLARED",
+      "covers_evidence_profile_negative_fixture": "source type absent from the upstream source catalog"
+    },
+    {
+      "case_id": "EPROFILE_NEG_SOURCE_OUTSIDE_ROLE_PROFILE",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "GIT_ARTIFACT",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_SOURCE_NOT_IN_ROLE_PROFILE",
+      "covers_evidence_profile_negative_fixture": "source type outside the employee role profile"
+    },
+    {
+      "case_id": "EPROFILE_NEG_PHASE_2_SOURCE_CAPTURED_EARLY",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "OUTLOOK_EMAIL",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_SOURCE_NOT_IN_PHASE_1",
+      "covers_evidence_profile_negative_fixture": "phase-2 source captured before the policy contract is frozen"
+    },
+    {
+      "case_id": "EPROFILE_NEG_NO_ACTIVE_CONNECTOR_GRANT",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "REVOKED"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_NO_CONNECTOR_GRANT",
+      "covers_evidence_profile_negative_fixture": "source type with no active connector grant"
+    },
+    {
+      "case_id": "EPROFILE_NEG_NO_CONSENT_OR_NOTICE_REF",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_NO_CONSENT_OR_NOTICE",
+      "covers_evidence_profile_negative_fixture": "profile with no consent or notice reference"
+    },
+    {
+      "case_id": "EPROFILE_NEG_CONTAINER_OUTSIDE_CAPTURE_SCOPE",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "HR-CONFIDENTIAL",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_OUTSIDE_CAPTURE_SCOPE",
+      "covers_evidence_profile_negative_fixture": "capture from a source instance outside the capture scope"
+    },
+    {
+      "case_id": "EPROFILE_NEG_PROJECTED_SOURCE_SYSTEM_WRONG_ADAPTER",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "document",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      },
+      "expected_failure_code": "EPROFILE_ADAPTER_MAPPING_MISMATCH",
+      "covers_evidence_profile_negative_fixture": "projected source_system not produced by the bound adapter mapping"
+    },
+    {
+      "case_id": "EPROFILE_NEG_PROJECTED_INSTANCE_NOT_DECLARED",
+      "expected": "deny",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-other-tenant"
+        }
+      },
+      "expected_failure_code": "EPROFILE_PROJECTED_IDENTITY_INCONSISTENT",
+      "covers_evidence_profile_negative_fixture": "projected source instance different from the declared capture"
+    },
+      {
+        "case_id": "EPROFILE_NEG_SOURCE_POLICY_NOT_AN_OBJECT",
+        "expected": "deny",
+        "profile": {
+          "identity": {
+            "tenant_id": "t-clickforce",
+            "employee_id": "emp-1042",
+            "role_profile": "PM_PROFILE"
+          },
+          "source_policy": null,
+          "memory_policy": {
+            "capability_level": "L2",
+            "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+            "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+            "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+            "sensitivity_policy_ref": "policy://sensitivity/v1",
+            "retention_policy_ref": "policy://retention/v1",
+            "promotion_policy_ref": "policy://promotion/v1",
+            "context_budget_policy_ref": "policy://context-budget/v1"
+          },
+          "granted_authorities": [
+            "PERSONAL_CAPTURE",
+            "PERSONAL_RECALL"
+          ]
+        },
+        "capture": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "source_type": "JIRA_ENTITY",
+          "source_instance_id": "jira-cloud-clickforce",
+          "container": "SSP",
+          "projected_source_identity": {
+            "source_system": "jira-cloud",
+            "source_instance_id": "jira-cloud-clickforce"
+          }
+        },
+        "expected_failure_code": "EPROFILE_PROFILE_FIELD_MISSING",
+        "covers_evidence_profile_negative_fixture": "profile group that is not an object"
+      },
+      {
+        "case_id": "EPROFILE_NEG_CONSENT_REF_KEY_ABSENT",
+        "expected": "deny",
+        "profile": {
+          "identity": {
+            "tenant_id": "t-clickforce",
+            "employee_id": "emp-1042",
+            "role_profile": "PM_PROFILE"
+          },
+          "source_policy": {
+            "connector_grants": [
+              {
+                "source_type": "JIRA_ENTITY",
+                "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+                "status": "ACTIVE"
+              },
+              {
+                "source_type": "DOCUMENT",
+                "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+                "status": "ACTIVE"
+              }
+            ],
+            "capture_scope": {
+              "source_instance_ids": [
+                "jira-cloud-clickforce",
+                "sharepoint-clickforce"
+              ],
+              "containers": [
+                "SSP",
+                "/product-dept"
+              ]
+            }
+          },
+          "memory_policy": {
+            "capability_level": "L2",
+            "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+            "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+            "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+            "sensitivity_policy_ref": "policy://sensitivity/v1",
+            "retention_policy_ref": "policy://retention/v1",
+            "promotion_policy_ref": "policy://promotion/v1",
+            "context_budget_policy_ref": "policy://context-budget/v1"
+          },
+          "granted_authorities": [
+            "PERSONAL_CAPTURE",
+            "PERSONAL_RECALL"
+          ]
+        },
+        "capture": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "source_type": "JIRA_ENTITY",
+          "source_instance_id": "jira-cloud-clickforce",
+          "container": "SSP",
+          "projected_source_identity": {
+            "source_system": "jira-cloud",
+            "source_instance_id": "jira-cloud-clickforce"
+          }
+        },
+        "expected_failure_code": "EPROFILE_PROFILE_FIELD_MISSING",
+        "covers_evidence_profile_negative_fixture": "consent or notice reference key absent from the profile"
+      },
+      {
+        "case_id": "EPROFILE_NEG_POLICY_REF_PRESENT_BUT_BLANK",
+        "expected": "deny",
+        "profile": {
+          "identity": {
+            "tenant_id": "t-clickforce",
+            "employee_id": "emp-1042",
+            "role_profile": "PM_PROFILE"
+          },
+          "source_policy": {
+            "connector_grants": [
+              {
+                "source_type": "JIRA_ENTITY",
+                "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+                "status": "ACTIVE"
+              },
+              {
+                "source_type": "DOCUMENT",
+                "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+                "status": "ACTIVE"
+              }
+            ],
+            "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+            "capture_scope": {
+              "source_instance_ids": [
+                "jira-cloud-clickforce",
+                "sharepoint-clickforce"
+              ],
+              "containers": [
+                "SSP",
+                "/product-dept"
+              ]
+            }
+          },
+          "memory_policy": {
+            "capability_level": "L2",
+            "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+            "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+            "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+            "sensitivity_policy_ref": "",
+            "retention_policy_ref": "policy://retention/v1",
+            "promotion_policy_ref": "policy://promotion/v1",
+            "context_budget_policy_ref": "policy://context-budget/v1"
+          },
+          "granted_authorities": [
+            "PERSONAL_CAPTURE",
+            "PERSONAL_RECALL"
+          ]
+        },
+        "capture": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "source_type": "JIRA_ENTITY",
+          "source_instance_id": "jira-cloud-clickforce",
+          "container": "SSP",
+          "projected_source_identity": {
+            "source_system": "jira-cloud",
+            "source_instance_id": "jira-cloud-clickforce"
+          }
+        },
+        "expected_failure_code": "EPROFILE_PROFILE_FIELD_MISSING",
+        "covers_evidence_profile_negative_fixture": "policy reference present but blank"
+      }
   ]
 }
