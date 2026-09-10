@@ -542,3 +542,64 @@ validator 行數                                                369（< 400）
 | `scripts/lib/omos_contract_helpers.rb` | 改（path helper 支援 Array 索引與 `*`；單一 DOC_MAP_RUN_SCOPED_PATHS；run_scoped_path?；deterministic_surface；deterministic_projection_digest；normalized_document_digest 改吃 triple；deterministic_surface_mismatches 改吃 triple） |
 | `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（runtime_only_patch → run_scoped_patch，加入 block run-scoped 路徑含 reviewer 原 mutation） |
 | `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（instance_mutation 路徑改 triple 形式；carry-over hash 校正） |
+
+---
+
+## 最終 review 的兩個 finding（2026-09-10）— F-AUTH-01 / F-03-R06-P2
+
+`9dbae75` 的再 review：**F-03-R06 實作層判定 CLOSED**（`quality` bypass、paired block drift、
+捏造 hash 都確認修好），剩兩件：
+
+### F-AUTH-01（P1）—— Owner-signed authority 不在 frozen tree
+
+CC 的流程錯誤：`.work/CARD-DOC-ADAPTER-DETERMINISM-SPEC-FREEZE-20260910.md`（`OWNER_SIGNED`，
+FP-1…FP-5）被 commit 到 **`main`**（`53b0ee4`），但這條 review line 的 frozen tree 是
+**branch `cc/doc-adapter-mapping`**。因此 reviewer 在 `9dbae75` 的 tree 找不到它，只看得到
+closeout card 自報「Owner signed」—— 等於允許實作者自稱 Owner 已同意收窄 contract。
+這違反本 review line 一貫的「implementation evidence 不得冒充獨立 authority / acceptance」。
+
+**修法**：把 `OWNER_SIGNED` 原件（含 FP-1…FP-5 原文與簽定表）以 docs commit 放進同一條 branch，
+implementation SHA `9dbae75` / `230bcf0` 不重寫。
+
+### F-03-R06-P2 —— 單一分類的最後一個例外（已修，commit `230bcf0`）
+
+`source_anchor/profile_details` 原本整個 subtree 列 run-scoped，故 `run_scoped_path?` 把
+`char_representation_digest` 判為 RUN_SCOPED；但 `deterministic_surface_mismatches` 又硬編一條
+「必須等於 `inputs.normalized_representation_digest`」，等於同一欄位有兩個 authority ——
+正是 FP-3 禁止的。
+
+**修法（逐子欄位分類，取消特例）**：
+- run-scoped 子欄位：`page` / `page_number_basis` / `bbox` / `block_id` / `char_range` /
+  `char_representation_ref` / `codepoint_range` / `line_range` / `line_number_basis` /
+  `heading_path` / `selected_text`。
+- `char_representation_digest` 依同一條規則即為 DETERMINISTIC；硬編特例刪除。
+- reconstruction 產出殘存 slice：PDF `{char_representation_digest: nrd}`、MARKDOWN `{}`。
+- 新增窮盡性斷言：locked profile schema 的每個 `profile_details` 必填欄位都必須被分類涵蓋
+  （run-scoped 或明列 deterministic），未涵蓋即 fail-closed。
+- 新負例 `DOC_MAP_NEG_DERIVATION_CHAR_REPR_DIGEST_DRIFT`，由單一規則擋下（無特例）。
+
+實測：
+
+```
+run_scoped_path?  char_representation_digest -> false   （DETERMINISTIC）
+                  bbox / selected_text / heading_path -> true
+殘存 profile_details  PDF: {"char_representation_digest"=>"sha256:bbbb…"}   MARKDOWN: {}
+char digest drift -> ["source_anchor/profile_details/char_representation_digest (expected …, got …)"]
+```
+
+### gate（`230bcf0`）
+
+```
+ruby validate_document_adapter_mapping_contract.rb           PASS
+validate_document_adapter_mapping_instances.py (uv)          PASS (positive_instances=10, instance_negatives=3)
+全 19 Ruby validators                                        PASS
+validate_std_schema_engine.py / validate_cc_cross_layer_contract.py   PASS
+enforcement parity（5 項）                                   全數 RED-on-tamper：
+  profile_details 改回整個 subtree run-scoped -> RED
+  清單漏一個 profile_details 子欄位 -> RED
+  YAML run_scoped_paths 少一條 -> RED
+  reconstruction 拿掉 profile_details slice -> RED
+  digest 改回 hash 整份 projection（R06 舊錯回歸鎖）-> RED
+git diff --check                                             clean
+validator 行數                                                379（< 400）
+```

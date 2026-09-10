@@ -1,7 +1,7 @@
 ---
 id: DOC-ADAPTER-DETERMINISM-CLOSEOUT-20260910
 parent: DOC-ADAPTER-MAPPING-20260909
-implements: DOC-ADAPTER-DETERMINISM-SPEC-FREEZE-20260910（OWNER_SIGNED）
+implements: DOC-ADAPTER-DETERMINISM-SPEC-FREEZE-20260910（OWNER_SIGNED；原件已隨本 branch 之 docs commit 進入同一 frozen tree：`.work/CARD-DOC-ADAPTER-DETERMINISM-SPEC-FREEZE-20260910.md`）
 status: IMPLEMENTED_AWAITING_TARGETED_REREVIEW
 type: implementation
 lane: A（repo 施工順序 #2 / EMEM-02 前置）
@@ -9,7 +9,7 @@ tier: T1
 review_line: DOC-ADAPTER-MAPPING（同一條 review line）
 frozen_review_sha: c2e184f
 repair_chain_sha: [faddb8c, d2ee1d2, df6b2ff, f2333e1, 9ef254f, e7505f8]
-delta: e7505f8..HEAD（cc/doc-adapter-mapping）
+delta: e7505f8..HEAD（cc/doc-adapter-mapping；9dbae75 收尾實作 + 230bcf0 FP-3 施行細則收斂 + docs commit 帶入 OWNER_SIGNED 原件）
 scope: 只實作 Owner 簽定的 FP-1..FP-5 + carry-over P2；不重開任何已 CLOSED finding
 ---
 
@@ -115,3 +115,17 @@ run_scoped_path? : quality/block_id/chronology -> true；raw_digest/content/cont
 - 針對性再 review 範圍：`e7505f8..<closeout SHA>`。
 - **review 判準已由 spec-freeze 收斂**：只驗「有沒有照 FP-1…FP-5 簽定實作」+ repair regression，
   不再是開放式 determinism 探索。
+
+## 最終 review 後的兩個 finding
+
+- **F-AUTH-01（P1）** —— OWNER_SIGNED 原件先前只 commit 在 `main`（`53b0ee4`），不在本 branch
+  的 frozen tree，reviewer 只看得到 closeout 自報「Owner signed」。已由本 branch 的 docs commit
+  帶入 `.work/CARD-DOC-ADAPTER-DETERMINISM-SPEC-FREEZE-20260910.md` 原件（含 FP-1…FP-5 簽定表
+  與 FP-3 施行細則），implementation SHA 不重寫。
+- **F-03-R06-P2（P2）** —— `profile_details` 整個 subtree 列 run-scoped 卻又硬編
+  `char_representation_digest` 檢查（第二份 authority）。已於 `230bcf0` 改為逐子欄位分類、
+  刪除特例、加上「locked profile schema 每個 profile_details 欄位都必須被分類涵蓋」的窮盡性
+  斷言，並補一個由單一規則擋下的 drift 負例。
+
+再 review 判準：**只做 authority / parity 核對** —— 確認 tree 內的 OWNER_SIGNED 原件與
+implementation 的 FP-1…FP-5 一致，以及 P2 分類矛盾已消除。不重開 implementation findings。
