@@ -41,6 +41,12 @@ termination:
     elapsed_seconds > timeout_seconds the run may only pass when it ended with
     outcome FAILED_LOUD and terminal_condition TIMEOUT; otherwise it is
     LOOP_OVER_TIMEOUT. timeout is enforcement, not metadata.
+  timeout_reached_rule: >-
+    the reverse direction of the same rule: a run whose terminal_condition is
+    TIMEOUT must actually have exceeded its budget, i.e. elapsed_seconds must be
+    strictly greater than timeout_seconds. Equality is not a timeout. A run that
+    claims TIMEOUT without exceeding the budget is LOOP_TIMEOUT_NOT_REACHED, so a
+    caller cannot label an ordinary stop as a timeout.
 
 scope_lock:
   fillable_fields:
@@ -102,6 +108,14 @@ run_record:
     FAILED_LOUD:
       - TIMEOUT
       - UNFIXABLE
+  required_present_rule: >-
+    ALL_REQUIRED_PRESENT means the run actually closed everything out: the last
+    iteration's remaining_gaps must be empty (LOOP_REQUIRED_PRESENT_WITH_GAPS
+    otherwise). MAX_ITERATIONS_REACHED deliberately keeps the weaker meaning --
+    the budget ran out and ordinary auto-fixable gaps may be handed to a human --
+    so CLOSED stays valid there. Gaps that require a human decision or that are
+    unfixable are still governed by the stricter mandatory-stop rules above and
+    report their own codes.
   rule: >-
     iterations length must be <= max_iterations; outcome must be one of outcomes
     and its terminal_condition must be in outcome_condition_map[outcome].
@@ -119,10 +133,12 @@ authority:
 error_contract:
   LOOP_UNBOUNDED: loop.error.unbounded
   LOOP_OVER_TIMEOUT: loop.error.over_timeout
+  LOOP_TIMEOUT_NOT_REACHED: loop.error.timeout_not_reached
   LOOP_OVER_MAX_ITERATIONS: loop.error.over_max_iterations
   LOOP_MALFORMED_ITERATION: loop.error.malformed_iteration
   LOOP_INVALID_OUTCOME: loop.error.invalid_outcome
   LOOP_OUTCOME_CONDITION_MISMATCH: loop.error.outcome_condition_mismatch
+  LOOP_REQUIRED_PRESENT_WITH_GAPS: loop.error.required_present_with_gaps
   LOOP_SCOPE_EXPANSION: loop.error.scope_expansion
   LOOP_SKIPPED_HUMAN_DECISION: loop.error.skipped_human_decision
   LOOP_UNFIXABLE_NOT_LOUD: loop.error.unfixable_not_loud
@@ -153,10 +169,12 @@ required_negative_fixtures:
   - run without a positive timeout_seconds
   - run without a verifiable elapsed_seconds
   - elapsed_seconds exceeds timeout_seconds without failing loud
+  - the run claims a timeout terminal condition without actually exceeding the timeout
   - iterations exceed max_iterations
   - an iteration is missing a required field
   - outcome is not one of the allowed outcomes
   - outcome disagrees with the terminal condition
+  - the run claims all required fields are present while a gap remains
   - an iteration fills a scope-defining field
   - a human-decision gap remains but the run did not stop at a blocker
   - a human-decision gap appears mid-run but the run continued

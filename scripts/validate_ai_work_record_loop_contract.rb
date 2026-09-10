@@ -43,15 +43,36 @@ EXPECTED_FORBIDDEN_RUN_FIELDS = %w[
   canonical_write_receipt_ref
 ].freeze
 
+# evaluator 可回傳的完整 machine failure code 集合；YAML error_contract 必須逐字相符，
+# 否則宣告與 enforcement 會漂移（新增/移除 code 而 gate 不變）。
+EXPECTED_LOOP_ERROR_CODES = %w[
+  LOOP_UNBOUNDED
+  LOOP_OVER_TIMEOUT
+  LOOP_TIMEOUT_NOT_REACHED
+  LOOP_OVER_MAX_ITERATIONS
+  LOOP_MALFORMED_ITERATION
+  LOOP_INVALID_OUTCOME
+  LOOP_OUTCOME_CONDITION_MISMATCH
+  LOOP_REQUIRED_PRESENT_WITH_GAPS
+  LOOP_SCOPE_EXPANSION
+  LOOP_SKIPPED_HUMAN_DECISION
+  LOOP_UNFIXABLE_NOT_LOUD
+  LOOP_EVIDENCE_NOT_PRESERVED
+  LOOP_EXCEEDS_AUTHORITY
+  FAIL_SILENT
+].freeze
+
 EXPECTED_LOOP_NEGATIVE_LABELS = [
   "run without a positive max_iterations",
   "run without a positive timeout_seconds",
   "run without a verifiable elapsed_seconds",
   "elapsed_seconds exceeds timeout_seconds without failing loud",
+  "the run claims a timeout terminal condition without actually exceeding the timeout",
   "iterations exceed max_iterations",
   "an iteration is missing a required field",
   "outcome is not one of the allowed outcomes",
   "outcome disagrees with the terminal condition",
+  "the run claims all required fields are present while a gap remains",
   "an iteration fills a scope-defining field",
   "a human-decision gap remains but the run did not stop at a blocker",
   "a human-decision gap appears mid-run but the run continued",
@@ -107,6 +128,11 @@ def loop_closeout_failure(run, fillable_fields, outcome_condition_map)
   # 2. timeout 是 enforcement:elapsed 超過 timeout 只有在 FAILED_LOUD + TIMEOUT 收尾時才可過
   return "LOOP_OVER_TIMEOUT" if run["elapsed_seconds"] > run["timeout_seconds"] && !timeout_terminated?(run)
 
+  # 2b. F-05 反向一致性:宣稱 TIMEOUT 收尾就必須真的逾時（嚴格大於;等號不算逾時）
+  if run["terminal_condition"] == "TIMEOUT" && !(run["elapsed_seconds"] > run["timeout_seconds"])
+    return "LOOP_TIMEOUT_NOT_REACHED"
+  end
+
   # 3. authority floor(停用與否都適用)
   return "LOOP_EXCEEDS_AUTHORITY" if run["performs_memory_acceptance"] == true
   return "LOOP_EXCEEDS_AUTHORITY" if run["writes_company_knowledge"] == true
@@ -154,6 +180,14 @@ def loop_closeout_failure(run, fillable_fields, outcome_condition_map)
     if gaps.any? { |gap| gap["auto_fixable"] == false && gap["requires_human_decision"] != true }
       return "LOOP_UNFIXABLE_NOT_LOUD" unless index == last_index && run["outcome"] == "FAILED_LOUD"
     end
+  end
+
+  # 11. F-04 CLOSED 語意:宣稱 ALL_REQUIRED_PRESENT 就必須真的收乾淨——最後一輪不得留任何缺口。
+  #     MAX_ITERATIONS_REACHED 仍可留普通缺口（達上限、普通缺口交人），故只綁前者。
+  #     置於第 10 步之後,human-decision / unfixable 缺口維持回報原本更精確的 code。
+  if run["terminal_condition"] == "ALL_REQUIRED_PRESENT" && !iterations.empty? &&
+     !iterations[last_index]["remaining_gaps"].empty?
+    return "LOOP_REQUIRED_PRESENT_WITH_GAPS"
   end
 
   return "LOOP_EVIDENCE_NOT_PRESERVED" if run["outcome"] == "FAILED_LOUD" && run["original_evidence_preserved"] != true
@@ -233,6 +267,15 @@ assert(present?(card_record_spec.fetch("status_enum", [])), "card-record status_
 assert(present?(skill_spec.dig("output_contract", "draft_card_rule")), "skill output_contract.draft_card 規則必須存在", failures)
 assert(present?(boundary.dig("automated_step_contract", "error_behavior_enum")), "boundary error_behavior_enum 必須存在且非空", failures)
 
+assert(
+  sorted_set(spec.fetch("error_contract", {}).keys) == sorted_set(EXPECTED_LOOP_ERROR_CODES),
+  "error_contract 必須逐字等於 evaluator 可回傳的 code 集合",
+  failures
+)
+assert(present?(spec.dig("termination", "timeout_reached_rule")),
+       "termination.timeout_reached_rule 必須存在（F-05 反向一致性的規範文字）", failures)
+assert(present?(spec.dig("run_record", "required_present_rule")),
+       "run_record.required_present_rule 必須存在（F-04 CLOSED 語意的規範文字）", failures)
 assert(
   sorted_set(spec.fetch("required_negative_fixtures", [])) == sorted_set(EXPECTED_LOOP_NEGATIVE_LABELS),
   "required_negative_fixtures 與鎖定 label 清單不符",

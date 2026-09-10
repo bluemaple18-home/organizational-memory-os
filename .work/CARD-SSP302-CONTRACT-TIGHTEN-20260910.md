@@ -1,6 +1,6 @@
 ---
 id: SSP302-CONTRACT-TIGHTEN-20260910
-status: DRAFT_OWNER_REVIEW
+status: IMPLEMENTED_AWAITING_BIG_REVIEW
 type: implementation
 jira: SSP-302（後續強化，原卡已 ACCEPTED_GO）
 lane: B

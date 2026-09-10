@@ -264,6 +264,39 @@
       }
     },
     {
+      "case_id": "LOOP_NEG_REQUIRED_PRESENT_WITH_GAPS",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_REQUIRED_PRESENT_WITH_GAPS",
+      "covers_loop_negative_fixture": "the run claims all required fields are present while a gap remains",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "elapsed_seconds": 110,
+        "iterations": [{"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": []}, {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": [{"gap": "secondary_evidence_ref", "auto_fixable": true, "requires_human_decision": false}]}],
+        "outcome": "CLOSED",
+        "terminal_condition": "ALL_REQUIRED_PRESENT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_TIMEOUT_NOT_REACHED",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_TIMEOUT_NOT_REACHED",
+      "covers_loop_negative_fixture": "the run claims a timeout terminal condition without actually exceeding the timeout",
+      "note": "等號邊界：elapsed == timeout 不算逾時（契約要求嚴格大於）。",
+      "run": {
+        "max_iterations": 5,
+        "timeout_seconds": 300,
+        "elapsed_seconds": 300,
+        "iterations": [{"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "FAILED_LOUD",
+        "terminal_condition": "TIMEOUT",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
       "case_id": "LOOP_NEG_FAIL_SILENT",
       "expected": "deny",
       "expected_failure_code": "FAIL_SILENT",
