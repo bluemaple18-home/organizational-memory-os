@@ -1,0 +1,71 @@
+receipt: ssp302-contract-tighten-big-review
+card: ".work/CARD-SSP302-CONTRACT-TIGHTEN-20260910.md"
+slice: SSP302-TIGHTEN-S01
+review_input:
+  base_sha: "f2e47ca9cd4c956abd6e216e593e2558d22d514a"
+  review_sha: "8d9c8292de0cad6f72b2d264c547eaad74c2b2ba"
+  tree_sha: "9beb5fa18242f76f2627f7a4a558148711f74621"
+verdict: GO
+counts: { p0: 0, p1: 0, p2: 1, p3: 1 }
+closure:
+  F_04: CLOSED_UNDER_OPTION_A
+  F_05: CLOSED_UNDER_STRICT_GT
+  mandatory_stop_code_precedence: VERIFIED
+  independent_single_field_control: VERIFIED
+reviewer_independent_execution:
+  note: "reviewer 將 8 個執行所需檔案還原到隔離環境、逐檔核對 Git blob OID 後親自執行，非轉述 branch evidence"
+  frozen_execution_files_blob_verified: 8
+  loop_gate: "PASS（正例 6 / 負例 18）"
+  prior_fixture_exact_results_unchanged: "21/21（含 exact failure code）"
+  targeted_probe_results: "19/19"
+  enforcement_parity_replayed: "7/7 RED-on-tamper"
+  duplicate_key_regression: PASS
+  f04_ordering_check: "把 F-04 移到 mandatory-stop 之前 -> gate 立即 RED（兩個既有負例的 code 被換掉）"
+  f05_boundary_table:
+    timeout_seconds: 300
+    "elapsed=299 + FAILED_LOUD/TIMEOUT": LOOP_TIMEOUT_NOT_REACHED
+    "elapsed=300 + FAILED_LOUD/TIMEOUT": LOOP_TIMEOUT_NOT_REACHED
+    "elapsed=301 + FAILED_LOUD/TIMEOUT": allow
+    "elapsed=301 + CLOSED": LOOP_OVER_TIMEOUT
+  not_run_by_reviewer:
+    - "其餘 19 個 Ruby validator CLI"
+    - "STD schema engine"
+    - "cross-layer gate"
+non_blocking_findings:
+  - id: TIGHTEN-F-01
+    severity: P2
+    disposition: NON_BLOCKING_BACKLOG
+    observed: >-
+      LOOP_MISSING_FIELD 是 evaluator 第 15 個可達 code，但未進 EXPECTED_LOOP_ERROR_CODES
+      也未進 YAML error_contract。新綁定實際驗的是「YAML 清單 == 手寫常數清單」，
+      而非其宣稱的「YAML 清單 == evaluator 完整回傳集合」；把該未宣告 return 改名，gate 仍綠。
+    risk: "錯誤碼契約不完整；錯誤 run 仍被拒絕，非 allow/deny bypass"
+    followup_card: ".work/CARD-SSP302-ERROR-CODE-COVERAGE-20260911.md"
+  - id: TIGHTEN-F-02
+    severity: P3
+    disposition: NON_BLOCKING_BACKLOG
+    observed: >-
+      handoff / evidence 宣稱控制正負例「只差 terminal_condition 一欄」，實際差四欄
+      （max_iterations / timeout_seconds / elapsed_seconds / terminal_condition）。
+      reviewer 另做真正的單欄翻轉，allow/deny 均如預期，F-04 邊界本身無缺陷。
+    risk: "控制實驗的證據描述不準確；未發現 enforcement 缺陷"
+    followup_card: ".work/CARD-SSP302-ERROR-CODE-COVERAGE-20260911.md"
+scope_note_from_reviewer: >-
+  兩條 rule 的斷言目前是 present? 的「存在綁定」——已可防止宣告被刪除，但未 machine-bind
+  規範文字與程式語意（把 timeout 文字改成相反語意、或把 required_present_rule 設為 false，
+  gate 仍 PASS）。reviewer 明示不將此擴張為本輪 blocking requirement；保證範圍應照實描述。
+owner_accept: true
+mainline_self_verify:
+  merged_into: main
+  merge_commit: "5201f1e"
+  strategy: "--no-ff"
+  gate:
+    ai_work_record_loop_contract_rb: PASS
+    ruby_validators: "20/20 PASS"
+    validate_std_schema_engine_py: PASS
+    validate_cc_cross_layer_contract_py: PASS
+    document_adapter_instances_py: "PASS (10 / 3)"
+    jira_adapter_instances_py: "PASS (6 / 3)"
+    git_diff_check: clean
+status: ACCEPTED_GO_MERGED
+date: "2026-09-11"
