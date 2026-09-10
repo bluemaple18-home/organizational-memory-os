@@ -1,6 +1,6 @@
 ---
 id: DOC-ADAPTER-DETERMINISM-SPEC-FREEZE-20260910
-status: BLOCKED_AWAITING_OWNER_SPEC_FREEZE
+status: OWNER_SIGNED
 type: spec-decision
 lane: A（repo 施工順序 #2 / EMEM-02 前置）
 tier: T2
@@ -68,7 +68,22 @@ projection_digest                 A != B                （14c7dcd4… vs 753500
 「same seven declared inputs necessarily share the same deterministic projection」。
 **契約自我矛盾** —— 這是 F-03 的 closure 缺口，不是新 scope。
 
-## 需要 Owner 簽的凍結點
+## Owner 簽定（2026-09-10）
+
+Owner 於互動對話中明示「就照你建議」，五個凍結點全部採 CC 建議選項：
+
+| 凍結點 | 簽定 |
+|---|---|
+| FP-1 determinism 宣稱範圍 | **A —— 只宣稱 evidence identity**；不宣稱整份 emitted projection 逐位元相同 |
+| FP-2 `projection_digest` 語意 | **A —— 更名 `deterministic_projection_digest`**，只 hash reconstruction/deterministic surface，留在 `derived` |
+| FP-3 單一總分類 | **簽定** —— 契約只保留一份窮盡的 `classify(path) → DETERMINISTIC \| RUN_SCOPED`；reconstruction／digest／excluded 全部由它推導，不得另立清單；未分類路徑 fail-closed |
+| FP-4 block `parent_id` / `source_anchor_refs` | **A —— run-scoped**；結構由 `level` / `order` 承載 |
+| FP-5 `quality` | **A —— run-scoped** 抽取量測，不參與 identity 與任何宣稱為 deterministic 的 digest |
+
+後續：`.work/CARD-DOC-ADAPTER-DETERMINISM-CLOSEOUT-20260910.md`（T1）依此實作，
+`cc/doc-adapter-mapping` 於 `e7505f8` 之後接新 commit。
+
+## 需要 Owner 簽的凍結點（原提案，保留供追溯）
 
 ### FP-1 — determinism 宣稱的範圍
 
