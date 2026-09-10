@@ -157,6 +157,7 @@ deterministic_derivation:
     - content_digest
     - adapter_id
     - adapter_version
+    - tenant_id
   derived:
     - native_id
     - source_version
@@ -164,14 +165,18 @@ deterministic_derivation:
     - idempotency_key
     - projection_digest
   binding:
-    native_id: raw_evidence.source_identity.native_id == inputs.content_digest
-    source_version_value: raw_evidence.source_version.value == null
-    source_version_secondary_digest: raw_evidence.source_version.secondary_digest == inputs.content_digest
-    raw_digest: raw_evidence.digests.raw_digest == inputs.content_digest
-    canonical_digest: raw_evidence.digests.canonical_digest == null
-    adapter_id: raw_evidence.provenance.adapter_id == inputs.adapter_id
-    adapter_version: raw_evidence.provenance.adapter_version == inputs.adapter_version
-    idempotency_key: raw_evidence.idempotency_key == "sha256:" + sha256_hex(canonical_json({content_digest, tenant_id}))
+    native_id: "raw_evidence.source_identity.native_id == inputs.content_digest"
+    tenant_id: "raw_evidence.tenant_id == inputs.tenant_id"
+    source_version_value: "raw_evidence.source_version.value is null AND source_anchor.source_version.value is null"
+    source_version_secondary_digest: "raw_evidence.source_version.secondary_digest == inputs.content_digest AND source_anchor.source_version.secondary_digest == inputs.content_digest"
+    raw_digest: "raw_evidence.digests.raw_digest == inputs.content_digest"
+    canonical_digest: "raw_evidence.digests.canonical_digest is null"
+    normalized_digest: "raw_evidence.digests.normalized_digest == source_anchor.representation.representation_digest"
+    adapter_id: "raw_evidence.provenance.adapter_id == inputs.adapter_id"
+    adapter_version: "raw_evidence.provenance.adapter_version == inputs.adapter_version"
+    anchor_source_identity: "source_anchor.source_identity == raw_evidence.source_identity"
+    anchor_identity_content_bound: "source_anchor.source_identity.native_id == inputs.content_digest AND source_system is document AND entity_type == raw_evidence.source_identity.entity_type"
+    idempotency_key: "raw_evidence.idempotency_key == sha256_hex(canonical_json of content_digest + tenant_id from inputs)"
   identity_bearing_fields:
     - raw_evidence/source_identity/native_id
     - raw_evidence/source_version
@@ -202,13 +207,16 @@ deterministic_derivation:
     per-run receipt / activity / observation refs); nothing in the deterministic
     surface derives from wall-clock, upload order or delivery sequence.
     Separately, each entry of `binding` is a rule the validator evaluates against
-    determinism.inputs and the projected instance: native_id, the source_version
-    (value null, secondary_digest), digests.raw_digest, digests.canonical_digest,
-    provenance.adapter_id / adapter_version and idempotency_key are recomputed
-    from (content_digest, adapter_id, adapter_version, tenant_id) and compared to
-    the fixture. Mutating any declared input while leaving the instance unchanged
-    breaks at least one binding and turns the gate RED
-    (DOC_MAP_NONDETERMINISTIC_IDENTITY).
+    determinism.inputs and both projected instances: native_id, tenant_id, the
+    source_version (value null, secondary_digest) of RawEvidence and SourceAnchor,
+    digests.raw_digest, digests.canonical_digest, digests.normalized_digest (bound
+    to the SourceAnchor representation_digest), provenance.adapter_id /
+    adapter_version, the SourceAnchor source_identity (equal to the RawEvidence
+    source_identity and content-bound) and idempotency_key are recomputed from
+    (content_digest, adapter_id, adapter_version, tenant_id) and compared to the
+    fixture. Mutating any declared input, or drifting a bound instance-side
+    derived field (normalized_digest, a SourceAnchor identity component), breaks
+    at least one binding and turns the gate RED (DOC_MAP_NONDETERMINISTIC_IDENTITY).
 
 error_contract:
   DOC_MAP_UNKNOWN_SOURCE_KIND: doc-map.error.unknown_source_kind
@@ -269,6 +277,7 @@ required_negative_fixtures:
   - source identity uses a non-content basis
   - two runs with identical inputs produce a different projection
   - a declared deterministic input changed but the derived fields did not
+  - a bound instance-side derived field drifted from its source
   - error but the mapping still claims success
 
 required_instance_negative_fixtures:

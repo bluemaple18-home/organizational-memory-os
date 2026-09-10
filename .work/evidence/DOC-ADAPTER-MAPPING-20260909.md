@@ -297,3 +297,64 @@ git add -A && git diff --cached --check                      clean
 | `scripts/lib/omos_contract_helpers.rb` | 改（下沉 triple_of / profile_details_required，+20 行） |
 | `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（source_version value→null / secondary_digest→digest；native_id 完整化；idempotency_key 改為計算值） |
 | `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（+3 derivation-input 負例） |
+
+---
+
+## Repair 04（2026-09-10）— Repair 03 再 review NO_GO(P1=1) 針對性修復
+
+卡：`.work/CARD-DOC-ADAPTER-MAPPING-REPAIR-04-20260910.md`。`c2e184f` / `faddb8c` / `d2ee1d2` /
+`df6b2ff` 皆不動；repair-04 delta = `df6b2ff..<repair-04 SHA>`。只收 F-03-R03（F-01 / F-02 /
+P2 已 CLOSED）。
+
+### 1. tenant_id 變成明確 deterministic input
+
+- `deterministic_derivation.inputs` → `[content_digest, adapter_id, adapter_version, tenant_id]`。
+- `derivation_binding_failures()` 的 idempotency 改由 `inputs["tenant_id"]` 計算（不再讀
+  `raw["tenant_id"]`）；新 binding `tenant_id`（`raw_evidence.tenant_id == inputs.tenant_id`）。
+- positive fixture `determinism.inputs` 補 tenant_id；負例
+  `DOC_MAP_NEG_DERIVATION_INPUT_TENANT_ID`。
+
+### 2. normalized_digest 綁到 SourceAnchor representation_digest
+
+- 新 binding `normalized_digest`（`raw_evidence.digests.normalized_digest ==
+  source_anchor.representation.representation_digest`）；負例
+  `DOC_MAP_NEG_DERIVATION_INSTANCE_NORMALIZED_DIGEST`。
+
+### 3. SourceAnchor identity binding
+
+- 新 binding `anchor_source_identity`（`source_anchor.source_identity ==
+  raw_evidence.source_identity`）與 `anchor_identity_content_bound`
+  （`source_anchor.source_identity.native_id == inputs.content_digest` +
+  `source_system == "document"` + `entity_type == raw.source_identity.entity_type`）；
+  負例 `DOC_MAP_NEG_DERIVATION_INSTANCE_ANCHOR_IDENTITY`（兩條同時失配）。
+
+### 4. 其他
+
+- `source_version_value` / `source_version_secondary_digest` binding 涵蓋 RawEvidence 與
+  SourceAnchor 兩份。`EXPECTED_DERIVATION_BINDING_KEYS` 8 → 12，綁 YAML `binding` key。
+- derivation 負例迴圈由「只吃 input_mutation」擴為「input_mutation 或 instance_mutation」。
+- `derivation_binding_failures()` 下沉共用 lib（lib 加 `require "digest"`）；validator 394 行。
+
+### 修復後 gate
+
+```
+ruby validate_document_adapter_mapping_contract.rb           PASS
+validate_document_adapter_mapping_instances.py (uv)          PASS (positive_instances=10, instance_negatives=3)
+全 19 Ruby validators（含共用 lib 下沉回歸）                  PASS
+validate_std_schema_engine.py (uv)                           PASS (STD01 12/12, STD02 16/16, STD03 9/9)
+validate_cc_cross_layer_contract.py (uv)                     PASS
+定點驗證 derivation_binding_failures：baseline [] / anchor identity drift
+  -> ["anchor_source_identity","anchor_identity_content_bound"] / normalized drift -> ["normalized_digest"]
+enforcement parity（cp-based restore，5 項）                 全數 RED-on-tamper
+git add -A && git diff --cached --check                      clean
+```
+
+### 交付物（Repair 04）
+
+| 檔 | 動作 |
+|---|---|
+| `規格/v0.1/document-adapter-mapping.yaml` | 改（deterministic_derivation.inputs +tenant_id；binding 12 條；rule；required_negative_fixtures +1） |
+| `scripts/validate_document_adapter_mapping_contract.rb` | 改（DETERMINISM_INPUT_KEYS / EXPECTED_DERIVATION_BINDING_KEYS；derivation 負例迴圈 input_mutation+instance_mutation；derivation_binding_failures 下沉；394 行） |
+| `scripts/lib/omos_contract_helpers.rb` | 改（+`require "digest"`；`derivation_binding_failures()` 下沉並擴充 tenant_id / normalized_digest / anchor identity binding） |
+| `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（determinism.inputs +tenant_id ×2） |
+| `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（+3 負例：1 input_mutation tenant_id + 2 instance_mutation normalized_digest / anchor identity） |

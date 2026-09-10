@@ -51,7 +51,8 @@
         "inputs": {
           "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "adapter_id": "document-pdf-adapter",
-          "adapter_version": "0.1.0"
+          "adapter_version": "0.1.0",
+          "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111"
         },
         "runtime_only_patch": {
           "raw_evidence/chronology/observed_at": "2027-02-02T02:02:02Z",
@@ -383,7 +384,8 @@
         "inputs": {
           "content_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "adapter_id": "document-markdown-adapter",
-          "adapter_version": "0.1.0"
+          "adapter_version": "0.1.0",
+          "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111"
         },
         "runtime_only_patch": {
           "raw_evidence/chronology/observed_at": "2027-03-03T03:03:03Z",

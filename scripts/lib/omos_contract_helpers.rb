@@ -16,6 +16,7 @@
 #   - STD-01/02 的 assert —— (condition, code, message, failures),code: prefix。
 #   - AIWR 的 sorted_set —— 回傳排序後的 Array,不是 Set。
 
+require "digest"
 require "json"
 require "set"
 require "yaml"
@@ -126,6 +127,33 @@ def triple_of(test_case)
     "source_anchor" => test_case["source_anchor_instance"],
     "blocks" => test_case["block_instances"]
   }
+end
+
+# F-02/F-03-R0x：宣告的 derived 欄位必須是 determinism.inputs 的函數。validator 依 inputs
+# 重算並與 projected instance 逐項比對，回傳失配的 binding 名稱（key 必須逐字等於
+# EXPECTED_DERIVATION_BINDING_KEYS）。改任一 input / instance-side derived 欄位 -> 至少一項失配。
+def derivation_binding_failures(inputs, raw, anchor)
+  cd = inputs["content_digest"]
+  tenant = inputs["tenant_id"]
+  idem = "sha256:" + Digest::SHA256.hexdigest(canonical_json("content_digest" => cd, "tenant_id" => tenant))
+  {
+    "native_id" => raw.dig("source_identity", "native_id") == cd,
+    "tenant_id" => raw["tenant_id"] == tenant,
+    "source_version_value" => raw.dig("source_version", "value").nil? && anchor.dig("source_version", "value").nil?,
+    "source_version_secondary_digest" => raw.dig("source_version", "secondary_digest") == cd &&
+                                         anchor.dig("source_version", "secondary_digest") == cd,
+    "raw_digest" => raw.dig("digests", "raw_digest") == cd,
+    "canonical_digest" => raw.dig("digests", "canonical_digest").nil?,
+    "normalized_digest" => present?(raw.dig("digests", "normalized_digest")) &&
+                           raw.dig("digests", "normalized_digest") == anchor.dig("representation", "representation_digest"),
+    "adapter_id" => raw.dig("provenance", "adapter_id") == inputs["adapter_id"],
+    "adapter_version" => raw.dig("provenance", "adapter_version") == inputs["adapter_version"],
+    "anchor_source_identity" => raw["source_identity"] == anchor["source_identity"],
+    "anchor_identity_content_bound" => anchor.dig("source_identity", "native_id") == cd &&
+                                       anchor.dig("source_identity", "source_system") == "document" &&
+                                       anchor.dig("source_identity", "entity_type") == raw.dig("source_identity", "entity_type"),
+    "idempotency_key" => raw["idempotency_key"] == idem
+  }.reject { |_, ok| ok }.keys
 end
 
 # 從 profile-specific schema 的 allOf 取 profile_details.required。

@@ -60,11 +60,12 @@ IDENTITY_BEARING_FIELDS = %w[
   raw_evidence/idempotency_key
   raw_evidence/payload/payload_ref
 ].freeze
-DETERMINISM_INPUT_KEYS = %w[content_digest adapter_id adapter_version].freeze
+DETERMINISM_INPUT_KEYS = %w[content_digest adapter_id adapter_version tenant_id].freeze
 # yaml deterministic_derivation.binding 的 key，必須逐字等於 validator 實際評估的 derived 綁定。
 EXPECTED_DERIVATION_BINDING_KEYS = %w[
-  native_id source_version_value source_version_secondary_digest raw_digest
-  canonical_digest adapter_id adapter_version idempotency_key
+  native_id tenant_id source_version_value source_version_secondary_digest raw_digest
+  canonical_digest normalized_digest adapter_id adapter_version
+  anchor_source_identity anchor_identity_content_bound idempotency_key
 ].freeze
 
 EXPECTED_DOC_MAP_NEGATIVE_LABELS = [
@@ -79,6 +80,7 @@ EXPECTED_DOC_MAP_NEGATIVE_LABELS = [
   "source identity uses a non-content basis",
   "two runs with identical inputs produce a different projection",
   "a declared deterministic input changed but the derived fields did not",
+  "a bound instance-side derived field drifted from its source",
   "error but the mapping still claims success"
 ].freeze
 
@@ -112,23 +114,7 @@ def projection_digest(triple)
   Digest::SHA256.hexdigest(canonical_json(scrubbed))
 end
 
-# F-02-R02 + F-03-R02：宣告的 derived 欄位必須是 determinism.inputs 的函數。validator 依
-# inputs 重算，與 projected instance 逐項比對，回傳失配的 binding 名稱。改任一 input 而
-# instance 不動 -> 至少一項失配 -> gate RED。key 必須逐字等於 EXPECTED_DERIVATION_BINDING_KEYS。
-def derivation_binding_failures(inputs, raw, anchor)
-  cd = inputs["content_digest"]
-  idem = "sha256:" + Digest::SHA256.hexdigest(canonical_json("content_digest" => cd, "tenant_id" => raw["tenant_id"]))
-  {
-    "native_id" => raw.dig("source_identity", "native_id") == cd,
-    "source_version_value" => raw.dig("source_version", "value").nil? && anchor.dig("source_version", "value").nil?,
-    "source_version_secondary_digest" => raw.dig("source_version", "secondary_digest") == cd && anchor.dig("source_version", "secondary_digest") == cd,
-    "raw_digest" => raw.dig("digests", "raw_digest") == cd,
-    "canonical_digest" => raw.dig("digests", "canonical_digest").nil?,
-    "adapter_id" => raw.dig("provenance", "adapter_id") == inputs["adapter_id"],
-    "adapter_version" => raw.dig("provenance", "adapter_version") == inputs["adapter_version"],
-    "idempotency_key" => raw["idempotency_key"] == idem
-  }.reject { |_, ok| ok }.keys
-end
+# derivation_binding_failures 在 scripts/lib/omos_contract_helpers.rb。
 
 # 純函式:一份 mapping 語意 case -> nil 或精確 machine failure code。
 def document_mapping_failure(test_case, target)
@@ -237,7 +223,7 @@ assert(ndp.fetch("content_layer_by_block_type", {}) == EXPECTED_CONTENT_LAYER_BY
 assert(ndp.fetch("attribute_required_by_block_type", {}) == EXPECTED_ATTR_REQUIRED_BY_BLOCK_TYPE, "attribute_required_by_block_type 與鎖定對映不符", failures)
 
 derivation = spec.fetch("deterministic_derivation", {})
-assert(sorted_set(derivation.fetch("inputs", [])) == sorted_set(%w[content_digest adapter_id adapter_version]), "deterministic_derivation.inputs 與鎖定清單不符", failures)
+assert(sorted_set(derivation.fetch("inputs", [])) == sorted_set(DETERMINISM_INPUT_KEYS), "deterministic_derivation.inputs 與鎖定清單不符", failures)
 assert(derivation.fetch("derived", []).include?("projection_digest"), "deterministic_derivation.derived 必須含 projection_digest", failures)
 assert(derivation.fetch("excluded_from_canonical_digest", []) == DETERMINISTIC_EXCLUDED_PATHS,
        "deterministic_derivation.excluded_from_canonical_digest 必須逐字等於 validator 的 DETERMINISTIC_EXCLUDED_PATHS", failures)
@@ -362,15 +348,24 @@ determinism_negatives.each do |test_case|
 end
 
 # derivation-input 負例：改 determinism.inputs 任一值、instance 完全不動 -> derivation binding 必須失配。
-input_negatives = negative.fetch("document_mapping_negative_cases").select { |test_case| test_case.key?("input_mutation") }
-assert(!input_negatives.empty?, "至少要有一個 derivation-input 負例（base_case_ref + input_mutation）", failures)
-input_negatives.each do |test_case|
+derivation_negatives = negative.fetch("document_mapping_negative_cases").select { |tc| tc.key?("input_mutation") || tc.key?("instance_mutation") }
+assert(!derivation_negatives.empty?, "至少要有一個 derivation 負例（base_case_ref + input_mutation / instance_mutation）", failures)
+derivation_negatives.each do |test_case|
   case_id = test_case.fetch("case_id")
-  assert(test_case.fetch("expected") == "deny", "#{case_id} derivation-input 負例必須預期 deny", failures)
+  assert(test_case.fetch("expected") == "deny", "#{case_id} derivation 負例必須預期 deny", failures)
   base_case = positive_by_id.fetch(test_case.fetch("base_case_ref"))
-  mutated_inputs = (base_case.dig("determinism", "inputs") || {}).merge(test_case.fetch("input_mutation"))
-  gaps = derivation_binding_failures(mutated_inputs, base_case.fetch("raw_evidence_instance"), base_case.fetch("source_anchor_instance"))
-  assert(!gaps.empty?, "#{case_id}: 改了 determinism.inputs 卻沒有任何 derived 欄位失配 —— derivation binding 失效", failures)
+  inputs = base_case.dig("determinism", "inputs") || {}
+  raw = deep_dup(base_case.fetch("raw_evidence_instance"))
+  anchor = deep_dup(base_case.fetch("source_anchor_instance"))
+  if test_case.key?("input_mutation")
+    inputs = inputs.merge(test_case.fetch("input_mutation"))
+  else
+    test_case.fetch("instance_mutation").each do |path, value|
+      set_path(path.start_with?("source_anchor_instance/") ? anchor : raw, path.split("/", 2).last, value)
+    end
+  end
+  gaps = derivation_binding_failures(inputs, raw, anchor)
+  assert(!gaps.empty?, "#{case_id}: mutation 後沒有任何 derived 欄位失配 —— derivation binding 失效", failures)
 end
 
 covered_labels = sorted_set(negative.fetch("document_mapping_negative_cases").map { |test_case| test_case.fetch("covers_doc_map_negative_fixture") })

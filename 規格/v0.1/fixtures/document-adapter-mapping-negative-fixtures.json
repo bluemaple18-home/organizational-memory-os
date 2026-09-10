@@ -122,6 +122,36 @@
       "ok": true
     },
     {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_TENANT_ID",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "tenant_id changed; raw_evidence.tenant_id and the recomputed idempotency_key unchanged -> derivation binding must fail",
+      "input_mutation": {"tenant_id": "0198e6d0-2222-7aaa-8bbb-222222222222"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INSTANCE_NORMALIZED_DIGEST",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "raw_evidence.digests.normalized_digest drifts from source_anchor.representation.representation_digest -> normalized_digest binding must fail",
+      "instance_mutation": {"raw_evidence_instance/digests/normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INSTANCE_ANCHOR_IDENTITY",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "source_anchor_instance.source_identity.native_id drifts from the content digest -> anchor identity binding must fail",
+      "instance_mutation": {"source_anchor_instance/source_identity/native_id": "sha256:1234123412341234123412341234123412341234123412341234123412341234"},
+      "ok": true
+    },
+    {
       "case_id": "DOC_MAP_NEG_FAIL_SILENT",
       "expected": "deny",
       "expected_failure_code": "FAIL_SILENT",
