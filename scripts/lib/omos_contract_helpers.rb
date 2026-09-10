@@ -78,3 +78,105 @@ end
 def allowed_resource_ref?(value, resource_kind)
   value.is_a?(String) && value.start_with?("urn:omos:personal-memory:#{resource_kind}:")
 end
+
+require "time"
+
+# --- Jira Adapter Mapping validator 共用 helper（純函式）。---
+
+def deep_dup(obj)
+  case obj
+  when Hash then obj.each_with_object({}) { |(key, value), acc| acc[key] = deep_dup(value) }
+  when Array then obj.map { |value| deep_dup(value) }
+  else obj
+  end
+end
+
+def set_path(root, path, value)
+  segments = path.split("/")
+  leaf = segments.pop
+  node = segments.inject(root) { |acc, seg| acc.is_a?(Hash) ? acc[seg] : nil }
+  node[leaf] = value if node.is_a?(Hash)
+end
+
+# RFC3339 timestamp -> Time，parse 失敗回 nil（用真正 parse 比較，不用字串比較）。
+def parse_instant(value)
+  return nil unless value.is_a?(String)
+
+  Time.iso8601(value)
+rescue ArgumentError
+  nil
+end
+
+# pointer 是否真正定址到該 field：== prefix 或位於 prefix 之下。
+def json_pointer_addresses_field?(pointer, prefix)
+  pointer.is_a?(String) && (pointer == prefix || pointer.start_with?("#{prefix}/"))
+end
+
+# identity 需 cloud_id / issue_id 皆非空。
+def identity_complete?(identity)
+  identity.is_a?(Hash) && present?(identity["cloud_id"]) && present?(identity["issue_id"])
+end
+
+# 一個 supplied reconciliation version 物件的 fail-closed 驗（型別 / RFC3339 value /
+# locked sha256 secondary_digest）。回傳 machine failure code 或 nil。
+SHA256_LOCKED_PATTERN = /\Asha256:[0-9a-f]{64}\z/.freeze
+def reconciliation_version_problem(node)
+  return "JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE" unless node.is_a?(Hash)
+  return "JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE" if parse_instant(node["value"]).nil?
+  return "JIRA_MAP_RECONCILIATION_VERSION_DIGEST_MALFORMED" unless node["secondary_digest"].is_a?(String) &&
+                                                                  SHA256_LOCKED_PATTERN.match?(node["secondary_digest"])
+
+  nil
+end
+
+# F-01-F03-R02：compact projection 與完整 STD instance 不得脫鉤。逐項比對 mapping-critical
+# 欄位（含 (cloud_id, issue_id) end-to-end identity binding），回傳未通過的欄位名稱。
+def projection_instance_consistency(test_case)
+  problems = []
+  projection = test_case.fetch("projection")
+  raw_instance = test_case.fetch("raw_evidence_instance")
+  anchor_instance = test_case.fetch("source_anchor_instance")
+  proj_details = projection.dig("source_anchor", "profile_details") || {}
+  inst_details = anchor_instance["profile_details"] || {}
+
+  problems << "source_anchor.profile" unless projection.dig("source_anchor", "profile") == anchor_instance["profile"]
+  %w[field_id json_pointer cloud_id issue_id].each do |key|
+    problems << "profile_details.#{key}" unless proj_details[key] == inst_details[key]
+  end
+
+  proj_version = projection.dig("raw_evidence", "source_version") || {}
+  inst_version = raw_instance["source_version"] || {}
+  %w[basis kind value secondary_digest].each do |key|
+    problems << "source_version.#{key}" unless proj_version[key] == inst_version[key]
+  end
+
+  proj_payload = projection.dig("raw_evidence", "payload") || {}
+  inst_payload = raw_instance["payload"] || {}
+  %w[structured_profile canonicalization_profile payload_ref].each do |key|
+    problems << "payload.#{key}" unless proj_payload[key] == inst_payload[key]
+  end
+
+  problems << "provenance.ingestion_mode" unless projection.dig("raw_evidence", "provenance", "ingestion_mode") ==
+                                                raw_instance.dig("provenance", "ingestion_mode")
+  problems << "projected native_id_basis" unless projection.dig("raw_evidence", "source_identity", "native_id_basis") == "JIRA_CLOUD_ID_PLUS_ISSUE_ID"
+
+  # Jira stable identity = (cloud_id, issue_id)：source_instance_id 即 cloud_id、native_id 即 issue_id。
+  { "raw_evidence" => raw_instance, "source_anchor" => anchor_instance }.each do |name, doc|
+    si = doc["source_identity"] || {}
+    problems << "#{name}.source_identity.source_system" unless si["source_system"] == "jira-cloud"
+    problems << "#{name}.source_identity.source_instance_id == cloud_id" unless si["source_instance_id"] == inst_details["cloud_id"]
+    problems << "#{name}.source_identity.entity_type == issue" unless si["entity_type"] == "issue"
+    problems << "#{name}.source_identity.native_id == issue_id" unless si["native_id"] == inst_details["issue_id"]
+  end
+  problems << "raw_evidence.source_identity == source_anchor.source_identity" unless raw_instance["source_identity"] == anchor_instance["source_identity"]
+
+  reconciliation = projection["reconciliation"]
+  if reconciliation.is_a?(Hash) && reconciliation["current_identity"].is_a?(Hash)
+    current = reconciliation["current_identity"]
+    unless current["cloud_id"] == inst_details["cloud_id"] && current["issue_id"] == inst_details["issue_id"]
+      problems << "reconciliation.current_identity == instance identity"
+    end
+  end
+
+  problems
+end

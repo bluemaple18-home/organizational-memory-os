@@ -1,6 +1,6 @@
 ---
 id: JIRA-ADAPTER-MAPPING-20260909
-status: DRAFT_OWNER_REVIEW
+status: NO_GO_REPAIRED_04_AWAITING_TARGETED_REREVIEW
 type: implementation
 lane: A（repo 施工順序 #3 / EMEM-02 前置）
 tier: T1

@@ -1,0 +1,239 @@
+{
+  "jira_mapping_cases": [
+    {
+      "case_id": "JIRA_MAP_POS_DESCRIPTION",
+      "expected": "allow",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {
+          "claimed_field_keys": ["source_identity", "source_aliases", "source_version", "payload", "provenance", "chronology", "digests", "access", "idempotency_key", "idempotency_basis", "quality_gaps"],
+          "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"},
+          "source_aliases": [{"value": "PROJ-123"}],
+          "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-28T05:58:20Z", "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+          "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111"},
+          "provenance": {"ingestion_mode": "WEBHOOK"}
+        },
+        "source_anchor": {
+          "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+          "selectors": [{"selector_type": "JSON_POINTER"}, {"selector_type": "TEXT_QUOTE"}],
+          "profile_details": {
+            "deployment_type": "CLOUD", "cloud_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue",
+            "issue_id": "10042", "issue_key_alias": "PROJ-123", "field_id": "description",
+            "json_pointer": "/fields/description/content/0/content/0/text", "renderer_profile": "JIRA_ADF_TEXT_RENDERER_V1", "renderer_version": "1.0.0",
+            "text_selector": {"representation_ref": "urn:omos:representation:jira-10042-description-adf-rendered", "representation_digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212", "start": 0, "end": 6, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "請先檢查權限", "prefix": "處理前，", "suffix": "再存取資料。"}
+          },
+          "normalization_profile": "OMOS_TEXT_NORM_V1"
+        },
+        "reconciliation": {"detected_gap": true, "changed_identity": false, "emitted_evidence_or_gap": true, "decision": "NEW_EVIDENCE", "previous_version": {"value": "2026-08-20T00:00:00Z", "secondary_digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"}, "previous_identity": {"cloud_id": "11111111-2222-3333-4444-555555555555", "issue_id": "10042"}, "current_identity": {"cloud_id": "11111111-2222-3333-4444-555555555555", "issue_id": "10042"}},
+        "ok": true
+      },
+      "raw_evidence_instance": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {"source_system": "jira-cloud", "source_instance_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "native_id": "10042", "parent_native_id": null},
+        "source_aliases": [
+          {"kind": "MUTABLE_KEY", "value": "PROJ-123", "valid_from": "2026-08-28T05:58:20Z", "valid_to": null, "status": "ACTIVE", "source_evidence_ref": null},
+          {"kind": "URL", "value": "https://example.atlassian.net/browse/PROJ-123", "valid_from": "2026-08-28T05:58:20Z", "valid_to": null, "status": "ACTIVE", "source_evidence_ref": null}
+        ],
+        "source_event": {"event_type": "com.atlassian.jira.issue.updated.v1", "native_event_id": "webhook-event-789", "identity_basis": "NATIVE", "delivery_id": "delivery-456", "idempotency_basis": {"profile": "OMOS_SOURCE_EVENT_IDEMPOTENCY_V1", "includes": ["tenant_id", "stable_source_identity", "event_type", "native_event_id"], "excludes": ["transport_delivery.id", "received_at", "persisted_at", "ingestion_mode"]}},
+        "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-28T05:58:20Z", "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+        "chronology": {"occurred_at": "2026-08-28T05:58:20Z", "occurred_at_basis": "SOURCE", "observed_at": "2026-08-28T05:58:22Z", "received_at": "2026-08-28T05:58:23Z", "persisted_at": "2026-08-28T05:58:24Z"},
+        "digests": {"raw_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "canonical_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee", "normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"},
+        "payload": {"media_type": "application/json", "payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111", "size_bytes": 8192, "structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "retention_tier": "SOURCE_FULL_BODY"},
+        "access": {"acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111", "permission_basis": "SOURCE_ACL", "source_permission_version": "jira-permission-snapshot-20260828", "visibility_scope_refs": ["urn:omos:scope:jira-project-10000"]},
+        "transport_delivery": {"profile": "CLOUDEVENTS_1_0", "source": "https://example.atlassian.net", "id": "delivery-456", "type": "com.atlassian.jira.issue.updated.v1", "subject": "issue/10042", "time": "2026-08-28T05:58:20Z"},
+        "provenance": {"adapter_id": "jira-cloud-adapter", "adapter_version": "0.1.0", "ingestion_mode": "WEBHOOK", "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0303-7aaa-8bbb-111111111111", "adapter_activity_ref": "urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111", "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0503-7aaa-8bbb-111111111111", "lineage_activity_status": "COMPLETE", "verification_status": "NOT_RUN", "verification_inferred_from_activity": false},
+        "activity_refs": ["urn:omos:activity:0198e6d1-0403-7aaa-8bbb-111111111111"],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "idempotency_basis": {"profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1", "includes": ["tenant_id", "stable_source_identity", "source_version"], "excludes": ["transport_delivery.id", "received_at", "persisted_at", "ingestion_mode"]},
+        "quality_gaps": []
+      },
+      "source_anchor_instance": {
+        "schema_version": "omos.source-anchor.v0.1",
+        "anchor_id": "0198e6d2-0003-7aaa-8bbb-111111111111",
+        "anchor_ref": "urn:omos:source-anchor:0198e6d2-0003-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0003-7aaa-8bbb-111111111111",
+        "source_identity": {"source_system": "jira-cloud", "source_instance_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "native_id": "10042", "parent_native_id": null},
+        "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-28T05:58:20Z", "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+        "representation": {"source_payload_ref": "urn:omos:payload:0198e6d1-0103-7aaa-8bbb-111111111111", "source_payload_digest": "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff", "representation_ref": "urn:omos:representation:jira-10042-description-adf-rendered", "media_type": "text/plain", "representation_digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212", "digest_basis": "rendered Jira ADF field segment under the declared renderer profile"},
+        "access": {"acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111", "permission_decision_ref": null},
+        "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+        "selectors": [{"selector_type": "JSON_POINTER"}, {"selector_type": "TEXT_POSITION"}, {"selector_type": "TEXT_QUOTE"}],
+        "profile_details": {
+          "deployment_type": "CLOUD", "cloud_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "issue_id": "10042", "issue_key_alias": "PROJ-123", "field_id": "description",
+          "json_pointer": "/fields/description/content/0/content/0/text", "renderer_profile": "JIRA_ADF_TEXT_RENDERER_V1", "renderer_version": "1.0.0",
+          "text_selector": {"representation_ref": "urn:omos:representation:jira-10042-description-adf-rendered", "representation_digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212", "start": 0, "end": 6, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "請先檢查權限", "prefix": "處理前，", "suffix": "再存取資料。"}
+        },
+        "quote": {"exact": "請先檢查權限", "prefix": "處理前，", "suffix": "再存取資料。", "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "normalization_profile": "OMOS_TEXT_NORM_V1",
+        "source_availability": "AVAILABLE",
+        "resolution": {"status": "EXACT_MATCH", "resolved_at": "2026-09-04T01:00:02Z", "resolver_version": "std02-fixture-v1"}
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_POS_COMMENT_BODY",
+      "expected": "allow",
+      "projection": {
+        "field_kind": "COMMENT_BODY",
+        "raw_evidence": {
+          "claimed_field_keys": ["source_identity", "source_aliases", "source_version", "payload", "provenance", "chronology", "digests", "access", "idempotency_key", "idempotency_basis", "quality_gaps"],
+          "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"},
+          "source_aliases": [{"value": "PROJ-123"}],
+          "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-29T09:10:11Z", "secondary_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"},
+          "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:payload:0198e6d1-0203-7aaa-8bbb-222222222222"},
+          "provenance": {"ingestion_mode": "POLL"}
+        },
+        "source_anchor": {
+          "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+          "selectors": [{"selector_type": "JSON_POINTER"}, {"selector_type": "TEXT_QUOTE"}],
+          "profile_details": {
+            "deployment_type": "CLOUD", "cloud_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue",
+            "issue_id": "10042", "issue_key_alias": "PROJ-123", "field_id": "comment",
+            "json_pointer": "/fields/comment/comments/3/body/content/0/content/0/text", "renderer_profile": "JIRA_ADF_TEXT_RENDERER_V1", "renderer_version": "1.0.0",
+            "text_selector": {"representation_ref": "urn:omos:representation:jira-10042-comment-3-adf-rendered", "representation_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444", "start": 10, "end": 55, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "webhook reconciliation must not change identity", "prefix": "note: ", "suffix": "."}
+          },
+          "normalization_profile": "OMOS_TEXT_NORM_V1"
+        },
+        "ok": true
+      },
+      "raw_evidence_instance": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0007-7aaa-8bbb-222222222222",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0007-7aaa-8bbb-222222222222",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {"source_system": "jira-cloud", "source_instance_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "native_id": "10042", "parent_native_id": null},
+        "source_aliases": [
+          {"kind": "MUTABLE_KEY", "value": "PROJ-123", "valid_from": "2026-08-28T05:58:20Z", "valid_to": null, "status": "ACTIVE", "source_evidence_ref": null}
+        ],
+        "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-29T09:10:11Z", "secondary_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"},
+        "chronology": {"occurred_at": "2026-08-29T09:10:11Z", "occurred_at_basis": "SOURCE", "observed_at": "2026-08-29T09:10:13Z", "received_at": "2026-08-29T09:10:14Z", "persisted_at": "2026-08-29T09:10:15Z"},
+        "digests": {"raw_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "canonical_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "normalized_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
+        "payload": {"media_type": "application/json", "payload_ref": "urn:omos:payload:0198e6d1-0203-7aaa-8bbb-222222222222", "size_bytes": 2048, "structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "retention_tier": "SOURCE_FULL_BODY"},
+        "access": {"acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111", "permission_basis": "SOURCE_ACL", "source_permission_version": "jira-permission-snapshot-20260829", "visibility_scope_refs": ["urn:omos:scope:jira-project-10000"]},
+        "transport_delivery": null,
+        "provenance": {"adapter_id": "jira-cloud-adapter", "adapter_version": "0.1.0", "ingestion_mode": "POLL", "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0307-7aaa-8bbb-222222222222", "adapter_activity_ref": "urn:omos:activity:0198e6d1-0407-7aaa-8bbb-222222222222", "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-0507-7aaa-8bbb-222222222222", "lineage_activity_status": "COMPLETE", "verification_status": "NOT_RUN", "verification_inferred_from_activity": false},
+        "activity_refs": ["urn:omos:activity:0198e6d1-0407-7aaa-8bbb-222222222222"],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "idempotency_basis": {"profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1", "includes": ["tenant_id", "stable_source_identity", "source_version"], "excludes": ["transport_delivery.id", "received_at", "persisted_at", "ingestion_mode"]},
+        "quality_gaps": []
+      },
+      "source_anchor_instance": {
+        "schema_version": "omos.source-anchor.v0.1",
+        "anchor_id": "0198e6d2-0007-7aaa-8bbb-222222222222",
+        "anchor_ref": "urn:omos:source-anchor:0198e6d2-0007-7aaa-8bbb-222222222222",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0007-7aaa-8bbb-222222222222",
+        "source_identity": {"source_system": "jira-cloud", "source_instance_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "native_id": "10042", "parent_native_id": null},
+        "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-08-29T09:10:11Z", "secondary_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333"},
+        "representation": {"source_payload_ref": "urn:omos:payload:0198e6d1-0203-7aaa-8bbb-222222222222", "source_payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "representation_ref": "urn:omos:representation:jira-10042-comment-3-adf-rendered", "media_type": "text/plain", "representation_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444", "digest_basis": "rendered Jira ADF comment body segment under the declared renderer profile"},
+        "access": {"acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111", "permission_decision_ref": null},
+        "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+        "selectors": [{"selector_type": "JSON_POINTER"}, {"selector_type": "TEXT_QUOTE"}],
+        "profile_details": {
+          "deployment_type": "CLOUD", "cloud_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "issue_id": "10042", "issue_key_alias": "PROJ-123", "field_id": "comment",
+          "json_pointer": "/fields/comment/comments/3/body/content/0/content/0/text", "renderer_profile": "JIRA_ADF_TEXT_RENDERER_V1", "renderer_version": "1.0.0",
+          "text_selector": {"representation_ref": "urn:omos:representation:jira-10042-comment-3-adf-rendered", "representation_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444", "start": 10, "end": 55, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "webhook reconciliation must not change identity", "prefix": "note: ", "suffix": "."}
+        },
+        "quote": {"exact": "webhook reconciliation must not change identity", "prefix": "note: ", "suffix": ".", "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "normalization_profile": "OMOS_TEXT_NORM_V1",
+        "source_availability": "AVAILABLE",
+        "resolution": {"status": "EXACT_MATCH", "resolved_at": "2026-09-04T01:00:05Z", "resolver_version": "std02-fixture-v1"}
+      }
+    },
+    {
+      "case_id": "JIRA_MAP_POS_RECONCILE_NEWER_WITH_RENAME",
+      "expected": "allow",
+      "projection": {
+        "field_kind": "DESCRIPTION",
+        "raw_evidence": {
+          "claimed_field_keys": ["source_identity", "source_aliases", "source_version", "payload", "provenance", "chronology", "digests", "access", "idempotency_key", "idempotency_basis", "quality_gaps"],
+          "source_identity": {"native_id_basis": "JIRA_CLOUD_ID_PLUS_ISSUE_ID"},
+          "source_aliases": [{"value": "PROJ-123"}, {"value": "PLAT-900"}],
+          "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-09-05T12:00:00Z", "secondary_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"},
+          "payload": {"structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "payload_ref": "urn:omos:payload:0198e6d1-0303-7aaa-8bbb-333333333333"},
+          "provenance": {"ingestion_mode": "POLL"}
+        },
+        "source_anchor": {
+          "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+          "selectors": [{"selector_type": "JSON_POINTER"}],
+          "profile_details": {
+            "deployment_type": "CLOUD", "cloud_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue",
+            "issue_id": "10042", "issue_key_alias": "PLAT-900", "field_id": "description",
+            "json_pointer": "/fields/description/content/0/content/0/text", "renderer_profile": "JIRA_ADF_TEXT_RENDERER_V1", "renderer_version": "1.0.0",
+            "text_selector": {"representation_ref": "urn:omos:representation:jira-10042-description-v2", "representation_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888", "start": 0, "end": 12, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "updated description text", "prefix": "", "suffix": ""}
+          },
+          "normalization_profile": "OMOS_TEXT_NORM_V1"
+        },
+        "reconciliation": {
+          "trigger": "PERIODIC_SWEEP",
+          "detected_gap": true,
+          "emitted_evidence_or_gap": true,
+          "changed_identity": false,
+          "previous_identity": {"cloud_id": "11111111-2222-3333-4444-555555555555", "issue_id": "10042"},
+          "current_identity": {"cloud_id": "11111111-2222-3333-4444-555555555555", "issue_id": "10042"},
+          "issue_key_change": {"from": "PROJ-123", "to": "PLAT-900"},
+          "decision": "NEW_EVIDENCE",
+          "previous_version": {"value": "2026-08-28T05:58:20Z", "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+          "current_version": {"value": "2026-09-05T12:00:00Z", "secondary_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"}
+        },
+        "ok": true
+      },
+      "raw_evidence_instance": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-000b-7aaa-8bbb-333333333333",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-000b-7aaa-8bbb-333333333333",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {"source_system": "jira-cloud", "source_instance_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "native_id": "10042", "parent_native_id": null},
+        "source_aliases": [
+          {"kind": "MUTABLE_KEY", "value": "PROJ-123", "valid_from": "2026-08-28T05:58:20Z", "valid_to": "2026-09-05T12:00:00Z", "status": "RETIRED", "source_evidence_ref": null},
+          {"kind": "MUTABLE_KEY", "value": "PLAT-900", "valid_from": "2026-09-05T12:00:00Z", "valid_to": null, "status": "ACTIVE", "source_evidence_ref": null}
+        ],
+        "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-09-05T12:00:00Z", "secondary_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"},
+        "chronology": {"occurred_at": "2026-09-05T12:00:00Z", "occurred_at_basis": "SOURCE", "observed_at": "2026-09-05T12:00:02Z", "received_at": "2026-09-05T12:00:03Z", "persisted_at": "2026-09-05T12:00:04Z"},
+        "digests": {"raw_digest": "sha256:1010101010101010101010101010101010101010101010101010101010101010", "canonical_digest": "sha256:2020202020202020202020202020202020202020202020202020202020202020", "normalized_digest": "sha256:3030303030303030303030303030303030303030303030303030303030303030"},
+        "payload": {"media_type": "application/json", "payload_ref": "urn:omos:payload:0198e6d1-0303-7aaa-8bbb-333333333333", "size_bytes": 9001, "structured_profile": "I_JSON", "canonicalization_profile": "RFC8785_JCS", "retention_tier": "SOURCE_FULL_BODY"},
+        "access": {"acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111", "permission_basis": "SOURCE_ACL", "source_permission_version": "jira-permission-snapshot-20260905", "visibility_scope_refs": ["urn:omos:scope:jira-project-10000"]},
+        "transport_delivery": null,
+        "provenance": {"adapter_id": "jira-cloud-adapter", "adapter_version": "0.1.0", "ingestion_mode": "POLL", "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-030b-7aaa-8bbb-333333333333", "adapter_activity_ref": "urn:omos:activity:0198e6d1-040b-7aaa-8bbb-333333333333", "lineage_receipt_ref": "urn:omos:receipt:0198e6d1-050b-7aaa-8bbb-333333333333", "lineage_activity_status": "COMPLETE", "verification_status": "NOT_RUN", "verification_inferred_from_activity": false},
+        "activity_refs": ["urn:omos:activity:0198e6d1-040b-7aaa-8bbb-333333333333"],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:9090909090909090909090909090909090909090909090909090909090909090",
+        "idempotency_basis": {"profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1", "includes": ["tenant_id", "stable_source_identity", "source_version"], "excludes": ["transport_delivery.id", "received_at", "persisted_at", "ingestion_mode"]},
+        "quality_gaps": []
+      },
+      "source_anchor_instance": {
+        "schema_version": "omos.source-anchor.v0.1",
+        "anchor_id": "0198e6d2-000b-7aaa-8bbb-333333333333",
+        "anchor_ref": "urn:omos:source-anchor:0198e6d2-000b-7aaa-8bbb-333333333333",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-000b-7aaa-8bbb-333333333333",
+        "source_identity": {"source_system": "jira-cloud", "source_instance_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "native_id": "10042", "parent_native_id": null},
+        "source_version": {"basis": "COMPOUND_OBSERVED", "kind": "UPDATED_AT_DIGEST", "value": "2026-09-05T12:00:00Z", "secondary_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"},
+        "representation": {"source_payload_ref": "urn:omos:payload:0198e6d1-0303-7aaa-8bbb-333333333333", "source_payload_digest": "sha256:1010101010101010101010101010101010101010101010101010101010101010", "representation_ref": "urn:omos:representation:jira-10042-description-v2", "media_type": "text/plain", "representation_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888", "digest_basis": "rendered Jira ADF field segment under the declared renderer profile"},
+        "access": {"acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0203-7aaa-8bbb-111111111111", "permission_decision_ref": null},
+        "profile": "JIRA_CLOUD_ENTITY_SEGMENT_V1",
+        "selectors": [{"selector_type": "JSON_POINTER"}],
+        "profile_details": {
+          "deployment_type": "CLOUD", "cloud_id": "11111111-2222-3333-4444-555555555555", "entity_type": "issue", "issue_id": "10042", "issue_key_alias": "PLAT-900", "field_id": "description",
+          "json_pointer": "/fields/description/content/0/content/0/text", "renderer_profile": "JIRA_ADF_TEXT_RENDERER_V1", "renderer_version": "1.0.0",
+          "text_selector": {"representation_ref": "urn:omos:representation:jira-10042-description-v2", "representation_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888", "start": 0, "end": 12, "unit": "UNICODE_CODE_POINT", "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE", "exact": "updated description text", "prefix": "", "suffix": ""}
+        },
+        "quote": {"exact": "updated description text", "prefix": "", "suffix": "", "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "normalization_profile": "OMOS_TEXT_NORM_V1",
+        "source_availability": "AVAILABLE",
+        "resolution": {"status": "CONTENT_CHANGED", "resolved_at": "2026-09-05T12:00:06Z", "resolver_version": "std02-fixture-v1"}
+      }
+    }
+  ]
+}
