@@ -138,7 +138,7 @@
       "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
       "base_case_ref": "DOC_MAP_POS_PDF",
       "note": "raw_evidence.digests.normalized_digest drifts from source_anchor.representation.representation_digest -> normalized_digest binding must fail",
-      "instance_mutation": {"raw_evidence_instance/digests/normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"},
+      "instance_mutation": {"raw_evidence/digests/normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"},
       "ok": true
     },
     {
@@ -148,7 +148,7 @@
       "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
       "base_case_ref": "DOC_MAP_POS_PDF",
       "note": "source_anchor_instance.source_identity.native_id drifts from the content digest -> anchor identity binding must fail",
-      "instance_mutation": {"source_anchor_instance/source_identity/native_id": "sha256:1234123412341234123412341234123412341234123412341234123412341234"},
+      "instance_mutation": {"source_anchor/source_identity/native_id": "sha256:1234123412341234123412341234123412341234123412341234123412341234"},
       "ok": true
     },
     {
@@ -178,7 +178,7 @@
       "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
       "base_case_ref": "DOC_MAP_POS_PDF",
       "note": "raw.digests.normalized_digest AND anchor representation_digest both changed to the same new value while the six inputs stay fixed -> both diverge from inputs.normalized_representation_digest",
-      "instance_mutation": {"raw_evidence_instance/digests/normalized_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777", "source_anchor_instance/representation/representation_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"},
+      "instance_mutation": {"raw_evidence/digests/normalized_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777", "source_anchor/representation/representation_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"},
       "ok": true
     },
     {
@@ -188,7 +188,7 @@
       "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
       "base_case_ref": "DOC_MAP_POS_PDF",
       "note": "raw AND anchor source_identity.source_instance_id both changed to the same new value while inputs stay fixed -> both diverge from inputs.source_instance_id",
-      "instance_mutation": {"raw_evidence_instance/source_identity/source_instance_id": "another-source", "source_anchor_instance/source_identity/source_instance_id": "another-source"},
+      "instance_mutation": {"raw_evidence/source_identity/source_instance_id": "another-source", "source_anchor/source_identity/source_instance_id": "another-source"},
       "ok": true
     },
     {
@@ -198,7 +198,7 @@
       "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
       "base_case_ref": "DOC_MAP_POS_PDF",
       "note": "a field is added inside a reconstructed sub-object (idempotency_basis) that is neither run_scoped nor part of the reconstruction -> unclassified surface field",
-      "instance_mutation": {"raw_evidence_instance/idempotency_basis/extra": "x"},
+      "instance_mutation": {"raw_evidence/idempotency_basis/extra": "x"},
       "ok": true
     },
     {
@@ -218,7 +218,7 @@
       "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
       "base_case_ref": "DOC_MAP_POS_PDF",
       "note": "block_instances[0].content AND its content_sha256 both changed to another valid consistent pair while all seven declared inputs stay fixed -> the block-set digest diverges from inputs.normalized_document_digest",
-      "instance_mutation": {"block_instances/0/content": "Authorization boundary", "block_instances/0/content_sha256": "sha256:0e2b0a4bd8c8f5c9d3a1f6e7b2c4d5a6e7f8091a2b3c4d5e6f70819a2b3c4d5e6"},
+      "instance_mutation": {"blocks/0/content": "Authorization boundary", "blocks/0/content_sha256": "sha256:6553c60633584d85f96a7063a340735c017dd6cc9de33f1b1e296d3d46ba43b4"},
       "ok": true
     },
     {
@@ -228,7 +228,7 @@
       "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
       "base_case_ref": "DOC_MAP_POS_PDF",
       "note": "block_instances[0].content changed but content_sha256 left as-is -> content_sha256 != SHA256(content) and the block-set digest also diverges",
-      "instance_mutation": {"block_instances/0/content": "Something else entirely"},
+      "instance_mutation": {"blocks/0/content": "Something else entirely"},
       "ok": true
     },
     {

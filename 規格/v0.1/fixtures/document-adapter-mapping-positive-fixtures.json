@@ -57,14 +57,17 @@
           "normalized_representation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
           "normalized_document_digest": "sha256:da4d58387fc54b11a8af7d512e3f683fb5b0330a2326fc73e392d5d8c2b61805"
         },
-        "runtime_only_patch": {
+        "run_scoped_patch": {
           "raw_evidence/chronology/observed_at": "2027-02-02T02:02:02Z",
           "raw_evidence/chronology/received_at": "2027-02-02T02:02:03Z",
           "raw_evidence/chronology/persisted_at": "2027-02-02T02:02:04Z",
           "raw_evidence/provenance/source_observation_receipt_ref": "urn:omos:receipt:ffffffff-0000-7aaa-8bbb-999999999999",
           "raw_evidence/provenance/adapter_activity_ref": "urn:omos:activity:ffffffff-0001-7aaa-8bbb-999999999999",
           "source_anchor/resolution/resolved_at": "2027-02-02T02:02:05.000Z",
-          "source_anchor/resolution/resolver_version": "doc-adapter-v2"
+          "source_anchor/resolution/resolver_version": "doc-adapter-v2",
+          "blocks/0/quality/extraction_confidence": 0.5,
+          "blocks/0/block_id": "urn:omos:document-block:0198e6d3-ffff-7aaa-8bbb-999999999999",
+          "blocks/1/source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-ffff-7aaa-8bbb-999999999999"]
         }
       },
       "raw_evidence_instance": {
@@ -393,12 +396,14 @@
           "normalized_representation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
           "normalized_document_digest": "sha256:03028f2321cbe0a707340798d0852e040b8becad0c7a5efd4b6918f7a5c5158d"
         },
-        "runtime_only_patch": {
+        "run_scoped_patch": {
           "raw_evidence/chronology/observed_at": "2027-03-03T03:03:03Z",
           "raw_evidence/chronology/received_at": "2027-03-03T03:03:04Z",
           "raw_evidence/chronology/persisted_at": "2027-03-03T03:03:05Z",
           "raw_evidence/provenance/adapter_activity_ref": "urn:omos:activity:ffffffff-0002-7aaa-8bbb-999999999999",
-          "source_anchor/resolution/resolved_at": "2027-03-03T03:03:06.000Z"
+          "source_anchor/resolution/resolved_at": "2027-03-03T03:03:06.000Z",
+          "blocks/2/quality/extraction_confidence": 0.42,
+          "blocks/0/parent_id": "urn:omos:document-block:0198e6d3-eeee-7aaa-8bbb-999999999999"
         }
       },
       "raw_evidence_instance": {

@@ -41,26 +41,10 @@ EXPECTED_CONTENT_LAYER_BY_BLOCK_TYPE = {
 }.freeze
 EXPECTED_ATTR_REQUIRED_BY_BLOCK_TYPE = { "table" => "table", "image" => "asset" }.freeze
 
-# deterministic projection surface 定義（必須與 yaml deterministic_derivation 逐字一致）。
-DETERMINISTIC_EXCLUDED_PATHS = %w[
-  raw_evidence/chronology/observed_at
-  raw_evidence/chronology/received_at
-  raw_evidence/chronology/persisted_at
-  raw_evidence/provenance/source_observation_receipt_ref
-  raw_evidence/provenance/adapter_activity_ref
-  raw_evidence/provenance/lineage_receipt_ref
-  raw_evidence/activity_refs
-  source_anchor/resolution/resolved_at
-  source_anchor/resolution/resolver_version
-].freeze
-IDENTITY_BEARING_FIELDS = %w[
-  raw_evidence/source_identity/native_id
-  raw_evidence/source_version
-  raw_evidence/digests
-  raw_evidence/idempotency_key
-  raw_evidence/payload/payload_ref
-].freeze
-DETERMINISM_INPUT_KEYS = DOC_MAP_DETERMINISM_INPUTS  # 來自共用 lib：7 個 declared input
+# FP-1（Owner 簽定）：determinism 只宣稱 evidence identity，不宣稱整份 emitted projection。
+EXPECTED_DETERMINISM_CLAIM = "EVIDENCE_IDENTITY_ONLY"
+# FP-3：唯一的路徑分類與 7 個 declared input 都來自共用 lib，契約不得另立清單。
+DETERMINISM_INPUT_KEYS = DOC_MAP_DETERMINISM_INPUTS
 
 EXPECTED_DOC_MAP_NEGATIVE_LABELS = [
   "a source kind outside PDF / MARKDOWN",
@@ -102,13 +86,9 @@ def sorted_set(values)
   values.to_a.sort
 end
 
-def projection_digest(triple)
-  scrubbed = deep_dup(triple)
-  DETERMINISTIC_EXCLUDED_PATHS.each { |path| delete_path(scrubbed, path) }
-  Digest::SHA256.hexdigest(canonical_json(scrubbed))
-end
-
-# derivation_binding_failures 在 scripts/lib/omos_contract_helpers.rb。
+# deterministic_surface / deterministic_projection_digest / normalized_document_digest /
+# deterministic_surface_mismatches 皆在 scripts/lib/omos_contract_helpers.rb，且全部只由
+# DOC_MAP_RUN_SCOPED_PATHS 這一份分類推導。
 
 # 純函式:一份 mapping 語意 case -> nil 或精確 machine failure code。
 def document_mapping_failure(test_case, target)
@@ -218,13 +198,15 @@ assert(ndp.fetch("attribute_required_by_block_type", {}) == EXPECTED_ATTR_REQUIR
 
 derivation = spec.fetch("deterministic_derivation", {})
 assert(sorted_set(derivation.fetch("inputs", [])) == sorted_set(DETERMINISM_INPUT_KEYS), "deterministic_derivation.inputs 必須剛好是 7 個 declared input", failures)
-assert(derivation.fetch("block_run_scoped_keys", []) == DOC_MAP_BLOCK_RUN_SCOPED_KEYS,
-       "deterministic_derivation.block_run_scoped_keys 必須逐字等於 validator 的 DOC_MAP_BLOCK_RUN_SCOPED_KEYS", failures)
-assert(derivation.fetch("derived", []).include?("projection_digest"), "deterministic_derivation.derived 必須含 projection_digest", failures)
-assert(derivation.fetch("excluded_from_canonical_digest", []) == DETERMINISTIC_EXCLUDED_PATHS,
-       "deterministic_derivation.excluded_from_canonical_digest 必須逐字等於 validator 的 DETERMINISTIC_EXCLUDED_PATHS", failures)
-assert(derivation.fetch("identity_bearing_fields", []) == IDENTITY_BEARING_FIELDS,
-       "deterministic_derivation.identity_bearing_fields 必須逐字等於 validator 的 IDENTITY_BEARING_FIELDS", failures)
+assert(derivation["claim"] == EXPECTED_DETERMINISM_CLAIM,
+       "deterministic_derivation.claim 必須是 #{EXPECTED_DETERMINISM_CLAIM}（FP-1 簽定）", failures)
+assert(derivation.fetch("derived", []).include?("deterministic_projection_digest"),
+       "deterministic_derivation.derived 必須含 deterministic_projection_digest（FP-2 簽定）", failures)
+# FP-3：不得另立第二份分類清單。
+%w[excluded_from_canonical_digest identity_bearing_fields block_run_scoped_keys].each do |legacy_key|
+  assert(!derivation.key?(legacy_key),
+         "deterministic_derivation 不得再有 #{legacy_key}（FP-3：只保留單一 run_scoped_paths）", failures)
+end
 assert(derivation.fetch("run_scoped_paths", []) == DOC_MAP_RUN_SCOPED_PATHS,
        "deterministic_derivation.run_scoped_paths 必須逐字等於 validator 的 DOC_MAP_RUN_SCOPED_PATHS", failures)
 
@@ -293,24 +275,22 @@ positive_cases.each do |test_case|
   inputs = test_case.dig("determinism", "inputs") || {}
   assert(sorted_set(inputs.keys) == sorted_set(DETERMINISM_INPUT_KEYS),
          "#{case_id} determinism.inputs 必須剛好是 7 個 declared input", failures)
-  surface_diff = deterministic_surface_mismatches(kind, inputs, raw_instance, anchor_instance, test_case.fetch("block_instances"))
+  base_triple = triple_of(test_case)
+  surface_diff = deterministic_surface_mismatches(kind, inputs, base_triple)
   assert(surface_diff.empty?, "#{case_id} deterministic surface 未由 inputs 完整決定：#{surface_diff.join("; ")}", failures)
 
-  # --- deterministic derivation：validator 自算 canonical projection digest ---
-  base_triple = triple_of(test_case)
-  runtime_patch = test_case.dig("determinism", "runtime_only_patch") || {}
-  assert(!runtime_patch.empty?, "#{case_id} 必須帶 determinism.runtime_only_patch（證明 runtime 欄位不影響 digest）", failures)
-  assert(runtime_patch.keys.all? { |path| DETERMINISTIC_EXCLUDED_PATHS.include?(path) },
-         "#{case_id} determinism.runtime_only_patch 只能改 excluded_from_canonical_digest 內的 path", failures)
-  assert(!test_case.dig("determinism", "two_runs"), "#{case_id} 不得再自報 determinism.two_runs / projection_digest（改由 validator 計算）", failures)
+  # --- FP-2：只改 run-scoped 路徑，deterministic_projection_digest 不得改變 ---
+  runtime_patch = test_case.dig("determinism", "run_scoped_patch") || {}
+  assert(!runtime_patch.empty?, "#{case_id} 必須帶 determinism.run_scoped_patch（證明 run-scoped 欄位不影響 digest）", failures)
+  assert(runtime_patch.keys.all? { |path| run_scoped_path?(path) },
+         "#{case_id} determinism.run_scoped_patch 只能改 run_scoped_paths 涵蓋的 path", failures)
+  assert(!test_case.dig("determinism", "two_runs"), "#{case_id} 不得自報 determinism.two_runs / digest（改由 validator 計算）", failures)
   patched_triple = deep_dup(base_triple)
   runtime_patch.each { |path, value| set_path(patched_triple, path, value) }
-  assert(projection_digest(base_triple) == projection_digest(patched_triple),
-         "#{case_id} 只改 runtime 欄位卻改變了 canonical projection digest（determinism 破損）", failures)
-  IDENTITY_BEARING_FIELDS.each do |path|
-    assert(read_path(base_triple, path) == read_path(patched_triple, path),
-           "#{case_id} identity-bearing 欄位 #{path} 在 runtime-only patch 後改變", failures)
-  end
+  assert(deterministic_projection_digest(base_triple) == deterministic_projection_digest(patched_triple),
+         "#{case_id} 只改 run-scoped 欄位卻改變了 deterministic_projection_digest", failures)
+  assert(deterministic_surface_mismatches(kind, inputs, patched_triple).empty?,
+         "#{case_id} run-scoped patch 後 deterministic surface 竟不再由 inputs 決定", failures)
 end
 
 # mapping 語意負例（evaluator 驅動）。determinism 負例（帶 base_case_ref）另段處理。
@@ -337,11 +317,11 @@ determinism_negatives.each do |test_case|
   mutated_triple = deep_dup(base_triple)
   mutation = test_case.fetch("stable_field_mutation")
   assert(!mutation.empty?, "#{case_id} stable_field_mutation 不得為空", failures)
-  assert(mutation.keys.none? { |path| DETERMINISTIC_EXCLUDED_PATHS.include?(path) },
-         "#{case_id} stable_field_mutation 不能只改 excluded path（那不是 stable 欄位）", failures)
+  assert(mutation.keys.none? { |path| run_scoped_path?(path) },
+         "#{case_id} stable_field_mutation 不能改 run-scoped path（那不是 deterministic 欄位）", failures)
   mutation.each { |path, value| set_path(mutated_triple, path, value) }
-  assert(projection_digest(base_triple) != projection_digest(mutated_triple),
-         "#{case_id}: 對 stable 欄位變更後 canonical projection digest 未變 —— determinism gate 失效", failures)
+  assert(deterministic_projection_digest(base_triple) != deterministic_projection_digest(mutated_triple),
+         "#{case_id}: 對 deterministic 欄位變更後 deterministic_projection_digest 未變 —— gate 失效", failures)
 end
 
 # derivation-input 負例：改 determinism.inputs 任一值、instance 完全不動 -> derivation binding 必須失配。
@@ -352,22 +332,14 @@ derivation_negatives.each do |test_case|
   assert(test_case.fetch("expected") == "deny", "#{case_id} derivation 負例必須預期 deny", failures)
   base_case = positive_by_id.fetch(test_case.fetch("base_case_ref"))
   inputs = base_case.dig("determinism", "inputs") || {}
-  raw = deep_dup(base_case.fetch("raw_evidence_instance"))
-  anchor = deep_dup(base_case.fetch("source_anchor_instance"))
-  blocks = deep_dup(base_case.fetch("block_instances"))
+  triple = deep_dup(triple_of(base_case))
   if test_case.key?("input_mutation")
     inputs = inputs.merge(test_case.fetch("input_mutation"))
   else
-    test_case.fetch("instance_mutation").each do |path, value|
-      if path.start_with?("block_instances/")
-        _, index, rest = path.split("/", 3)
-        set_path(blocks[index.to_i], rest, value)
-      else
-        set_path(path.start_with?("source_anchor_instance/") ? anchor : raw, path.split("/", 2).last, value)
-      end
-    end
+    # instance_mutation 直接以 triple 路徑表示（raw_evidence / source_anchor / blocks/N/...）。
+    test_case.fetch("instance_mutation").each { |path, value| set_path(triple, path, value) }
   end
-  diff = deterministic_surface_mismatches(base_case.fetch("source_kind"), inputs, raw, anchor, blocks)
+  diff = deterministic_surface_mismatches(base_case.fetch("source_kind"), inputs, triple)
   assert(!diff.empty?, "#{case_id}: mutation 後 deterministic surface 仍與 inputs 重建結果一致 —— surface gate 失效", failures)
 end
 

@@ -473,3 +473,72 @@ git add -A && git diff --cached --check                      clean
 | `scripts/lib/omos_contract_helpers.rb` | 改（+DOC_MAP_BLOCK_RUN_SCOPED_KEYS / deterministic_block_surface / normalized_document_digest；deterministic_surface_mismatches 擴充 block slice + char_representation_digest） |
 | `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（6 個 block content_sha256 校正；determinism.inputs +normalized_document_digest ×2） |
 | `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（+3 負例：1 input mutation + 1 paired block drift + 1 content_sha256 不一致） |
+
+---
+
+## Determinism 收尾（2026-09-10）— 依 Owner spec-freeze FP-1..FP-5 實作
+
+卡：`.work/CARD-DOC-ADAPTER-DETERMINISM-CLOSEOUT-20260910.md`（**非 repair-07**；repair-06 的
+hard stop 已觸發，F-03 轉 T2 spec-freeze 並由 Owner 於 2026-09-10 簽定）。
+`c2e184f` / `faddb8c` / `d2ee1d2` / `df6b2ff` / `f2333e1` / `9ef254f` / `e7505f8` 皆不動；
+delta = `e7505f8..<closeout SHA>`。
+
+### FP-1 只宣稱 evidence identity
+
+YAML `deterministic_derivation.claim: EVIDENCE_IDENTITY_ONLY` + `claim_rule`；validator 斷言
+逐字相符。不再宣稱整份 emitted projection 逐位元相同。
+
+### FP-2 `deterministic_projection_digest`
+
+刪除舊 `projection_digest()`（hash 整份 triple）。新
+`deterministic_projection_digest(triple) = "sha256:" + SHA256(canonical_json(deterministic_surface(triple)))`
+—— 與 reconstruction 用同一個 surface，run-scoped 欄位在構造上不可能改變它。
+
+### FP-3 單一總分類（止血點）
+
+`DOC_MAP_RUN_SCOPED_PATHS` 成為唯一權威分類，涵蓋三個 slice（新增 `blocks/*/block_id` /
+`parent_id` / `source_anchor_refs` / `quality`）。刪除 `DETERMINISTIC_EXCLUDED_PATHS`、
+`IDENTITY_BEARING_FIELDS`、`DOC_MAP_BLOCK_RUN_SCOPED_KEYS`。新 `run_scoped_path?()`（含子樹與
+`*` 展開）。`deterministic_surface` / digest / `normalized_document_digest` /
+`deterministic_surface_mismatches` 全由它推導。validator 斷言 YAML 不得再出現舊的三份清單 key。
+path helper 升級支援 Array 索引與 `*`。
+
+### FP-4 / FP-5
+
+block `parent_id` / `source_anchor_refs` / `quality` 全部納入單一分類為 run-scoped；文件結構
+由 `level` / `order` 承載於 deterministic surface。
+
+### Carry-over P2
+
+`PAIRED_BLOCK_CONTENT_DRIFT` 捏造的 `content_sha256` 校正為 `"Authorization boundary"` 的
+實算值 `sha256:6553c606…`；該負例現在只證明 paired block drift 本身。
+
+### F-03-R06 直接關閉（本地重現）
+
+positive `runtime_only_patch` → `run_scoped_patch`，並加入 reviewer 原 mutation
+`blocks/0/quality/extraction_confidence: 0.5`（另加 block_id / source_anchor_refs /
+parent_id）。實測 patch 確實落地（`0.98 -> 0.5`、`base != patched` 為 true），但
+`deterministic_projection_digest` 兩者相同（`sha256:3109701453fe5615…`）。
+
+### 收尾後 gate
+
+```
+ruby validate_document_adapter_mapping_contract.rb           PASS
+validate_document_adapter_mapping_instances.py (uv)          PASS (positive_instances=10, instance_negatives=3)
+全 19 Ruby validators（含共用 lib 回歸）                      PASS
+validate_std_schema_engine.py (uv)                           PASS (STD01 12/12, STD02 16/16, STD03 9/9)
+validate_cc_cross_layer_contract.py (uv)                     PASS
+enforcement parity（6 項，含「digest 改回 hash 整份 projection」）  全數 RED-on-tamper
+git add -A && git diff --cached --check                      clean
+validator 行數                                                369（< 400）
+```
+
+### 交付物（收尾）
+
+| 檔 | 動作 |
+|---|---|
+| `規格/v0.1/document-adapter-mapping.yaml` | 改（`deterministic_derivation` 整段重寫：claim / claim_rule / 7 inputs / derived / 單一 run_scoped_paths（含 blocks/*）/ reconstructed_from_inputs / rule；移除 excluded_from_canonical_digest、identity_bearing_fields、block_run_scoped_keys、block_surface_rule） |
+| `scripts/validate_document_adapter_mapping_contract.rb` | 改（移除三份舊清單常數與 projection_digest()；claim 斷言；FP-3 反向斷言；positive 改用 run_scoped_patch + digest 不變；負例改吃 triple 路徑；369 行） |
+| `scripts/lib/omos_contract_helpers.rb` | 改（path helper 支援 Array 索引與 `*`；單一 DOC_MAP_RUN_SCOPED_PATHS；run_scoped_path?；deterministic_surface；deterministic_projection_digest；normalized_document_digest 改吃 triple；deterministic_surface_mismatches 改吃 triple） |
+| `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（runtime_only_patch → run_scoped_patch，加入 block run-scoped 路徑含 reviewer 原 mutation） |
+| `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（instance_mutation 路徑改 triple 形式；carry-over hash 校正） |
