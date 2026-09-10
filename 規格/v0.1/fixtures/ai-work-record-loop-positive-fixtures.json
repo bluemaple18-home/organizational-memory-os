@@ -84,6 +84,21 @@
         "error": "timeout budget exhausted before close-out completed",
         "ok": false
       }
+    },
+    {
+      "case_id": "LOOP_POS_MAX_ITERATIONS_WITH_ORDINARY_GAP",
+      "expected": "allow",
+      "note": "F-04 (a) 的判別控制：達上限收尾時普通 auto-fixable 缺口可留給人，CLOSED 仍成立；只有 ALL_REQUIRED_PRESENT 要求收乾淨。",
+      "run": {
+        "max_iterations": 2,
+        "timeout_seconds": 120,
+        "elapsed_seconds": 95,
+        "iterations": [{"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": []}, {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": [{"gap": "secondary_evidence_ref", "auto_fixable": true, "requires_human_decision": false}]}],
+        "outcome": "CLOSED",
+        "terminal_condition": "MAX_ITERATIONS_REACHED",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
     }
   ]
 }
