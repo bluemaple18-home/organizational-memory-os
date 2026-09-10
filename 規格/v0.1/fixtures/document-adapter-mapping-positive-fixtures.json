@@ -1,0 +1,636 @@
+{
+  "document_mapping_cases": [
+    {
+      "case_id": "DOC_MAP_POS_PDF",
+      "expected": "allow",
+      "source_kind": "PDF",
+      "mapping": {
+        "native_id_basis": "CONTENT_SHA256",
+        "payload_ref": "urn:omos:payload:0198e6d1-0101-7aaa-8bbb-111111111111",
+        "anchor_profile": "PDF_REGION_V1",
+        "selector_types": [
+          "PDF_REGION",
+          "TEXT_QUOTE"
+        ],
+        "profile_details_keys": [
+          "page",
+          "page_number_basis",
+          "bbox",
+          "block_id",
+          "char_range",
+          "char_representation_ref",
+          "char_representation_digest",
+          "selected_text"
+        ],
+        "blocks": [
+          {
+            "block_type": "section_header",
+            "content_layer": "TITLE",
+            "attribute_keys": [],
+            "anchored": true
+          },
+          {
+            "block_type": "table",
+            "content_layer": "TABLE",
+            "attribute_keys": [
+              "table"
+            ],
+            "anchored": true
+          },
+          {
+            "block_type": "image",
+            "content_layer": "IMAGE",
+            "attribute_keys": [
+              "asset"
+            ],
+            "anchored": true
+          }
+        ]
+      },
+      "determinism": {
+        "inputs": {
+          "content_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "adapter_id": "document-pdf-adapter",
+          "adapter_version": "0.1.0",
+          "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+          "source_instance_id": "tenant-example",
+          "normalized_representation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "normalized_document_digest": "sha256:da4d58387fc54b11a8af7d512e3f683fb5b0330a2326fc73e392d5d8c2b61805"
+        },
+        "run_scoped_patch": {
+          "raw_evidence/chronology/observed_at": "2027-02-02T02:02:02Z",
+          "raw_evidence/chronology/received_at": "2027-02-02T02:02:03Z",
+          "raw_evidence/chronology/persisted_at": "2027-02-02T02:02:04Z",
+          "raw_evidence/provenance/source_observation_receipt_ref": "urn:omos:receipt:ffffffff-0000-7aaa-8bbb-999999999999",
+          "raw_evidence/provenance/adapter_activity_ref": "urn:omos:activity:ffffffff-0001-7aaa-8bbb-999999999999",
+          "source_anchor/resolution/resolved_at": "2027-02-02T02:02:05.000Z",
+          "source_anchor/resolution/resolver_version": "doc-adapter-v2",
+          "blocks/0/quality/extraction_confidence": 0.5,
+          "blocks/0/block_id": "urn:omos:document-block:0198e6d3-ffff-7aaa-8bbb-999999999999",
+          "blocks/1/source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-ffff-7aaa-8bbb-999999999999"]
+        }
+      },
+      "raw_evidence_instance": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0001-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0001-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "document",
+          "source_instance_id": "tenant-example",
+          "entity_type": "PDF",
+          "native_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "DISPLAY_NAME",
+            "value": "product-runbook.pdf",
+            "valid_from": "2026-08-28T06:00:00Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": null,
+        "source_version": {
+          "basis": "CONTENT_ONLY",
+          "kind": "CONTENT_DIGEST",
+          "value": null,
+          "secondary_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "chronology": {
+          "occurred_at": null,
+          "occurred_at_basis": "UNKNOWN",
+          "observed_at": "2026-08-28T06:00:00Z",
+          "received_at": "2026-08-28T06:00:01Z",
+          "persisted_at": "2026-08-28T06:00:02Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "canonical_digest": null,
+          "normalized_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "payload": {
+          "media_type": "application/pdf",
+          "payload_ref": "urn:omos:payload:0198e6d1-0101-7aaa-8bbb-111111111111",
+          "size_bytes": 245760,
+          "structured_profile": "BINARY",
+          "canonicalization_profile": "NONE",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0201-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": null,
+          "visibility_scope_refs": [
+            "urn:omos:scope:tenant-example"
+          ]
+        },
+        "transport_delivery": null,
+        "provenance": {
+          "adapter_id": "document-pdf-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "MANUAL_UPLOAD",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0301-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0401-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": null,
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0401-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:bf10c923297f6f41d9410c84e8555ff6a4a72670c18d32eb5bfda390056dd34e",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": []
+      },
+      "source_anchor_instance": {
+        "schema_version": "omos.source-anchor.v0.1",
+        "anchor_id": "0198e6d2-0001-7aaa-8bbb-111111111111",
+        "anchor_ref": "urn:omos:source-anchor:0198e6d2-0001-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0001-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "document",
+          "source_instance_id": "tenant-example",
+          "entity_type": "PDF",
+          "native_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "parent_native_id": null
+        },
+        "source_version": {
+          "basis": "CONTENT_ONLY",
+          "kind": "CONTENT_DIGEST",
+          "value": null,
+          "secondary_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "representation": {
+          "source_payload_ref": "urn:omos:payload:0198e6d1-0101-7aaa-8bbb-111111111111",
+          "source_payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "representation_ref": "urn:omos:representation:normalized-page-7",
+          "media_type": "text/plain",
+          "representation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "digest_basis": "retained representation bytes"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0201-7aaa-8bbb-111111111111",
+          "permission_decision_ref": null
+        },
+        "profile": "PDF_REGION_V1",
+        "selectors": [
+          {
+            "selector_type": "PDF_REGION"
+          },
+          {
+            "selector_type": "TEXT_QUOTE"
+          }
+        ],
+        "profile_details": {
+          "page": 7,
+          "page_number_basis": "ONE_BASED",
+          "bbox": {
+            "x_min": 0.101234,
+            "y_min": 0.203456,
+            "x_max": 0.812345,
+            "y_max": 0.287654,
+            "coordinate_space": "NORMALIZED_PAGE_0_1",
+            "origin": "TOP_LEFT"
+          },
+          "block_id": "b-000123",
+          "char_range": {
+            "start": 120,
+            "end": 124,
+            "unit": "UNICODE_CODE_POINT",
+            "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE"
+          },
+          "char_representation_ref": "urn:omos:representation:normalized-page-7",
+          "char_representation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "selected_text": "permission check"
+        },
+        "quote": {
+          "exact": "permission check",
+          "prefix": "security requirement: ",
+          "suffix": " before querying payroll.",
+          "normalization_profile": "OMOS_TEXT_NORM_V1"
+        },
+        "normalization_profile": "OMOS_TEXT_NORM_V1",
+        "source_availability": "AVAILABLE",
+        "resolution": {
+          "status": "EXACT_MATCH",
+          "resolved_at": "2026-09-04T01:00:00.123Z",
+          "resolver_version": "doc-adapter-v1"
+        }
+      },
+      "block_instances": [
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-1001-7aaa-8bbb-111111111111",
+          "block_type": "section_header",
+          "parent_id": null,
+          "order": 1,
+          "level": 1,
+          "content": "Access control",
+          "content_sha256": "sha256:0bf1d245547b7b2a2c59d3c80a6348ffddb8d38f8e19046aff89ef34fc6fc4e0",
+          "language": "en",
+          "content_layer": "TITLE",
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:0198e6d2-0001-7aaa-8bbb-111111111111"
+          ],
+          "attributes": {},
+          "quality": {
+            "extraction_confidence": 0.98,
+            "warnings": []
+          }
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-1002-7aaa-8bbb-111111111111",
+          "block_type": "table",
+          "parent_id": "urn:omos:document-block:0198e6d3-1001-7aaa-8bbb-111111111111",
+          "order": 2,
+          "level": 2,
+          "content": "role | scope",
+          "content_sha256": "sha256:b883402c0c20e336da49c9675324a07db26d5895652497e45eb5129be30317ab",
+          "language": "en",
+          "content_layer": "TABLE",
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:0198e6d2-0001-7aaa-8bbb-111111111111"
+          ],
+          "attributes": {
+            "table": {
+              "columns": [
+                {
+                  "column_index": 0,
+                  "text": "role"
+                },
+                {
+                  "column_index": 1,
+                  "text": "scope"
+                }
+              ],
+              "rows": [
+                {
+                  "row_index": 0,
+                  "cells": [
+                    {
+                      "column_index": 0,
+                      "text": "manager",
+                      "row_span": 1,
+                      "col_span": 1
+                    },
+                    {
+                      "column_index": 1,
+                      "text": "team",
+                      "row_span": 1,
+                      "col_span": 1
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          "quality": {
+            "extraction_confidence": 0.9,
+            "warnings": []
+          }
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-1003-7aaa-8bbb-111111111111",
+          "block_type": "image",
+          "parent_id": "urn:omos:document-block:0198e6d3-1001-7aaa-8bbb-111111111111",
+          "order": 3,
+          "level": 2,
+          "content": "screenshot: permission check location",
+          "content_sha256": "sha256:dad0e3de5b58c7e92900917be7a55f4a17f6a318ace096aac7ad6762dfef9492",
+          "language": "en",
+          "content_layer": "IMAGE",
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:0198e6d2-0001-7aaa-8bbb-111111111111"
+          ],
+          "attributes": {
+            "asset": {
+              "asset_ref": "urn:omos:asset:0198e6d3-9001-7aaa-8bbb-111111111111",
+              "media_type": "image/png",
+              "caption": "permission check location",
+              "bbox": {
+                "x_min": 0.101234,
+                "y_min": 0.203456,
+                "x_max": 0.812345,
+                "y_max": 0.287654,
+                "coordinate_space": "NORMALIZED_PAGE_0_1",
+                "origin": "TOP_LEFT"
+              }
+            }
+          },
+          "quality": {
+            "extraction_confidence": 0.86,
+            "warnings": [
+              "IMAGE_CONTENT_NOT_READ"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "case_id": "DOC_MAP_POS_MARKDOWN",
+      "expected": "allow",
+      "source_kind": "MARKDOWN",
+      "mapping": {
+        "native_id_basis": "CONTENT_SHA256",
+        "payload_ref": "urn:omos:payload:0198e6d1-0102-7aaa-8bbb-111111111111",
+        "anchor_profile": "MARKDOWN_TEXT_V1",
+        "selector_types": [
+          "TEXT_POSITION",
+          "TEXT_QUOTE",
+          "HEADING_PATH"
+        ],
+        "profile_details_keys": [
+          "codepoint_range",
+          "line_range",
+          "line_number_basis",
+          "heading_path",
+          "selected_text"
+        ],
+        "blocks": [
+          {
+            "block_type": "title",
+            "content_layer": "TITLE",
+            "attribute_keys": [],
+            "anchored": true
+          },
+          {
+            "block_type": "code",
+            "content_layer": "CODE",
+            "attribute_keys": [],
+            "anchored": true
+          },
+          {
+            "block_type": "list_item",
+            "content_layer": "BODY",
+            "attribute_keys": [],
+            "anchored": true
+          }
+        ]
+      },
+      "determinism": {
+        "inputs": {
+          "content_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "adapter_id": "document-markdown-adapter",
+          "adapter_version": "0.1.0",
+          "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+          "source_instance_id": "tenant-example",
+          "normalized_representation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "normalized_document_digest": "sha256:03028f2321cbe0a707340798d0852e040b8becad0c7a5efd4b6918f7a5c5158d"
+        },
+        "run_scoped_patch": {
+          "raw_evidence/chronology/observed_at": "2027-03-03T03:03:03Z",
+          "raw_evidence/chronology/received_at": "2027-03-03T03:03:04Z",
+          "raw_evidence/chronology/persisted_at": "2027-03-03T03:03:05Z",
+          "raw_evidence/provenance/adapter_activity_ref": "urn:omos:activity:ffffffff-0002-7aaa-8bbb-999999999999",
+          "source_anchor/resolution/resolved_at": "2027-03-03T03:03:06.000Z",
+          "blocks/2/quality/extraction_confidence": 0.42,
+          "blocks/0/parent_id": "urn:omos:document-block:0198e6d3-eeee-7aaa-8bbb-999999999999"
+        }
+      },
+      "raw_evidence_instance": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0002-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0002-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "document",
+          "source_instance_id": "tenant-example",
+          "entity_type": "MARKDOWN",
+          "native_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "parent_native_id": null
+        },
+        "source_aliases": [
+          {
+            "kind": "DISPLAY_NAME",
+            "value": "notes.md",
+            "valid_from": "2026-08-28T06:00:00Z",
+            "valid_to": null,
+            "status": "ACTIVE",
+            "source_evidence_ref": null
+          }
+        ],
+        "source_event": null,
+        "source_version": {
+          "basis": "CONTENT_ONLY",
+          "kind": "CONTENT_DIGEST",
+          "value": null,
+          "secondary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "chronology": {
+          "occurred_at": null,
+          "occurred_at_basis": "UNKNOWN",
+          "observed_at": "2026-08-28T06:00:00Z",
+          "received_at": "2026-08-28T06:00:01Z",
+          "persisted_at": "2026-08-28T06:00:02Z"
+        },
+        "digests": {
+          "raw_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "canonical_digest": null,
+          "normalized_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+        },
+        "payload": {
+          "media_type": "text/markdown",
+          "payload_ref": "urn:omos:payload:0198e6d1-0102-7aaa-8bbb-111111111111",
+          "size_bytes": 4096,
+          "structured_profile": "TEXT",
+          "canonicalization_profile": "NONE",
+          "retention_tier": "SOURCE_FULL_BODY"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0202-7aaa-8bbb-111111111111",
+          "permission_basis": "SOURCE_ACL",
+          "source_permission_version": null,
+          "visibility_scope_refs": [
+            "urn:omos:scope:tenant-example"
+          ]
+        },
+        "transport_delivery": null,
+        "provenance": {
+          "adapter_id": "document-markdown-adapter",
+          "adapter_version": "0.1.0",
+          "ingestion_mode": "BULK_EXPORT",
+          "source_observation_receipt_ref": "urn:omos:receipt:0198e6d1-0302-7aaa-8bbb-111111111111",
+          "adapter_activity_ref": "urn:omos:activity:0198e6d1-0402-7aaa-8bbb-111111111111",
+          "lineage_receipt_ref": null,
+          "lineage_activity_status": "COMPLETE",
+          "verification_status": "NOT_RUN",
+          "verification_inferred_from_activity": false
+        },
+        "activity_refs": [
+          "urn:omos:activity:0198e6d1-0402-7aaa-8bbb-111111111111"
+        ],
+        "source_availability": "AVAILABLE",
+        "payload_retention_state": "RETAINED",
+        "deletion_confirmation_ref": null,
+        "permission_decision_ref": null,
+        "idempotency_key": "sha256:e4512c39b4a29f2e4fcdf2b15e3c152a46b0fd88f90dc1989eac9f25ca0b7b88",
+        "idempotency_basis": {
+          "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+          "includes": [
+            "tenant_id",
+            "stable_source_identity",
+            "source_version"
+          ],
+          "excludes": [
+            "received_at",
+            "persisted_at",
+            "ingestion_mode"
+          ]
+        },
+        "quality_gaps": []
+      },
+      "source_anchor_instance": {
+        "schema_version": "omos.source-anchor.v0.1",
+        "anchor_id": "0198e6d2-0002-7aaa-8bbb-111111111111",
+        "anchor_ref": "urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0002-7aaa-8bbb-111111111111",
+        "source_identity": {
+          "source_system": "document",
+          "source_instance_id": "tenant-example",
+          "entity_type": "MARKDOWN",
+          "native_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "parent_native_id": null
+        },
+        "source_version": {
+          "basis": "CONTENT_ONLY",
+          "kind": "CONTENT_DIGEST",
+          "value": null,
+          "secondary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "representation": {
+          "source_payload_ref": "urn:omos:payload:0198e6d1-0102-7aaa-8bbb-111111111111",
+          "source_payload_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "representation_ref": "urn:omos:representation:normalized-md-1",
+          "media_type": "text/plain",
+          "representation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "digest_basis": "normalized text bytes"
+        },
+        "access": {
+          "acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0202-7aaa-8bbb-111111111111",
+          "permission_decision_ref": null
+        },
+        "profile": "MARKDOWN_TEXT_V1",
+        "selectors": [
+          {
+            "selector_type": "TEXT_POSITION"
+          },
+          {
+            "selector_type": "TEXT_QUOTE"
+          },
+          {
+            "selector_type": "HEADING_PATH"
+          }
+        ],
+        "profile_details": {
+          "codepoint_range": {
+            "start": 520,
+            "end": 524,
+            "unit": "UNICODE_CODE_POINT",
+            "range_semantics": "START_INCLUSIVE_END_EXCLUSIVE"
+          },
+          "line_range": {
+            "start": 18,
+            "end": 18
+          },
+          "line_number_basis": "ONE_BASED_END_INCLUSIVE",
+          "heading_path": [
+            "Order spend zero triage",
+            "Policy layer"
+          ],
+          "selected_text": "policy check"
+        },
+        "quote": {
+          "exact": "policy check",
+          "prefix": "after confirming the ad format, ",
+          "suffix": " then check the targeting intersection.",
+          "normalization_profile": "OMOS_TEXT_NORM_V1"
+        },
+        "normalization_profile": "OMOS_TEXT_NORM_V1",
+        "source_availability": "AVAILABLE",
+        "resolution": {
+          "status": "RELOCATED",
+          "resolved_at": "2026-09-04T01:00:00.456Z",
+          "resolver_version": "doc-adapter-v1"
+        }
+      },
+      "block_instances": [
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-2001-7aaa-8bbb-111111111111",
+          "block_type": "title",
+          "parent_id": null,
+          "order": 1,
+          "level": 1,
+          "content": "Policy layer",
+          "content_sha256": "sha256:3d92eb64fa145a94d14319c48a8d78d830496704c96dee9ba1b212bcf7243699",
+          "language": "en",
+          "content_layer": "TITLE",
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111"
+          ],
+          "attributes": {},
+          "quality": {
+            "extraction_confidence": 0.99,
+            "warnings": []
+          }
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-2002-7aaa-8bbb-111111111111",
+          "block_type": "code",
+          "parent_id": "urn:omos:document-block:0198e6d3-2001-7aaa-8bbb-111111111111",
+          "order": 2,
+          "level": 2,
+          "content": "policy.check(actor, action)",
+          "content_sha256": "sha256:27b82157f467734bcb4ecc2853ba55e26ba4e6db83b2ec500c10e0c50fa70a80",
+          "language": "en",
+          "content_layer": "CODE",
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111"
+          ],
+          "attributes": {},
+          "quality": {
+            "extraction_confidence": 0.97,
+            "warnings": []
+          }
+        },
+        {
+          "block_id": "urn:omos:document-block:0198e6d3-2003-7aaa-8bbb-111111111111",
+          "block_type": "list_item",
+          "parent_id": "urn:omos:document-block:0198e6d3-2001-7aaa-8bbb-111111111111",
+          "order": 3,
+          "level": 2,
+          "content": "permission decision is recorded before retrieval",
+          "content_sha256": "sha256:25fd6e62083b7352f75f2ae3d6152b5e76685a74b1cd2780f5dd5341fd8c85ff",
+          "language": "en",
+          "content_layer": "BODY",
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:0198e6d2-0002-7aaa-8bbb-111111111111"
+          ],
+          "attributes": {},
+          "quality": {
+            "extraction_confidence": 0.95,
+            "warnings": []
+          }
+        }
+      ]
+    }
+  ]
+}

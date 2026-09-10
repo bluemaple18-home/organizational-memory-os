@@ -1,0 +1,335 @@
+schema:
+  schema_id: urn:omos:schema:document-adapter-mapping:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-09'
+  traces_to:
+    - DOC-ADAPTER-MAPPING
+  builds_on:
+    - 規格/v0.1/raw-evidence-envelope.schema.json
+    - 規格/v0.1/source-anchor.schema.json
+    - 規格/v0.1/source-anchor-pdf-region-v1.schema.json
+    - 規格/v0.1/source-anchor-markdown-text-v1.schema.json
+    - 規格/v0.1/normalized-document-block.schema.json
+
+purpose:
+  statement: >-
+    A deterministic mapping contract: how a document source (PDF, Markdown)
+    projects onto the locked STD schemas -- RawEvidenceEnvelope (STD-01), the
+    profile-specific SourceAnchor schema (STD-02 PDF_REGION_V1 /
+    MARKDOWN_TEXT_V1) and NormalizedDocument block subset (STD-03). It does not
+    re-define any STD schema: profile_details is the exact locked
+    profile-specific shape, and every projected RawEvidenceEnvelope /
+    SourceAnchor / NormalizedDocumentBlock must be a schema-valid instance of
+    the locked target schema (checked by a JSON Schema engine). No connector,
+    parser or ingestion runtime.
+  no_second_workflow_authority: true
+
+source_kinds:
+  - PDF
+  - MARKDOWN
+
+raw_evidence_projection:
+  source_system: document
+  entity_type_by_kind:
+    PDF: PDF
+    MARKDOWN: MARKDOWN
+  native_id_basis: CONTENT_SHA256
+  source_version:
+    basis: CONTENT_ONLY
+    kind: CONTENT_DIGEST
+    value_is_null: true
+    secondary_digest_basis: CONTENT_SHA256
+  payload:
+    structured_profile_by_kind:
+      PDF: BINARY
+      MARKDOWN: TEXT
+    canonicalization_profile: NONE
+    payload_ref_is_reference: true
+  provenance:
+    allowed_ingestion_modes:
+      - MANUAL_UPLOAD
+      - BULK_EXPORT
+  digests:
+    raw_digest_basis: SOURCE_BYTES_SHA256
+    canonical_digest_is_null: true
+    normalized_digest_basis: NORMALIZED_REPRESENTATION_SHA256
+  rule: >-
+    the projected RawEvidenceEnvelope is a schema-valid instance of
+    raw-evidence-envelope.schema.json (DOC_MAP_TARGET_INSTANCE_INVALID
+    otherwise); payload.payload_ref is a reference string, never inline content
+    (DOC_MAP_PAYLOAD_INLINE); source_identity.native_id_basis is CONTENT_SHA256
+    so identity is content-addressed (DOC_MAP_NONDETERMINISTIC_IDENTITY
+    otherwise). Every value in this block is bound by the thin validator: the
+    enum-valued keys (payload.structured_profile_by_kind,
+    payload.canonicalization_profile, provenance.allowed_ingestion_modes,
+    source_version.basis / .kind) must be members of the matching
+    raw-evidence-envelope.schema.json enum, and every positive fixture's
+    raw_evidence_instance must agree with this mapping for its source kind
+    (source_system, entity_type, structured_profile, canonicalization_profile,
+    ingestion_mode, source_version.basis / .kind). For a pure document there is
+    no authoritative native version: source_version.value is null and the
+    content SHA256 lives in source_version.secondary_digest (value_is_null and
+    secondary_digest_basis are asserted against the fixtures, RED on drift);
+    payload canonicalization_profile is NONE so digests.canonical_digest is null
+    (canonical_digest_is_null asserted). The spec and the fixtures cannot drift
+    apart.
+
+source_anchor_projection:
+  profile_by_kind:
+    PDF: PDF_REGION_V1
+    MARKDOWN: MARKDOWN_TEXT_V1
+  required_selector_type_by_kind:
+    PDF: PDF_REGION
+    MARKDOWN: TEXT_POSITION
+  normalization_profile: OMOS_TEXT_NORM_V1
+  profile_details_shape:
+    PDF_REGION_V1:
+      - page
+      - page_number_basis
+      - bbox
+      - block_id
+      - char_range
+      - char_representation_ref
+      - char_representation_digest
+      - selected_text
+    MARKDOWN_TEXT_V1:
+      - codepoint_range
+      - line_range
+      - line_number_basis
+      - heading_path
+      - selected_text
+  allowed_resolution_status:
+    - EXACT_MATCH
+    - RELOCATED
+    - CONTENT_CHANGED
+    - MISSING
+    - ACCESS_REVOKED
+    - REPRESENTATION_UNAVAILABLE
+    - AMBIGUOUS
+  rule: >-
+    profile matches the source kind (DOC_MAP_PROFILE_MISMATCH); the projected
+    SourceAnchor is a schema-valid instance of the profile-specific locked
+    schema -- source-anchor-pdf-region-v1.schema.json for PDF,
+    source-anchor-markdown-text-v1.schema.json for Markdown -- which itself
+    references the base source-anchor.schema.json
+    (DOC_MAP_TARGET_INSTANCE_INVALID otherwise); profile_details has exactly the
+    keys of the locked profile schema's profile_details.required
+    (DOC_MAP_PROFILE_DETAILS_NOT_LOCKED_SHAPE otherwise); selectors carries at
+    least one entry of required_selector_type (DOC_MAP_SELECTOR_MISSING);
+    normalization_profile is the OMOS_TEXT_NORM_V1 const.
+
+normalized_document_projection:
+  allowed_block_types:
+    - title
+    - section_header
+    - paragraph
+    - list_item
+    - code
+    - table
+    - image
+    - unknown
+  content_layer_by_block_type:
+    title: TITLE
+    section_header: TITLE
+    paragraph: BODY
+    list_item: BODY
+    code: CODE
+    table: TABLE
+    image: IMAGE
+    unknown: UNKNOWN
+  attribute_required_by_block_type:
+    table: table
+    image: asset
+  rule: >-
+    every projected NormalizedDocumentBlock is a schema-valid instance of
+    normalized-document-block.schema.json (DOC_MAP_TARGET_INSTANCE_INVALID
+    otherwise), which fixes block_id as a UUIDv7 urn, the table / image
+    attribute nested shapes and the source_anchor_refs urn pattern;
+    content_layer equals content_layer_by_block_type[block_type]
+    (DOC_MAP_CONTENT_LAYER_MISMATCH); a `table` block carries attributes.table
+    and an `image` block carries attributes.asset
+    (DOC_MAP_TABLE_IMAGE_ATTR_MISSING); every block has a non-empty
+    source_anchor_refs (DOC_MAP_BLOCK_NOT_ANCHORED).
+
+deterministic_derivation:
+  # Owner spec-freeze 20260910（FP-1..FP-5）。單一權威分類：對
+  # {raw_evidence, source_anchor, blocks} 的每條路徑，落在 run_scoped_paths（或其子樹）
+  # = RUN_SCOPED，否則 = DETERMINISTIC。reconstruction、deterministic_projection_digest、
+  # normalized_document_digest 全部由這一份推導，契約不得另立第二份清單。
+  claim: EVIDENCE_IDENTITY_ONLY
+  claim_rule: >-
+    FP-1: the contract claims that identical declared inputs yield an identical
+    evidence identity surface (RawEvidence + SourceAnchor deterministic slices and
+    the deterministic block surface). It does NOT claim that the whole emitted
+    projection is byte-identical -- per-run refs (evidence_id / anchor_id /
+    block_id / source_anchor_refs), ingestion-time metadata and extraction quality
+    are run-scoped by design.
+  inputs:
+    - content_digest                    # SHA256(source bytes)
+    - adapter_id
+    - adapter_version
+    - tenant_id
+    - source_instance_id                # 該 tenant 的文件來源實例 id
+    - normalized_representation_digest   # SHA256(normalized representation bytes)
+    - normalized_document_digest         # SHA256(canonical_json(deterministic block surface))
+  derived:
+    - source_identity
+    - source_version
+    - digests
+    - representation_digest
+    - idempotency_key
+    - normalized_document_block_surface
+    - deterministic_projection_digest    # FP-2
+  run_scoped_paths:
+    - raw_evidence/evidence_id
+    - raw_evidence/evidence_ref
+    - raw_evidence/source_aliases
+    - raw_evidence/source_event
+    - raw_evidence/chronology
+    - raw_evidence/access
+    - raw_evidence/transport_delivery
+    - raw_evidence/activity_refs
+    - raw_evidence/source_availability
+    - raw_evidence/payload_retention_state
+    - raw_evidence/deletion_confirmation_ref
+    - raw_evidence/permission_decision_ref
+    - raw_evidence/quality_gaps
+    - raw_evidence/payload/payload_ref
+    - raw_evidence/payload/size_bytes
+    - raw_evidence/provenance/ingestion_mode
+    - raw_evidence/provenance/source_observation_receipt_ref
+    - raw_evidence/provenance/adapter_activity_ref
+    - raw_evidence/provenance/lineage_receipt_ref
+    - source_anchor/anchor_id
+    - source_anchor/anchor_ref
+    - source_anchor/evidence_ref
+    - source_anchor/access
+    - source_anchor/quote
+    - source_anchor/source_availability
+    - source_anchor/resolution
+    - source_anchor/selectors
+    - source_anchor/representation/source_payload_ref
+    - source_anchor/representation/source_payload_digest
+    - source_anchor/representation/representation_ref
+    # profile_details 逐子欄位分類（不是整個 subtree），因此 char_representation_digest
+    # 依單一規則就是 DETERMINISTIC，不需要任何特例；validator 另斷言 locked profile schema
+    # 的每個 profile_details 欄位都被涵蓋。
+    - source_anchor/profile_details/page
+    - source_anchor/profile_details/page_number_basis
+    - source_anchor/profile_details/bbox
+    - source_anchor/profile_details/block_id
+    - source_anchor/profile_details/char_range
+    - source_anchor/profile_details/char_representation_ref
+    - source_anchor/profile_details/codepoint_range
+    - source_anchor/profile_details/line_range
+    - source_anchor/profile_details/line_number_basis
+    - source_anchor/profile_details/heading_path
+    - source_anchor/profile_details/selected_text
+    - blocks/*/block_id                  # FP-4：per-run urn
+    - blocks/*/parent_id                 # FP-4：per-run urn 連結；結構由 level / order 承載
+    - blocks/*/source_anchor_refs        # FP-4：per-run urn
+    - blocks/*/quality                   # FP-5：per-run 抽取量測
+  reconstructed_from_inputs: >-
+    raw_evidence.{schema_version, tenant_id, source_identity, source_version, digests,
+    payload(media_type/structured_profile/canonicalization_profile/retention_tier),
+    provenance(adapter_id/adapter_version + lineage_activity_status/verification_status/
+    verification_inferred_from_activity constants), idempotency_key, idempotency_basis} and
+    source_anchor.{schema_version, source_identity, source_version, representation
+    (media_type/representation_digest/digest_basis), profile, normalization_profile}.
+    source_identity is the same object on both instances:
+    {source_system: document, source_instance_id: inputs.source_instance_id,
+    entity_type: <PDF|MARKDOWN by kind>, native_id: inputs.content_digest,
+    parent_native_id: null}. source_version is
+    {basis: CONTENT_ONLY, kind: CONTENT_DIGEST, value: null,
+    secondary_digest: inputs.content_digest}. digests is
+    {raw_digest: inputs.content_digest, canonical_digest: null,
+    normalized_digest: inputs.normalized_representation_digest}.
+    representation.representation_digest equals inputs.normalized_representation_digest, and
+    source_anchor.profile_details reduces to {char_representation_digest:
+    inputs.normalized_representation_digest} for PDF and {} for MARKDOWN once its run-scoped
+    child fields are removed -- no special case sits outside the single classification. idempotency_key is
+    "sha256:" + SHA256(canonical_json({content_digest, tenant_id})).
+  rule: >-
+    FP-3: run_scoped_paths is the contract's only path classification. The validator
+    derives the deterministic surface by removing those paths (and their subtrees,
+    with "*" expanding over block indices) from {raw_evidence, source_anchor, blocks},
+    and then: (1) asserts the raw_evidence / source_anchor slices are byte-identical
+    to reconstruct(kind, determinism.inputs) -- any field neither run-scoped nor
+    reproduced by the reconstruction is an unclassified surface field and fails;
+    (2) asserts SHA256(canonical_json(deterministic block surface)) equals
+    inputs.normalized_document_digest; (3) asserts every block content_sha256 equals
+    SHA256(block.content). FP-2: deterministic_projection_digest is
+    "sha256:" + SHA256(canonical_json(deterministic surface)) -- computed from the
+    same surface, so a run-scoped field can never change it by construction, and no
+    fixture ever supplies a digest. Mutating any run-scoped path must leave
+    deterministic_projection_digest unchanged; mutating any deterministic path, or
+    any declared input, must change it. Any mismatch or unclassified field is
+    DOC_MAP_NONDETERMINISTIC_IDENTITY.
+
+error_contract:
+  DOC_MAP_UNKNOWN_SOURCE_KIND: doc-map.error.unknown_source_kind
+  DOC_MAP_TARGET_INSTANCE_INVALID: doc-map.error.target_instance_invalid
+  DOC_MAP_NONDETERMINISTIC_IDENTITY: doc-map.error.nondeterministic_identity
+  DOC_MAP_PAYLOAD_INLINE: doc-map.error.payload_inline
+  DOC_MAP_PROFILE_MISMATCH: doc-map.error.profile_mismatch
+  DOC_MAP_SELECTOR_MISSING: doc-map.error.selector_missing
+  DOC_MAP_PROFILE_DETAILS_NOT_LOCKED_SHAPE: doc-map.error.profile_details_not_locked_shape
+  DOC_MAP_BLOCK_TYPE_UNKNOWN: doc-map.error.block_type_unknown
+  DOC_MAP_CONTENT_LAYER_MISMATCH: doc-map.error.content_layer_mismatch
+  DOC_MAP_TABLE_IMAGE_ATTR_MISSING: doc-map.error.table_image_attr_missing
+  DOC_MAP_BLOCK_NOT_ANCHORED: doc-map.error.block_not_anchored
+  FAIL_SILENT: doc-map.error.fail_silent
+
+runtime_independence: true
+
+cross_reference:
+  raw_evidence_schema: 規格/v0.1/raw-evidence-envelope.schema.json
+  source_anchor_pdf_schema: 規格/v0.1/source-anchor-pdf-region-v1.schema.json
+  source_anchor_markdown_schema: 規格/v0.1/source-anchor-markdown-text-v1.schema.json
+  normalized_document_block_schema: 規格/v0.1/normalized-document-block.schema.json
+  must_match:
+    payload_structured_profile_from: raw-evidence-envelope.properties.payload.structured_profile.enum
+    pdf_profile_details_shape_from: source-anchor-pdf-region-v1.profile_details.required
+    markdown_profile_details_shape_from: source-anchor-markdown-text-v1.profile_details.required
+    selector_type_from: source-anchor.properties.selectors.items.selector_type.enum
+    block_type_from: normalized-document-block.properties.block_type.enum
+    content_layer_from: normalized-document-block.properties.content_layer.enum
+
+instance_validation:
+  engine: scripts/validate_document_adapter_mapping_instances.py
+  targets:
+    raw_evidence_instance: raw-evidence-envelope.schema.json
+    source_anchor_instance: profile-specific STD-02 schema by source kind
+    block_instances: normalized-document-block.schema.json
+  rule: >-
+    the companion JSON Schema engine validates every positive-fixture instance
+    against its locked target schema and asserts every instance_negative case
+    fails; a missing required field, wrong type, wrong pattern or wrong nested
+    shape is DOC_MAP_TARGET_INSTANCE_INVALID.
+
+hard_stops:
+  - no connector / parser / ingestion runtime here
+  - pure mapping tables plus a thin validator + JSON Schema engine; no state machine engine
+  - do not re-define STD-01 / STD-02 / STD-03 or any profile-specific schema
+  - no Job Engine / WorkPool / Knowledge DB
+
+required_negative_fixtures:
+  - a source kind outside PDF / MARKDOWN
+  - the source anchor profile does not match the source kind
+  - the required selector type is missing
+  - profile_details is not the locked profile-schema shape
+  - a block content_layer disagrees with its block type
+  - a table or image block is missing its attributes
+  - a block has no source anchor reference
+  - the payload is inline content instead of a reference
+  - source identity uses a non-content basis
+  - two runs with identical inputs produce a different projection
+  - a declared deterministic input changed but the derived fields did not
+  - a bound instance-side derived field drifted from its source
+  - error but the mapping still claims success
+
+required_instance_negative_fixtures:
+  - a projected RawEvidenceEnvelope is missing a locked required field
+  - a projected SourceAnchor uses the old custom profile_details shape
+  - a projected block table attribute has the wrong nested shape

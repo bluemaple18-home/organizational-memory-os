@@ -1,0 +1,63 @@
+{
+  "instance_negative_cases": [
+    {
+      "case_id": "DOC_MAP_INST_NEG_RAW_EVIDENCE_MISSING_REQUIRED",
+      "target_schema": "raw-evidence-envelope.schema.json",
+      "expected_result": "REJECT",
+      "covers": "a projected RawEvidenceEnvelope is missing a locked required field",
+      "instance": {
+        "schema_version": "omos.evidence.raw.v0.1",
+        "evidence_id": "0198e6d1-0009-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0009-7aaa-8bbb-111111111111",
+        "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
+        "source_identity": {"source_system": "document", "source_instance_id": "tenant-example", "entity_type": "PDF", "native_id": "sha256-aaaa", "parent_native_id": null},
+        "source_aliases": [],
+        "source_version": {"basis": "CONTENT_ONLY", "kind": "CONTENT_DIGEST", "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "secondary_digest": null},
+        "payload": {"media_type": "application/pdf", "payload_ref": "urn:omos:payload:0198e6d1-0101-7aaa-8bbb-111111111111", "size_bytes": 1, "structured_profile": "BINARY", "canonicalization_profile": "NONE", "retention_tier": "SOURCE_FULL_BODY"}
+      }
+    },
+    {
+      "case_id": "DOC_MAP_INST_NEG_ANCHOR_OLD_CUSTOM_SHAPE",
+      "target_schema": "source-anchor-pdf-region-v1.schema.json",
+      "expected_result": "REJECT",
+      "covers": "a projected SourceAnchor uses the old custom profile_details shape",
+      "instance": {
+        "schema_version": "omos.source-anchor.v0.1",
+        "anchor_id": "0198e6d2-0009-7aaa-8bbb-111111111111",
+        "anchor_ref": "urn:omos:source-anchor:0198e6d2-0009-7aaa-8bbb-111111111111",
+        "evidence_ref": "urn:omos:evidence:0198e6d1-0009-7aaa-8bbb-111111111111",
+        "source_identity": {"source_system": "document", "source_instance_id": "tenant-example", "entity_type": "PDF", "native_id": "sha256-aaaa", "parent_native_id": null},
+        "source_version": {"basis": "CONTENT_ONLY", "kind": "CONTENT_DIGEST", "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "secondary_digest": null},
+        "representation": {"source_payload_ref": "urn:omos:payload:0198e6d1-0101-7aaa-8bbb-111111111111", "source_payload_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "representation_ref": "urn:omos:representation:normalized-page-7", "media_type": "text/plain", "representation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "digest_basis": "bytes"},
+        "access": {"acl_snapshot_ref": "urn:omos:acl-snapshot:0198e6d1-0201-7aaa-8bbb-111111111111", "permission_decision_ref": null},
+        "profile": "PDF_REGION_V1",
+        "selectors": [{"selector_type": "PDF_REGION"}],
+        "profile_details": {"page": 3, "bbox_normalized": [0.1, 0.2, 0.6, 0.35], "coordinate_origin": "TOP_LEFT"},
+        "quote": {"exact": "x", "prefix": "", "suffix": "", "normalization_profile": "OMOS_TEXT_NORM_V1"},
+        "normalization_profile": "OMOS_TEXT_NORM_V1",
+        "source_availability": "AVAILABLE",
+        "resolution": {"status": "EXACT_MATCH", "resolved_at": "2026-09-04T01:00:00.123Z", "resolver_version": "doc-adapter-v1"}
+      }
+    },
+    {
+      "case_id": "DOC_MAP_INST_NEG_BLOCK_TABLE_WRONG_NESTED_SHAPE",
+      "target_schema": "normalized-document-block.schema.json",
+      "expected_result": "REJECT",
+      "covers": "a projected block table attribute has the wrong nested shape",
+      "instance": {
+        "block_id": "urn:omos:document-block:0198e6d3-9009-7aaa-8bbb-111111111111",
+        "block_type": "table",
+        "parent_id": null,
+        "order": 1,
+        "level": 1,
+        "content": "role | scope",
+        "content_sha256": "sha256:826c7fee7c0e60fc17896acf48db90d6b5858407d9dd0eef674b88d6e215aa55",
+        "language": "en",
+        "content_layer": "TABLE",
+        "source_anchor_refs": ["urn:omos:source-anchor:0198e6d2-0001-7aaa-8bbb-111111111111"],
+        "attributes": {"table": {"rows": 4, "cols": 3}},
+        "quality": {"extraction_confidence": 0.9, "warnings": []}
+      }
+    }
+  ]
+}

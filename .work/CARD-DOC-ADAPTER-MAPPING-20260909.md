@@ -1,6 +1,6 @@
 ---
 id: DOC-ADAPTER-MAPPING-20260909
-status: DRAFT_OWNER_REVIEW
+status: SPEC_FROZEN_CLOSEOUT_AWAITING_TARGETED_REREVIEW
 type: implementation
 lane: A（repo 施工順序 #2 / EMEM-02 前置）
 tier: T1

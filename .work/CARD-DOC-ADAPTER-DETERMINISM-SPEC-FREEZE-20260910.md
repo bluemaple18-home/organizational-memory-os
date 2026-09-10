@@ -83,6 +83,22 @@ Owner 於互動對話中明示「就照你建議」，五個凍結點全部採 C
 後續：`.work/CARD-DOC-ADAPTER-DETERMINISM-CLOSEOUT-20260910.md`（T1）依此實作，
 `cc/doc-adapter-mapping` 於 `e7505f8` 之後接新 commit。
 
+### FP-3 施行細則（2026-09-10，實作時補記）
+
+FP-3 的「單一總分類」在實作上逐**子欄位**分類 `source_anchor/profile_details`，而不是把整個
+subtree 列為 run-scoped：
+
+- run-scoped 子欄位（anchor 位置與 per-run ref）：`page`、`page_number_basis`、`bbox`、
+  `block_id`、`char_range`、`char_representation_ref`、`codepoint_range`、`line_range`、
+  `line_number_basis`、`heading_path`、`selected_text`。
+- 因此 `char_representation_digest` **依同一條規則**即為 DETERMINISTIC（綁
+  `inputs.normalized_representation_digest`），**不需要任何特例**。
+
+這是 FP-3 的施行方式，不是新的凍結點：FP-3 簽定的就是「只有一份分類 authority」，先前
+implementation 對這個 digest 開了硬編特例，等於第二份 authority，與簽定牴觸，故收斂。
+validator 另斷言 locked profile schema 的每個 `profile_details` 必填欄位都必須被此分類涵蓋
+（run-scoped 或明列 deterministic），未涵蓋即 fail-closed。
+
 ## 需要 Owner 簽的凍結點（原提案，保留供追溯）
 
 ### FP-1 — determinism 宣稱的範圍
@@ -162,7 +178,9 @@ fixture 寫的   = sha256:0e2b0a4bd8c8f5c9d3a1f6e7b2c4d5a6e7f8091a2b3c4d5e6f7081
 
 ## 現況
 
-- branch `cc/doc-adapter-mapping` @ `e7505f8` **凍結**，不再推進，等本卡簽定。
+- 本卡已簽定；`cc/doc-adapter-mapping` 於 `e7505f8` 之後接 `9dbae75`（T1 收尾實作）與
+  `230bcf0`（FP-3 施行細則收斂），本卡副本隨後續 docs commit 進入同一條 review line 的
+  frozen tree，供 reviewer 直接核對 authority。
 - frozen chain：`c2e184f → faddb8c → d2ee1d2 → df6b2ff → f2333e1 → 9ef254f → e7505f8`（全部 immutable）。
 - 下游：`SSP-291`（EMEM-02）、`SSP302-CONTRACT-TIGHTEN` 仍等 repo #2 merge。
 - repo #3 Jira Adapter Mapping 已 `ACCEPTED_GO` / merged（`0ac8c09`），不受本卡影響。

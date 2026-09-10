@@ -1,0 +1,255 @@
+{
+  "document_mapping_negative_cases": [
+    {
+      "case_id": "DOC_MAP_NEG_UNKNOWN_SOURCE_KIND",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_UNKNOWN_SOURCE_KIND",
+      "covers_doc_map_negative_fixture": "a source kind outside PDF / MARKDOWN",
+      "source_kind": "HTML",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "MARKDOWN_TEXT_V1", "selector_types": ["TEXT_POSITION"], "profile_details_keys": ["codepoint_range", "line_range", "line_number_basis", "heading_path", "selected_text"], "blocks": []},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_PROFILE_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_PROFILE_MISMATCH",
+      "covers_doc_map_negative_fixture": "the source anchor profile does not match the source kind",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "MARKDOWN_TEXT_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_SELECTOR_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_SELECTOR_MISSING",
+      "covers_doc_map_negative_fixture": "the required selector type is missing",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["TEXT_QUOTE"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_PROFILE_DETAILS_NOT_LOCKED_SHAPE",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_PROFILE_DETAILS_NOT_LOCKED_SHAPE",
+      "covers_doc_map_negative_fixture": "profile_details is not the locked profile-schema shape",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "bbox_normalized", "coordinate_origin"], "blocks": []},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_CONTENT_LAYER_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_CONTENT_LAYER_MISMATCH",
+      "covers_doc_map_negative_fixture": "a block content_layer disagrees with its block type",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": [{"block_type": "paragraph", "content_layer": "CODE", "attribute_keys": [], "anchored": true}]},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_TABLE_IMAGE_ATTR_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_TABLE_IMAGE_ATTR_MISSING",
+      "covers_doc_map_negative_fixture": "a table or image block is missing its attributes",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": [{"block_type": "table", "content_layer": "TABLE", "attribute_keys": [], "anchored": true}]},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_BLOCK_NOT_ANCHORED",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_BLOCK_NOT_ANCHORED",
+      "covers_doc_map_negative_fixture": "a block has no source anchor reference",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": [{"block_type": "paragraph", "content_layer": "BODY", "attribute_keys": [], "anchored": false}]},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_PAYLOAD_INLINE",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_PAYLOAD_INLINE",
+      "covers_doc_map_negative_fixture": "the payload is inline content instead of a reference",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "payload_inline": true, "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_NONDETERMINISTIC_IDENTITY_BASIS",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "source identity uses a non-content basis",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "UPLOAD_SEQUENCE", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_NONDETERMINISTIC_STABLE_FIELD_DRIFT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "two runs with identical inputs produce a different projection",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "declared inputs (content_digest, adapter_id, adapter_version) unchanged; a stable identity-bearing field drifts so the validator's own canonical projection digest must differ",
+      "stable_field_mutation": {"raw_evidence/digests/raw_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999", "raw_evidence/source_identity/native_id": "sha256-drifted"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_CONTENT_DIGEST",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "content_digest changed; native_id / source_version / digests / idempotency_key unchanged -> derivation binding must fail",
+      "input_mutation": {"content_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_ADAPTER_ID",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "adapter_id changed; provenance.adapter_id unchanged -> derivation binding must fail",
+      "input_mutation": {"adapter_id": "some-other-adapter"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_ADAPTER_VERSION",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "adapter_version changed; provenance.adapter_version unchanged -> derivation binding must fail",
+      "input_mutation": {"adapter_version": "9.9.9"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_TENANT_ID",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "tenant_id changed; raw_evidence.tenant_id and the recomputed idempotency_key unchanged -> derivation binding must fail",
+      "input_mutation": {"tenant_id": "0198e6d0-2222-7aaa-8bbb-222222222222"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INSTANCE_NORMALIZED_DIGEST",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "raw_evidence.digests.normalized_digest drifts from source_anchor.representation.representation_digest -> normalized_digest binding must fail",
+      "instance_mutation": {"raw_evidence/digests/normalized_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INSTANCE_ANCHOR_IDENTITY",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "source_anchor_instance.source_identity.native_id drifts from the content digest -> anchor identity binding must fail",
+      "instance_mutation": {"source_anchor/source_identity/native_id": "sha256:1234123412341234123412341234123412341234123412341234123412341234"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_SOURCE_INSTANCE_ID",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "source_instance_id input changed; both instances' source_identity.source_instance_id unchanged -> reconstructed surface no longer matches",
+      "input_mutation": {"source_instance_id": "another-tenant-store"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_NORMALIZED_REPR_DIGEST",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "normalized_representation_digest input changed; raw.digests.normalized_digest and anchor representation_digest unchanged -> reconstructed surface no longer matches",
+      "input_mutation": {"normalized_representation_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_PAIRED_NORMALIZED_DRIFT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "raw.digests.normalized_digest AND anchor representation_digest both changed to the same new value while the six inputs stay fixed -> both diverge from inputs.normalized_representation_digest",
+      "instance_mutation": {"raw_evidence/digests/normalized_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777", "source_anchor/representation/representation_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_PAIRED_SOURCE_INSTANCE_DRIFT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "raw AND anchor source_identity.source_instance_id both changed to the same new value while inputs stay fixed -> both diverge from inputs.source_instance_id",
+      "instance_mutation": {"raw_evidence/source_identity/source_instance_id": "another-source", "source_anchor/source_identity/source_instance_id": "another-source"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_UNCLASSIFIED_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "a field is added inside a reconstructed sub-object (idempotency_basis) that is neither run_scoped nor part of the reconstruction -> unclassified surface field",
+      "instance_mutation": {"raw_evidence/idempotency_basis/extra": "x"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_NORMALIZED_DOC_DIGEST",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "normalized_document_digest input changed; block_instances unchanged -> recomputed block-set digest no longer matches the input",
+      "input_mutation": {"normalized_document_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_PAIRED_BLOCK_CONTENT_DRIFT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "block_instances[0].content AND its content_sha256 both changed to another valid consistent pair while all seven declared inputs stay fixed -> the block-set digest diverges from inputs.normalized_document_digest",
+      "instance_mutation": {"blocks/0/content": "Authorization boundary", "blocks/0/content_sha256": "sha256:6553c60633584d85f96a7063a340735c017dd6cc9de33f1b1e296d3d46ba43b4"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_BLOCK_SHA_INCONSISTENT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "block_instances[0].content changed but content_sha256 left as-is -> content_sha256 != SHA256(content) and the block-set digest also diverges",
+      "instance_mutation": {"blocks/0/content": "Something else entirely"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_CHAR_REPR_DIGEST_DRIFT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "profile_details is classified per child, so char_representation_digest is DETERMINISTIC under the single rule; drifting it from inputs.normalized_representation_digest must fail without any hard-coded special case",
+      "instance_mutation": {"source_anchor/profile_details/char_representation_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_FAIL_SILENT",
+      "expected": "deny",
+      "expected_failure_code": "FAIL_SILENT",
+      "covers_doc_map_negative_fixture": "error but the mapping still claims success",
+      "source_kind": "PDF",
+      "mapping": {"native_id_basis": "CONTENT_SHA256", "payload_ref": "urn:omos:payload:x", "anchor_profile": "PDF_REGION_V1", "selector_types": ["PDF_REGION"], "profile_details_keys": ["page", "page_number_basis", "bbox", "block_id", "char_range", "char_representation_ref", "char_representation_digest", "selected_text"], "blocks": []},
+      "error": "one block was emitted without a source anchor and dropped",
+      "ok": true
+    }
+  ]
+}
