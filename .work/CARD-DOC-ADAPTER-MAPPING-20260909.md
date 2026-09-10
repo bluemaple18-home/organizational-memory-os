@@ -1,6 +1,6 @@
 ---
 id: DOC-ADAPTER-MAPPING-20260909
-status: NO_GO_REPAIRED_05_AWAITING_TARGETED_REREVIEW
+status: NO_GO_REPAIRED_06_AWAITING_TARGETED_REREVIEW
 type: implementation
 lane: A（repo 施工順序 #2 / EMEM-02 前置）
 tier: T1

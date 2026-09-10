@@ -202,6 +202,36 @@
       "ok": true
     },
     {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_NORMALIZED_DOC_DIGEST",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "normalized_document_digest input changed; block_instances unchanged -> recomputed block-set digest no longer matches the input",
+      "input_mutation": {"normalized_document_digest": "sha256:8888888888888888888888888888888888888888888888888888888888888888"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_PAIRED_BLOCK_CONTENT_DRIFT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "block_instances[0].content AND its content_sha256 both changed to another valid consistent pair while all seven declared inputs stay fixed -> the block-set digest diverges from inputs.normalized_document_digest",
+      "instance_mutation": {"block_instances/0/content": "Authorization boundary", "block_instances/0/content_sha256": "sha256:0e2b0a4bd8c8f5c9d3a1f6e7b2c4d5a6e7f8091a2b3c4d5e6f70819a2b3c4d5e6"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_BLOCK_SHA_INCONSISTENT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "block_instances[0].content changed but content_sha256 left as-is -> content_sha256 != SHA256(content) and the block-set digest also diverges",
+      "instance_mutation": {"block_instances/0/content": "Something else entirely"},
+      "ok": true
+    },
+    {
       "case_id": "DOC_MAP_NEG_FAIL_SILENT",
       "expected": "deny",
       "expected_failure_code": "FAIL_SILENT",

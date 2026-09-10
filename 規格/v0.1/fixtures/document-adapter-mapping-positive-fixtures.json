@@ -54,7 +54,8 @@
           "adapter_version": "0.1.0",
           "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
           "source_instance_id": "tenant-example",
-          "normalized_representation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+          "normalized_representation_digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "normalized_document_digest": "sha256:da4d58387fc54b11a8af7d512e3f683fb5b0330a2326fc73e392d5d8c2b61805"
         },
         "runtime_only_patch": {
           "raw_evidence/chronology/observed_at": "2027-02-02T02:02:02Z",
@@ -241,7 +242,7 @@
           "order": 1,
           "level": 1,
           "content": "Access control",
-          "content_sha256": "sha256:916c7fee7c0e60fc17896acf48db90d6b5858407d9dd0eef674b88d6e215aa55",
+          "content_sha256": "sha256:0bf1d245547b7b2a2c59d3c80a6348ffddb8d38f8e19046aff89ef34fc6fc4e0",
           "language": "en",
           "content_layer": "TITLE",
           "source_anchor_refs": [
@@ -260,7 +261,7 @@
           "order": 2,
           "level": 2,
           "content": "role | scope",
-          "content_sha256": "sha256:826c7fee7c0e60fc17896acf48db90d6b5858407d9dd0eef674b88d6e215aa55",
+          "content_sha256": "sha256:b883402c0c20e336da49c9675324a07db26d5895652497e45eb5129be30317ab",
           "language": "en",
           "content_layer": "TABLE",
           "source_anchor_refs": [
@@ -311,7 +312,7 @@
           "order": 3,
           "level": 2,
           "content": "screenshot: permission check location",
-          "content_sha256": "sha256:736c7fee7c0e60fc17896acf48db90d6b5858407d9dd0eef674b88d6e215aa55",
+          "content_sha256": "sha256:dad0e3de5b58c7e92900917be7a55f4a17f6a318ace096aac7ad6762dfef9492",
           "language": "en",
           "content_layer": "IMAGE",
           "source_anchor_refs": [
@@ -389,7 +390,8 @@
           "adapter_version": "0.1.0",
           "tenant_id": "0198e6d0-1111-7aaa-8bbb-111111111111",
           "source_instance_id": "tenant-example",
-          "normalized_representation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          "normalized_representation_digest": "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "normalized_document_digest": "sha256:03028f2321cbe0a707340798d0852e040b8becad0c7a5efd4b6918f7a5c5158d"
         },
         "runtime_only_patch": {
           "raw_evidence/chronology/observed_at": "2027-03-03T03:03:03Z",
@@ -573,7 +575,7 @@
           "order": 1,
           "level": 1,
           "content": "Policy layer",
-          "content_sha256": "sha256:646c7fee7c0e60fc17896acf48db90d6b5858407d9dd0eef674b88d6e215aa55",
+          "content_sha256": "sha256:3d92eb64fa145a94d14319c48a8d78d830496704c96dee9ba1b212bcf7243699",
           "language": "en",
           "content_layer": "TITLE",
           "source_anchor_refs": [
@@ -592,7 +594,7 @@
           "order": 2,
           "level": 2,
           "content": "policy.check(actor, action)",
-          "content_sha256": "sha256:546c7fee7c0e60fc17896acf48db90d6b5858407d9dd0eef674b88d6e215aa55",
+          "content_sha256": "sha256:27b82157f467734bcb4ecc2853ba55e26ba4e6db83b2ec500c10e0c50fa70a80",
           "language": "en",
           "content_layer": "CODE",
           "source_anchor_refs": [
@@ -611,7 +613,7 @@
           "order": 3,
           "level": 2,
           "content": "permission decision is recorded before retrieval",
-          "content_sha256": "sha256:446c7fee7c0e60fc17896acf48db90d6b5858407d9dd0eef674b88d6e215aa55",
+          "content_sha256": "sha256:25fd6e62083b7352f75f2ae3d6152b5e76685a74b1cd2780f5dd5341fd8c85ff",
           "language": "en",
           "content_layer": "BODY",
           "source_anchor_refs": [

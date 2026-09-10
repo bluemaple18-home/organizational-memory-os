@@ -163,6 +163,7 @@ deterministic_derivation:
     - tenant_id
     - source_instance_id                # 該 tenant 的文件來源實例 id
     - normalized_representation_digest   # SHA256(normalized representation bytes)；非 content_digest 的函數，故為獨立 input
+    - normalized_document_digest         # SHA256(canonical_json(deterministic block surface))；決定 NormalizedDocument block 集
   derived:
     - native_id
     - source_identity
@@ -170,7 +171,22 @@ deterministic_derivation:
     - digests
     - representation_digest
     - idempotency_key
+    - normalized_document_block_surface
     - projection_digest
+  block_run_scoped_keys:                 # 每個 block 中不屬 deterministic block surface 的 per-run 欄位
+    - block_id
+    - parent_id
+    - source_anchor_refs
+    - quality
+  block_surface_rule: >-
+    each block's deterministic surface is the block object minus block_run_scoped_keys
+    (block_id / parent_id / source_anchor_refs are per-run urn linkage, quality is a
+    per-run extraction measurement). normalized_document_digest input equals
+    "sha256:" + SHA256(canonical_json([<each block's deterministic surface>])); the
+    validator recomputes it from block_instances and any mismatch is
+    DOC_MAP_NONDETERMINISTIC_IDENTITY. Separately every block's content_sha256 must
+    equal "sha256:" + SHA256(block.content) so block content and its digest cannot
+    drift apart.
   reconstructed_from_inputs: >-
     raw_evidence.{schema_version, tenant_id, source_identity, source_version, digests,
     payload(media_type/structured_profile/canonicalization_profile/retention_tier),
@@ -241,15 +257,20 @@ deterministic_derivation:
     projection_digest is the SHA256 of the canonical JSON of the projected surface
     {raw_evidence, source_anchor, blocks} with every excluded_from_canonical_digest
     path removed; the validator computes it itself and a fixture never supplies a
-    digest. The deterministic identity closure is stronger: the validator strips
-    run_scoped_paths from the fixture's {raw_evidence, source_anchor} and asserts
-    the remainder is byte-identical to reconstruct(kind, determinism.inputs). Any
-    field that is neither in run_scoped_paths nor reproduced by the reconstruction
+    digest. The deterministic identity closure is stronger and covers all three
+    slices: (1) the validator strips run_scoped_paths from {raw_evidence,
+    source_anchor} and asserts the remainder is byte-identical to
+    reconstruct(kind, determinism.inputs); (2) it strips block_run_scoped_keys
+    from every block, canonicalises the resulting list, SHA256s it, and asserts it
+    equals inputs.normalized_document_digest; (3) it asserts every block's
+    content_sha256 equals SHA256(block.content). Any field that is neither in
+    run_scoped_paths / block_run_scoped_keys nor reproduced by the reconstruction
     is an unclassified surface field and fails the gate. Because every retained
-    field is pinned to the six declared inputs (or a fixed schema constant), two
-    projections that declare the same inputs necessarily share the same
-    deterministic identity surface -- there is no room for a paired drift of two
-    currently-equal instance-side values. Any mismatch or unclassified field is
+    field across raw_evidence, source_anchor and blocks is pinned to the seven
+    declared inputs (or a fixed schema constant), two projections that declare the
+    same inputs necessarily share the same deterministic projection -- there is no
+    room for a paired drift of two currently-equal instance-side values, in the
+    identity slice or the block slice. Any mismatch or unclassified field is
     DOC_MAP_NONDETERMINISTIC_IDENTITY.
 
 error_contract:

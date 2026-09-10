@@ -418,3 +418,58 @@ git add -A && git diff --cached --check                      clean
 | `scripts/lib/omos_contract_helpers.rb` | 改（+DOC_MAP_DETERMINISM_INPUTS / DOC_MAP_RUN_SCOPED_PATHS / reconstruct_deterministic_projection / deterministic_surface_mismatches / diff_paths；移除舊 derivation_binding_failures） |
 | `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（determinism.inputs +source_instance_id +normalized_representation_digest ×2） |
 | `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（+5 負例：2 input mutation + 2 paired drift + 1 unclassified field） |
+
+---
+
+## Repair 06（2026-09-10）— Repair 05 再 review NO_GO(P1=1, F-03-R05) 針對性修復
+
+卡：`.work/CARD-DOC-ADAPTER-MAPPING-REPAIR-06-20260910.md`。`c2e184f` / `faddb8c` / `d2ee1d2` /
+`df6b2ff` / `f2333e1` / `9ef254f` 皆不動；repair-06 delta = `9ef254f..<repair-06 SHA>`。
+只收 F-03-R05：blocks 未進 deterministic reconstruction。**hard stop：本輪再 NO_GO 就不做
+repair-07，轉 Owner spec-freeze（T2）。**
+
+### 第 7 個 declared input + block slice 納入 machine comparison
+
+- `deterministic_derivation.inputs` +`normalized_document_digest`
+  （`sha256(canonical_json(deterministic block surface))`）。
+- `DOC_MAP_BLOCK_RUN_SCOPED_KEYS = [block_id, parent_id, source_anchor_refs, quality]`
+  （YAML `block_run_scoped_keys` 綁定）。
+- `deterministic_surface_mismatches(kind, inputs, raw, anchor, blocks)` 多收 `blocks`：
+  - `normalized_document_digest(block_instances)`（每 block 去掉 run-scoped keys → canonical
+    JSON list → SHA256）必須等於 `inputs.normalized_document_digest`。
+  - 每個 block `content_sha256 == "sha256:" + SHA256(block.content)`。
+  - PDF `profile_details.char_representation_digest` targeted 綁定移進本函式。
+  任一 diff 非空 → `DOC_MAP_NONDETERMINISTIC_IDENTITY`。
+- fixture 6 個 block `content_sha256` 校正為 `SHA256(content)`；`determinism.inputs` 補
+  `normalized_document_digest`。
+
+### 負例
+
+- `DERIVATION_INPUT_NORMALIZED_DOC_DIGEST`（改 input、blocks 不動）→ RED。
+- `DERIVATION_PAIRED_BLOCK_CONTENT_DRIFT`（reviewer 原案例：`content` + `content_sha256` 一起
+  換成另一組合法一致對、7 inputs 固定）→ block-set digest 偏離 → RED。
+- `DERIVATION_BLOCK_SHA_INCONSISTENT`（只改 content）→ RED。
+- 定點：`PAIRED_DRIFT` → `["blocks/normalized_document_digest"]`；`SHA_INCONSISTENT` → 2 gaps；
+  baseline → `[]`。
+
+### 修復後 gate
+
+```
+ruby validate_document_adapter_mapping_contract.rb           PASS
+validate_document_adapter_mapping_instances.py (uv)          PASS (positive_instances=10, instance_negatives=3)
+全 19 Ruby validators（含共用 lib 回歸）                      PASS
+validate_std_schema_engine.py (uv)                           PASS (STD01 12/12, STD02 16/16, STD03 9/9)
+validate_cc_cross_layer_contract.py (uv)                     PASS
+enforcement parity（cp-based restore，含 reviewer bypass）    全數 RED-on-tamper
+git add -A && git diff --cached --check                      clean
+```
+
+### 交付物（Repair 06）
+
+| 檔 | 動作 |
+|---|---|
+| `規格/v0.1/document-adapter-mapping.yaml` | 改（inputs 7；block_run_scoped_keys；block_surface_rule；derived +normalized_document_block_surface；rule 改寫涵蓋 3 slices） |
+| `scripts/validate_document_adapter_mapping_contract.rb` | 改（deterministic_surface_mismatches 多傳 blocks；instance_mutation 支援 block_instances/N/ path；block_run_scoped_keys 結構斷言；397 行） |
+| `scripts/lib/omos_contract_helpers.rb` | 改（+DOC_MAP_BLOCK_RUN_SCOPED_KEYS / deterministic_block_surface / normalized_document_digest；deterministic_surface_mismatches 擴充 block slice + char_representation_digest） |
+| `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（6 個 block content_sha256 校正；determinism.inputs +normalized_document_digest ×2） |
+| `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（+3 負例：1 input mutation + 1 paired block drift + 1 content_sha256 不一致） |

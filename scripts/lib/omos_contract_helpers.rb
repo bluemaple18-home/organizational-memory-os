@@ -133,8 +133,11 @@ end
 # 重算並與 projected instance 逐項比對，回傳失配的 binding 名稱（key 必須逐字等於
 # EXPECTED_DERIVATION_BINDING_KEYS）。改任一 input / instance-side derived 欄位 -> 至少一項失配。
 DOC_MAP_DETERMINISM_INPUTS = %w[
-  content_digest adapter_id adapter_version tenant_id source_instance_id normalized_representation_digest
+  content_digest adapter_id adapter_version tenant_id source_instance_id
+  normalized_representation_digest normalized_document_digest
 ].freeze
+# 每個 block 中的 per-run 欄位（不屬 deterministic block surface）。
+DOC_MAP_BLOCK_RUN_SCOPED_KEYS = %w[block_id parent_id source_anchor_refs quality].freeze
 # 每份 projection 中「非 deterministic identity 一部分」的 per-run 欄位。移掉這些之後，剩下的
 # 每一片都必須逐字等於 reconstruct_deterministic_projection(kind, inputs)。
 DOC_MAP_RUN_SCOPED_PATHS = %w[
@@ -202,13 +205,44 @@ def reconstruct_deterministic_projection(kind, inputs)
   }
 end
 
-# fixture 的 {raw_evidence, source_anchor} 去掉 run-scoped 之後，逐鍵與重建結果比對。
-# 回傳不符（含未分類欄位）的 canonical-json 路徑清單。
-def deterministic_surface_mismatches(kind, inputs, raw, anchor)
+# 一份 block 清單去掉 per-run 欄位後的 deterministic surface。
+def deterministic_block_surface(blocks)
+  blocks.to_a.map do |block|
+    trimmed = deep_dup(block)
+    DOC_MAP_BLOCK_RUN_SCOPED_KEYS.each { |key| trimmed.delete(key) }
+    trimmed
+  end
+end
+
+# deterministic block surface 的 canonical SHA256（第 7 個 declared input 綁定對象）。
+def normalized_document_digest(blocks)
+  "sha256:" + Digest::SHA256.hexdigest(canonical_json(deterministic_block_surface(blocks)))
+end
+
+# fixture 的 {raw_evidence, source_anchor, blocks} 去掉 run-scoped 之後，逐鍵與「只由 inputs
+# 重建」的結果比對。回傳不符（含未分類欄位、block digest 不符、block content_sha256 不一致）
+# 的路徑清單。
+def deterministic_surface_mismatches(kind, inputs, raw, anchor, blocks)
   observed = deep_dup("raw_evidence" => raw, "source_anchor" => anchor)
   DOC_MAP_RUN_SCOPED_PATHS.each { |path| delete_path(observed, path) }
-  expected = reconstruct_deterministic_projection(kind, inputs)
-  diff_paths(expected, observed, "")
+  problems = diff_paths(reconstruct_deterministic_projection(kind, inputs), observed, "")
+
+  unless normalized_document_digest(blocks) == inputs["normalized_document_digest"]
+    problems << "blocks/normalized_document_digest (expected #{inputs["normalized_document_digest"].inspect}, " \
+                "got #{normalized_document_digest(blocks).inspect})"
+  end
+  blocks.to_a.each_with_index do |block, index|
+    expected_sha = "sha256:" + Digest::SHA256.hexdigest(block["content"].to_s)
+    problems << "blocks/#{index}/content_sha256 (expected #{expected_sha}, got #{block["content_sha256"].inspect})" unless
+      block["content_sha256"] == expected_sha
+  end
+  # PDF profile_details 整體 run-scoped，但 char_representation_digest 仍綁到 normalized rep digest。
+  if kind == "PDF" && anchor.dig("profile_details", "char_representation_digest") != inputs["normalized_representation_digest"]
+    problems << "source_anchor/profile_details/char_representation_digest (expected " \
+                "#{inputs["normalized_representation_digest"].inspect}, got " \
+                "#{anchor.dig("profile_details", "char_representation_digest").inspect})"
+  end
+  problems
 end
 
 def diff_paths(expected, observed, prefix)
