@@ -1,0 +1,61 @@
+receipt: doc-adapter-mapping-targeted-rereview-final
+review_line: DOC-ADAPTER-MAPPING
+frozen_review_sha: "c2e184f"
+chain:
+  - "faddb8c  repair-01  NO_GO (P1=2, P2=1)  -> F-01 CLOSED"
+  - "d2ee1d2  repair-02  NO_GO (P1=2)        -> P2 CLOSED"
+  - "df6b2ff  repair-03  NO_GO (P1=1)        -> F-02 CLOSED"
+  - "f2333e1  repair-04  NO_GO (P1=1)        F-03-R03"
+  - "9ef254f  repair-05  NO_GO (P1=1)        F-03-R04 paired drift CLOSED"
+  - "e7505f8  repair-06  NO_GO (P1=1, P2=1)  F-03-R05 block drift CLOSED; hard stop 觸發"
+  - "— T2 Owner spec-freeze FP-1..FP-5 signed 2026-09-10 —"
+  - "9dbae75  closeout   NO_GO (P1=1, P2=1)  F-03 implementation CLOSED; F-AUTH-01 / F-03-R06-P2"
+  - "230bcf0  fix        F-03-R06-P2 per-child profile_details classification"
+  - "62d6c6c  docs       F-AUTH-01 OWNER_SIGNED artifact into review tree"
+hard_stop:
+  triggered_at: "repair-06 (e7505f8)"
+  reason: "同一 blocker（F-03 determinism）連續 6 次 NO_GO"
+  action: "不做 repair-07；轉 T2 Owner spec-freeze"
+owner_spec_freeze:
+  card: ".work/CARD-DOC-ADAPTER-DETERMINISM-SPEC-FREEZE-20260910.md"
+  status: OWNER_SIGNED
+  signed: "2026-09-10"
+  freeze_points:
+    FP-1: "determinism 只宣稱 evidence identity（EVIDENCE_IDENTITY_ONLY）"
+    FP-2: "deterministic_projection_digest 只 hash deterministic surface"
+    FP-3: "單一窮盡的 classify(path) -> DETERMINISTIC | RUN_SCOPED；不得另立清單"
+    FP-4: "block parent_id / source_anchor_refs = run-scoped"
+    FP-5: "quality = run-scoped"
+  implementation_note: "FP-3 施行細則：profile_details 逐子欄位分類，char_representation_digest 依同一規則為 DETERMINISTIC，無特例"
+final:
+  review_input:
+    base_sha: "9dbae75bdd7362e6d665e7730c258c3cce62d159"
+    review_sha: "62d6c6c4cacc01ae549fb1147bc96f19cf43b7aa"
+    tree_sha: "0c2b50608483458266e1fad54270478c8a388bbd"
+  verdict: GO
+  counts: { p0: 0, p1: 0, p2: 0, p3: 0 }
+  findings: []
+  closure:
+    F_AUTH_01: CLOSED
+    F_03_R06_P2: CLOSED
+    F_03_IMPLEMENTATION: CLOSED
+  reviewer_full_gate_execution: NOT_RUN
+owner_accept: true
+mainline_self_verify:
+  merged_into: main
+  merge_commit: "ebeaab2"
+  strategy: "--no-ff"
+  conflicts_resolved:
+    - "scripts/lib/omos_contract_helpers.rb —— 兩個 adapter 各自擴充共用 lib；union 解法：保留 Document 分支的泛用 path helper 超集（set_path 支援 array index、delete_path 支援 * 萬用段）為唯一定義，Jira-only helper 原樣併入"
+    - ".work/CARD-DOC-ADAPTER-DETERMINISM-SPEC-FREEZE-20260910.md —— add/add，取分支版（含 FP-3 施行細則）"
+  gate:
+    ruby_validators: "20/20 PASS"
+    document_adapter_contract_rb: PASS
+    jira_adapter_contract_rb: PASS
+    document_adapter_instances_py: "PASS (positive_instances=10, instance_negatives=3)"
+    jira_adapter_instances_py: "PASS (positive_instances=6, instance_negatives=3)"
+    validate_std_schema_engine_py: "PASS (STD01 12/12, STD02 16/16, STD03 9/9)"
+    validate_cc_cross_layer_contract_py: PASS
+    git_diff_check: clean
+status: ACCEPTED_GO_MERGED
+date: "2026-09-10"
