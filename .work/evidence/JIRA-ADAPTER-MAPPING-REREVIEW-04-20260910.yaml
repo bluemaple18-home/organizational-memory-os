@@ -1,0 +1,30 @@
+receipt: jira-adapter-mapping-targeted-rereview
+review_line: JIRA-ADAPTER-MAPPING
+frozen_review_sha: "170da7f"
+repair_chain:
+  - "733a9e3  repair-01  (NO_GO 4xP1)"
+  - "fb939c1  repair-02  (NO_GO 4xP1 -> mostly closed, 2 left)"
+  - "3e18080  repair-03  (NO_GO 2xP1 -> identity CLOSED, 1 left)"
+  - "e774603  repair-04  (F-02-R03 reconciliation version validation)"
+final:
+  review_input:
+    base_sha: "3e180804c80255ca3482237ca1938258a5225b24"
+    review_sha: "e774603611b137e049eab17e0043db1a981ee0f7"
+    tree_sha: "026679208a44854d56e338432a1fcee1b5d06ac5"
+  verdict: GO
+  counts: { p0: 0, p1: 0, p2: 0, p3: 0 }
+  findings: []
+owner_accept: true
+mainline_self_verify:
+  merged_into: main
+  merge_commit: "0ac8c09"
+  strategy: "--no-ff (main had diverged past ba518a0 by fe5b7d8)"
+  gate:
+    all_ruby_validators: PASS
+    validate_std_schema_engine_py: "PASS (STD01 12/12, STD02 16/16, STD03 9/9)"
+    validate_cc_cross_layer_contract_py: PASS
+    validate_jira_adapter_mapping_contract_rb: PASS
+    validate_jira_adapter_mapping_instances_py: "PASS (positive_instances=6, instance_negatives=3)"
+    git_diff_check_ba518a0_HEAD: clean
+status: ACCEPTED_GO_MERGED
+date: "2026-09-10"
