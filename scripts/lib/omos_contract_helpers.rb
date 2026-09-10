@@ -118,3 +118,23 @@ def canonical_json(obj)
   else obj.to_json
   end
 end
+
+# adapter-mapping fixture 的三段 projection surface。
+def triple_of(test_case)
+  {
+    "raw_evidence" => test_case["raw_evidence_instance"],
+    "source_anchor" => test_case["source_anchor_instance"],
+    "blocks" => test_case["block_instances"]
+  }
+end
+
+# 從 profile-specific schema 的 allOf 取 profile_details.required。
+def profile_details_required(profile_schema)
+  profile_schema.fetch("allOf").each do |part|
+    next unless part.is_a?(Hash)
+
+    required = part.dig("properties", "profile_details", "required")
+    return required.to_a if required
+  end
+  []
+end

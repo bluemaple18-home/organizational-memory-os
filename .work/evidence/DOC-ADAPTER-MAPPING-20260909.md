@@ -233,3 +233,67 @@ git add -A && git diff --cached --check                      clean
 | `scripts/lib/omos_contract_helpers.rb` | 改（下沉 deep_dup / *_path / canonical_json，+40 行） |
 | `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（two_runs → runtime_only_patch，×2 case） |
 | `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（determinism 負例換成 base_case_ref + stable_field_mutation，covers label 不變） |
+
+---
+
+## Repair 03（2026-09-10）— Repair 02 再 review NO_GO(P1=2) 針對性修復
+
+卡：`.work/CARD-DOC-ADAPTER-MAPPING-REPAIR-03-20260910.md`。`c2e184f` / Repair 01 `faddb8c` /
+Repair 02 `d2ee1d2` 皆不動；repair-03 delta = `d2ee1d2..<repair-03 SHA>`。只收 Repair 02 再
+review 的 2 個 P1，不擴 scope。
+
+### F-02-R02 — source_version 表示法 end-to-end 鎖定
+
+- normative：純文件 `source_version.value == null`、content SHA256 放 `secondary_digest`。
+- YAML：`source_version` 加 `secondary_digest_basis: CONTENT_SHA256`；`digests` 由
+  `canonical_digest_by_kind`（與 STD-01 allOf[0] 矛盾）改為 `canonical_digest_is_null: true`
+  + `normalized_digest_basis`。
+- 兩個 positive fixture 的 raw + anchor `source_version` → `{value: null, secondary_digest:
+  <content digest>}`；`native_id` → 完整 content digest。
+- Ruby：`assert value_is_null / secondary_digest_basis / canonical_digest_is_null`，並在
+  derivation binding 逐項驗。
+- parity：fixture 回退成舊表示法 → RED；YAML `value_is_null: false` → RED；移除
+  `canonical_digest_is_null` → RED。
+
+### F-03-R02 — derived = f(determinism.inputs) 由 validator 重算驗證
+
+- YAML `deterministic_derivation.binding` map：native_id / source_version.value /
+  source_version.secondary_digest / digests.raw_digest / digests.canonical_digest /
+  provenance.adapter_id / provenance.adapter_version / idempotency_key 各自的綁定規則。
+- Ruby `derivation_binding_failures(inputs, raw, anchor)`：依 `determinism.inputs` 重算每個
+  derived 欄位，與 projected instance 逐項比對，回傳失配名稱。`EXPECTED_DERIVATION_BINDING_KEYS`
+  綁 YAML `binding` 的 key。
+- positive loop：`determinism.inputs` key set 鎖定 + `derivation_binding_failures(...).empty?`。
+- 負例：3 筆 `base_case_ref` + `input_mutation`（content_digest / adapter_id / adapter_version
+  各一），instance 不動 → `derivation_binding_failures(mutated_inputs, base instance)` 必須非空。
+  covers label `a declared deterministic input changed but the derived fields did not`。
+- parity：reviewer 原 mutation（positive inputs.content_digest 改、instance 不動）→ RED；
+  `derivation_binding_failures` neutralize 成永遠 `[]` → RED；刪 3 個 input_mutation 負例 → RED；
+  YAML 移除 `binding` block → RED。
+
+### 檔案大小 / 重構
+
+`validate_document_adapter_mapping_contract.rb` 399 行（< 400）。`triple_of` /
+`profile_details_required` 下沉到共用 lib（+20 行），既有 validator 行為不變。
+
+### 修復後 gate
+
+```
+ruby validate_document_adapter_mapping_contract.rb           PASS
+validate_document_adapter_mapping_instances.py (uv)          PASS (positive_instances=10, instance_negatives=3)
+全 19 Ruby validators（含共用 lib 下沉回歸）                  PASS
+validate_std_schema_engine.py (uv)                           PASS (STD01 12/12, STD02 16/16, STD03 9/9)
+validate_cc_cross_layer_contract.py (uv)                     PASS
+enforcement parity（cp-based restore，7 項）                 全數 RED-on-tamper
+git add -A && git diff --cached --check                      clean
+```
+
+### 交付物（Repair 03）
+
+| 檔 | 動作 |
+|---|---|
+| `規格/v0.1/document-adapter-mapping.yaml` | 改（source_version.secondary_digest_basis；digests.canonical_digest_is_null；deterministic_derivation.binding；rule；required_negative_fixtures +1） |
+| `scripts/validate_document_adapter_mapping_contract.rb` | 改（derivation_binding_failures + EXPECTED_DERIVATION_BINDING_KEYS + spec 斷言 + positive/negative 綁定；399 行） |
+| `scripts/lib/omos_contract_helpers.rb` | 改（下沉 triple_of / profile_details_required，+20 行） |
+| `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（source_version value→null / secondary_digest→digest；native_id 完整化；idempotency_key 改為計算值） |
+| `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（+3 derivation-input 負例） |

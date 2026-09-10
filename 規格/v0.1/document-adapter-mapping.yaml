@@ -39,6 +39,7 @@ raw_evidence_projection:
     basis: CONTENT_ONLY
     kind: CONTENT_DIGEST
     value_is_null: true
+    secondary_digest_basis: CONTENT_SHA256
   payload:
     structured_profile_by_kind:
       PDF: BINARY
@@ -51,9 +52,8 @@ raw_evidence_projection:
       - BULK_EXPORT
   digests:
     raw_digest_basis: SOURCE_BYTES_SHA256
-    canonical_digest_by_kind:
-      PDF: null
-      MARKDOWN: NORMALIZED_TEXT_SHA256
+    canonical_digest_is_null: true
+    normalized_digest_basis: NORMALIZED_REPRESENTATION_SHA256
   rule: >-
     the projected RawEvidenceEnvelope is a schema-valid instance of
     raw-evidence-envelope.schema.json (DOC_MAP_TARGET_INSTANCE_INVALID
@@ -67,8 +67,13 @@ raw_evidence_projection:
     raw-evidence-envelope.schema.json enum, and every positive fixture's
     raw_evidence_instance must agree with this mapping for its source kind
     (source_system, entity_type, structured_profile, canonicalization_profile,
-    ingestion_mode, source_version.basis / .kind) -- the spec and the fixtures
-    cannot drift apart.
+    ingestion_mode, source_version.basis / .kind). For a pure document there is
+    no authoritative native version: source_version.value is null and the
+    content SHA256 lives in source_version.secondary_digest (value_is_null and
+    secondary_digest_basis are asserted against the fixtures, RED on drift);
+    payload canonicalization_profile is NONE so digests.canonical_digest is null
+    (canonical_digest_is_null asserted). The spec and the fixtures cannot drift
+    apart.
 
 source_anchor_projection:
   profile_by_kind:
@@ -158,6 +163,15 @@ deterministic_derivation:
     - digests
     - idempotency_key
     - projection_digest
+  binding:
+    native_id: raw_evidence.source_identity.native_id == inputs.content_digest
+    source_version_value: raw_evidence.source_version.value == null
+    source_version_secondary_digest: raw_evidence.source_version.secondary_digest == inputs.content_digest
+    raw_digest: raw_evidence.digests.raw_digest == inputs.content_digest
+    canonical_digest: raw_evidence.digests.canonical_digest == null
+    adapter_id: raw_evidence.provenance.adapter_id == inputs.adapter_id
+    adapter_version: raw_evidence.provenance.adapter_version == inputs.adapter_version
+    idempotency_key: raw_evidence.idempotency_key == "sha256:" + sha256_hex(canonical_json({content_digest, tenant_id}))
   identity_bearing_fields:
     - raw_evidence/source_identity/native_id
     - raw_evidence/source_version
@@ -187,6 +201,14 @@ deterministic_derivation:
     ingestion-time / wall-clock surface (observed/received/persisted timestamps,
     per-run receipt / activity / observation refs); nothing in the deterministic
     surface derives from wall-clock, upload order or delivery sequence.
+    Separately, each entry of `binding` is a rule the validator evaluates against
+    determinism.inputs and the projected instance: native_id, the source_version
+    (value null, secondary_digest), digests.raw_digest, digests.canonical_digest,
+    provenance.adapter_id / adapter_version and idempotency_key are recomputed
+    from (content_digest, adapter_id, adapter_version, tenant_id) and compared to
+    the fixture. Mutating any declared input while leaving the instance unchanged
+    breaks at least one binding and turns the gate RED
+    (DOC_MAP_NONDETERMINISTIC_IDENTITY).
 
 error_contract:
   DOC_MAP_UNKNOWN_SOURCE_KIND: doc-map.error.unknown_source_kind
@@ -246,6 +268,7 @@ required_negative_fixtures:
   - the payload is inline content instead of a reference
   - source identity uses a non-content basis
   - two runs with identical inputs produce a different projection
+  - a declared deterministic input changed but the derived fields did not
   - error but the mapping still claims success
 
 required_instance_negative_fixtures:

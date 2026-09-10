@@ -72,7 +72,7 @@
           "source_system": "document",
           "source_instance_id": "tenant-example",
           "entity_type": "PDF",
-          "native_id": "sha256-aaaa",
+          "native_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "parent_native_id": null
         },
         "source_aliases": [
@@ -89,8 +89,8 @@
         "source_version": {
           "basis": "CONTENT_ONLY",
           "kind": "CONTENT_DIGEST",
-          "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "secondary_digest": null
+          "value": null,
+          "secondary_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         "chronology": {
           "occurred_at": null,
@@ -139,7 +139,7 @@
         "payload_retention_state": "RETAINED",
         "deletion_confirmation_ref": null,
         "permission_decision_ref": null,
-        "idempotency_key": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "idempotency_key": "sha256:bf10c923297f6f41d9410c84e8555ff6a4a72670c18d32eb5bfda390056dd34e",
         "idempotency_basis": {
           "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
           "includes": [
@@ -164,14 +164,14 @@
           "source_system": "document",
           "source_instance_id": "tenant-example",
           "entity_type": "PDF",
-          "native_id": "sha256-aaaa",
+          "native_id": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
           "parent_native_id": null
         },
         "source_version": {
           "basis": "CONTENT_ONLY",
           "kind": "CONTENT_DIGEST",
-          "value": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "secondary_digest": null
+          "value": null,
+          "secondary_digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         },
         "representation": {
           "source_payload_ref": "urn:omos:payload:0198e6d1-0101-7aaa-8bbb-111111111111",
@@ -402,7 +402,7 @@
           "source_system": "document",
           "source_instance_id": "tenant-example",
           "entity_type": "MARKDOWN",
-          "native_id": "sha256-cccc",
+          "native_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "parent_native_id": null
         },
         "source_aliases": [
@@ -419,8 +419,8 @@
         "source_version": {
           "basis": "CONTENT_ONLY",
           "kind": "CONTENT_DIGEST",
-          "value": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-          "secondary_digest": null
+          "value": null,
+          "secondary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         },
         "chronology": {
           "occurred_at": null,
@@ -469,7 +469,7 @@
         "payload_retention_state": "RETAINED",
         "deletion_confirmation_ref": null,
         "permission_decision_ref": null,
-        "idempotency_key": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "idempotency_key": "sha256:e4512c39b4a29f2e4fcdf2b15e3c152a46b0fd88f90dc1989eac9f25ca0b7b88",
         "idempotency_basis": {
           "profile": "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
           "includes": [
@@ -494,14 +494,14 @@
           "source_system": "document",
           "source_instance_id": "tenant-example",
           "entity_type": "MARKDOWN",
-          "native_id": "sha256-cccc",
+          "native_id": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "parent_native_id": null
         },
         "source_version": {
           "basis": "CONTENT_ONLY",
           "kind": "CONTENT_DIGEST",
-          "value": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-          "secondary_digest": null
+          "value": null,
+          "secondary_digest": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         },
         "representation": {
           "source_payload_ref": "urn:omos:payload:0198e6d1-0102-7aaa-8bbb-111111111111",

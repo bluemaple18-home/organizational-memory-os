@@ -92,6 +92,36 @@
       "ok": true
     },
     {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_CONTENT_DIGEST",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "content_digest changed; native_id / source_version / digests / idempotency_key unchanged -> derivation binding must fail",
+      "input_mutation": {"content_digest": "sha256:9999999999999999999999999999999999999999999999999999999999999999"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_ADAPTER_ID",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "adapter_id changed; provenance.adapter_id unchanged -> derivation binding must fail",
+      "input_mutation": {"adapter_id": "some-other-adapter"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_ADAPTER_VERSION",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "adapter_version changed; provenance.adapter_version unchanged -> derivation binding must fail",
+      "input_mutation": {"adapter_version": "9.9.9"},
+      "ok": true
+    },
+    {
       "case_id": "DOC_MAP_NEG_FAIL_SILENT",
       "expected": "deny",
       "expected_failure_code": "FAIL_SILENT",
