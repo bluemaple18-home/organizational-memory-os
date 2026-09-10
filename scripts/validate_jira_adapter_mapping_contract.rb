@@ -40,9 +40,11 @@ EXPECTED_JSON_POINTER_PREFIX_BY_KIND = {
 }.freeze
 ISSUE_ID_PATTERN = /\A[0-9]+\z/.freeze
 SHA256_PATTERN = /\Asha256:[0-9a-f]{64}\z/.freeze
+RECONCILIATION_DECISIONS = %w[NEW_EVIDENCE NOOP].freeze
 
 # parse_instant / json_pointer_addresses_field? / identity_complete? / deep_dup / set_path /
-# projection_instance_consistency 皆在 scripts/lib/omos_contract_helpers.rb。
+# projection_instance_consistency / reconciliation_version_problem 皆在
+# scripts/lib/omos_contract_helpers.rb。
 
 EXPECTED_JIRA_MAP_NEGATIVE_LABELS = [
   "a field kind outside SUMMARY / DESCRIPTION / COMMENT_BODY / ADF_TEXT_NODE",
@@ -68,6 +70,11 @@ EXPECTED_JIRA_MAP_NEGATIVE_LABELS = [
   "reconciliation version decision disagrees with the observed version order",
   "a fractional-second newer version is still ordered as newer",
   "a reconciliation version value does not parse",
+  "a malformed previous version is not skipped when no decision is given",
+  "a reconciliation version secondary digest is missing or malformed",
+  "a supplied reconciliation current version has the wrong type",
+  "a supplied reconciliation current version does not match the projected version",
+  "a reconciliation decision is not in the locked enum",
   "an equal-timestamp reconciliation with a different secondary digest is treated as a no-op",
   "reconciliation drops a detected gap without emitting evidence",
   "error but the mapping still claims success"
@@ -175,25 +182,34 @@ def jira_mapping_failure(projection, target)
       return "JIRA_MAP_ISSUE_KEY_RENAME_NOT_ALIASED" unless alias_values.include?(key_change["to"])
     end
 
+    # supplied reconciliation version 一律 fail-closed 驗（型別 / RFC3339 / locked sha256），
+    # 與 decision 是否存在無關。
+    if reconciliation.key?("previous_version")
+      problem = reconciliation_version_problem(reconciliation["previous_version"])
+      return problem if problem
+    end
+    if reconciliation.key?("current_version")
+      problem = reconciliation_version_problem(reconciliation["current_version"])
+      return problem if problem
+      # 提供的 current version 必須逐字等於當輪實際 projected compound version。
+      supplied_current = reconciliation["current_version"]
+      unless supplied_current["value"] == version["value"] &&
+             supplied_current["secondary_digest"] == version["secondary_digest"]
+        return "JIRA_MAP_RECONCILIATION_CURRENT_VERSION_NOT_PROJECTED"
+      end
+    end
+
     decision = reconciliation["decision"]
     if present?(decision)
+      return "JIRA_MAP_RECONCILIATION_DECISION_UNKNOWN" unless RECONCILIATION_DECISIONS.include?(decision)
       previous_version = reconciliation["previous_version"]
-      current_version = reconciliation["current_version"]
-      # previous_version 必填且 value 必須可 parse —— 不可 parse 即 fail closed，不靜默跳過。
-      previous_instant = parse_instant(previous_version.is_a?(Hash) ? previous_version["value"] : nil)
-      return "JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE" if previous_instant.nil?
-      # current_version：帶了就必須可 parse（不 fallback 到 projection 版本靜默替換）；沒帶才用 projection。
-      if current_version.is_a?(Hash)
-        current_instant = parse_instant(current_version["value"])
-        return "JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE" if current_instant.nil?
-        current_secondary = current_version["secondary_digest"]
-      else
-        current_instant = version_instant
-        current_secondary = version["secondary_digest"]
-      end
+      return "JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE" unless previous_version.is_a?(Hash)
+      previous_instant = parse_instant(previous_version["value"])
       previous_secondary = previous_version["secondary_digest"]
-      # compound version：timestamp 相等時，secondary_digest 也相等才可能 NOOP；digest 不同代表
-      # compound version 已改，NOOP 不成立。
+      # current compound version 的唯一來源是當輪實際 projection，不接受自報。
+      current_instant = version_instant
+      current_secondary = version["secondary_digest"]
+      # timestamp 相等時，secondary_digest 也相等才可能 NOOP；digest 不同代表 compound version 已改。
       same_compound = current_instant == previous_instant &&
                       present?(previous_secondary) && present?(current_secondary) &&
                       previous_secondary == current_secondary

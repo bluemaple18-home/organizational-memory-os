@@ -117,6 +117,18 @@ def identity_complete?(identity)
   identity.is_a?(Hash) && present?(identity["cloud_id"]) && present?(identity["issue_id"])
 end
 
+# 一個 supplied reconciliation version 物件的 fail-closed 驗（型別 / RFC3339 value /
+# locked sha256 secondary_digest）。回傳 machine failure code 或 nil。
+SHA256_LOCKED_PATTERN = /\Asha256:[0-9a-f]{64}\z/.freeze
+def reconciliation_version_problem(node)
+  return "JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE" unless node.is_a?(Hash)
+  return "JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE" if parse_instant(node["value"]).nil?
+  return "JIRA_MAP_RECONCILIATION_VERSION_DIGEST_MALFORMED" unless node["secondary_digest"].is_a?(String) &&
+                                                                  SHA256_LOCKED_PATTERN.match?(node["secondary_digest"])
+
+  nil
+end
+
 # F-01-F03-R02：compact projection 與完整 STD instance 不得脫鉤。逐項比對 mapping-critical
 # 欄位（含 (cloud_id, issue_id) end-to-end identity binding），回傳未通過的欄位名稱。
 def projection_instance_consistency(test_case)

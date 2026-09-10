@@ -145,17 +145,24 @@ reconciliation:
     - NOOP
   rule: >-
     a reconciliation run compares the compound source version (updated timestamp
-    value AND secondary_digest) against the last known evidence. previous_version
-    is required and current_version, when supplied, must parse; a supplied
-    reconciliation version whose value is not a parseable RFC3339 instant is
-    JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE (no silent fallback to the
-    projected version). A strictly newer timestamp yields a new evidence record
-    (decision NEW_EVIDENCE); an equal timestamp is a no-op (decision NOOP) only
-    when the secondary_digest is also equal — at an equal timestamp with a
-    different secondary_digest the compound version has changed and NEW_EVIDENCE
-    is required. A decision that disagrees with this observed order — instants
-    parsed, not strings — is JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH.
-    Every reconciliation run
+    value AND secondary_digest) against the last known evidence. Any supplied
+    previous_version or current_version is validated fail-closed regardless of
+    whether a decision is present: it must be an object, value must parse as an
+    RFC3339 instant (JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE otherwise) and
+    secondary_digest must match ^sha256:[0-9a-f]{64}$
+    (JIRA_MAP_RECONCILIATION_VERSION_DIGEST_MALFORMED otherwise). The current
+    compound version is always the run's actual projected source_version — a
+    supplied current_version must equal it exactly
+    (JIRA_MAP_RECONCILIATION_CURRENT_VERSION_NOT_PROJECTED otherwise); there is
+    no silent fallback and no self-reported current version. When a decision is
+    made it must be one of NEW_EVIDENCE / NOOP
+    (JIRA_MAP_RECONCILIATION_DECISION_UNKNOWN otherwise) and previous_version is
+    required. A strictly newer projected timestamp is NEW_EVIDENCE; an equal
+    timestamp is NOOP only when the secondary_digest is also equal — an equal
+    timestamp with a different secondary_digest is a changed compound version and
+    NEW_EVIDENCE is required; a decision that disagrees with this observed order
+    — instants parsed, not strings — is
+    JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH. Every reconciliation run
     carries both previous_identity and current_identity, each with a non-null
     cloud_id and issue_id (JIRA_MAP_RECONCILIATION_IDENTITY_INCOMPLETE otherwise);
     they are compared component-wise on (cloud_id, issue_id) and any difference is
@@ -232,6 +239,9 @@ error_contract:
   JIRA_MAP_RECONCILIATION_IDENTITY_INCOMPLETE: jira-map.error.reconciliation_identity_incomplete
   JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT: jira-map.error.reconciliation_identity_drift
   JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE: jira-map.error.reconciliation_version_unparseable
+  JIRA_MAP_RECONCILIATION_VERSION_DIGEST_MALFORMED: jira-map.error.reconciliation_version_digest_malformed
+  JIRA_MAP_RECONCILIATION_CURRENT_VERSION_NOT_PROJECTED: jira-map.error.reconciliation_current_version_not_projected
+  JIRA_MAP_RECONCILIATION_DECISION_UNKNOWN: jira-map.error.reconciliation_decision_unknown
   JIRA_MAP_ISSUE_KEY_RENAME_NOT_ALIASED: jira-map.error.issue_key_rename_not_aliased
   JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH: jira-map.error.reconciliation_version_decision_mismatch
   JIRA_MAP_RECONCILIATION_SILENT_GAP: jira-map.error.reconciliation_silent_gap
@@ -281,6 +291,11 @@ required_negative_fixtures:
   - an issue key rename is not recorded as a source alias
   - reconciliation version decision disagrees with the observed version order
   - a reconciliation version value does not parse
+  - a malformed previous version is not skipped when no decision is given
+  - a reconciliation version secondary digest is missing or malformed
+  - a supplied reconciliation current version has the wrong type
+  - a supplied reconciliation current version does not match the projected version
+  - a reconciliation decision is not in the locked enum
   - an equal-timestamp reconciliation with a different secondary digest is treated as a no-op
   - a fractional-second newer version is still ordered as newer
   - reconciliation drops a detected gap without emitting evidence

@@ -290,3 +290,65 @@ git add -A && git diff --cached --check                      clean
 | `scripts/lib/omos_contract_helpers.rb` | 改（下沉 parse_instant / json_pointer_addresses_field? / identity_complete? / projection_instance_consistency + 新增 deep_dup / set_path，+90 行） |
 | `規格/v0.1/fixtures/jira-adapter-mapping-positive-fixtures.json` | 改（RECONCILE_NEWER 的 previous/current_version 補 secondary_digest） |
 | `規格/v0.1/fixtures/jira-adapter-mapping-negative-fixtures.json` | 改（+4 負例：2 reconciliation version + 2 instance_mutation identity drift） |
+
+---
+
+## Repair 04（2026-09-10）— Repair 03 再 review NO_GO(P1=1) 針對性修復
+
+卡：`.work/CARD-JIRA-ADAPTER-MAPPING-REPAIR-04-20260910.md`。`170da7f` / `733a9e3` / `fb939c1` /
+`3e18080` 皆不動；repair-04 delta = `3e18080..<repair-04 SHA>`。只收 F-02-R03（identity finding
+已 CLOSED）。
+
+### 1. supplied reconciliation version fail-closed 驗（與 decision 無關）
+
+- 新 helper `reconciliation_version_problem(node)`（共用 lib）：非物件 / value 不可 parse →
+  `JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE`；`secondary_digest` 非合法 sha256 →
+  `JIRA_MAP_RECONCILIATION_VERSION_DIGEST_MALFORMED`（新 code）。
+- evaluator：`reconciliation.key?("previous_version"/"current_version")` 時無條件跑此驗，
+  不再包在 `if present?(decision)` 內。
+
+### 2. current compound version 唯一來源 = 實際 projection
+
+- 移除 `parse_instant(current_version["value"]) || version_instant` 靜默 fallback；current
+  一律取 `version_instant` / `version["secondary_digest"]`。
+- `reconciliation.current_version` 有提供時必須逐字等於 projected `source_version`，否則
+  `JIRA_MAP_RECONCILIATION_CURRENT_VERSION_NOT_PROJECTED`（新 code）。
+
+### 3. decision enum
+
+- `decision` 有值時必須 ∈ `[NEW_EVIDENCE, NOOP]`，否則
+  `JIRA_MAP_RECONCILIATION_DECISION_UNKNOWN`（新 code）；`previous_version` 必填。
+
+### 4. YAML / fixtures
+
+- `reconciliation.rule` 改寫；`error_contract` +3；`required_negative_fixtures` +5。
+- 既有 3 個 reconciliation-version 負例改寫為 current=projected 形式（code 不變）。
+- 新 5 負例：`CURRENT_VERSION_WRONG_TYPE` / `CURRENT_NOT_PROJECTED` / `DECISION_UNKNOWN` /
+  `VERSION_DIGEST_MALFORMED` / `MALFORMED_PREV_NO_DECISION`。
+- positive `JIRA_MAP_POS_DESCRIPTION` 補 `decision` + `previous_version`（無 current_version）
+  控制案例。
+
+### 修復後 gate
+
+```
+ruby validate_jira_adapter_mapping_contract.rb               PASS
+validate_jira_adapter_mapping_instances.py (uv)              PASS (positive_instances=6, instance_negatives=3)
+全 19 Ruby validators（含共用 lib 回歸）                      PASS
+validate_std_schema_engine.py (uv)                           PASS (STD01 12/12, STD02 16/16, STD03 9/9)
+validate_cc_cross_layer_contract.py (uv)                     PASS
+定點 reconciliation_version_problem：string/array/nil -> UNPARSEABLE（不 crash）；
+  bad digest -> DIGEST_MALFORMED；valid -> nil
+enforcement parity（cp-based restore）：neutralize CURRENT_VERSION_NOT_PROJECTED /
+  DECISION_UNKNOWN / VERSION_DIGEST_MALFORMED、previous_version 驗證重新包回 decision 內 -> 皆 RED
+git add -A && git diff --cached --check                      clean
+```
+
+### 交付物（Repair 04）
+
+| 檔 | 動作 |
+|---|---|
+| `規格/v0.1/jira-adapter-mapping.yaml` | 改（reconciliation.rule；error_contract +3；required_negative_fixtures +5） |
+| `scripts/validate_jira_adapter_mapping_contract.rb` | 改（reconciliation 版本驗證 fail-closed + current=projected + decision enum；RECONCILIATION_DECISIONS；367 行） |
+| `scripts/lib/omos_contract_helpers.rb` | 改（+`reconciliation_version_problem`） |
+| `規格/v0.1/fixtures/jira-adapter-mapping-positive-fixtures.json` | 改（POS_DESCRIPTION 補 decision + previous_version） |
+| `規格/v0.1/fixtures/jira-adapter-mapping-negative-fixtures.json` | 改（3 個既有 reconciliation-version 負例改寫 + 5 新負例） |

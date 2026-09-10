@@ -24,7 +24,7 @@
           },
           "normalization_profile": "OMOS_TEXT_NORM_V1"
         },
-        "reconciliation": {"detected_gap": true, "changed_identity": false, "emitted_evidence_or_gap": true, "previous_identity": {"cloud_id": "11111111-2222-3333-4444-555555555555", "issue_id": "10042"}, "current_identity": {"cloud_id": "11111111-2222-3333-4444-555555555555", "issue_id": "10042"}},
+        "reconciliation": {"detected_gap": true, "changed_identity": false, "emitted_evidence_or_gap": true, "decision": "NEW_EVIDENCE", "previous_version": {"value": "2026-08-20T00:00:00Z", "secondary_digest": "sha256:1212121212121212121212121212121212121212121212121212121212121212"}, "previous_identity": {"cloud_id": "11111111-2222-3333-4444-555555555555", "issue_id": "10042"}, "current_identity": {"cloud_id": "11111111-2222-3333-4444-555555555555", "issue_id": "10042"}},
         "ok": true
       },
       "raw_evidence_instance": {
