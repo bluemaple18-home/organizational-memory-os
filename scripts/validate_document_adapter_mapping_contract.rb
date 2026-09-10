@@ -209,6 +209,16 @@ assert(derivation.fetch("derived", []).include?("deterministic_projection_digest
 end
 assert(derivation.fetch("run_scoped_paths", []) == DOC_MAP_RUN_SCOPED_PATHS,
        "deterministic_derivation.run_scoped_paths 必須逐字等於 validator 的 DOC_MAP_RUN_SCOPED_PATHS", failures)
+# FP-3 窮盡性：locked profile schema 的每個 profile_details 欄位都必須被單一分類涵蓋
+# （run-scoped 子欄位，或明列為 deterministic）；新增欄位不得漏分類。
+target[:profile_details_shape].each do |profile, required_keys|
+  unclassified = required_keys.reject do |key|
+    run_scoped_path?("source_anchor/profile_details/#{key}") ||
+      DOC_MAP_DETERMINISTIC_PROFILE_DETAILS_KEYS.include?(key)
+  end
+  assert(unclassified.empty?,
+         "#{profile} 的 profile_details 欄位未被單一分類涵蓋：#{unclassified.join(", ")}", failures)
+end
 
 assert(spec.dig("instance_validation", "engine") == "scripts/validate_document_adapter_mapping_instances.py", "instance_validation.engine 必須指向 companion", failures)
 assert(File.exist?(INSTANCE_ENGINE_PATH), "companion JSON Schema engine 檔案必須存在", failures)

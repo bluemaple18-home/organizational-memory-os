@@ -170,11 +170,19 @@ DOC_MAP_RUN_SCOPED_PATHS = %w[
   raw_evidence/provenance/lineage_receipt_ref
   source_anchor/anchor_id source_anchor/anchor_ref source_anchor/evidence_ref source_anchor/access
   source_anchor/quote source_anchor/source_availability source_anchor/resolution source_anchor/selectors
-  source_anchor/profile_details
   source_anchor/representation/source_payload_ref source_anchor/representation/source_payload_digest
   source_anchor/representation/representation_ref
+  source_anchor/profile_details/page source_anchor/profile_details/page_number_basis
+  source_anchor/profile_details/bbox source_anchor/profile_details/block_id
+  source_anchor/profile_details/char_range source_anchor/profile_details/char_representation_ref
+  source_anchor/profile_details/codepoint_range source_anchor/profile_details/line_range
+  source_anchor/profile_details/line_number_basis source_anchor/profile_details/heading_path
+  source_anchor/profile_details/selected_text
   blocks/*/block_id blocks/*/parent_id blocks/*/source_anchor_refs blocks/*/quality
 ].freeze
+# profile_details 是逐子欄位分類（不是整個 subtree run-scoped），因此
+# char_representation_digest 依單一規則就是 DETERMINISTIC，不需要任何特例。
+DOC_MAP_DETERMINISTIC_PROFILE_DETAILS_KEYS = %w[char_representation_digest].freeze
 
 # 從 declared inputs 完整重建 deterministic identity surface（RawEvidence + SourceAnchor 的
 # 非 run-scoped 部分）。fixture 的對應片段必須逐字等於這個結果，否則 derived != f(inputs)。
@@ -220,6 +228,9 @@ def reconstruct_deterministic_projection(kind, inputs)
       "source_version" => version,
       "representation" => { "media_type" => "text/plain", "representation_digest" => nrd, "digest_basis" => basis },
       "profile" => (kind == "PDF" ? "PDF_REGION_V1" : "MARKDOWN_TEXT_V1"),
+      # profile_details 逐子欄位分類後，PDF 只剩 char_representation_digest 屬 deterministic；
+      # MARKDOWN 的子欄位全部 run-scoped，故剩空物件。
+      "profile_details" => (kind == "PDF" ? { "char_representation_digest" => nrd } : {}),
       "normalization_profile" => "OMOS_TEXT_NORM_V1"
     }
   }
@@ -271,12 +282,6 @@ def deterministic_surface_mismatches(kind, inputs, triple)
     expected_sha = "sha256:" + Digest::SHA256.hexdigest(block["content"].to_s)
     problems << "blocks/#{index}/content_sha256 (expected #{expected_sha}, got #{block["content_sha256"].inspect})" unless
       block["content_sha256"] == expected_sha
-  end
-  # profile_details 整體 run-scoped，但 PDF 的 char_representation_digest 仍綁到 normalized rep digest。
-  char_digest = triple.dig("source_anchor", "profile_details", "char_representation_digest")
-  if kind == "PDF" && char_digest != inputs["normalized_representation_digest"]
-    problems << "source_anchor/profile_details/char_representation_digest (expected " \
-                "#{inputs["normalized_representation_digest"].inspect}, got #{char_digest.inspect})"
   end
   problems
 end

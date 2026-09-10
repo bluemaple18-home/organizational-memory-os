@@ -232,6 +232,16 @@
       "ok": true
     },
     {
+      "case_id": "DOC_MAP_NEG_DERIVATION_CHAR_REPR_DIGEST_DRIFT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "profile_details is classified per child, so char_representation_digest is DETERMINISTIC under the single rule; drifting it from inputs.normalized_representation_digest must fail without any hard-coded special case",
+      "instance_mutation": {"source_anchor/profile_details/char_representation_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444"},
+      "ok": true
+    },
+    {
       "case_id": "DOC_MAP_NEG_FAIL_SILENT",
       "expected": "deny",
       "expected_failure_code": "FAIL_SILENT",

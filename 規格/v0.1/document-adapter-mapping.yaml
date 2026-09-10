@@ -209,10 +209,23 @@ deterministic_derivation:
     - source_anchor/source_availability
     - source_anchor/resolution
     - source_anchor/selectors
-    - source_anchor/profile_details
     - source_anchor/representation/source_payload_ref
     - source_anchor/representation/source_payload_digest
     - source_anchor/representation/representation_ref
+    # profile_details 逐子欄位分類（不是整個 subtree），因此 char_representation_digest
+    # 依單一規則就是 DETERMINISTIC，不需要任何特例；validator 另斷言 locked profile schema
+    # 的每個 profile_details 欄位都被涵蓋。
+    - source_anchor/profile_details/page
+    - source_anchor/profile_details/page_number_basis
+    - source_anchor/profile_details/bbox
+    - source_anchor/profile_details/block_id
+    - source_anchor/profile_details/char_range
+    - source_anchor/profile_details/char_representation_ref
+    - source_anchor/profile_details/codepoint_range
+    - source_anchor/profile_details/line_range
+    - source_anchor/profile_details/line_number_basis
+    - source_anchor/profile_details/heading_path
+    - source_anchor/profile_details/selected_text
     - blocks/*/block_id                  # FP-4：per-run urn
     - blocks/*/parent_id                 # FP-4：per-run urn 連結；結構由 level / order 承載
     - blocks/*/source_anchor_refs        # FP-4：per-run urn
@@ -232,8 +245,10 @@ deterministic_derivation:
     secondary_digest: inputs.content_digest}. digests is
     {raw_digest: inputs.content_digest, canonical_digest: null,
     normalized_digest: inputs.normalized_representation_digest}.
-    representation.representation_digest and the PDF profile_details.char_representation_digest
-    both equal inputs.normalized_representation_digest. idempotency_key is
+    representation.representation_digest equals inputs.normalized_representation_digest, and
+    source_anchor.profile_details reduces to {char_representation_digest:
+    inputs.normalized_representation_digest} for PDF and {} for MARKDOWN once its run-scoped
+    child fields are removed -- no special case sits outside the single classification. idempotency_key is
     "sha256:" + SHA256(canonical_json({content_digest, tenant_id})).
   rule: >-
     FP-3: run_scoped_paths is the contract's only path classification. The validator
