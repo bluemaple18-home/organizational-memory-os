@@ -153,30 +153,74 @@ normalized_document_projection:
     source_anchor_refs (DOC_MAP_BLOCK_NOT_ANCHORED).
 
 deterministic_derivation:
+  # 完整宣告的 deterministic surface。每個 projection 的 {raw_evidence, source_anchor} 一旦
+  # 移掉 run_scoped_paths，剩下的每一片都必須逐字等於「只由 inputs 重建」的結果；因此相同
+  # inputs 只可能對應唯一一組 deterministic identity surface，沒有 paired-drift 的空間。
   inputs:
-    - content_digest
+    - content_digest                    # SHA256(source bytes)
     - adapter_id
     - adapter_version
     - tenant_id
+    - source_instance_id                # 該 tenant 的文件來源實例 id
+    - normalized_representation_digest   # SHA256(normalized representation bytes)；非 content_digest 的函數，故為獨立 input
   derived:
     - native_id
+    - source_identity
     - source_version
     - digests
+    - representation_digest
     - idempotency_key
     - projection_digest
-  binding:
-    native_id: "raw_evidence.source_identity.native_id == inputs.content_digest"
-    tenant_id: "raw_evidence.tenant_id == inputs.tenant_id"
-    source_version_value: "raw_evidence.source_version.value is null AND source_anchor.source_version.value is null"
-    source_version_secondary_digest: "raw_evidence.source_version.secondary_digest == inputs.content_digest AND source_anchor.source_version.secondary_digest == inputs.content_digest"
-    raw_digest: "raw_evidence.digests.raw_digest == inputs.content_digest"
-    canonical_digest: "raw_evidence.digests.canonical_digest is null"
-    normalized_digest: "raw_evidence.digests.normalized_digest == source_anchor.representation.representation_digest"
-    adapter_id: "raw_evidence.provenance.adapter_id == inputs.adapter_id"
-    adapter_version: "raw_evidence.provenance.adapter_version == inputs.adapter_version"
-    anchor_source_identity: "source_anchor.source_identity == raw_evidence.source_identity"
-    anchor_identity_content_bound: "source_anchor.source_identity.native_id == inputs.content_digest AND source_system is document AND entity_type == raw_evidence.source_identity.entity_type"
-    idempotency_key: "raw_evidence.idempotency_key == sha256_hex(canonical_json of content_digest + tenant_id from inputs)"
+  reconstructed_from_inputs: >-
+    raw_evidence.{schema_version, tenant_id, source_identity, source_version, digests,
+    payload(media_type/structured_profile/canonicalization_profile/retention_tier),
+    provenance(adapter_id/adapter_version + lineage_activity_status/verification_status/
+    verification_inferred_from_activity constants), idempotency_key, idempotency_basis} and
+    source_anchor.{schema_version, source_identity, source_version, representation
+    (media_type/representation_digest/digest_basis), profile, normalization_profile}.
+    source_identity is the same object on both instances:
+    {source_system: document, source_instance_id: inputs.source_instance_id,
+    entity_type: <PDF|MARKDOWN by kind>, native_id: inputs.content_digest,
+    parent_native_id: null}. source_version is
+    {basis: CONTENT_ONLY, kind: CONTENT_DIGEST, value: null,
+    secondary_digest: inputs.content_digest}. digests is
+    {raw_digest: inputs.content_digest, canonical_digest: null,
+    normalized_digest: inputs.normalized_representation_digest}.
+    representation.representation_digest and the PDF profile_details.char_representation_digest
+    both equal inputs.normalized_representation_digest. idempotency_key is
+    "sha256:" + SHA256(canonical_json({content_digest, tenant_id})).
+  run_scoped_paths:
+    - raw_evidence/evidence_id
+    - raw_evidence/evidence_ref
+    - raw_evidence/source_aliases
+    - raw_evidence/source_event
+    - raw_evidence/chronology
+    - raw_evidence/access
+    - raw_evidence/transport_delivery
+    - raw_evidence/activity_refs
+    - raw_evidence/source_availability
+    - raw_evidence/payload_retention_state
+    - raw_evidence/deletion_confirmation_ref
+    - raw_evidence/permission_decision_ref
+    - raw_evidence/quality_gaps
+    - raw_evidence/payload/payload_ref
+    - raw_evidence/payload/size_bytes
+    - raw_evidence/provenance/ingestion_mode
+    - raw_evidence/provenance/source_observation_receipt_ref
+    - raw_evidence/provenance/adapter_activity_ref
+    - raw_evidence/provenance/lineage_receipt_ref
+    - source_anchor/anchor_id
+    - source_anchor/anchor_ref
+    - source_anchor/evidence_ref
+    - source_anchor/access
+    - source_anchor/quote
+    - source_anchor/source_availability
+    - source_anchor/resolution
+    - source_anchor/selectors
+    - source_anchor/profile_details
+    - source_anchor/representation/source_payload_ref
+    - source_anchor/representation/source_payload_digest
+    - source_anchor/representation/representation_ref
   identity_bearing_fields:
     - raw_evidence/source_identity/native_id
     - raw_evidence/source_version
@@ -194,29 +238,19 @@ deterministic_derivation:
     - source_anchor/resolution/resolved_at
     - source_anchor/resolution/resolver_version
   rule: >-
-    projection_digest is the SHA256 of the canonical JSON (object keys sorted
-    recursively) of the projected surface {raw_evidence, source_anchor, blocks}
-    with every excluded_from_canonical_digest path removed. The validator
-    computes this digest itself from the fixture instances -- a fixture never
-    supplies a projection_digest. Two runs with identical
-    (content_digest, adapter_id, adapter_version) that differ only in
-    excluded_from_canonical_digest paths must produce an identical
-    projection_digest and byte-identical identity_bearing_fields; any other
-    difference is DOC_MAP_NONDETERMINISTIC_IDENTITY. The excluded paths are the
-    ingestion-time / wall-clock surface (observed/received/persisted timestamps,
-    per-run receipt / activity / observation refs); nothing in the deterministic
-    surface derives from wall-clock, upload order or delivery sequence.
-    Separately, each entry of `binding` is a rule the validator evaluates against
-    determinism.inputs and both projected instances: native_id, tenant_id, the
-    source_version (value null, secondary_digest) of RawEvidence and SourceAnchor,
-    digests.raw_digest, digests.canonical_digest, digests.normalized_digest (bound
-    to the SourceAnchor representation_digest), provenance.adapter_id /
-    adapter_version, the SourceAnchor source_identity (equal to the RawEvidence
-    source_identity and content-bound) and idempotency_key are recomputed from
-    (content_digest, adapter_id, adapter_version, tenant_id) and compared to the
-    fixture. Mutating any declared input, or drifting a bound instance-side
-    derived field (normalized_digest, a SourceAnchor identity component), breaks
-    at least one binding and turns the gate RED (DOC_MAP_NONDETERMINISTIC_IDENTITY).
+    projection_digest is the SHA256 of the canonical JSON of the projected surface
+    {raw_evidence, source_anchor, blocks} with every excluded_from_canonical_digest
+    path removed; the validator computes it itself and a fixture never supplies a
+    digest. The deterministic identity closure is stronger: the validator strips
+    run_scoped_paths from the fixture's {raw_evidence, source_anchor} and asserts
+    the remainder is byte-identical to reconstruct(kind, determinism.inputs). Any
+    field that is neither in run_scoped_paths nor reproduced by the reconstruction
+    is an unclassified surface field and fails the gate. Because every retained
+    field is pinned to the six declared inputs (or a fixed schema constant), two
+    projections that declare the same inputs necessarily share the same
+    deterministic identity surface -- there is no room for a paired drift of two
+    currently-equal instance-side values. Any mismatch or unclassified field is
+    DOC_MAP_NONDETERMINISTIC_IDENTITY.
 
 error_contract:
   DOC_MAP_UNKNOWN_SOURCE_KIND: doc-map.error.unknown_source_kind

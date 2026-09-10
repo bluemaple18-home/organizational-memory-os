@@ -132,28 +132,93 @@ end
 # F-02/F-03-R0x：宣告的 derived 欄位必須是 determinism.inputs 的函數。validator 依 inputs
 # 重算並與 projected instance 逐項比對，回傳失配的 binding 名稱（key 必須逐字等於
 # EXPECTED_DERIVATION_BINDING_KEYS）。改任一 input / instance-side derived 欄位 -> 至少一項失配。
-def derivation_binding_failures(inputs, raw, anchor)
+DOC_MAP_DETERMINISM_INPUTS = %w[
+  content_digest adapter_id adapter_version tenant_id source_instance_id normalized_representation_digest
+].freeze
+# 每份 projection 中「非 deterministic identity 一部分」的 per-run 欄位。移掉這些之後，剩下的
+# 每一片都必須逐字等於 reconstruct_deterministic_projection(kind, inputs)。
+DOC_MAP_RUN_SCOPED_PATHS = %w[
+  raw_evidence/evidence_id raw_evidence/evidence_ref raw_evidence/source_aliases raw_evidence/source_event
+  raw_evidence/chronology raw_evidence/access raw_evidence/transport_delivery raw_evidence/activity_refs
+  raw_evidence/source_availability raw_evidence/payload_retention_state raw_evidence/deletion_confirmation_ref
+  raw_evidence/permission_decision_ref raw_evidence/quality_gaps
+  raw_evidence/payload/payload_ref raw_evidence/payload/size_bytes
+  raw_evidence/provenance/ingestion_mode
+  raw_evidence/provenance/source_observation_receipt_ref raw_evidence/provenance/adapter_activity_ref
+  raw_evidence/provenance/lineage_receipt_ref
+  source_anchor/anchor_id source_anchor/anchor_ref source_anchor/evidence_ref source_anchor/access
+  source_anchor/quote source_anchor/source_availability source_anchor/resolution source_anchor/selectors
+  source_anchor/profile_details
+  source_anchor/representation/source_payload_ref source_anchor/representation/source_payload_digest
+  source_anchor/representation/representation_ref
+].freeze
+
+# 從 declared inputs 完整重建 deterministic identity surface（RawEvidence + SourceAnchor 的
+# 非 run-scoped 部分）。fixture 的對應片段必須逐字等於這個結果，否則 derived != f(inputs)。
+def reconstruct_deterministic_projection(kind, inputs)
   cd = inputs["content_digest"]
-  tenant = inputs["tenant_id"]
-  idem = "sha256:" + Digest::SHA256.hexdigest(canonical_json("content_digest" => cd, "tenant_id" => tenant))
+  nrd = inputs["normalized_representation_digest"]
+  identity = {
+    "source_system" => "document", "source_instance_id" => inputs["source_instance_id"],
+    "entity_type" => kind, "native_id" => cd, "parent_native_id" => nil
+  }
+  version = { "basis" => "CONTENT_ONLY", "kind" => "CONTENT_DIGEST", "value" => nil, "secondary_digest" => cd }
+  media = kind == "PDF" ? "application/pdf" : "text/markdown"
+  profile = kind == "PDF" ? "BINARY" : "TEXT"
+  basis = kind == "PDF" ? "retained representation bytes" : "normalized text bytes"
   {
-    "native_id" => raw.dig("source_identity", "native_id") == cd,
-    "tenant_id" => raw["tenant_id"] == tenant,
-    "source_version_value" => raw.dig("source_version", "value").nil? && anchor.dig("source_version", "value").nil?,
-    "source_version_secondary_digest" => raw.dig("source_version", "secondary_digest") == cd &&
-                                         anchor.dig("source_version", "secondary_digest") == cd,
-    "raw_digest" => raw.dig("digests", "raw_digest") == cd,
-    "canonical_digest" => raw.dig("digests", "canonical_digest").nil?,
-    "normalized_digest" => present?(raw.dig("digests", "normalized_digest")) &&
-                           raw.dig("digests", "normalized_digest") == anchor.dig("representation", "representation_digest"),
-    "adapter_id" => raw.dig("provenance", "adapter_id") == inputs["adapter_id"],
-    "adapter_version" => raw.dig("provenance", "adapter_version") == inputs["adapter_version"],
-    "anchor_source_identity" => raw["source_identity"] == anchor["source_identity"],
-    "anchor_identity_content_bound" => anchor.dig("source_identity", "native_id") == cd &&
-                                       anchor.dig("source_identity", "source_system") == "document" &&
-                                       anchor.dig("source_identity", "entity_type") == raw.dig("source_identity", "entity_type"),
-    "idempotency_key" => raw["idempotency_key"] == idem
-  }.reject { |_, ok| ok }.keys
+    "raw_evidence" => {
+      "schema_version" => "omos.evidence.raw.v0.1",
+      "tenant_id" => inputs["tenant_id"],
+      "source_identity" => identity,
+      "source_version" => version,
+      "digests" => { "raw_digest" => cd, "canonical_digest" => nil, "normalized_digest" => nrd },
+      "payload" => {
+        "media_type" => media, "structured_profile" => profile,
+        "canonicalization_profile" => "NONE", "retention_tier" => "SOURCE_FULL_BODY"
+      },
+      "provenance" => {
+        "adapter_id" => inputs["adapter_id"], "adapter_version" => inputs["adapter_version"],
+        "lineage_activity_status" => "COMPLETE", "verification_status" => "NOT_RUN",
+        "verification_inferred_from_activity" => false
+      },
+      "idempotency_key" => "sha256:" + Digest::SHA256.hexdigest(
+        canonical_json("content_digest" => cd, "tenant_id" => inputs["tenant_id"])
+      ),
+      "idempotency_basis" => {
+        "profile" => "OMOS_ENTITY_SNAPSHOT_IDEMPOTENCY_V1",
+        "includes" => %w[tenant_id stable_source_identity source_version],
+        "excludes" => %w[received_at persisted_at ingestion_mode]
+      }
+    },
+    "source_anchor" => {
+      "schema_version" => "omos.source-anchor.v0.1",
+      "source_identity" => identity,
+      "source_version" => version,
+      "representation" => { "media_type" => "text/plain", "representation_digest" => nrd, "digest_basis" => basis },
+      "profile" => (kind == "PDF" ? "PDF_REGION_V1" : "MARKDOWN_TEXT_V1"),
+      "normalization_profile" => "OMOS_TEXT_NORM_V1"
+    }
+  }
+end
+
+# fixture 的 {raw_evidence, source_anchor} 去掉 run-scoped 之後，逐鍵與重建結果比對。
+# 回傳不符（含未分類欄位）的 canonical-json 路徑清單。
+def deterministic_surface_mismatches(kind, inputs, raw, anchor)
+  observed = deep_dup("raw_evidence" => raw, "source_anchor" => anchor)
+  DOC_MAP_RUN_SCOPED_PATHS.each { |path| delete_path(observed, path) }
+  expected = reconstruct_deterministic_projection(kind, inputs)
+  diff_paths(expected, observed, "")
+end
+
+def diff_paths(expected, observed, prefix)
+  return [] if expected == observed
+
+  if expected.is_a?(Hash) && observed.is_a?(Hash)
+    (expected.keys | observed.keys).flat_map { |key| diff_paths(expected[key], observed[key], "#{prefix}#{key}/") }
+  else
+    ["#{prefix.chomp("/")} (expected #{expected.inspect}, got #{observed.inspect})"]
+  end
 end
 
 # 從 profile-specific schema 的 allOf 取 profile_details.required。

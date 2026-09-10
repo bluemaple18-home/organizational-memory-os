@@ -152,6 +152,56 @@
       "ok": true
     },
     {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_SOURCE_INSTANCE_ID",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "source_instance_id input changed; both instances' source_identity.source_instance_id unchanged -> reconstructed surface no longer matches",
+      "input_mutation": {"source_instance_id": "another-tenant-store"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_INPUT_NORMALIZED_REPR_DIGEST",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a declared deterministic input changed but the derived fields did not",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "normalized_representation_digest input changed; raw.digests.normalized_digest and anchor representation_digest unchanged -> reconstructed surface no longer matches",
+      "input_mutation": {"normalized_representation_digest": "sha256:5555555555555555555555555555555555555555555555555555555555555555"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_PAIRED_NORMALIZED_DRIFT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "raw.digests.normalized_digest AND anchor representation_digest both changed to the same new value while the six inputs stay fixed -> both diverge from inputs.normalized_representation_digest",
+      "instance_mutation": {"raw_evidence_instance/digests/normalized_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777", "source_anchor_instance/representation/representation_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_PAIRED_SOURCE_INSTANCE_DRIFT",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "raw AND anchor source_identity.source_instance_id both changed to the same new value while inputs stay fixed -> both diverge from inputs.source_instance_id",
+      "instance_mutation": {"raw_evidence_instance/source_identity/source_instance_id": "another-source", "source_anchor_instance/source_identity/source_instance_id": "another-source"},
+      "ok": true
+    },
+    {
+      "case_id": "DOC_MAP_NEG_DERIVATION_UNCLASSIFIED_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "DOC_MAP_NONDETERMINISTIC_IDENTITY",
+      "covers_doc_map_negative_fixture": "a bound instance-side derived field drifted from its source",
+      "base_case_ref": "DOC_MAP_POS_PDF",
+      "note": "a field is added inside a reconstructed sub-object (idempotency_basis) that is neither run_scoped nor part of the reconstruction -> unclassified surface field",
+      "instance_mutation": {"raw_evidence_instance/idempotency_basis/extra": "x"},
+      "ok": true
+    },
+    {
       "case_id": "DOC_MAP_NEG_FAIL_SILENT",
       "expected": "deny",
       "expected_failure_code": "FAIL_SILENT",

@@ -358,3 +358,63 @@ git add -A && git diff --cached --check                      clean
 | `scripts/lib/omos_contract_helpers.rb` | 改（+`require "digest"`；`derivation_binding_failures()` 下沉並擴充 tenant_id / normalized_digest / anchor identity binding） |
 | `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（determinism.inputs +tenant_id ×2） |
 | `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（+3 負例：1 input_mutation tenant_id + 2 instance_mutation normalized_digest / anchor identity） |
+
+---
+
+## Repair 05（2026-09-10）— Repair 04 再 review NO_GO(P1=1, F-03-R04) 針對性修復
+
+卡：`.work/CARD-DOC-ADAPTER-MAPPING-REPAIR-05-20260910.md`。`c2e184f` / `faddb8c` / `d2ee1d2` /
+`df6b2ff` / `f2333e1` 皆不動；repair-05 delta = `f2333e1..<repair-05 SHA>`。只收 F-03-R04：
+把 deterministic surface 一次定義乾淨（input / derived / run-scoped）+ machine comparison。
+
+### 六個 declared input
+
+`inputs = [content_digest, adapter_id, adapter_version, tenant_id, source_instance_id,
+normalized_representation_digest]`。後兩者是前輪未宣告的隱藏依賴。
+
+### run_scoped_paths 完整列舉
+
+`DOC_MAP_RUN_SCOPED_PATHS`（YAML `run_scoped_paths` 逐字綁定）—— RawEvidence / SourceAnchor
+所有 per-run 欄位（evidence/anchor id·ref、chronology、access、aliases、resolution、selectors、
+profile_details、payload_ref/size_bytes、provenance/ingestion_mode + receipt/activity refs …）。
+
+### reconstruct(kind, inputs) + machine comparison
+
+新 `reconstruct_deterministic_projection(kind, inputs)`（共用 lib）：只由 6 個 input（+ schema
+constant）重建 `{raw_evidence, source_anchor}` 的 deterministic 片段（source_identity 為兩份
+instance 同一物件、source_version、digests、payload profile、provenance adapter+const、
+idempotency_key、idempotency_basis、representation、profile、normalization_profile、
+schema_version）。`deterministic_surface_mismatches()`：fixture 去掉 run_scoped_paths 後
+`diff_paths` 逐鍵比對重建結果，任一不符（含未分類欄位）→ `DOC_MAP_NONDETERMINISTIC_IDENTITY`。
+每個保留欄位都釘死到 6 個 input → 同 inputs 只可能對應唯一 deterministic identity surface，
+paired drift 無立足點。PDF `char_representation_digest` 另加 targeted 綁定。
+
+### 負例
+
+- input mutation ×6（含新 `source_instance_id` / `normalized_representation_digest`）。
+- paired drift ×2（reviewer 原案例）：`normalized_digest`+`representation_digest` 一起改、
+  `source_instance_id` 兩份一起改 —— inputs 不動 → RED。
+- unclassified field ×1（`idempotency_basis` 內加欄位）。
+- 既有 6 個 derivation 負例在新機制下仍 RED。
+
+### 修復後 gate
+
+```
+ruby validate_document_adapter_mapping_contract.rb           PASS
+validate_document_adapter_mapping_instances.py (uv)          PASS (positive_instances=10, instance_negatives=3)
+全 19 Ruby validators（含共用 lib 回歸）                      PASS
+validate_std_schema_engine.py (uv)                           PASS (STD01 12/12, STD02 16/16, STD03 9/9)
+validate_cc_cross_layer_contract.py (uv)                     PASS
+enforcement parity（cp-based restore，5 項，含 reviewer bypass A/B）  全數 RED-on-tamper
+git add -A && git diff --cached --check                      clean
+```
+
+### 交付物（Repair 05）
+
+| 檔 | 動作 |
+|---|---|
+| `規格/v0.1/document-adapter-mapping.yaml` | 改（deterministic_derivation：inputs 6 個；run_scoped_paths 完整列舉；reconstructed_from_inputs；rule 改寫；移除逐欄 binding map） |
+| `scripts/validate_document_adapter_mapping_contract.rb` | 改（DETERMINISM_INPUT_KEYS 由 lib 取；positive/negative 迴圈改用 deterministic_surface_mismatches；PDF char_representation_digest targeted 綁定；run_scoped_paths 結構斷言；394 行） |
+| `scripts/lib/omos_contract_helpers.rb` | 改（+DOC_MAP_DETERMINISM_INPUTS / DOC_MAP_RUN_SCOPED_PATHS / reconstruct_deterministic_projection / deterministic_surface_mismatches / diff_paths；移除舊 derivation_binding_failures） |
+| `規格/v0.1/fixtures/document-adapter-mapping-positive-fixtures.json` | 改（determinism.inputs +source_instance_id +normalized_representation_digest ×2） |
+| `規格/v0.1/fixtures/document-adapter-mapping-negative-fixtures.json` | 改（+5 負例：2 input mutation + 2 paired drift + 1 unclassified field） |

@@ -60,13 +60,7 @@ IDENTITY_BEARING_FIELDS = %w[
   raw_evidence/idempotency_key
   raw_evidence/payload/payload_ref
 ].freeze
-DETERMINISM_INPUT_KEYS = %w[content_digest adapter_id adapter_version tenant_id].freeze
-# yaml deterministic_derivation.binding 的 key，必須逐字等於 validator 實際評估的 derived 綁定。
-EXPECTED_DERIVATION_BINDING_KEYS = %w[
-  native_id tenant_id source_version_value source_version_secondary_digest raw_digest
-  canonical_digest normalized_digest adapter_id adapter_version
-  anchor_source_identity anchor_identity_content_bound idempotency_key
-].freeze
+DETERMINISM_INPUT_KEYS = DOC_MAP_DETERMINISM_INPUTS  # 來自共用 lib：6 個 declared input
 
 EXPECTED_DOC_MAP_NEGATIVE_LABELS = [
   "a source kind outside PDF / MARKDOWN",
@@ -223,13 +217,14 @@ assert(ndp.fetch("content_layer_by_block_type", {}) == EXPECTED_CONTENT_LAYER_BY
 assert(ndp.fetch("attribute_required_by_block_type", {}) == EXPECTED_ATTR_REQUIRED_BY_BLOCK_TYPE, "attribute_required_by_block_type 與鎖定對映不符", failures)
 
 derivation = spec.fetch("deterministic_derivation", {})
-assert(sorted_set(derivation.fetch("inputs", [])) == sorted_set(DETERMINISM_INPUT_KEYS), "deterministic_derivation.inputs 與鎖定清單不符", failures)
+assert(sorted_set(derivation.fetch("inputs", [])) == sorted_set(DETERMINISM_INPUT_KEYS), "deterministic_derivation.inputs 必須剛好是 6 個 declared input", failures)
 assert(derivation.fetch("derived", []).include?("projection_digest"), "deterministic_derivation.derived 必須含 projection_digest", failures)
 assert(derivation.fetch("excluded_from_canonical_digest", []) == DETERMINISTIC_EXCLUDED_PATHS,
        "deterministic_derivation.excluded_from_canonical_digest 必須逐字等於 validator 的 DETERMINISTIC_EXCLUDED_PATHS", failures)
 assert(derivation.fetch("identity_bearing_fields", []) == IDENTITY_BEARING_FIELDS,
        "deterministic_derivation.identity_bearing_fields 必須逐字等於 validator 的 IDENTITY_BEARING_FIELDS", failures)
-assert(sorted_set(derivation.fetch("binding", {}).keys) == sorted_set(EXPECTED_DERIVATION_BINDING_KEYS), "deterministic_derivation.binding key 必須逐字等於 validator 評估的 derived 綁定", failures)
+assert(derivation.fetch("run_scoped_paths", []) == DOC_MAP_RUN_SCOPED_PATHS,
+       "deterministic_derivation.run_scoped_paths 必須逐字等於 validator 的 DOC_MAP_RUN_SCOPED_PATHS", failures)
 
 assert(spec.dig("instance_validation", "engine") == "scripts/validate_document_adapter_mapping_instances.py", "instance_validation.engine 必須指向 companion", failures)
 assert(File.exist?(INSTANCE_ENGINE_PATH), "companion JSON Schema engine 檔案必須存在", failures)
@@ -292,12 +287,17 @@ positive_cases.each do |test_case|
     assert(block["content_layer"] == expected_layer, "#{case_id} block[#{index}] (#{block["block_type"]}) content_layer 與 mapping 不一致", failures)
   end
 
-  # --- deterministic derivation：derived 欄位必須是 determinism.inputs 的函數 ---
+  # --- deterministic surface：去掉 run-scoped 後，每一片必須逐字等於由 inputs 重建的結果 ---
   inputs = test_case.dig("determinism", "inputs") || {}
   assert(sorted_set(inputs.keys) == sorted_set(DETERMINISM_INPUT_KEYS),
-         "#{case_id} determinism.inputs 必須剛好是 content_digest / adapter_id / adapter_version", failures)
-  binding_gaps = derivation_binding_failures(inputs, raw_instance, anchor_instance)
-  assert(binding_gaps.empty?, "#{case_id} derived 欄位未綁定到 determinism.inputs：#{binding_gaps.join(", ")}", failures)
+         "#{case_id} determinism.inputs 必須剛好是 6 個 declared input", failures)
+  surface_diff = deterministic_surface_mismatches(kind, inputs, raw_instance, anchor_instance)
+  assert(surface_diff.empty?, "#{case_id} deterministic surface 未由 inputs 完整決定：#{surface_diff.join("; ")}", failures)
+  # PDF profile_details 是 run-scoped，但其中的 char_representation_digest 仍綁到 normalized rep digest。
+  if kind == "PDF"
+    assert(anchor_instance.dig("profile_details", "char_representation_digest") == inputs["normalized_representation_digest"],
+           "#{case_id} PDF profile_details.char_representation_digest 必須等於 inputs.normalized_representation_digest", failures)
+  end
 
   # --- deterministic derivation：validator 自算 canonical projection digest ---
   base_triple = triple_of(test_case)
@@ -364,8 +364,8 @@ derivation_negatives.each do |test_case|
       set_path(path.start_with?("source_anchor_instance/") ? anchor : raw, path.split("/", 2).last, value)
     end
   end
-  gaps = derivation_binding_failures(inputs, raw, anchor)
-  assert(!gaps.empty?, "#{case_id}: mutation 後沒有任何 derived 欄位失配 —— derivation binding 失效", failures)
+  diff = deterministic_surface_mismatches(base_case.fetch("source_kind"), inputs, raw, anchor)
+  assert(!diff.empty?, "#{case_id}: mutation 後 deterministic surface 仍與 inputs 重建結果一致 —— surface gate 失效", failures)
 end
 
 covered_labels = sorted_set(negative.fetch("document_mapping_negative_cases").map { |test_case| test_case.fetch("covers_doc_map_negative_fixture") })
