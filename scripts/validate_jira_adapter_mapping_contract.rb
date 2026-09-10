@@ -13,7 +13,6 @@
 
 require "json"
 require "yaml"
-require "time"
 require_relative "lib/omos_contract_helpers"
 
 ROOT = File.expand_path("..", __dir__)
@@ -42,25 +41,8 @@ EXPECTED_JSON_POINTER_PREFIX_BY_KIND = {
 ISSUE_ID_PATTERN = /\A[0-9]+\z/.freeze
 SHA256_PATTERN = /\Asha256:[0-9a-f]{64}\z/.freeze
 
-# RFC3339 timestamp -> Time，parse 失敗回 nil。用真正 parse 比較，不用字串比較
-# （字串比較下 "2026-09-05T12:00:00.1Z" < "2026-09-05T12:00:00Z"，fractional 秒會判錯）。
-def parse_instant(value)
-  return nil unless value.is_a?(String)
-
-  Time.iso8601(value)
-rescue ArgumentError
-  nil
-end
-
-# pointer 是否真正定址到該 field：== prefix 或位於 prefix 之下。
-def json_pointer_addresses_field?(pointer, prefix)
-  pointer.is_a?(String) && (pointer == prefix || pointer.start_with?("#{prefix}/"))
-end
-
-# identity 需 cloud_id / issue_id 皆非空。
-def identity_complete?(identity)
-  identity.is_a?(Hash) && present?(identity["cloud_id"]) && present?(identity["issue_id"])
-end
+# parse_instant / json_pointer_addresses_field? / identity_complete? / deep_dup / set_path /
+# projection_instance_consistency 皆在 scripts/lib/omos_contract_helpers.rb。
 
 EXPECTED_JIRA_MAP_NEGATIVE_LABELS = [
   "a field kind outside SUMMARY / DESCRIPTION / COMMENT_BODY / ADF_TEXT_NODE",
@@ -76,6 +58,8 @@ EXPECTED_JIRA_MAP_NEGATIVE_LABELS = [
   "the anchor field id does not match the field kind",
   "the anchor json pointer does not address the mapped field",
   "the anchor json pointer only shares a prefix with the mapped field",
+  "the full instance evidence identity uses a different cloud id than the projection",
+  "the full instance source identity is not the issue entity type",
   "reconciliation changes an existing evidence identity",
   "reconciliation omits the before or after evidence identity",
   "reconciliation before and after evidence identity differ",
@@ -83,6 +67,8 @@ EXPECTED_JIRA_MAP_NEGATIVE_LABELS = [
   "an issue key rename is not recorded as a source alias",
   "reconciliation version decision disagrees with the observed version order",
   "a fractional-second newer version is still ordered as newer",
+  "a reconciliation version value does not parse",
+  "an equal-timestamp reconciliation with a different secondary digest is treated as a no-op",
   "reconciliation drops a detected gap without emitting evidence",
   "error but the mapping still claims success"
 ].freeze
@@ -191,13 +177,30 @@ def jira_mapping_failure(projection, target)
 
     decision = reconciliation["decision"]
     if present?(decision)
-      previous_instant = parse_instant(reconciliation.dig("previous_version", "value"))
-      current_instant = parse_instant(reconciliation.dig("current_version", "value")) || version_instant
-      if previous_instant && current_instant
-        ordered_new = current_instant > previous_instant
-        mismatch = (decision == "NEW_EVIDENCE" && !ordered_new) || (decision == "NOOP" && ordered_new)
-        return "JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH" if mismatch
+      previous_version = reconciliation["previous_version"]
+      current_version = reconciliation["current_version"]
+      # previous_version 必填且 value 必須可 parse —— 不可 parse 即 fail closed，不靜默跳過。
+      previous_instant = parse_instant(previous_version.is_a?(Hash) ? previous_version["value"] : nil)
+      return "JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE" if previous_instant.nil?
+      # current_version：帶了就必須可 parse（不 fallback 到 projection 版本靜默替換）；沒帶才用 projection。
+      if current_version.is_a?(Hash)
+        current_instant = parse_instant(current_version["value"])
+        return "JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE" if current_instant.nil?
+        current_secondary = current_version["secondary_digest"]
+      else
+        current_instant = version_instant
+        current_secondary = version["secondary_digest"]
       end
+      previous_secondary = previous_version["secondary_digest"]
+      # compound version：timestamp 相等時，secondary_digest 也相等才可能 NOOP；digest 不同代表
+      # compound version 已改，NOOP 不成立。
+      same_compound = current_instant == previous_instant &&
+                      present?(previous_secondary) && present?(current_secondary) &&
+                      previous_secondary == current_secondary
+      ordered_new = current_instant > previous_instant ||
+                    (current_instant == previous_instant && !same_compound)
+      mismatch = (decision == "NEW_EVIDENCE" && !ordered_new) || (decision == "NOOP" && ordered_new)
+      return "JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH" if mismatch
     end
 
     if reconciliation["detected_gap"] == true && reconciliation["emitted_evidence_or_gap"] != true
@@ -206,54 +209,6 @@ def jira_mapping_failure(projection, target)
   end
 
   nil
-end
-
-# F-01 regression 修補：compact projection 與完整 STD instance 不得是兩套脫鉤測資。
-# 逐項綁定 mapping-critical 欄位（identity / source_version / profile / field_id /
-# json_pointer / payload / provenance），確保「schema-valid instance」確實是「依這份
-# mapping 產生的」。
-def projection_instance_consistency(test_case)
-  problems = []
-  projection = test_case.fetch("projection")
-  raw_instance = test_case.fetch("raw_evidence_instance")
-  anchor_instance = test_case.fetch("source_anchor_instance")
-  proj_details = projection.dig("source_anchor", "profile_details") || {}
-  inst_details = anchor_instance["profile_details"] || {}
-
-  problems << "source_anchor.profile" unless projection.dig("source_anchor", "profile") == anchor_instance["profile"]
-  %w[field_id json_pointer cloud_id issue_id].each do |key|
-    problems << "profile_details.#{key}" unless proj_details[key] == inst_details[key]
-  end
-
-  proj_version = projection.dig("raw_evidence", "source_version") || {}
-  inst_version = raw_instance["source_version"] || {}
-  %w[basis kind value secondary_digest].each do |key|
-    problems << "source_version.#{key}" unless proj_version[key] == inst_version[key]
-  end
-
-  proj_payload = projection.dig("raw_evidence", "payload") || {}
-  inst_payload = raw_instance["payload"] || {}
-  %w[structured_profile canonicalization_profile payload_ref].each do |key|
-    problems << "payload.#{key}" unless proj_payload[key] == inst_payload[key]
-  end
-
-  problems << "provenance.ingestion_mode" unless projection.dig("raw_evidence", "provenance", "ingestion_mode") ==
-                                                raw_instance.dig("provenance", "ingestion_mode")
-  problems << "raw_evidence_instance.source_system" unless raw_instance.dig("source_identity", "source_system") == "jira-cloud"
-  problems << "projected native_id_basis" unless projection.dig("raw_evidence", "source_identity", "native_id_basis") == "JIRA_CLOUD_ID_PLUS_ISSUE_ID"
-  # Jira 的 evidence identity = (cloud_id, issue_id)；native_id 即 issue_id。
-  problems << "raw_evidence_instance.native_id == issue_id" unless raw_instance.dig("source_identity", "native_id") == inst_details["issue_id"]
-  problems << "source_anchor_instance.native_id == issue_id" unless anchor_instance.dig("source_identity", "native_id") == inst_details["issue_id"]
-
-  reconciliation = projection["reconciliation"]
-  if reconciliation.is_a?(Hash) && reconciliation["current_identity"].is_a?(Hash)
-    current = reconciliation["current_identity"]
-    unless current["cloud_id"] == inst_details["cloud_id"] && current["issue_id"] == inst_details["issue_id"]
-      problems << "reconciliation.current_identity == instance identity"
-    end
-  end
-
-  problems
 end
 
 failures = []
@@ -361,9 +316,19 @@ positive.fetch("jira_mapping_cases").each do |test_case|
   assert(mismatches.empty?, "#{case_id} projection 與完整 STD instance 不一致：#{mismatches.join(", ")}", failures)
 end
 
+positive_by_id = positive.fetch("jira_mapping_cases").each_with_object({}) { |tc, acc| acc[tc.fetch("case_id")] = tc }
+
 negative.fetch("jira_mapping_negative_cases").each do |test_case|
   case_id = test_case.fetch("case_id")
   assert(test_case.fetch("expected") == "deny", "#{case_id} jira-map negative 必須預期 deny", failures)
+  # instance_mutation 負例（帶 base_case_ref）由下段 projection_instance_consistency 驗。
+  if test_case.key?("instance_mutation")
+    base = deep_dup(positive_by_id.fetch(test_case.fetch("base_case_ref")))
+    test_case.fetch("instance_mutation").each { |path, value| set_path(base, path, value) }
+    assert(!projection_instance_consistency(base).empty?,
+           "#{case_id}: instance_mutation 後 projection_instance_consistency 仍通過 —— identity binding 失效", failures)
+    next
+  end
   expected_code = test_case.fetch("expected_failure_code")
   actual = jira_mapping_failure(test_case.fetch("projection"), target)
   assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)

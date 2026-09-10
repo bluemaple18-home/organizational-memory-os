@@ -227,3 +227,66 @@ git add -A && git diff --cached --check                      clean
 | `規格/v0.1/fixtures/jira-adapter-mapping-negative-fixtures.json` | 改（+4 負例；2 個既有 reconciliation 負例補 matching identity） |
 
 validator 386 行、companion 113 行（< 400）。
+
+---
+
+## Repair 03（2026-09-10）— Repair 02 再 review NO_GO(P1=2) 針對性修復
+
+卡：`.work/CARD-JIRA-ADAPTER-MAPPING-REPAIR-03-20260910.md`。`170da7f` / Repair 01 `733a9e3` /
+Repair 02 `fb939c1` 皆不動；repair-03 delta = `fb939c1..<repair-03 SHA>`。只收 Repair 02 再
+review 的 2 個 P1。
+
+### F-01-F03-R02 — full instance source_identity end-to-end 綁到 (cloud_id, issue_id)
+
+- `projection_instance_consistency()`（下沉共用 lib）新增：raw_evidence_instance 與
+  source_anchor_instance 各驗 `source_system == jira-cloud` /
+  `source_instance_id == profile_details.cloud_id` / `entity_type == "issue"` /
+  `native_id == profile_details.issue_id`；且要求兩個 `source_identity` 相等。
+- YAML `projection_instance_consistency.full_instance_identity_binding` 說明。
+- 負例：`INSTANCE_CLOUD_DRIFT`（兩 instance `source_instance_id` 換別的 cloud id）、
+  `INSTANCE_ENTITY_TYPE_DRIFT`（`entity_type` → comment）—— `base_case_ref` + `instance_mutation`，
+  主程式套 mutation 後 `projection_instance_consistency` 必須非空。
+- parity：neutralize `source_instance_id == cloud_id` / `entity_type == issue` → RED；
+  positive fixture drift `source_instance_id` → RED。
+
+### F-02-R02 — reconciliation version ordering fail closed + compound 比較
+
+- decision 段：`previous_version` 必填且可 parse，否則
+  `JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE`（新 code）；`current_version` 帶了就必須可 parse
+  （移除 `|| version_instant` 靜默 fallback）。
+- compound：`same_compound` = timestamp 相等且雙方 `secondary_digest` 皆存在且相等；
+  `ordered_new = current > previous || (timestamp 相等 && !same_compound)` —— 等 timestamp、
+  digest 不同即 newer，NOOP 不成立 → `RECONCILIATION_VERSION_DECISION_MISMATCH`。
+- YAML `reconciliation.rule` 改寫 + `error_contract` +1；positive reconcile 案補
+  `previous_version` / `current_version` 的 `secondary_digest`。
+- 負例：`RECONCILIATION_VERSION_UNPARSEABLE_PREVIOUS`（`previous_version.value` 不可 parse）、
+  `RECONCILIATION_COMPOUND_DIGEST_NOOP`（同 timestamp、digest 不同、decision NOOP）。
+- parity：neutralize UNPARSEABLE fail-closed → RED；`ordered_new` 退回純 timestamp 比較 → RED。
+
+### 檔案大小 / 重構
+
+`validate_jira_adapter_mapping_contract.rb` 351 行（< 400）。`parse_instant` /
+`json_pointer_addresses_field?` / `identity_complete?` / `projection_instance_consistency` +
+新增 `deep_dup` / `set_path` 下沉共用 lib，既有 validator 行為不變。
+
+### 修復後 gate
+
+```
+ruby validate_jira_adapter_mapping_contract.rb               PASS
+validate_jira_adapter_mapping_instances.py (uv)              PASS (positive_instances=6, instance_negatives=3)
+全 19 Ruby validators（含共用 lib 下沉回歸）                  PASS
+validate_std_schema_engine.py (uv)                           PASS (STD01 12/12, STD02 16/16, STD03 9/9)
+validate_cc_cross_layer_contract.py (uv)                     PASS
+enforcement parity（cp-based restore，5 項）                 全數 RED-on-tamper
+git add -A && git diff --cached --check                      clean
+```
+
+### 交付物（Repair 03）
+
+| 檔 | 動作 |
+|---|---|
+| `規格/v0.1/jira-adapter-mapping.yaml` | 改（reconciliation.rule compound + unparseable；error_contract +1；projection_instance_consistency.full_instance_identity_binding；required_negative_fixtures +4） |
+| `scripts/validate_jira_adapter_mapping_contract.rb` | 改（reconciliation decision 段 fail-closed + compound 比較；instance_mutation 負例迴圈；helper 下沉；351 行） |
+| `scripts/lib/omos_contract_helpers.rb` | 改（下沉 parse_instant / json_pointer_addresses_field? / identity_complete? / projection_instance_consistency + 新增 deep_dup / set_path，+90 行） |
+| `規格/v0.1/fixtures/jira-adapter-mapping-positive-fixtures.json` | 改（RECONCILE_NEWER 的 previous/current_version 補 secondary_digest） |
+| `規格/v0.1/fixtures/jira-adapter-mapping-negative-fixtures.json` | 改（+4 負例：2 reconciliation version + 2 instance_mutation identity drift） |

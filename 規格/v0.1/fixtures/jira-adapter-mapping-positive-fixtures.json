@@ -182,8 +182,8 @@
           "current_identity": {"cloud_id": "11111111-2222-3333-4444-555555555555", "issue_id": "10042"},
           "issue_key_change": {"from": "PROJ-123", "to": "PLAT-900"},
           "decision": "NEW_EVIDENCE",
-          "previous_version": {"value": "2026-08-28T05:58:20Z"},
-          "current_version": {"value": "2026-09-05T12:00:00Z"}
+          "previous_version": {"value": "2026-08-28T05:58:20Z", "secondary_digest": "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+          "current_version": {"value": "2026-09-05T12:00:00Z", "secondary_digest": "sha256:7777777777777777777777777777777777777777777777777777777777777777"}
         },
         "ok": true
       },

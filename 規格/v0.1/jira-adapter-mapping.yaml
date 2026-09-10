@@ -144,12 +144,18 @@ reconciliation:
     - NEW_EVIDENCE
     - NOOP
   rule: >-
-    a reconciliation run compares source_version.value (updated timestamp) and
-    secondary_digest against the last known evidence; a strictly newer value
-    yields a new evidence record (decision NEW_EVIDENCE) and an older or equal
-    value is a no-op (decision NOOP); a decision that disagrees with the observed
-    value order — instants parsed, not strings — is
-    JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH. Every reconciliation run
+    a reconciliation run compares the compound source version (updated timestamp
+    value AND secondary_digest) against the last known evidence. previous_version
+    is required and current_version, when supplied, must parse; a supplied
+    reconciliation version whose value is not a parseable RFC3339 instant is
+    JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE (no silent fallback to the
+    projected version). A strictly newer timestamp yields a new evidence record
+    (decision NEW_EVIDENCE); an equal timestamp is a no-op (decision NOOP) only
+    when the secondary_digest is also equal — at an equal timestamp with a
+    different secondary_digest the compound version has changed and NEW_EVIDENCE
+    is required. A decision that disagrees with this observed order — instants
+    parsed, not strings — is JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH.
+    Every reconciliation run
     carries both previous_identity and current_identity, each with a non-null
     cloud_id and issue_id (JIRA_MAP_RECONCILIATION_IDENTITY_INCOMPLETE otherwise);
     they are compared component-wise on (cloud_id, issue_id) and any difference is
@@ -181,8 +187,15 @@ projection_instance_consistency:
     - raw_evidence.payload.canonicalization_profile
     - raw_evidence.payload.payload_ref
     - raw_evidence.provenance.ingestion_mode
-    - raw_evidence_instance.source_identity.native_id == profile_details.issue_id
     - reconciliation.current_identity == instance (cloud_id, issue_id)
+  full_instance_identity_binding: >-
+    both raw_evidence_instance.source_identity and
+    source_anchor_instance.source_identity must have source_system=jira-cloud,
+    source_instance_id equal to profile_details.cloud_id, entity_type=issue and
+    native_id equal to profile_details.issue_id, and the two source_identity
+    objects must be equal to each other. A schema-valid instance whose
+    source_instance_id or entity_type disagrees with the projection's
+    (cloud_id, issue_id) identity fails the gate.
 
 determinism:
   rule: >-
@@ -218,6 +231,7 @@ error_contract:
   JIRA_MAP_RECONCILIATION_CHANGES_IDENTITY: jira-map.error.reconciliation_changes_identity
   JIRA_MAP_RECONCILIATION_IDENTITY_INCOMPLETE: jira-map.error.reconciliation_identity_incomplete
   JIRA_MAP_RECONCILIATION_IDENTITY_DRIFT: jira-map.error.reconciliation_identity_drift
+  JIRA_MAP_RECONCILIATION_VERSION_UNPARSEABLE: jira-map.error.reconciliation_version_unparseable
   JIRA_MAP_ISSUE_KEY_RENAME_NOT_ALIASED: jira-map.error.issue_key_rename_not_aliased
   JIRA_MAP_RECONCILIATION_VERSION_DECISION_MISMATCH: jira-map.error.reconciliation_version_decision_mismatch
   JIRA_MAP_RECONCILIATION_SILENT_GAP: jira-map.error.reconciliation_silent_gap
@@ -258,12 +272,16 @@ required_negative_fixtures:
   - the anchor field id does not match the field kind
   - the anchor json pointer does not address the mapped field
   - the anchor json pointer only shares a prefix with the mapped field
+  - the full instance evidence identity uses a different cloud id than the projection
+  - the full instance source identity is not the issue entity type
   - reconciliation changes an existing evidence identity
   - reconciliation omits the before or after evidence identity
   - reconciliation before and after evidence identity differ
   - the reconciliation current identity does not match the projected identity
   - an issue key rename is not recorded as a source alias
   - reconciliation version decision disagrees with the observed version order
+  - a reconciliation version value does not parse
+  - an equal-timestamp reconciliation with a different secondary digest is treated as a no-op
   - a fractional-second newer version is still ordered as newer
   - reconciliation drops a detected gap without emitting evidence
   - error but the mapping still claims success
