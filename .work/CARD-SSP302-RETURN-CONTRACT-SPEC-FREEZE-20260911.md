@@ -1,6 +1,6 @@
 ---
 id: SSP302-RETURN-CONTRACT-SPEC-FREEZE-20260911
-status: AWAITING_OWNER_SIGNATURE
+status: OWNER_SIGNED
 type: spec_freeze
 tier: T2
 review_line: SSP-302 error-code 契約完整性
@@ -42,14 +42,32 @@ reviewer 本輪也明示應停 repair-03、轉 T2。
 
 在 `14cf20a` 上，把 evaluator 尾端的 `nil` 換掉：
 
-| 變體 | 結果 |
-| --- | --- |
-| D1 直接換成 `"LOOP_UNDECLARED"` | RED —— 但**是被正例 fixture 攔下的**（正例預期 allow 卻被拒），不是被完整性綁定攔下 |
-| D2 `"LOOP_UNDECLARED" if run["x"] == true` 然後 `nil` | **GREEN(bad)** |
-| D3 尾端改成 `if / else` 隱式回傳 | **GREEN(bad)** |
-| D4 尾端改成三元運算子隱式回傳 | **GREEN(bad)** |
+| 變體 | 原記載 | **更正後（closeout 實測）** |
+| --- | --- | --- |
+| D1 尾端直接換成 `"LOOP_UNDECLARED"` | RED（被正例 fixture 攔下） | 同左；確為真缺口，但當時不是被完整性綁定攔下 |
+| D2 `"LOOP_UNDECLARED" if run["x"]` 然後 `nil` | GREEN，判定為缺口 | **判定錯誤。** 該 `if` 的值被丟棄，方法實際回傳 `nil`，本來就不該被攔 |
+| D3 尾端 `if / else` | GREEN，缺口成立 | 確認為真缺口 |
+| D4 尾端三元 | GREEN，缺口成立 | 確認為真缺口 |
 
-D2~D4 正例完全不受影響（正例的 run 沒有 `x`），所以只有完整性綁定該攔 —— 它沒攔。
+> **更正（2026-09-11，closeout 時自行發現並回報）**
+>
+> 本卡原先寫「D2~D4 三個都 GREEN，缺口成立」。closeout 實作時以 Ruby 實際執行驗證，
+> `D2` 的注入把違規 expression 放在**倒數第二句**，其值被丟棄，方法實際回傳 `nil`：
+>
+> ```
+> D2(true) 回傳 nil   ← 中段 if 是 no-op
+> D3(true) 回傳 "LOOP_UNDECLARED"
+> D4(true) 回傳 "LOOP_UNDECLARED"
+> ```
+>
+> 所以 D2 的 GREEN 是**正確行為**，不是缺口。真正的缺口是 D1 / D3 / D4
+> ——「尾句本身就是違規 expression」。
+>
+> finding 本身與 Owner 的簽核不受影響（D1/D3/D4 已足以證立），但本卡原先的
+> 證據陳述不精確。這是我第三次在自撰 evidence 裡放進未經實際執行驗證的判斷，
+> closeout 的驗收因此改為**同時包含 no-op 對照組**，要求它們維持 GREEN，
+> 以證明斷言不是「動什麼都變紅」。
+
 reviewer 的判讀成立：契約仍宣稱「`error_contract` keys == evaluator **實際可回傳** 集合」，
 但實作只驗到「顯式 return 的 code 集合」。
 
@@ -129,9 +147,16 @@ reviewer 把它歸類為「本卡沒做到自己宣稱的事」。我同意 —�
 ## Owner 簽核
 
 ```
-FP-1: ____    FP-2: ____    FP-3: ____    FP-4: ____
-簽核日期: ____
+FP-1: B    FP-2: A    FP-3: A    FP-4: A
+簽核日期: 2026-09-11
+簽核者: Owner（互動對話中明示「同意。簽：B A A A。」）
 ```
+
+Owner 附註（逐字）：
+- FP-1-B：把 evaluator 出口形狀凍結成可窮舉集合，比繼續分析 Ruby 開放控制流穩定。
+- FP-2-A：只收 SSP-302；SSP-291 同類缺口另開 backlog，避免污染已驗收範圍。
+- FP-3-A：D2–D4、C1–C12、rescue/ensure 全 RED，才能證明 freeze 真正成立。
+- FP-4-A：若 closeout 還因新 Ruby 構造 NO_GO，就 DEFER SSP-302，不再阻塞 SSP-307。
 
 簽完之後由一張 **T1 closeout 卡**實作（`CARD-SSP302-RETURN-CONTRACT-CLOSEOUT-<date>.md`），
 **明確不是 repair-03**：它實作的是 Owner 簽定的規格，而不是再猜一次 reviewer 的下一題。

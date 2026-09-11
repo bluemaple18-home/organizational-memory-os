@@ -221,6 +221,10 @@ def unexpected_evaluator_return_forms
   LoopReturnContract.disallowed_returns(__FILE__, LOOP_EVALUATOR_NAME)
 end
 
+def evaluator_exit_shape_violations
+  LoopReturnContract.exit_shape_violations(__FILE__, LOOP_EVALUATOR_NAME)
+end
+
 failures = []
 spec = read_yaml(SPEC_PATH)
 card_record_spec = read_yaml(CARD_RECORD_SPEC_PATH)
@@ -299,6 +303,11 @@ assert(!reachable_loop_codes.empty?, "無法從 loop_closeout_failure 原始碼�
 
 # SSP302-F-01：先確認 evaluator 沒有使用掃描認不得的 return 形式,
 # 否則下面的「宣告 == 可回傳」比對建立在一個會低估的集合上。
+# Owner spec-freeze FP-1-B：先確認 evaluator 的出口形狀被凍結,
+# 否則顯式 return 之外還有隱式回傳這條路,下面的集合比對就不是全集。
+exit_violations = evaluator_exit_shape_violations
+assert(exit_violations.empty?, "evaluator 出口形狀違反凍結規格：#{exit_violations.join(" ／ ")}", failures)
+
 unexpected_returns = unexpected_evaluator_return_forms
 assert(
   unexpected_returns.empty?,

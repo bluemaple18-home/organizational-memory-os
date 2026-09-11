@@ -147,6 +147,16 @@ error_contract_binding:
     可回傳集合,不會有未被計入的 return。約束的是「有沒有被算到」,不是寫法美觀。
     用 regex 掃行對「evaluator 會回傳什麼」必然低估,每補一次只是把漏洞推到
     下一種合法語法;語法樹的 return site 是窮舉的。
+  evaluator_exit_shape_rule: >-
+    顯式 return 可以窮舉,隱式回傳不行:Ruby 方法回傳最後一個 expression 的值,
+    而那個 expression 可以是 if/else、三元、方法呼叫、rescue 子句。要靜態涵蓋
+    全部 tail position 等於做一個迷你控制流分析,那又是一次逼近開放集合。
+    因此出口形狀本身被凍結(Owner spec-freeze FP-1-B,2026-09-11 簽核):
+    loop_closeout_failure 的 bodystmt 不得有 rescue / else / ensure 子句,
+    且最後一句必須恰好是 nil 字面量。方法因此只剩兩種回傳途徑——
+    被分類過的顯式 return,或尾端那個 nil——出口集合成為全集,而非逼近。
+    邊界:例外不是回傳值;evaluator 拋例外會讓 validator 崩潰並轉紅,
+    不會變成一個未被宣告的 code。
 
 error_contract:
   LOOP_UNBOUNDED: loop.error.unbounded
