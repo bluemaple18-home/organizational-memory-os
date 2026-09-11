@@ -135,6 +135,12 @@ error_contract_binding:
     這些 key 必須逐字等於 evaluator 實際可回傳的 code 集合,由掃描 loop_closeout_failure
     函式本體的 return literal 求得。兩張手寫清單互比證明不了 evaluator:TIGHTEN-F-01 就是
     這樣讓一個未宣告的 LOOP_MISSING_FIELD 穿過完整 gate 的。
+  evaluator_return_form_rule: >-
+    掃描是 regex,必然語法特定,所以 evaluator 的 return 形式本身也被鎖住:
+    loop_closeout_failure 內每一條 return 只能是 return nil 或 return "<CODE>"
+    (可帶 if / unless 修飾)。任何其他合法 Ruby return——單引號、字串插值、heredoc、
+    常數、方法回傳——都會轉紅。否則一個掃不到但真的會回傳的 code 就能靜默繞過
+    完整性斷言,而宣告集合與實際可回傳集合相等這個命題也就不再成立。
 
 error_contract:
   LOOP_UNBOUNDED: loop.error.unbounded

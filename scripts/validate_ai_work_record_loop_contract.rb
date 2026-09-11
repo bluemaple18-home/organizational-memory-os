@@ -205,14 +205,39 @@ def loop_closeout_failure(run, fillable_fields, outcome_condition_map)
   nil
 end
 
+# evaluator 內唯一允許的 return 形式。
+#
+# SSP302-F-01：reachable_loop_failure_codes 是 regex 掃描,而 regex 必然是語法特定的。
+# 原本只保證「掃到的都對」,沒有保證「沒有掃不到的」——於是
+#
+#     return 'LOOP_UNDECLARED' if run["x"]
+#
+# 是 Ruby 真正可回傳的新 code,卻完全穿過三層 assertion。
+#
+# 想用 regex 涵蓋 Ruby 全部 return 語法(插值、heredoc、常數、方法回傳)本質上做不完,
+# 做了也只是換一個更難察覺的 under-approximation。因此改為把不確定性關掉:
+# evaluator 的 return 形式本身是可窮舉的白名單,違反即轉紅。
+ALLOWED_EVALUATOR_RETURN = /\Areturn (?:nil|"[A-Z][A-Z0-9_]*")(?:\s+(?:if|unless)\b.*)?\z/.freeze
+
+# 掃描與形式檢查共用同一段函式本體,不會各掃各的。
+def loop_evaluator_body
+  File.read(__FILE__)[/^def loop_closeout_failure.*?^end$/m].to_s
+end
+
 # evaluator 實際可回傳的 code,由原始碼掃出。
 #
 # 只掃 loop_closeout_failure 函式本體,避免掃到註解、常數清單或其他函式的字串。
+# 單雙引號都掃,讓單引號 code 同時踩中形式白名單與完整性斷言(雙層)。
 # 掃不到任何 code 時必須視為掃描失效並轉紅,而不是「剛好沒有 code」。
 def reachable_loop_failure_codes
-  source = File.read(__FILE__)
-  body = source[/^def loop_closeout_failure.*?^end$/m].to_s
-  body.scan(/return "([A-Z][A-Z0-9_]*)"/).flatten.uniq
+  loop_evaluator_body.scan(/return ["\']([A-Z][A-Z0-9_]*)["\']/).flatten.uniq
+end
+
+# 回傳所有不符白名單的 return 語句;非空即代表掃描可能漏認 code。
+def unexpected_evaluator_return_forms
+  loop_evaluator_body.lines.map(&:strip)
+                     .select { |line| line.start_with?("return") }
+                     .reject { |line| ALLOWED_EVALUATOR_RETURN.match?(line) }
 end
 
 failures = []
@@ -290,6 +315,16 @@ assert(present?(boundary.dig("automated_step_contract", "error_behavior_enum")),
 declared_loop_codes = spec.fetch("error_contract", {}).keys
 reachable_loop_codes = reachable_loop_failure_codes
 assert(!reachable_loop_codes.empty?, "無法從 loop_closeout_failure 原始碼掃出任何 code,掃描失效", failures)
+
+# SSP302-F-01：先確認 evaluator 沒有使用掃描認不得的 return 形式,
+# 否則下面的「宣告 == 可回傳」比對建立在一個會低估的集合上。
+unexpected_returns = unexpected_evaluator_return_forms
+assert(
+  unexpected_returns.empty?,
+  "loop_closeout_failure 出現 reachable_loop_failure_codes 掃不到的 return 形式" \
+  "（只允許 return nil 或 return \"<CODE>\"）：#{unexpected_returns.join(" ／ ")}",
+  failures
+)
 assert(
   sorted_set(declared_loop_codes) == sorted_set(reachable_loop_codes),
   "error_contract 必須逐字等於 evaluator 實際可回傳的 code 集合：" \
