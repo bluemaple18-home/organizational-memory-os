@@ -43,12 +43,18 @@ EXPECTED_FORBIDDEN_RUN_FIELDS = %w[
   canonical_write_receipt_ref
 ].freeze
 
-# evaluator 可回傳的完整 machine failure code 集合；YAML error_contract 必須逐字相符，
-# 否則宣告與 enforcement 會漂移（新增/移除 code 而 gate 不變）。
+# 鎖定的 machine failure code 集合。
+#
+# 注意：這張常數清單「不是」error_contract 完整性的證據來源。TIGHTEN-F-01 指出，
+# 常數與 YAML 都由同一隻手寫,互比會通過,卻證明不了 evaluator ——
+# 當時漏掉的 LOOP_MISSING_FIELD 就是這樣穿過去的。真正的綁定在
+# reachable_loop_failure_codes:從 evaluator 函式本體掃出實際可達的 return literal。
+# 這張常數只負責第二件事:防止有人「同時」改 evaluator 與 YAML 而悄悄動了鎖定集合。
 EXPECTED_LOOP_ERROR_CODES = %w[
   LOOP_UNBOUNDED
   LOOP_OVER_TIMEOUT
   LOOP_TIMEOUT_NOT_REACHED
+  LOOP_MISSING_FIELD
   LOOP_OVER_MAX_ITERATIONS
   LOOP_MALFORMED_ITERATION
   LOOP_INVALID_OUTCOME
@@ -80,7 +86,11 @@ EXPECTED_LOOP_NEGATIVE_LABELS = [
   "an unfixable gap appears mid-run but the run continued",
   "failed loud but the original evidence was not preserved",
   "run carries a memory acceptance field",
-  "error but the run still claims success"
+  "error but the run still claims success",
+  "the run carries no iterations field at all",
+  "the run declares iterations as something other than a list",
+  "the loop performs memory acceptance itself",
+  "the loop writes company knowledge itself"
 ].freeze
 
 def read_json(path)
@@ -195,6 +205,16 @@ def loop_closeout_failure(run, fillable_fields, outcome_condition_map)
   nil
 end
 
+# evaluator 實際可回傳的 code,由原始碼掃出。
+#
+# 只掃 loop_closeout_failure 函式本體,避免掃到註解、常數清單或其他函式的字串。
+# 掃不到任何 code 時必須視為掃描失效並轉紅,而不是「剛好沒有 code」。
+def reachable_loop_failure_codes
+  source = File.read(__FILE__)
+  body = source[/^def loop_closeout_failure.*?^end$/m].to_s
+  body.scan(/return "([A-Z][A-Z0-9_]*)"/).flatten.uniq
+end
+
 failures = []
 spec = read_yaml(SPEC_PATH)
 card_record_spec = read_yaml(CARD_RECORD_SPEC_PATH)
@@ -267,11 +287,24 @@ assert(present?(card_record_spec.fetch("status_enum", [])), "card-record status_
 assert(present?(skill_spec.dig("output_contract", "draft_card_rule")), "skill output_contract.draft_card 規則必須存在", failures)
 assert(present?(boundary.dig("automated_step_contract", "error_behavior_enum")), "boundary error_behavior_enum 必須存在且非空", failures)
 
+declared_loop_codes = spec.fetch("error_contract", {}).keys
+reachable_loop_codes = reachable_loop_failure_codes
+assert(!reachable_loop_codes.empty?, "無法從 loop_closeout_failure 原始碼掃出任何 code,掃描失效", failures)
 assert(
-  sorted_set(spec.fetch("error_contract", {}).keys) == sorted_set(EXPECTED_LOOP_ERROR_CODES),
-  "error_contract 必須逐字等於 evaluator 可回傳的 code 集合",
+  sorted_set(declared_loop_codes) == sorted_set(reachable_loop_codes),
+  "error_contract 必須逐字等於 evaluator 實際可回傳的 code 集合：" \
+  "僅宣告 #{(sorted_set(declared_loop_codes) - sorted_set(reachable_loop_codes)).to_a.join(", ")}；" \
+  "僅可回傳 #{(sorted_set(reachable_loop_codes) - sorted_set(declared_loop_codes)).to_a.join(", ")}",
   failures
 )
+assert(
+  sorted_set(reachable_loop_codes) == sorted_set(EXPECTED_LOOP_ERROR_CODES),
+  "evaluator 可回傳的 code 集合已偏離鎖定清單（新增/移除 code 須經契約變更）",
+  failures
+)
+spec.fetch("error_contract", {}).each do |code, event|
+  assert(present?(event), "error_contract.#{code} 必須宣告事件名", failures)
+end
 assert(present?(spec.dig("termination", "timeout_reached_rule")),
        "termination.timeout_reached_rule 必須存在（F-05 反向一致性的規範文字）", failures)
 assert(present?(spec.dig("run_record", "required_present_rule")),
@@ -303,6 +336,16 @@ end
 covered_labels = sorted_set(negative.fetch("loop_closeout_negative_cases").map { |test_case| test_case.fetch("covers_loop_negative_fixture") })
 missing_labels = sorted_set(EXPECTED_LOOP_NEGATIVE_LABELS) - covered_labels
 assert(missing_labels.empty?, "loop negative fixtures 未覆蓋：#{missing_labels.join(", ")}", failures)
+
+# TIGHTEN-F-01 的第二層保險：evaluator 每一個可回傳的 code 都必須有負例實際踩到。
+# 只驗「宣告集合相符」不夠——一個從未被任何 fixture 觸發的分支,改壞了也不會轉紅。
+covered_codes = sorted_set(negative.fetch("loop_closeout_negative_cases").map { |test_case| test_case.fetch("expected_failure_code") })
+uncovered_codes = sorted_set(reachable_loop_codes) - covered_codes
+assert(uncovered_codes.empty?, "以下 failure code 沒有任何負例覆蓋：#{uncovered_codes.to_a.join(", ")}", failures)
+negative.fetch("loop_closeout_negative_cases").each do |test_case|
+  code = test_case.fetch("expected_failure_code")
+  assert(declared_loop_codes.include?(code), "#{test_case.fetch("case_id")} 的 expected_failure_code #{code} 未在 error_contract 宣告", failures)
+end
 
 if failures.empty?
   puts "PASS ai work record loop contract validation"

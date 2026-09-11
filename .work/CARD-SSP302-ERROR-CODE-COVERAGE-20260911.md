@@ -1,6 +1,6 @@
 ---
 id: SSP302-ERROR-CODE-COVERAGE-20260911
-status: DRAFT_READY
+status: AWAITING_BIG_REVIEW
 type: implementation
 jira: SSP-302（後續強化第二輪，原卡與 TIGHTEN 皆已 ACCEPTED_GO）
 lane: B

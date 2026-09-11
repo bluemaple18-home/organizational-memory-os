@@ -269,9 +269,9 @@
       "expected_failure_code": "LOOP_REQUIRED_PRESENT_WITH_GAPS",
       "covers_loop_negative_fixture": "the run claims all required fields are present while a gap remains",
       "run": {
-        "max_iterations": 5,
-        "timeout_seconds": 300,
-        "elapsed_seconds": 110,
+        "max_iterations": 2,
+        "timeout_seconds": 120,
+        "elapsed_seconds": 95,
         "iterations": [{"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": []}, {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": [{"gap": "secondary_evidence_ref", "auto_fixable": true, "requires_human_decision": false}]}],
         "outcome": "CLOSED",
         "terminal_condition": "ALL_REQUIRED_PRESENT",
@@ -311,6 +311,71 @@
         "original_evidence_preserved": true,
         "error": "one gap was dropped without being filled",
         "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_ITERATIONS_FIELD_ABSENT",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_MISSING_FIELD",
+      "covers_loop_negative_fixture": "the run carries no iterations field at all",
+      "run": {
+        "max_iterations": 2,
+        "timeout_seconds": 120,
+        "elapsed_seconds": 95,
+        "outcome": "CLOSED",
+        "terminal_condition": "MAX_ITERATIONS_REACHED",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_ITERATIONS_NOT_A_LIST",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_MISSING_FIELD",
+      "covers_loop_negative_fixture": "the run declares iterations as something other than a list",
+      "run": {
+        "max_iterations": 2,
+        "timeout_seconds": 120,
+        "elapsed_seconds": 95,
+        "iterations": {"iteration": 1, "filled_fields": ["status"], "remaining_gaps": []},
+        "outcome": "CLOSED",
+        "terminal_condition": "MAX_ITERATIONS_REACHED",
+        "original_evidence_preserved": true,
+        "ok": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_PERFORMS_MEMORY_ACCEPTANCE",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_EXCEEDS_AUTHORITY",
+      "covers_loop_negative_fixture": "the loop performs memory acceptance itself",
+      "run": {
+        "max_iterations": 2,
+        "timeout_seconds": 120,
+        "elapsed_seconds": 95,
+        "iterations": [{"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": []}, {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "CLOSED",
+        "terminal_condition": "MAX_ITERATIONS_REACHED",
+        "original_evidence_preserved": true,
+        "ok": true,
+        "performs_memory_acceptance": true
+      }
+    },
+    {
+      "case_id": "LOOP_NEG_WRITES_COMPANY_KNOWLEDGE",
+      "expected": "deny",
+      "expected_failure_code": "LOOP_EXCEEDS_AUTHORITY",
+      "covers_loop_negative_fixture": "the loop writes company knowledge itself",
+      "run": {
+        "max_iterations": 2,
+        "timeout_seconds": 120,
+        "elapsed_seconds": 95,
+        "iterations": [{"iteration": 1, "filled_fields": ["evidence_refs"], "remaining_gaps": []}, {"iteration": 2, "filled_fields": ["status"], "remaining_gaps": []}],
+        "outcome": "CLOSED",
+        "terminal_condition": "MAX_ITERATIONS_REACHED",
+        "original_evidence_preserved": true,
+        "ok": true,
+        "writes_company_knowledge": true
       }
     }
   ]

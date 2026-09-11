@@ -130,10 +130,17 @@ authority:
     - accepted_for_record
     - canonical_write_receipt_ref
 
+error_contract_binding:
+  rule: >-
+    這些 key 必須逐字等於 evaluator 實際可回傳的 code 集合,由掃描 loop_closeout_failure
+    函式本體的 return literal 求得。兩張手寫清單互比證明不了 evaluator:TIGHTEN-F-01 就是
+    這樣讓一個未宣告的 LOOP_MISSING_FIELD 穿過完整 gate 的。
+
 error_contract:
   LOOP_UNBOUNDED: loop.error.unbounded
   LOOP_OVER_TIMEOUT: loop.error.over_timeout
   LOOP_TIMEOUT_NOT_REACHED: loop.error.timeout_not_reached
+  LOOP_MISSING_FIELD: loop.error.missing_field
   LOOP_OVER_MAX_ITERATIONS: loop.error.over_max_iterations
   LOOP_MALFORMED_ITERATION: loop.error.malformed_iteration
   LOOP_INVALID_OUTCOME: loop.error.invalid_outcome
@@ -183,3 +190,7 @@ required_negative_fixtures:
   - failed loud but the original evidence was not preserved
   - run carries a memory acceptance field
   - error but the run still claims success
+  - the run carries no iterations field at all
+  - the run declares iterations as something other than a list
+  - the loop performs memory acceptance itself
+  - the loop writes company knowledge itself
