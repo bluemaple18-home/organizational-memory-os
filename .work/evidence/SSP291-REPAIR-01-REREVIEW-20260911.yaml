@@ -1,0 +1,68 @@
+ticket: SSP-291
+requirement: EMEM-02 Personal Evidence Profile / Source Mapping
+lane: A
+tier: T1
+
+review_line:
+  base_sha: "5e5d9a8f7ef0d8d60f1e5a00d375800fab4cd84e"
+  original_review_sha: "17893f0b35dd5f4771979167c15e4007b1eabf2d"
+  original_verdict: NO_GO
+  original_counts: { p0: 0, p1: 1, p2: 0, p3: 0 }
+  repair_commit: "cd30d22f87ad40d2bf8c7d07bf82ae3942d9c29d"
+  rereview_scope: FOCUSED_ON_SSP291_F_01
+  rereview_verdict: GO
+  rereview_counts: { p0: 0, p1: 0, p2: 0, p3: 0 }
+  reviewer_routing_decided_by: OWNER
+  reviewer_note: >-
+    Owner 回報無法實際啟動獨立 reviewer agent,改由 Owner 以相同範圍親自完成定點
+    re-review。此為 Owner 的路由決定,CC 不對 reviewer 身分做設計。
+
+findings:
+  - id: SSP291-F-01
+    severity: P1
+    status: CLOSED
+    summary: 准入值驗證不完整,錯型別 reference 與空 scope 匹配仍可放行
+    closed_by: >-
+      本卡新增 admission_value?(非空白 String)、ADMISSION_CONTAINER_TYPES 容器型別約束,
+      以及 within_capture_scope? 的「先驗型別與識別值、再比成員」順序。
+      共用 present? 逐字未改。
+  - id: SSP291-SELF-01
+    severity: NONE
+    status: SELF_REPORTED_AND_RESOLVED
+    summary: >-
+      repair 過程中自行加上的兩條 projected identity 型別 guard 經 parity probe 證實為死分支
+      (GREEN(bad)),已刪除並在原處註明所依賴的兩個前提。Owner 裁決不構成 blocking finding。
+
+verification:
+  reviewer_listed_bypass_scenarios: { total: 8, still_allowed: 0 }
+  evaluator_guard_parity: { total: 19, red: 19, green: 0, assertion_red: 17, exception_red: 2 }
+  admission_value_probes: { total: 9, red: 9, green: 0, assertion_red: 7, exception_red: 2 }
+  structural_cross_contract_probes: { total: 6, red: 6, green: 0, assertion_red: 5, exception_red: 1 }
+  fixtures: { positive: 2, negative: 39 }
+  negative_mutation_shape: { single_leaf: 29, single_subtree_replacement: 7, multi_site_scenario: 3 }
+  shared_helper_present_unchanged: true
+  upstream_specs_and_locked_schemas_unchanged: true
+  validator_line_count: 351
+  file_size_limit: 400
+
+mainline_self_verify:
+  merged_at: "7cfe2fe"
+  ruby_validators: { pass: 21, fail: 0 }
+  python_engines: { pass: 4, fail: 0 }
+  git_diff_check: clean
+
+scope_boundaries_respected:
+  - 未改共用 present? 的全域語意
+  - 未新增 connector / URI resolver / registry / runtime
+  - 未改任何上游契約或已鎖 schema
+  - 未為了綠燈新增 role source 或放寬 phase 邊界
+
+deferred_to_owner:
+  - id: UPSTREAM-SOURCE-CATALOG-INCONSISTENCY
+    summary: >-
+      上游 role_profiles 列出 CLIENT_FEEDBACK / CRM_ENTITY / CLIENT_DOCUMENT,
+      但 source_profiles 目錄未宣告這三個。目前一律 fail-closed 拒絕(方向正確),
+      屬上游待裁決事項,不是本卡 blocker。
+
+accepted_by: OWNER
+accepted_on: "2026-09-11"
