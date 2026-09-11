@@ -766,5 +766,129 @@
       },
       "expected": "allow"
     }
+  ],
+  "evidence_profile_cases": [
+    {
+      "case_id": "EPROFILE_POS_PM_JIRA_ENTITY",
+      "expected": "allow",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "PM_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L2",
+          "personal_scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "JIRA_ENTITY",
+        "source_instance_id": "jira-cloud-clickforce",
+        "container": "SSP",
+        "projected_source_identity": {
+          "source_system": "jira-cloud",
+          "source_instance_id": "jira-cloud-clickforce"
+        }
+      }
+    },
+    {
+      "case_id": "EPROFILE_POS_RD_DOCUMENT",
+      "expected": "allow",
+      "profile": {
+        "identity": {
+          "tenant_id": "t-clickforce",
+          "employee_id": "emp-1042",
+          "role_profile": "RD_PROFILE"
+        },
+        "source_policy": {
+          "connector_grants": [
+            {
+              "source_type": "JIRA_ENTITY",
+              "grant_ref": "grant://jira-cloud-clickforce/emp-1042",
+              "status": "ACTIVE"
+            },
+            {
+              "source_type": "DOCUMENT",
+              "grant_ref": "grant://sharepoint-clickforce/emp-1042",
+              "status": "ACTIVE"
+            }
+          ],
+          "consent_or_notice_ref": "policy://personal-memory/employee-notice/v1",
+          "capture_scope": {
+            "source_instance_ids": [
+              "jira-cloud-clickforce",
+              "sharepoint-clickforce"
+            ],
+            "containers": [
+              "SSP",
+              "/product-dept"
+            ]
+          }
+        },
+        "memory_policy": {
+          "capability_level": "L1",
+          "personal_scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity_policy_ref": "policy://sensitivity/v1",
+          "retention_policy_ref": "policy://retention/v1",
+          "promotion_policy_ref": "policy://promotion/v1",
+          "context_budget_policy_ref": "policy://context-budget/v1"
+        },
+        "granted_authorities": [
+          "PERSONAL_CAPTURE",
+          "PERSONAL_RECALL"
+        ]
+      },
+      "capture": {
+        "tenant_id": "t-clickforce",
+        "employee_id": "emp-1042",
+        "source_type": "DOCUMENT",
+        "source_instance_id": "sharepoint-clickforce",
+        "container": "/product-dept",
+        "projected_source_identity": {
+          "source_system": "document",
+          "source_instance_id": "sharepoint-clickforce"
+        }
+      }
+    }
   ]
 }

@@ -1,0 +1,183 @@
+contract_id: personal-evidence-profile-v0.1
+requirement_id: EMEM02-S01
+jira: SSP-291
+
+purpose: >
+  Machine-enforced admission gate for personal evidence capture. Different roles capture from
+  different sources, but every admitted capture must be authorized for that employee and must
+  project into the same RawEvidence contract through an accepted adapter mapping. This contract
+  does not redefine the employee memory profile, the capability levels, the scope modes, the
+  ownership modes, or any adapter mapping: it reads them from their locked upstream specs at
+  evaluation time and fails closed when this contract and its upstream disagree.
+
+authority:
+  owns:
+    - source admission decision for one personal evidence capture
+    - binding from an admitted source to the adapter mapping that must project it
+    - authority floor that a personal evidence profile may never exceed
+  does_not_own:
+    - employee memory profile field set (owned by personal-harness-integration.yaml)
+    - capability levels, scope modes, ownership modes, visibility scopes (owned upstream)
+    - RawEvidence / SourceAnchor / NormalizedDocument shape (owned by STD-01/02/03)
+    - adapter projection semantics (owned by each adapter mapping)
+    - connector implementation, ingestion runtime, recall (out of scope for EMEM-02)
+
+upstream_bindings:
+  personal_harness_spec: 規格/v0.1/personal-harness-integration.yaml
+  profile_shape_path: employee_memory_profile_minimum
+  source_catalog_paths:
+    - source_profiles/universal_examples
+    - source_profiles/advanced_examples
+  role_profiles_path: role_profiles
+  phase_gate_path: phase_1_pilot/first_sources
+  capability_levels_path: capability_levels
+  scope_modes_path: employee_memory_scope_modes/modes
+  ownership_modes_path: ownership_visibility_contract/ownership_modes
+  visibility_scopes_path: ownership_visibility_contract/visibility_scopes
+  rule: >
+    Every enumerated value this contract accepts is read from the paths above at evaluation time.
+    No enumeration is restated here. If an upstream list changes, this contract's decisions change
+    with it, and fixtures that relied on the old list turn RED.
+
+phase_gate:
+  active_phase: PHASE_1
+  admitted_source_types_ref: phase_1_pilot/first_sources
+  deferred_source_types_ref: phase_1_pilot/next_sources_if_policy_ready
+  rule: >
+    Only source types listed at the active phase's admitted path may be captured. Deferred source
+    types stay inadmissible until the permission / retention / deletion contract is frozen, so a
+    policy gap can never be closed by widening capture first.
+
+adapter_mapping_binding:
+  admitted_source_adapters:
+    JIRA_ENTITY:
+      mapping_spec: 規格/v0.1/jira-adapter-mapping.yaml
+      source_system_path: raw_evidence_projection/source_system
+    DOCUMENT:
+      mapping_spec: 規格/v0.1/document-adapter-mapping.yaml
+      source_system_path: raw_evidence_projection/source_system
+  rule: >
+    ALL_SOURCES_MAP_TO_SAME_RAW_EVIDENCE_CONTRACT. Each admitted source type names exactly one
+    accepted adapter mapping. The source_system the capture claims to have projected must equal the
+    source_system read from that mapping spec at evaluation time. A capture that projects an
+    identity no accepted adapter mapping produces is not personal evidence. Every source type the
+    active phase gate admits must be bound here, and nothing else may be, so the phase gate and the
+    adapter bindings can never drift apart.
+
+authority_floor:
+  forbidden_profile_grants:
+    - CANONICAL_DIRECT_WRITE
+    - COMPANY_WIDE_SEARCH
+    - CROSS_EMPLOYEE_READ
+    - AUTO_PROMOTE_WITHOUT_REVIEW
+  rule: >
+    A personal evidence profile is a capture authorization, never an authority escalation. Personal
+    memory never implies authority to write company canonical knowledge, to search across employees,
+    or to promote without review, at any capability level.
+
+identity_binding:
+  rule: >
+    A capture is evaluated against exactly one profile. The capture's tenant_id and employee_id must
+    equal the profile's, and the identity the adapter projected must name the same source instance
+    the capture declared. Otherwise one employee's authorization could admit another's evidence.
+
+admission_value_constraints:
+  reference_fields_rule: >-
+    Every consent or notice reference, every connector grant reference, and every policy reference
+    the upstream profile requires must be a non-blank string. This contract does not resolve those
+    references, does not impose a URI scheme, and does not contact any external system: the point is
+    narrower. A boolean false, a number, a whitespace-only string, and a non-empty array are not
+    references, and none of them may satisfy a check whose whole purpose is to require one.
+  identifier_values_rule: >-
+    A capture's source instance and container, and the source system and source instance the adapter
+    projected, must each be a non-blank string before any membership or equality comparison is made.
+    Two absent values must never compare equal: a capture that names no source instance and a capture
+    scope that lists a null member do not together establish that the capture came from an authorized
+    source.
+  container_fields_rule: >-
+    The connector grant list and the capture scope are containers, and each must be present with the
+    declared shape and be non-empty. Their shape is this contract's own admission shape, not an
+    upstream enumeration.
+  shared_helper_rule: >-
+    These constraints are local to this contract's validator. The shared presence helper keeps its
+    existing meaning, because other validators outside this review line depend on it.
+
+evaluation_order:
+  - profile shape completeness against the upstream profile field set
+  - authority floor
+  - policy vocabulary membership against upstream enumerations
+  - capture-to-profile identity binding
+  - source type declared in the upstream source catalog
+  - source type inside the employee's role profile
+  - source type inside the active phase gate
+  - connector grant for that source type
+  - consent or notice reference
+  - capture inside the declared capture scope
+  - projected source_system equals the bound mapping's source_system
+  - projected identity consistent with the declared capture
+
+error_contract:
+  EPROFILE_PROFILE_FIELD_MISSING: a field required by the upstream employee memory profile is absent or blank
+  EPROFILE_EXCEEDS_AUTHORITY: the profile claims an authority the personal layer may never grant
+  EPROFILE_UNKNOWN_ROLE_PROFILE: role_profile is not a role declared upstream
+  EPROFILE_INVALID_CAPABILITY_LEVEL: capability_level is not an upstream capability level
+  EPROFILE_INVALID_SCOPE_MODE: personal_scope_mode is not an upstream employee memory scope mode
+  EPROFILE_INVALID_OWNERSHIP_MODE: ownership_mode is not an upstream ownership mode
+  EPROFILE_INVALID_VISIBILITY_SCOPE: visibility_scope is not an upstream visibility scope
+  EPROFILE_TENANT_OR_EMPLOYEE_MISMATCH: the capture does not belong to the employee this profile authorizes
+  EPROFILE_SOURCE_NOT_DECLARED: source_type is not in the upstream source catalog
+  EPROFILE_SOURCE_NOT_IN_ROLE_PROFILE: source_type is not a likely source of this employee's role profile
+  EPROFILE_SOURCE_NOT_IN_PHASE_1: source_type is not admitted at the active phase gate
+  EPROFILE_NO_CONNECTOR_GRANT: no active connector grant covers this source type
+  EPROFILE_NO_CONSENT_OR_NOTICE: the profile carries no consent or notice reference
+  EPROFILE_OUTSIDE_CAPTURE_SCOPE: the capture's source instance or container is outside the declared capture scope
+  EPROFILE_ADAPTER_MAPPING_MISMATCH: the projected source_system is not the one the bound adapter mapping produces
+  EPROFILE_PROJECTED_IDENTITY_INCONSISTENT: the projected source instance is not the one the capture declared
+
+error_contract_binding:
+  rule: >
+    The keys above must equal, exactly, the set of failure codes the evaluator can return, computed
+    by scanning the evaluator source for its return literals. A code that is renamed, added, or
+    removed without updating this block turns the gate RED. A declared-list-to-declared-list
+    comparison would prove nothing, because both lists are authored by the same hand.
+
+required_negative_fixtures:
+  - profile missing a required memory policy field
+  - profile group that is not an object
+  - consent or notice reference key absent from the profile
+  - policy reference present but blank
+  - profile claiming canonical direct write authority
+  - unknown role profile
+  - capability level outside the upstream levels
+  - scope mode outside the upstream modes
+  - ownership mode outside the upstream modes
+  - visibility scope outside the upstream scopes
+  - capture belonging to a different employee
+  - source type absent from the upstream source catalog
+  - source type outside the employee role profile
+  - phase-2 source captured before the policy contract is frozen
+  - source type with no active connector grant
+  - profile with no consent or notice reference
+  - capture from a source instance outside the capture scope
+  - projected source_system not produced by the bound adapter mapping
+  - projected source instance different from the declared capture
+  - consent reference that is boolean false rather than a reference
+  - consent reference that is whitespace only
+  - connector grant reference that is boolean false rather than a reference
+  - policy reference that is boolean false rather than a reference
+  - identity value that is not a string
+  - connector grant list that is not a list
+  - capture scope that is not an object
+  - connector grant list that is present but empty
+  - capture scope source instance list that is not a list
+  - capture scope container list that is not a list
+  - capture that names no source instance
+  - capture that names no container
+  - null container scope member matching a capture with no container
+  - null source instance scope member matching a capture with no source instance
+  - projected source system that is not a string
+  - projected source identity that is not an object
+  - projected source identity that names no source instance
+  - document source consent reference that is boolean false
+  - document source connector grant reference that is boolean false
+  - document source null scope member matching a capture with no source instance
