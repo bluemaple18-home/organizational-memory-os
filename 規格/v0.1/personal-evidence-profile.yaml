@@ -81,6 +81,27 @@ identity_binding:
     equal the profile's, and the identity the adapter projected must name the same source instance
     the capture declared. Otherwise one employee's authorization could admit another's evidence.
 
+admission_value_constraints:
+  reference_fields_rule: >-
+    Every consent or notice reference, every connector grant reference, and every policy reference
+    the upstream profile requires must be a non-blank string. This contract does not resolve those
+    references, does not impose a URI scheme, and does not contact any external system: the point is
+    narrower. A boolean false, a number, a whitespace-only string, and a non-empty array are not
+    references, and none of them may satisfy a check whose whole purpose is to require one.
+  identifier_values_rule: >-
+    A capture's source instance and container, and the source system and source instance the adapter
+    projected, must each be a non-blank string before any membership or equality comparison is made.
+    Two absent values must never compare equal: a capture that names no source instance and a capture
+    scope that lists a null member do not together establish that the capture came from an authorized
+    source.
+  container_fields_rule: >-
+    The connector grant list and the capture scope are containers, and each must be present with the
+    declared shape and be non-empty. Their shape is this contract's own admission shape, not an
+    upstream enumeration.
+  shared_helper_rule: >-
+    These constraints are local to this contract's validator. The shared presence helper keeps its
+    existing meaning, because other validators outside this review line depend on it.
+
 evaluation_order:
   - profile shape completeness against the upstream profile field set
   - authority floor
@@ -140,3 +161,23 @@ required_negative_fixtures:
   - capture from a source instance outside the capture scope
   - projected source_system not produced by the bound adapter mapping
   - projected source instance different from the declared capture
+  - consent reference that is boolean false rather than a reference
+  - consent reference that is whitespace only
+  - connector grant reference that is boolean false rather than a reference
+  - policy reference that is boolean false rather than a reference
+  - identity value that is not a string
+  - connector grant list that is not a list
+  - capture scope that is not an object
+  - connector grant list that is present but empty
+  - capture scope source instance list that is not a list
+  - capture scope container list that is not a list
+  - capture that names no source instance
+  - capture that names no container
+  - null container scope member matching a capture with no container
+  - null source instance scope member matching a capture with no source instance
+  - projected source system that is not a string
+  - projected source identity that is not an object
+  - projected source identity that names no source instance
+  - document source consent reference that is boolean false
+  - document source connector grant reference that is boolean false
+  - document source null scope member matching a capture with no source instance

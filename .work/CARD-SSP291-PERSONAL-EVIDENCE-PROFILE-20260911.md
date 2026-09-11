@@ -1,6 +1,6 @@
 ---
 id: SSP291-PERSONAL-EVIDENCE-PROFILE-20260911
-status: AWAITING_BIG_REVIEW
+status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
 type: implementation
 jira: SSP-291（EMEM-02 Personal Evidence Profile / Source Mapping）
 lane: A

@@ -43,7 +43,27 @@ EXPECTED_EVIDENCE_PROFILE_NEGATIVE_LABELS = [
   "profile with no consent or notice reference",
   "capture from a source instance outside the capture scope",
   "projected source_system not produced by the bound adapter mapping",
-  "projected source instance different from the declared capture"
+  "projected source instance different from the declared capture",
+  "consent reference that is boolean false rather than a reference",
+  "consent reference that is whitespace only",
+  "connector grant reference that is boolean false rather than a reference",
+  "policy reference that is boolean false rather than a reference",
+  "identity value that is not a string",
+  "connector grant list that is not a list",
+  "capture scope that is not an object",
+  "connector grant list that is present but empty",
+  "capture scope source instance list that is not a list",
+  "capture scope container list that is not a list",
+  "capture that names no source instance",
+  "capture that names no container",
+  "null container scope member matching a capture with no container",
+  "null source instance scope member matching a capture with no source instance",
+  "projected source system that is not a string",
+  "projected source identity that is not an object",
+  "projected source identity that names no source instance",
+  "document source consent reference that is boolean false",
+  "document source connector grant reference that is boolean false",
+  "document source null scope member matching a capture with no source instance"
 ].freeze
 
 # 上游 employee_memory_profile_minimum 的三個欄位群；本檔只讀 key，不重述欄位名。
@@ -82,21 +102,45 @@ def bound_adapter_source_system(contract, source_type)
   read_path(mapping, entry.fetch("source_system_path"))
 end
 
+# --- 本卡自有的准入值約束 --------------------------------------------------
+#
+# SSP291-F-01：共用 present? 只排除 nil 與 empty?,因此 false、0、純空白字串、
+# 非空 Array/Hash 都會被當成「存在」,它從未驗證那個值是不是一個 reference。
+# 這裡刻意在本檔加入准入專用檢查,**不改共用 present? 的全域語意** ——
+# 那會改動本輪未受審的其他呼叫端行為。
+#
+# reference 與識別值一律要求「非空白 String」。不造 URI scheme、不連外解析:
+# 問題不在於 consent/grant 的內容是否屬實,而在於 false 根本不是一個 reference。
+def admission_value?(value)
+  value.is_a?(String) && !value.strip.empty?
+end
+
+# source_policy 這兩個欄位是容器,型別由本卡的准入形狀決定,不是上游列舉,
+# 因此列在這裡不違反「零列舉重述」。
+ADMISSION_CONTAINER_TYPES = { "connector_grants" => Array, "capture_scope" => Hash }.freeze
+
 def active_grant?(grants, source_type)
   grants.to_a.any? do |grant|
     grant.is_a?(Hash) &&
       grant["source_type"] == source_type &&
       grant["status"] == "ACTIVE" &&
-      present?(grant["grant_ref"])
+      admission_value?(grant["grant_ref"])
   end
 end
 
 def within_capture_scope?(scope, capture)
   return false unless scope.is_a?(Hash)
-  return false unless scope.fetch("source_instance_ids", []).to_a.include?(capture["source_instance_id"])
 
-  containers = scope.fetch("containers", []).to_a
-  containers.include?(capture["container"])
+  instances = scope["source_instance_ids"]
+  containers = scope["containers"]
+  return false unless instances.is_a?(Array) && containers.is_a?(Array)
+
+  # 「兩邊都缺值」不等於「擷取來自已授權的同一個來源/容器」:先要求 capture
+  # 帶有合法識別值,否則 include?(nil) 會讓 null 與缺失欄位互相匹配。
+  return false unless admission_value?(capture["source_instance_id"])
+  return false unless admission_value?(capture["container"])
+
+  instances.include?(capture["source_instance_id"]) && containers.include?(capture["container"])
 end
 
 # 回傳 nil 代表這筆擷取通過准入；否則回傳精確的 machine failure code。
@@ -111,8 +155,17 @@ def evidence_profile_failure(spec, contract, vocabulary, test_case)
 
     vocabulary.profile_fields.fetch(group).each do |field|
       return "EPROFILE_PROFILE_FIELD_MISSING" unless group_value.key?(field)
+
+      container_type = ADMISSION_CONTAINER_TYPES[field]
+      if container_type
+        container = group_value[field]
+        return "EPROFILE_PROFILE_FIELD_MISSING" unless container.is_a?(container_type) && !container.empty?
+
+        next
+      end
+
       next if field == "consent_or_notice_ref" # 語意檢查排在 evaluation_order 的授權段之後
-      return "EPROFILE_PROFILE_FIELD_MISSING" unless present?(group_value[field])
+      return "EPROFILE_PROFILE_FIELD_MISSING" unless admission_value?(group_value[field])
     end
   end
 
@@ -140,12 +193,17 @@ def evidence_profile_failure(spec, contract, vocabulary, test_case)
 
   source_policy = profile.fetch("source_policy")
   return "EPROFILE_NO_CONNECTOR_GRANT" unless active_grant?(source_policy["connector_grants"], source_type)
-  return "EPROFILE_NO_CONSENT_OR_NOTICE" unless present?(source_policy["consent_or_notice_ref"])
+  return "EPROFILE_NO_CONSENT_OR_NOTICE" unless admission_value?(source_policy["consent_or_notice_ref"])
   return "EPROFILE_OUTSIDE_CAPTURE_SCOPE" unless within_capture_scope?(source_policy["capture_scope"], capture)
 
   # phase gate 與結構斷言已保證每個可通過的來源都有綁定 mapping，故此處不再有未綁定分支。
   source_system = bound_adapter_source_system(contract, source_type)
-  projected = capture.fetch("projected_source_identity", {})
+  # projected identity 不另設型別 guard:右手邊兩個值都已被保證是合法識別值 ——
+  # source_system 由結構斷言要求 mapping 必須提供非空值,capture 的 source_instance_id
+  # 由 within_capture_scope? 要求為非空白字串。因此相等比較本身就會拒絕 nil/false/錯型別,
+  # 額外的型別 guard 會是永遠踩不到的死分支。若日後鬆動任一前提,這裡必須同步補回。
+  projected = capture["projected_source_identity"]
+  projected = {} unless projected.is_a?(Hash)
   return "EPROFILE_ADAPTER_MAPPING_MISMATCH" unless projected["source_system"] == source_system
   return "EPROFILE_PROJECTED_IDENTITY_INCONSISTENT" unless projected["source_instance_id"] == capture["source_instance_id"]
 
@@ -221,6 +279,11 @@ assert(
 )
 assert(present?(contract.dig("authority_floor", "rule")), "authority_floor.rule 必須存在", failures)
 assert(present?(contract.dig("identity_binding", "rule")), "identity_binding.rule 必須存在", failures)
+constraints = contract.fetch("admission_value_constraints", {})
+%w[reference_fields_rule identifier_values_rule container_fields_rule shared_helper_rule].each do |key|
+  assert(present?(constraints[key]), "admission_value_constraints.#{key} 必須存在（SSP291-F-01）", failures)
+end
+
 assert(contract.fetch("evaluation_order", []).to_a.length == 12, "evaluation_order 必須逐項列出十二段判斷", failures)
 
 # --- error_contract 由原始碼綁定 ------------------------------------------
