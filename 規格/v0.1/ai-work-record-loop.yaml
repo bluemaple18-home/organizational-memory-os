@@ -136,11 +136,17 @@ error_contract_binding:
     函式本體的 return literal 求得。兩張手寫清單互比證明不了 evaluator:TIGHTEN-F-01 就是
     這樣讓一個未宣告的 LOOP_MISSING_FIELD 穿過完整 gate 的。
   evaluator_return_form_rule: >-
-    掃描是 regex,必然語法特定,所以 evaluator 的 return 形式本身也被鎖住:
-    loop_closeout_failure 內每一條 return 只能是 return nil 或 return "<CODE>"
-    (可帶 if / unless 修飾)。任何其他合法 Ruby return——單引號、字串插值、heredoc、
-    常數、方法回傳——都會轉紅。否則一個掃不到但真的會回傳的 code 就能靜默繞過
-    完整性斷言,而宣告集合與實際可回傳集合相等這個命題也就不再成立。
+    evaluator 的 return site 由 Ripper 解析 validator 自身求得,不是掃原始碼文字,
+    因此無論 return 寫在哪裡都會被列入:多行 if 區塊內、if x; return y; end 同一行、
+    x and return y、block 內、三元運算子裡,一律算數。
+    loop_closeout_failure 內每一個 return 只能是兩種形式之一:
+    return nil,或 return 單一且無插值的字串字面量且該字串符合 <CODE> 命名。
+    其餘任何形式——常數、方法回傳、字串插值、heredoc、%w 取值、裸 return——
+    一律歸類為不允許並轉紅。
+    引號風格不在約束範圍:語法樹看到的是字串的值,單雙引號的 code 都會被正確列入
+    可回傳集合,不會有未被計入的 return。約束的是「有沒有被算到」,不是寫法美觀。
+    用 regex 掃行對「evaluator 會回傳什麼」必然低估,每補一次只是把漏洞推到
+    下一種合法語法;語法樹的 return site 是窮舉的。
 
 error_contract:
   LOOP_UNBOUNDED: loop.error.unbounded

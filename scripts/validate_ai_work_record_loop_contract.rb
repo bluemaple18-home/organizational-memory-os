@@ -11,6 +11,7 @@
 require "json"
 require "yaml"
 require_relative "lib/omos_contract_helpers"
+require_relative "lib/loop_return_contract"
 
 ROOT = File.expand_path("..", __dir__)
 SPEC_PATH = File.join(ROOT, "規格/v0.1/ai-work-record-loop.yaml")
@@ -205,39 +206,19 @@ def loop_closeout_failure(run, fillable_fields, outcome_condition_map)
   nil
 end
 
-# evaluator 內唯一允許的 return 形式。
+# evaluator 的 return contract 由語法樹求得，見 lib/loop_return_contract.rb。
 #
-# SSP302-F-01：reachable_loop_failure_codes 是 regex 掃描,而 regex 必然是語法特定的。
-# 原本只保證「掃到的都對」,沒有保證「沒有掃不到的」——於是
-#
-#     return 'LOOP_UNDECLARED' if run["x"]
-#
-# 是 Ruby 真正可回傳的新 code,卻完全穿過三層 assertion。
-#
-# 想用 regex 涵蓋 Ruby 全部 return 語法(插值、heredoc、常數、方法回傳)本質上做不完,
-# 做了也只是換一個更難察覺的 under-approximation。因此改為把不確定性關掉:
-# evaluator 的 return 形式本身是可窮舉的白名單,違反即轉紅。
-ALLOWED_EVALUATOR_RETURN = /\Areturn (?:nil|"[A-Z][A-Z0-9_]*")(?:\s+(?:if|unless)\b.*)?\z/.freeze
+# SSP302-F-01 兩度證明 regex 對「evaluator 會回傳什麼」必然低估：先是只認雙引號，
+# 再是只認以 return 開頭的實體行。每補一次 regex 只是把漏洞推到下一種合法語法，
+# 所以改用 Ripper 解析本檔，窮舉 loop_closeout_failure 的 return site。
+LOOP_EVALUATOR_NAME = "loop_closeout_failure"
 
-# 掃描與形式檢查共用同一段函式本體,不會各掃各的。
-def loop_evaluator_body
-  File.read(__FILE__)[/^def loop_closeout_failure.*?^end$/m].to_s
-end
-
-# evaluator 實際可回傳的 code,由原始碼掃出。
-#
-# 只掃 loop_closeout_failure 函式本體,避免掃到註解、常數清單或其他函式的字串。
-# 單雙引號都掃,讓單引號 code 同時踩中形式白名單與完整性斷言(雙層)。
-# 掃不到任何 code 時必須視為掃描失效並轉紅,而不是「剛好沒有 code」。
 def reachable_loop_failure_codes
-  loop_evaluator_body.scan(/return ["\']([A-Z][A-Z0-9_]*)["\']/).flatten.uniq
+  LoopReturnContract.reachable_codes(__FILE__, LOOP_EVALUATOR_NAME)
 end
 
-# 回傳所有不符白名單的 return 語句;非空即代表掃描可能漏認 code。
 def unexpected_evaluator_return_forms
-  loop_evaluator_body.lines.map(&:strip)
-                     .select { |line| line.start_with?("return") }
-                     .reject { |line| ALLOWED_EVALUATOR_RETURN.match?(line) }
+  LoopReturnContract.disallowed_returns(__FILE__, LOOP_EVALUATOR_NAME)
 end
 
 failures = []
@@ -321,8 +302,8 @@ assert(!reachable_loop_codes.empty?, "無法從 loop_closeout_failure 原始碼�
 unexpected_returns = unexpected_evaluator_return_forms
 assert(
   unexpected_returns.empty?,
-  "loop_closeout_failure 出現 reachable_loop_failure_codes 掃不到的 return 形式" \
-  "（只允許 return nil 或 return \"<CODE>\"）：#{unexpected_returns.join(" ／ ")}",
+  "loop_closeout_failure 出現不被允許的 return 形式" \
+  "（只允許 return nil,或 return 單一無插值且符合 <CODE> 命名的字串字面量）：#{unexpected_returns.join(" ／ ")}",
   failures
 )
 assert(
