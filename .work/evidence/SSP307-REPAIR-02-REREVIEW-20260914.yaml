@@ -1,0 +1,111 @@
+ticket: SSP-307
+requirement: AIWR-09 Codex Native Adapter / Runtime Probe
+lane: B
+tier: T1
+
+review_line:
+  base_sha: "e73488d100526341cea08ebc331714dc90456fa1"
+  original_review_sha: "a9bb40a908fd2ca04758791d69809ed42906531c"
+  original_verdict: NO_GO
+  original_counts: { p0: 0, p1: 2, p2: 2, p3: 0 }
+  original_findings:
+    - id: SSP307-F-01
+      severity: P1
+      summary: task_complete -> complete produces an illegal OPEN -> DONE transition (no such edge exists)
+    - id: SSP307-F-02
+      severity: P1
+      summary: turn_aborted -> cancel escalates a resumable Codex interruption into a terminal AIWR state
+    - id: SSP307-F-03
+      severity: P2
+      summary: error_contract binding is two hand-written lists compared, not an evaluator-derived set
+    - id: SSP307-F-04
+      severity: P2
+      summary: measured_native_vocabulary <-> runtime sample equality check is one-directional (classified could exceed observed)
+
+  repair_01_sha: "77ffc67c8dd2dd7418af06cdf6368cc3c48095c7"
+  repair_01_verdict: NO_GO
+  repair_01_counts: { p0: 0, p1: 0, p2: 1, p3: 0 }
+  repair_01_closed: [SSP307-F-01, SSP307-F-02, SSP307-F-03]
+  repair_01_remaining: [SSP307-F-04]
+  repair_01_note: >-
+    F-04 fix covered the reverse-set-inclusion bypass (classified event type
+    never observed) but left event_type_counts values and sampled_sessions
+    unbound between contract and runtime-sample fixture.
+
+  repair_02_sha: "1351dc1d17e66d173aef734b7318b6a2b3c97d5e"
+  repair_02_verdict: GO
+  repair_02_counts: { p0: 0, p1: 0, p2: 0, p3: 0 }
+  repair_02_closed: [SSP307-F-04]
+
+  final_verdict: GO
+  final_counts: { p0: 0, p1: 0, p2: 0, p3: 0 }
+  reviewer_routing_decided_by: OWNER
+
+findings:
+  - id: SSP307-F-01
+    severity: P1
+    status: CLOSED
+    closed_by: >-
+      task_complete now maps to submit_review (OPEN -> IN_REVIEW is a real
+      allowed_status_transitions edge) instead of complete (OPEN -> DONE,
+      which does not exist -- DONE is only reachable from IN_REVIEW).
+      Verified by replaying lifecycle_event_to_status + allowed_status_transitions.
+  - id: SSP307-F-02
+    severity: P1
+    status: CLOSED
+    closed_by: >-
+      turn_aborted moved from lifecycle_event_map to non_lifecycle_event_types,
+      per the reviewer's cited Codex source fact (Interrupt -> TurnAborted is
+      resumable via RecoverTurn) and this contract's own no-guessing rule.
+  - id: SSP307-F-03
+    severity: P2
+    status: CLOSED
+    closed_by: >-
+      error_contract binding now uses the shared SSP-302 AST/Ripper module
+      (scripts/lib/loop_return_contract.rb, parameterized by source_path +
+      evaluator_name) across all three evaluators, including exit-shape
+      freezing (proactively added, not requested, to avoid reintroducing the
+      implicit-return bypass SSP-302 closeout fixed).
+  - id: SSP307-F-04
+    severity: P2
+    status: CLOSED
+    closed_by: >-
+      repair-01 closed the reverse-set bypass; repair-02 added two more
+      assertions -- declared_observed == sample_counts (per-key value
+      equality) and declared_sampled_sessions == sample_sampled_sessions --
+      closing the count-drift and session-count-drift bypasses the reviewer
+      demonstrated with an explicit mutation.
+
+verification:
+  f01_transition_replay: "start -> OPEN; OPEN -> IN_REVIEW via submit_review: OK"
+  f03_bypass_probe_before_after:
+    unnamed_return_code_bypass: { before: GREEN_bad, after: RED }
+  f04_bypass_probe_before_after:
+    reverse_set_inclusion: { before: GREEN_bad, after: RED }
+    reviewer_exact_mutation: RED
+    isolated_count_drift: RED
+    isolated_session_count_drift: RED
+  evaluator_guard_parity:
+    codex_mapping_failure: { total: 15, red: 15, green: 0 }
+    codex_rollback_failure: { total: 6, red: 6, green: 0 }
+    codex_runtime_sample_failure: { total: 1, red: 1, green: 0 }
+  ruby_validators: { pass: 22, fail: 0 }
+  python_engines: { pass: 4, fail: 0 }
+  git_diff_check: clean
+  validator_line_count: 335
+  file_size_limit: 400
+
+mainline_self_verify:
+  merged_at: "32b3f82"
+  ruby_validators: { pass: 22, fail: 0 }
+  python_engines: { pass: 4, fail: 0 }
+  git_diff_check: clean
+
+runtime_evidence_source:
+  method: full-corpus scan of ~/.codex/sessions/**/*.jsonl (818 sessions, not sampled)
+  content_read: event_msg.payload.type only (controlled discriminator, no message/tool/file content)
+  owner_authorization: explicit, granted via AskUserQuestion before any session file was read
+  evidence_artifact: 規格/v0.1/fixtures/codex-native-adapter-runtime-sample.json (content-free, frozen)
+
+accepted_by: OWNER
+accepted_on: "2026-09-14"
