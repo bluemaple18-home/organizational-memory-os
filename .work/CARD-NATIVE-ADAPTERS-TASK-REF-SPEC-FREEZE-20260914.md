@@ -1,6 +1,6 @@
 ---
 id: NATIVE-ADAPTERS-TASK-REF-SPEC-FREEZE-20260914
-status: AWAITING_OWNER_SIGNATURE
+status: OWNER_SIGNED
 type: spec_freeze
 tier: T2
 review_line: Native Adapters task_ref correlation
@@ -140,8 +140,9 @@ enforcement；如果之後真的出現「混批」的真實案例，再回頭考
 ## Owner 簽核
 
 ```
-FP-1: ____    FP-2: ____    FP-3: ____
-簽核日期: ____
+FP-1: A    FP-2: A    FP-3: A
+簽核日期: 2026-09-14
+簽核者: Owner（互動對話中明示「A A A」）
 ```
 
 簽完之後：
