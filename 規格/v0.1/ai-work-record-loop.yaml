@@ -130,10 +130,39 @@ authority:
     - accepted_for_record
     - canonical_write_receipt_ref
 
+error_contract_binding:
+  rule: >-
+    這些 key 必須逐字等於 evaluator 實際可回傳的 code 集合,由掃描 loop_closeout_failure
+    函式本體的 return literal 求得。兩張手寫清單互比證明不了 evaluator:TIGHTEN-F-01 就是
+    這樣讓一個未宣告的 LOOP_MISSING_FIELD 穿過完整 gate 的。
+  evaluator_return_form_rule: >-
+    evaluator 的 return site 由 Ripper 解析 validator 自身求得,不是掃原始碼文字,
+    因此無論 return 寫在哪裡都會被列入:多行 if 區塊內、if x; return y; end 同一行、
+    x and return y、block 內、三元運算子裡,一律算數。
+    loop_closeout_failure 內每一個 return 只能是兩種形式之一:
+    return nil,或 return 單一且無插值的字串字面量且該字串符合 <CODE> 命名。
+    其餘任何形式——常數、方法回傳、字串插值、heredoc、%w 取值、裸 return——
+    一律歸類為不允許並轉紅。
+    引號風格不在約束範圍:語法樹看到的是字串的值,單雙引號的 code 都會被正確列入
+    可回傳集合,不會有未被計入的 return。約束的是「有沒有被算到」,不是寫法美觀。
+    用 regex 掃行對「evaluator 會回傳什麼」必然低估,每補一次只是把漏洞推到
+    下一種合法語法;語法樹的 return site 是窮舉的。
+  evaluator_exit_shape_rule: >-
+    顯式 return 可以窮舉,隱式回傳不行:Ruby 方法回傳最後一個 expression 的值,
+    而那個 expression 可以是 if/else、三元、方法呼叫、rescue 子句。要靜態涵蓋
+    全部 tail position 等於做一個迷你控制流分析,那又是一次逼近開放集合。
+    因此出口形狀本身被凍結(Owner spec-freeze FP-1-B,2026-09-11 簽核):
+    loop_closeout_failure 的 bodystmt 不得有 rescue / else / ensure 子句,
+    且最後一句必須恰好是 nil 字面量。方法因此只剩兩種回傳途徑——
+    被分類過的顯式 return,或尾端那個 nil——出口集合成為全集,而非逼近。
+    邊界:例外不是回傳值;evaluator 拋例外會讓 validator 崩潰並轉紅,
+    不會變成一個未被宣告的 code。
+
 error_contract:
   LOOP_UNBOUNDED: loop.error.unbounded
   LOOP_OVER_TIMEOUT: loop.error.over_timeout
   LOOP_TIMEOUT_NOT_REACHED: loop.error.timeout_not_reached
+  LOOP_MISSING_FIELD: loop.error.missing_field
   LOOP_OVER_MAX_ITERATIONS: loop.error.over_max_iterations
   LOOP_MALFORMED_ITERATION: loop.error.malformed_iteration
   LOOP_INVALID_OUTCOME: loop.error.invalid_outcome
@@ -183,3 +212,7 @@ required_negative_fixtures:
   - failed loud but the original evidence was not preserved
   - run carries a memory acceptance field
   - error but the run still claims success
+  - the run carries no iterations field at all
+  - the run declares iterations as something other than a list
+  - the loop performs memory acceptance itself
+  - the loop writes company knowledge itself
