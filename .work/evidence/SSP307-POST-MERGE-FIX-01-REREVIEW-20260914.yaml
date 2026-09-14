@@ -1,0 +1,98 @@
+ticket: SSP-307
+type: post_merge_fix
+requirement: AIWR-09 Codex Native Adapter -- per-turn cadence correction
+lane: B
+tier: T1
+sibling_of: SSP-308 (AIWR-10, repair-01 @ 081d960, ACCEPTED_GO @ 97d68fe)
+note: >-
+  This is not a reopened big review. SSP-307's original review line
+  (a9bb40a NO_GO -> repair-01 77ffc67 -> repair-02 1351dc1 GO) already
+  closed and merged at 32b3f82. This is a fresh post-merge correction
+  cycle against a defect discovered while fixing the sibling SSP-308.
+
+review_line:
+  base_sha: "536f110e58aad0a73545845ea1eaf2e4613f1f86"
+  original_review_sha: "78ea865aa02fe9f114bf994b09483fabcd42ffb6"
+  original_verdict: NO_GO
+  original_counts: { p0: 0, p1: 0, p2: 1, p3: 0 }
+  original_finding:
+    id: SSP307-PMF01-F-01
+    severity: P2
+    summary: >-
+      contract text attributed this round's 830-session per-session
+      cadence scan numbers (624/830, 611/830) to the 818-session
+      measured_native_vocabulary frozen snapshot, conflating two
+      different measurements taken at different times with different
+      methods.
+
+  repair_01_sha: "0cccba8245eee85b3eac53eba306c28d27f6f323"
+  repair_01_verdict: GO
+  repair_01_counts: { p0: 0, p1: 0, p2: 0, p3: 0 }
+  repair_01_closed: [SSP307-PMF01-F-01]
+
+  final_verdict: GO
+  final_counts: { p0: 0, p1: 0, p2: 0, p3: 0 }
+  reviewer_routing_decided_by: OWNER
+
+trigger:
+  discovered_during: SSP-308 repair-01 research (SSP308-F-02)
+  concern_card: .work/CARD-SSP307-PER-TURN-CADENCE-CONCERN-20260914.md
+  measured_evidence: >-
+    per-session distribution over 830 real Codex sessions (not just the
+    aggregate total used at original implementation time):
+    task_started 2+ occurrences in 75.2% of sessions (624/830, max 376);
+    task_complete 2+ occurrences in 73.6% (611/830, max 375). This is the
+    ordinary case, not an outlier -- confirms the same per-turn-cadence
+    shape as SSP308-F-02.
+
+fix_applied:
+  - lifecycle_event_map emptied (was task_started->start,
+    task_complete->submit_review)
+  - task_started and task_complete moved to non_lifecycle_event_types
+  - hard_stops gained: no lifecycle_event_map entry without live
+    firing-frequency evidence
+  - dead CODEX_MAPPING_TARGET_MISMATCH branch removed from the evaluator
+    (map is now empty; error_contract binding via the shared AST module
+    auto-shrank)
+  - deferred to .work/CARD-SSP307-LIFECYCLE-MAPPING-BACKLOG-20260914.md
+
+findings:
+  - id: SSP307-PMF01-F-01
+    severity: P2
+    status: CLOSED
+    closed_by: >-
+      contract text (design_note, task_started_note) rewritten to
+      explicitly separate the 818-session frozen vocabulary snapshot
+      (measured_native_vocabulary) from this round's independent,
+      later-dated 830-session per-session cadence scan. No evaluator
+      logic changed.
+
+verification:
+  evaluator_guard_parity:
+    codex_mapping_failure: { total: 14, red: 14, green: 0 }
+    codex_rollback_failure: { total: 6, red: 6, green: 0 }
+    codex_runtime_sample_failure: { total: 1, red: 1, green: 0 }
+  structural_cross_contract_probes:
+    total: 5
+    red: 4
+    green_but_expected: 1
+    green_but_expected_note: >-
+      probe validating that removing submit_review from the upstream
+      lifecycle_event_to_status turns the gate red no longer applies
+      once lifecycle_event_map is empty (nothing to iterate) -- same,
+      disclosed, non-defect situation as SSP-308's identical design.
+  ruby_validators: { pass: 23, fail: 0 }
+  python_engines: { pass: 4, fail: 0 }
+  git_diff_check: clean
+  validator_line_count: 336
+  contract_line_count: 278
+  file_size_limit: 400
+
+mainline_self_verify:
+  merged_at: "f5b6090"
+  ruby_validators: { pass: 23, fail: 0 }
+  python_engines: { pass: 4, fail: 0 }
+  git_diff_check: clean
+
+accepted_by: OWNER
+accepted_on: "2026-09-14"

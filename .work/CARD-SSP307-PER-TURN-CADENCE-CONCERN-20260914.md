@@ -1,6 +1,6 @@
 ---
 id: SSP307-PER-TURN-CADENCE-CONCERN-20260914
-status: FIX_IMPLEMENTED_AWAITING_BIG_REVIEW
+status: ACCEPTED_GO_20260914
 type: concern
 tier: n/a
 jira: SSP-307（已 ACCEPTED_GO + merged @ 32b3f82，本卡不是 repair）

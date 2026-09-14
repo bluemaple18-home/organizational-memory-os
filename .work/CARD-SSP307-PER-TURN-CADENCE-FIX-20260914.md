@@ -1,6 +1,6 @@
 ---
 id: SSP307-PER-TURN-CADENCE-FIX-20260914
-status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
+status: ACCEPTED_GO_20260914
 type: post_merge_fix
 tier: T1
 jira: SSP-307（AIWR-09，已 ACCEPTED_GO + merged @ 32b3f82，本卡是後續修正）
