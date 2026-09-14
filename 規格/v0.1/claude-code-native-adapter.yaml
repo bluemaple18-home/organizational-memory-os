@@ -1,0 +1,224 @@
+schema:
+  schema_id: urn:omos:schema:claude-code-native-adapter:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-14'
+  traces_to:
+    - AIWR-10
+  builds_on:
+    - 規格/v0.1/ai-task-card-record.yaml
+    - 規格/v0.1/ai-work-record-hook.yaml
+    - 規格/v0.1/codex-native-adapter.yaml
+
+purpose:
+  statement: >-
+    A thin Claude Code Native Adapter contract: classify Claude Code's own
+    published hook event names into either a lifecycle_events entry the
+    existing Hook contract already accepts, or an explicit non-lifecycle
+    category. It gains no acceptance, permission or canonical-writer
+    authority; the core flow runs without the Adapter installed; an
+    unrecognised native event fails loud rather than being silently dropped
+    or guessed. It does not re-define ai-task-card-record.yaml or
+    ai-work-record-hook.yaml -- it references them. Same governance shape as
+    codex-native-adapter.yaml; the two are siblings, not a re-derivation.
+  no_second_workflow_authority: true
+
+scope_reduction_from_ssp307:
+  decision: >-
+    Owner-chosen (2026-09-14, AskUserQuestion): write the static
+    classification contract now; defer the live runtime probe. Unlike Codex,
+    whose native event vocabulary had no public specification and had to be
+    discovered by scanning real session logs, Claude Code's hook events are a
+    closed, documented set (SessionStart, SessionEnd, UserPromptSubmit,
+    PreToolUse, PostToolUse, Notification, Stop, SubagentStop, PreCompact).
+    Completeness is verified against that documented set instead of a real
+    corpus scan -- this is a different, not weaker, verification method for
+    this specific gap (the classification is of event *names*, which are
+    documented and stable; a live scan would only usefully add real payload
+    *shapes*, which this Adapter does not classify).
+  not_done_this_round: >-
+    no runtime-sample fixture, no codex-native-adapter-style
+    measured_native_vocabulary counts, no live session scan. Tracked as a
+    follow-up card once a real hook-triggering environment is available (see
+    .work/CARD-SSP308-RUNTIME-PROBE-BACKLOG-20260914.md).
+
+documented_native_vocabulary:
+  source: Claude Code hook events documentation (public, closed set)
+  hook_events:
+    - SessionStart
+    - SessionEnd
+    - UserPromptSubmit
+    - PreToolUse
+    - PostToolUse
+    - Notification
+    - Stop
+    - SubagentStop
+    - PreCompact
+  rule: >-
+    lifecycle_event_map and non_lifecycle_event_types together must equal
+    exactly hook_events -- every documented hook name must be classified one
+    way or the other. A hook name in neither is
+    CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT.
+
+lifecycle_event_map:
+  map:
+    SessionStart: start
+    Stop: submit_review
+  rule: >-
+    each key is a Claude Code hook event name; each value must be a key of
+    ai-task-card-record.lifecycle_event_to_status, enforced by a structural
+    assertion at gate time (not a per-run evaluator branch -- the run
+    evaluator trusts an already-validated map; see codex-native-adapter.yaml
+    for why that branch is dead code by construction, same reasoning here).
+  design_note: >-
+    Stop deliberately maps to submit_review, not complete: SSP307-F-01 on the
+    sibling Codex Adapter proved OPEN -> DONE is not a real
+    allowed_status_transitions edge (DONE is only reachable from IN_REVIEW),
+    so a native "agent finished responding" signal must never claim DONE on
+    its own -- that is an AIWR governance decision, not something this
+    Adapter emits unilaterally. SessionEnd is deliberately absent from this
+    map (see non_lifecycle_event_types.session_end_note) rather than guessed
+    as a terminal state, applying the same lesson as SSP307-F-02.
+    block/unblock have no native Claude Code hook backing them, same as the
+    Codex sibling, so they are absent rather than guessed.
+
+non_lifecycle_event_types:
+  events:
+    - SessionEnd
+    - UserPromptSubmit
+    - PreToolUse
+    - PostToolUse
+    - Notification
+    - SubagentStop
+    - PreCompact
+  rule: >-
+    these are documented hook events that never drive a task_card lifecycle
+    transition at this Adapter's granularity. Listing them here is what
+    distinguishes "known and deliberately excluded" from "unknown" -- a hook
+    event must appear in exactly one of lifecycle_event_map.keys or
+    non_lifecycle_event_types.events, never both, never neither.
+  session_end_note: >-
+    SessionEnd fires for several distinct reasons (clear, logout, exit,
+    other) with different resumability semantics that this static contract
+    cannot distinguish without a real reason-value sample. Applying the
+    SSP307-F-02 lesson: rather than guess SessionEnd -> cancel (a terminal
+    state in ai-task-card-record.yaml) and risk permanently closing a Work
+    Record for a session that might resume, SessionEnd is classified
+    non-lifecycle. Any AIWR-level decision about block vs cancel is left to
+    a higher layer, pending the deferred runtime probe that would supply
+    real reason-value evidence.
+  subagent_stop_note: >-
+    SubagentStop marks completion of a Task-tool subagent, not the top-level
+    task this Adapter tracks -- it is sub-task granularity, analogous to
+    Codex's item_completed, not a task_card lifecycle boundary.
+
+authority:
+  grants_acceptance: false
+  grants_permission: false
+  grants_canonical_writer: false
+  error_behavior: FAIL_LOUD
+  forbidden_run_fields:
+    - personal_acceptance_ref
+    - verification_receipt_ref
+    - accepted_for_record
+    - canonical_write_receipt_ref
+    - permission_decision_ref
+
+optional_dependency:
+  adapter_required: false
+  core_flow_without_adapter: SUPPORTED
+  rule: >-
+    a run that declares adapter_required true or
+    core_flow_blocked_without_adapter true is CLAUDE_CODE_ADAPTER_MANDATORY.
+
+no_org_wide_install:
+  requires_all_users_install: false
+  rule: requires_all_users_install true is CLAUDE_CODE_ORG_WIDE_INSTALL.
+
+mapping_run:
+  fields:
+    - native_event_type
+    - mapped_to
+    - adapter_output_ref
+    - outcome
+  outcomes:
+    - MAPPED
+    - NOT_LIFECYCLE
+    - DISABLED
+  output_ref_rule: adapter_output_ref is an omos URN string (reference only).
+  rule: >-
+    outcome not in outcomes is CLAUDE_CODE_INVALID_OUTCOME; a non-URN
+    adapter_output_ref on a MAPPED run is CLAUDE_CODE_OUTPUT_NOT_REF; outcome
+    DISABLED while adapter_output_ref is still present is
+    CLAUDE_CODE_DISABLED_STILL_MAPPING; outcome NOT_LIFECYCLE while
+    adapter_output_ref is present is
+    CLAUDE_CODE_NOT_LIFECYCLE_STILL_MAPPING.
+  mapping_binding_rule: >-
+    on a MAPPED run, run.native_event_type must have exactly one entry in
+    lifecycle_event_map and that entry's target must equal run.mapped_to. On
+    a NOT_LIFECYCLE run, run.native_event_type must be exactly one entry of
+    non_lifecycle_event_types. A native_event_type in neither list is
+    CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT -- the Adapter never guesses at a
+    hook event it has not been told about.
+
+disable_and_rollback:
+  disable_switch: true
+  fallback: CORE_FLOW_DIRECT
+  side_effects:
+    - name: native_hook_registration
+      teardown: unregister the Adapter's hook handlers from the host Claude Code settings
+      failure_state: >-
+        still registered -> the Adapter keeps classifying while disabled;
+        detected by a run emitted with a non-empty adapter_output_ref under
+        disabled state (CLAUDE_CODE_DISABLED_STILL_MAPPING).
+    - name: classification_cache
+      teardown: clear any cached native_event_type -> outcome classification
+      failure_state: >-
+        stale cache -> a hook event added to non_lifecycle_event_types after
+        a contract update is still treated as MAPPED on re-enable;
+        remediation is a forced re-classification against the current map.
+
+error_contract:
+  CLAUDE_CODE_EXCEEDS_AUTHORITY: claude_code_native.error.exceeds_authority
+  FAIL_SILENT: claude_code_native.error.fail_silent
+  CLAUDE_CODE_ADAPTER_MANDATORY: claude_code_native.error.adapter_mandatory
+  CLAUDE_CODE_ORG_WIDE_INSTALL: claude_code_native.error.org_wide_install
+  CLAUDE_CODE_INVALID_OUTCOME: claude_code_native.error.invalid_outcome
+  CLAUDE_CODE_DISABLED_STILL_MAPPING: claude_code_native.error.disabled_still_mapping
+  CLAUDE_CODE_NOT_LIFECYCLE_STILL_MAPPING: claude_code_native.error.not_lifecycle_still_mapping
+  CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT: claude_code_native.error.unclassified_native_event
+  CLAUDE_CODE_OUTPUT_NOT_REF: claude_code_native.error.output_not_ref
+  CLAUDE_CODE_MAPPING_TARGET_MISMATCH: claude_code_native.error.mapping_target_mismatch
+  CLAUDE_CODE_ROLLBACK_MISSING_FIELD: claude_code_native.error.rollback_missing_field
+  CLAUDE_CODE_ROLLBACK_SIDE_EFFECT_UNSPECIFIED: claude_code_native.error.rollback_side_effect_unspecified
+
+runtime_independence: true
+
+cross_reference:
+  task_card_record_spec: 規格/v0.1/ai-task-card-record.yaml
+  hook_spec: 規格/v0.1/ai-work-record-hook.yaml
+  must_match:
+    lifecycle_events_from: ai-task-card-record.lifecycle_event_to_status
+
+hard_stops:
+  - no live hook registration / listener implementation here
+  - pure function plus data tables only; no state machine engine
+  - do not re-define ai-task-card-record.yaml or ai-work-record-hook.yaml
+  - no registry / FSM / database / canonical writer
+  - no message content, tool output, or file content read into this repo
+
+required_negative_fixtures:
+  - a native event type not in lifecycle_event_map or non_lifecycle_event_types
+  - outcome MAPPED with adapter_output_ref not a URN
+  - outcome DISABLED with adapter_output_ref still present
+  - outcome NOT_LIFECYCLE with adapter_output_ref present
+  - outcome not in the declared outcomes enum
+  - a MAPPED run whose native_event_type has no lifecycle_event_map entry
+  - a MAPPED run whose mapped_to does not equal the declared map entry
+  - a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types
+  - a run declaring adapter_required true
+  - a run declaring requires_all_users_install true
+  - a rollback side effect record missing a required field
+  - a rollback side effect record with an unspecified failure_state
+  - a run carries a forbidden authority field
+  - error but the run still claims success

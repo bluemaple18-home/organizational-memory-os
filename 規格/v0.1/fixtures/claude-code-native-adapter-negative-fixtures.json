@@ -1,0 +1,289 @@
+{
+  "fixture_id": "claude-code-native-adapter-negative-fixtures-v0.1",
+  "mapping_negative_cases": [
+    {
+      "case_id": "CLAUDE_CODE_NEG_UNKNOWN_NATIVE_EVENT_MAPPED",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT",
+      "covers_negative_fixture": "a native event type not in lifecycle_event_map or non_lifecycle_event_types",
+      "run": {
+        "native_event_type": "SomeFutureHookEvent",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_OUTPUT_REF_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_OUTPUT_NOT_REF",
+      "covers_negative_fixture": "outcome MAPPED with adapter_output_ref not a URN",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "not-a-urn-string"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_DISABLED_STILL_HAS_OUTPUT",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_DISABLED_STILL_MAPPING",
+      "covers_negative_fixture": "outcome DISABLED with adapter_output_ref still present",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "DISABLED",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_NOT_LIFECYCLE_STILL_HAS_OUTPUT",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_NOT_LIFECYCLE_STILL_MAPPING",
+      "covers_negative_fixture": "outcome NOT_LIFECYCLE with adapter_output_ref present",
+      "run": {
+        "native_event_type": "PreToolUse",
+        "outcome": "NOT_LIFECYCLE",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_OUTCOME_NOT_IN_ENUM",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_INVALID_OUTCOME",
+      "covers_negative_fixture": "outcome not in the declared outcomes enum",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "PENDING_REVIEW",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_MAPPED_NO_MAP_ENTRY",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT",
+      "covers_negative_fixture": "a MAPPED run whose native_event_type has no lifecycle_event_map entry",
+      "run": {
+        "native_event_type": "SessionEnd",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_MAPPED_TO_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_MAPPING_TARGET_MISMATCH",
+      "covers_negative_fixture": "a MAPPED run whose mapped_to does not equal the declared map entry",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "submit_review",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_NOT_LIFECYCLE_UNCLASSIFIED",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT",
+      "covers_negative_fixture": "a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types",
+      "run": {
+        "native_event_type": "Stop",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_ADAPTER_REQUIRED_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_ADAPTER_MANDATORY",
+      "covers_negative_fixture": "a run declaring adapter_required true",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
+        "adapter_required": true
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_CORE_FLOW_BLOCKED_WITHOUT_ADAPTER",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_ADAPTER_MANDATORY",
+      "covers_negative_fixture": "a run declaring adapter_required true",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
+        "core_flow_blocked_without_adapter": true
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_ORG_WIDE_INSTALL_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_ORG_WIDE_INSTALL",
+      "covers_negative_fixture": "a run declaring requires_all_users_install true",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
+        "requires_all_users_install": true
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_GRANTS_ACCEPTANCE_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_EXCEEDS_AUTHORITY",
+      "covers_negative_fixture": "a run carries a forbidden authority field",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
+        "grants_acceptance": true
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_GRANTS_PERMISSION_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_EXCEEDS_AUTHORITY",
+      "covers_negative_fixture": "a run carries a forbidden authority field",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
+        "grants_permission": true
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_GRANTS_CANONICAL_WRITER_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_EXCEEDS_AUTHORITY",
+      "covers_negative_fixture": "a run carries a forbidden authority field",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
+        "grants_canonical_writer": true
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_FORBIDDEN_FIELD_PRESENT",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_EXCEEDS_AUTHORITY",
+      "covers_negative_fixture": "a run carries a forbidden authority field",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
+        "canonical_write_receipt_ref": "urn:omos:write:001"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_ERROR_PRESENT_CLAIMS_OK",
+      "expected": "deny",
+      "expected_failure_code": "FAIL_SILENT",
+      "covers_negative_fixture": "error but the run still claims success",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
+        "error": "boom",
+        "ok": true
+      }
+    }
+  ],
+  "rollback_negative_cases": [
+    {
+      "case_id": "CLAUDE_CODE_ROLLBACK_NEG_NOT_AN_OBJECT",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_ROLLBACK_MISSING_FIELD",
+      "covers_negative_fixture": "a rollback side effect record missing a required field",
+      "rollback": null
+    },
+    {
+      "case_id": "CLAUDE_CODE_ROLLBACK_NEG_DISABLE_SWITCH_NOT_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_ROLLBACK_MISSING_FIELD",
+      "covers_negative_fixture": "a rollback side effect record missing a required field",
+      "rollback": {
+        "disable_switch": false,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {
+            "name": "native_hook_registration",
+            "teardown": "x",
+            "failure_state": "y placeholder"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_ROLLBACK_NEG_FALLBACK_WRONG",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_ROLLBACK_MISSING_FIELD",
+      "covers_negative_fixture": "a rollback side effect record missing a required field",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "SOMETHING_ELSE",
+        "side_effects": [
+          {
+            "name": "native_hook_registration",
+            "teardown": "x",
+            "failure_state": "y placeholder"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_ROLLBACK_NEG_SIDE_EFFECTS_EMPTY",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_ROLLBACK_MISSING_FIELD",
+      "covers_negative_fixture": "a rollback side effect record missing a required field",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": []
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_ROLLBACK_NEG_EFFECT_MISSING_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_ROLLBACK_MISSING_FIELD",
+      "covers_negative_fixture": "a rollback side effect record missing a required field",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {
+            "name": "native_hook_registration",
+            "teardown": "unregister listener"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_ROLLBACK_NEG_UNSPECIFIED_FAILURE_STATE",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_ROLLBACK_SIDE_EFFECT_UNSPECIFIED",
+      "covers_negative_fixture": "a rollback side effect record with an unspecified failure_state",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {
+            "name": "native_hook_registration",
+            "teardown": "unregister listener",
+            "failure_state": "n/a"
+          }
+        ]
+      }
+    }
+  ]
+}

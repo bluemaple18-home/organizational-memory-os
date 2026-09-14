@@ -1,0 +1,111 @@
+{
+  "fixture_id": "claude-code-native-adapter-positive-fixtures-v0.1",
+  "mapping_cases": [
+    {
+      "case_id": "CLAUDE_CODE_POS_SESSION_START_MAPS_START",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_STOP_MAPS_SUBMIT_REVIEW",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "Stop",
+        "outcome": "MAPPED",
+        "mapped_to": "submit_review",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:Stop:001"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_SESSIONEND_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "SessionEnd",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_USERPROMPTSUBMIT_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "UserPromptSubmit",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_PRETOOLUSE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PreToolUse",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_POSTTOOLUSE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PostToolUse",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_NOTIFICATION_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "Notification",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_SUBAGENTSTOP_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "SubagentStop",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_PRECOMPACT_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PreCompact",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_DISABLED_NO_OUTPUT",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "DISABLED"
+      }
+    }
+  ],
+  "rollback_cases": [
+    {
+      "case_id": "CLAUDE_CODE_ROLLBACK_POS_VALID",
+      "expected": "allow",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {
+            "name": "native_hook_registration",
+            "teardown": "unregister the Adapter's hook handlers",
+            "failure_state": "still registered -> keeps classifying while disabled"
+          },
+          {
+            "name": "classification_cache",
+            "teardown": "clear any cached classification",
+            "failure_state": "stale cache -> a new non-lifecycle type still treated as MAPPED"
+          }
+        ]
+      }
+    }
+  ]
+}
