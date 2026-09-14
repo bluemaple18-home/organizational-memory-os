@@ -1,6 +1,6 @@
 ---
 id: SSP302-RETURN-CONTRACT-CLOSEOUT-20260911
-status: IMPLEMENTED_AWAITING_TARGETED_REREVIEW
+status: NO_GO_AWAITING_OWNER_RESIGNATURE
 type: implementation
 tier: T1
 review_line: SSP-302 error-code 契約完整性

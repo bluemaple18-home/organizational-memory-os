@@ -1,6 +1,6 @@
 ---
 id: SSP302-RETURN-CONTRACT-SPEC-FREEZE-20260911
-status: OWNER_SIGNED
+status: AMENDMENT_AWAITING_OWNER_RESIGNATURE
 type: spec_freeze
 tier: T2
 review_line: SSP-302 error-code 契約完整性
@@ -141,6 +141,40 @@ reviewer 把它歸類為「本卡沒做到自己宣稱的事」。我同意 —�
 
 **CC 建議：FP-4-A。** 這張卡本身是非阻塞收尾，已經吃掉三輪 review。
 它擋住的是 `SSP-307`（Lane B 唯一能動的前線）。
+
+---
+
+## FP-3-A 修正案（2026-09-14，等待 Owner 重簽）
+
+**背景**：2026-09-11 原始簽核的 FP-3-A 文字是「D2–D4、C1–C12、rescue/ensure 全 RED」。
+closeout（`81e1e86`）實作時我用 Ruby 實際執行驗證，發現 D2 的注入是中段 no-op、
+方法實際回傳 `nil`，要求它 RED 會製造 false positive。我把 evidence 改成
+「D2 維持 GREEN 才對」，並在下方（原 FP-1 章節）加了更正說明，
+但**沒有讓 FP-3-A 這條驗收條款本身重新被簽核** —— 這正是 reviewer 指出的缺口：
+`SSP302-CLOSEOUT-F-01`，簽核後修改了 acceptance 語意，沒有新的 Owner re-sign。
+
+原始 FP-3-A 文字**保留不動**（見上方「Freeze Point 3」與下方原始簽核區塊，
+不重寫歷史）。以下是**修正版**，取代原文字作為本次 closeout 的驗收依據：
+
+> **FP-3-A（修正版）**：closeout 必須實測以下全部成立：
+> - **真正的 tail-position 隱式回傳**（尾句本身即違規 expression：`if/else`、三元、
+>   `&&` 短路、方法呼叫、`case`、`begin` 區塊、已宣告 code 字面量）以及注入
+>   `rescue` / `ensure` 子句 —— 全部 **RED**。
+> - **no-op 對照組**（違規 expression 出現在非尾句位置、其值被語言語意丟棄，
+>   如 D2、N1、N2 這類）—— 必須維持 **GREEN**，否則就是 false positive。
+> - 前三輪 C1~C12 回歸維持不變（C11 單引號已宣告 code 為 GREEN，reviewer 已裁決合理）。
+> - 既有判定（24 案）exact code 逐字不變。
+
+技術判讀本身 reviewer 已同意：「D2 的技術判讀我同意：它確實只是中段 no-op，
+要求它 RED 反而會製造 false positive。」
+
+**請求**：Owner 只需針對 FP-3-A 修正版重簽，不需要重新審視 FP-1/FP-2/FP-4
+（reviewer 明確表示這三點的技術實作已達標，唯一 blocker 是這條治理缺口）。
+
+```
+FP-3（修正版）: ____
+重簽日期: ____
+```
 
 ---
 
