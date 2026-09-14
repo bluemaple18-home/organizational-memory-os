@@ -50,22 +50,26 @@ measured_native_vocabulary:
 lifecycle_event_map:
   map:
     task_started: start
-    task_complete: complete
-    turn_aborted: cancel
+    task_complete: submit_review
   rule: >-
     each key is a native event_msg.payload.type value; each value must be a
     key of ai-task-card-record.lifecycle_event_to_status, enforced by a
     structural assertion at gate time (not a per-run evaluator branch --
-    the run evaluator trusts an already-validated map, see design_note in
-    the closeout evidence for why that branch was removed as dead code).
+    the run evaluator trusts an already-validated map).
   design_note: >-
-    Codex's native lifecycle has no equivalent of block / unblock /
-    submit_review -- those are AIWR/task-card constructs with no native Codex
-    session event backing them, so they are deliberately absent from this map
-    rather than guessed. turn_aborted -> cancel is a judgement call, not a
-    forced 1:1 mapping: a turn that ends without completing is closer to
-    "cancelled" than to "blocked" (blocked implies still pending/resumable;
-    an aborted turn is terminal-non-complete). Flagged for reviewer challenge.
+    SSP307-F-01 (repair-01, 2026-09-14): task_complete was originally mapped
+    to complete (-> DONE), but ai-task-card-record.allowed_status_transitions
+    has no OPEN -> DONE edge (DONE is only reachable from IN_REVIEW), so the
+    real Codex sequence task_started, task_complete translated to start,
+    complete and produced HOOK_ILLEGAL_TRANSITION on every single run. Fixed
+    by mapping task_complete -> submit_review (OPEN -> IN_REVIEW is a real
+    edge) instead. This is also the semantically correct authority boundary:
+    Codex finishing a turn is evidence that work happened, not an AIWR
+    governance decision that the work is DONE -- DONE still requires a
+    separate, explicit complete event this Adapter never emits on its own.
+    Codex's native lifecycle has no equivalent of block / unblock -- those
+    are AIWR/task-card constructs with no native Codex session event backing
+    them, so they are deliberately absent from this map rather than guessed.
 
 non_lifecycle_event_types:
   events:
@@ -76,12 +80,26 @@ non_lifecycle_event_types:
     - user_message
     - agent_message
     - agent_reasoning
+    - turn_aborted
   rule: >-
     these are real, frequently-observed native event types that never drive
     a task_card lifecycle transition. Listing them here is what distinguishes
     "known and deliberately excluded" from "unknown" -- an event type must
     appear in exactly one of lifecycle_event_map.keys or
     non_lifecycle_event_types.events, never both, never neither.
+  turn_aborted_note: >-
+    SSP307-F-02 (repair-01, 2026-09-14): turn_aborted was originally mapped
+    to cancel, but Codex's own runtime treats an aborted turn as resumable
+    (an Interrupt raises TurnAborted, and a separate RecoverTurn operation
+    exists specifically to resume an interrupted turn), while
+    ai-task-card-record.cancel -> CANCELLED is terminal with no outgoing
+    transition. Mapping turn_aborted -> cancel would permanently close a
+    Work Record for a Codex turn that might still resume. Per this
+    contract's own no-guessing rule, turn_aborted is reclassified as
+    non-lifecycle: it is preserved as runtime evidence, and any AIWR-level
+    decision about block vs. cancel is left to a higher layer than this
+    Adapter, which grants no lifecycle-transition authority beyond a
+    literal, unambiguous native-to-AIWR event correspondence.
 
 authority:
   grants_acceptance: false
@@ -213,3 +231,4 @@ required_negative_fixtures:
   - a rollback side effect record with an unspecified failure_state
   - a run carries a forbidden authority field
   - error but the run still claims success
+  - a classification list contains an event type never observed in the runtime sample

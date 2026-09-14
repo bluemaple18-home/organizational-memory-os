@@ -320,6 +320,31 @@
         "agent_message",
         "agent_reasoning"
       ]
+    },
+    {
+      "case_id": "CODEX_RUNTIME_SAMPLE_NEG_EXTRA_UNOBSERVED_TYPE",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_RUNTIME_SAMPLE_UNCLASSIFIED",
+      "covers_negative_fixture": "a classification list contains an event type never observed in the runtime sample",
+      "observed_event_types": [
+        "task_started",
+        "task_complete"
+      ],
+      "classified_lifecycle_keys": [
+        "task_started",
+        "task_complete"
+      ],
+      "classified_non_lifecycle_types": [
+        "item_completed",
+        "token_count",
+        "thread_settings_applied",
+        "thread_goal_updated",
+        "user_message",
+        "agent_message",
+        "agent_reasoning",
+        "turn_aborted",
+        "future_event_never_observed"
+      ]
     }
   ]
 }

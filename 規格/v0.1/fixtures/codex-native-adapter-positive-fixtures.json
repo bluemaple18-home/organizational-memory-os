@@ -12,23 +12,21 @@
       }
     },
     {
-      "case_id": "CODEX_POS_TASK_COMPLETE_MAPS_COMPLETE",
+      "case_id": "CODEX_POS_TASK_COMPLETE_MAPS_SUBMIT_REVIEW",
       "expected": "allow",
       "run": {
         "native_event_type": "task_complete",
         "outcome": "MAPPED",
-        "mapped_to": "complete",
+        "mapped_to": "submit_review",
         "adapter_output_ref": "urn:omos:codex-native:evidence:task_complete:001"
       }
     },
     {
-      "case_id": "CODEX_POS_TURN_ABORTED_MAPS_CANCEL",
+      "case_id": "CODEX_POS_TURN_ABORTED_NOT_LIFECYCLE",
       "expected": "allow",
       "run": {
         "native_event_type": "turn_aborted",
-        "outcome": "MAPPED",
-        "mapped_to": "cancel",
-        "adapter_output_ref": "urn:omos:codex-native:evidence:turn_aborted:001"
+        "outcome": "NOT_LIFECYCLE"
       }
     },
     {
@@ -125,12 +123,18 @@
       "observed_event_types": [
         "task_started",
         "task_complete",
-        "item_completed"
+        "item_completed",
+        "token_count",
+        "thread_settings_applied",
+        "thread_goal_updated",
+        "user_message",
+        "agent_message",
+        "agent_reasoning",
+        "turn_aborted"
       ],
       "classified_lifecycle_keys": [
         "task_started",
-        "task_complete",
-        "turn_aborted"
+        "task_complete"
       ],
       "classified_non_lifecycle_types": [
         "item_completed",
@@ -139,7 +143,8 @@
         "thread_goal_updated",
         "user_message",
         "agent_message",
-        "agent_reasoning"
+        "agent_reasoning",
+        "turn_aborted"
       ]
     }
   ]

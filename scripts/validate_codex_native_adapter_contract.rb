@@ -11,6 +11,7 @@ require "json"
 require "set"
 require "yaml"
 require_relative "lib/omos_contract_helpers"
+require_relative "lib/loop_return_contract"
 
 ROOT = File.expand_path("..", __dir__)
 SPEC_PATH = File.join(ROOT, "規格/v0.1/codex-native-adapter.yaml")
@@ -36,7 +37,8 @@ EXPECTED_NEGATIVE_LABELS = [
   "a rollback side effect record missing a required field",
   "a rollback side effect record with an unspecified failure_state",
   "a run carries a forbidden authority field",
-  "error but the run still claims success"
+  "error but the run still claims success",
+  "a classification list contains an event type never observed in the runtime sample"
 ].freeze
 
 URN_PATTERN = /\Aurn:omos:/.freeze
@@ -123,10 +125,13 @@ def codex_rollback_failure(rollback)
 end
 
 # runtime sample 完整性 evaluator。純函式。回傳 nil 或精確 machine failure code。
+# SSP307-F-04（repair-01）：原本只驗 observed - classified（有觀測到但沒分類
+# 的事件）。Acceptance #1 要求「合起來剛好等於」，是雙向相等，不是單向涵蓋——
+# 加一個從未觀測過的事件到 non_lifecycle_event_types、再補一個 positive
+# fixture，原本的單向檢查完全抓不到，gate 仍然綠。
 def codex_runtime_sample_failure(observed_event_types, lifecycle_map, non_lifecycle)
   classified = lifecycle_map + non_lifecycle
-  unclassified = observed_event_types - classified
-  return "CODEX_RUNTIME_SAMPLE_UNCLASSIFIED" unless unclassified.empty?
+  return "CODEX_RUNTIME_SAMPLE_UNCLASSIFIED" unless sorted_set(observed_event_types) == sorted_set(classified)
 
   nil
 end
@@ -175,21 +180,44 @@ assert(
 )
 assert(runtime_sample.fetch("sampled_sessions").to_i > 0, "runtime sample 必須來自至少一個 session", failures)
 
-# --- error_contract 完整性（沿用 SSP-302 教訓：不能只互比手寫清單）--------
+# --- error_contract 完整性 ---------------------------------------------------
+#
+# SSP307-F-03（repair-01）：這裡原本是三張手寫的 Ruby 常數陣列，跟 YAML
+# error_contract 的 keys 互比 —— 兩邊都是我自己寫的，互比只證明「我抄對了」，
+# 不證明 evaluator 實際可回傳什麼。新增一個 return branch、忘記同步這三張
+# 清單，binding 本身完全抓不到。SSP-302 已經證明過這個模式必然出問題（regex
+# 版；這裡連 regex 都沒有，是手寫清單，問題更直接）。
+#
+# 修法：沿用 SSP-302 已建立、參數化過的 AST/Ripper 機制
+# （scripts/lib/loop_return_contract.rb），不新增第二套判斷方式。三個
+# evaluator 各自求 reachable codes，並同時驗出口形狀（bodystmt 無
+# rescue/else/ensure、最後一句必須是 nil 字面量）——只驗 reachable codes、
+# 不驗出口形狀的話，會重新引入 SSP-302 closeout 已經修過的隱式回傳繞過缺口。
+EVALUATORS = {
+  "codex_mapping_failure" => nil,
+  "codex_rollback_failure" => nil,
+  "codex_runtime_sample_failure" => nil,
+}.freeze
 
+EVALUATORS.each_key do |evaluator_name|
+  violations = LoopReturnContract.exit_shape_violations(__FILE__, evaluator_name)
+  assert(violations.empty?, "#{evaluator_name} 出口形狀違反凍結規格：#{violations.join(" ／ ")}", failures)
+end
+
+reachable_by_evaluator = EVALUATORS.keys.each_with_object({}) do |name, acc|
+  acc[name] = LoopReturnContract.reachable_codes(__FILE__, name)
+end
 declared_codes = spec.fetch("error_contract", {}).keys
-mapping_run_reachable = %w[
-  CODEX_EXCEEDS_AUTHORITY FAIL_SILENT CODEX_ADAPTER_MANDATORY CODEX_ORG_WIDE_INSTALL
-  CODEX_INVALID_OUTCOME CODEX_DISABLED_STILL_MAPPING CODEX_NOT_LIFECYCLE_STILL_MAPPING
-  CODEX_UNCLASSIFIED_NATIVE_EVENT CODEX_OUTPUT_NOT_REF CODEX_MAPPING_TARGET_MISMATCH
-].freeze
-rollback_reachable = %w[CODEX_ROLLBACK_MISSING_FIELD CODEX_ROLLBACK_SIDE_EFFECT_UNSPECIFIED].freeze
-runtime_sample_reachable = %w[CODEX_RUNTIME_SAMPLE_UNCLASSIFIED].freeze
+all_reachable = reachable_by_evaluator.values.flatten
+assert(!all_reachable.empty?, "無法從任一 evaluator 原始碼掃出可回傳 code，掃描失效", failures)
 assert(
-  sorted_set(declared_codes) == sorted_set(mapping_run_reachable + rollback_reachable + runtime_sample_reachable),
-  "error_contract 與宣告的可回傳集合不符",
+  sorted_set(declared_codes) == sorted_set(all_reachable),
+  "error_contract 必須逐字等於三個 evaluator 實際可回傳的 code 聯集：" \
+  "僅宣告 #{(sorted_set(declared_codes) - sorted_set(all_reachable)).to_a.join(", ")}；" \
+  "僅可回傳 #{(sorted_set(all_reachable) - sorted_set(declared_codes)).to_a.join(", ")}",
   failures
 )
+mapping_run_reachable = reachable_by_evaluator.fetch("codex_mapping_failure")
 
 assert(
   sorted_set(spec.fetch("required_negative_fixtures", [])) == sorted_set(EXPECTED_NEGATIVE_LABELS),
