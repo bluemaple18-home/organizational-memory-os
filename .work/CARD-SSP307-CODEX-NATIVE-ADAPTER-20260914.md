@@ -1,6 +1,6 @@
 ---
 id: SSP307-CODEX-NATIVE-ADAPTER-20260914
-status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
+status: NO_GO_REPAIRED_02_AWAITING_TARGETED_REREVIEW
 type: implementation
 jira: SSP-307（AIWR-09 Codex Native Adapter／Runtime Probe）
 lane: B

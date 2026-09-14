@@ -173,12 +173,31 @@ assert(
   failures
 )
 declared_observed = spec.dig("measured_native_vocabulary", "observed_event_types")
+sample_counts = runtime_sample.fetch("event_type_counts")
 assert(
   sorted_set(declared_observed.keys) == sorted_set(observed_types),
   "契約 measured_native_vocabulary.observed_event_types 必須與 runtime sample 逐字相符",
   failures
 )
-assert(runtime_sample.fetch("sampled_sessions").to_i > 0, "runtime sample 必須來自至少一個 session", failures)
+# SSP307-F-04（repair-02）：上一輪只比對兩邊的 key 集合，count 值與
+# sampled_sessions 完全沒有機器綁定——contract 的 counts 可以整批漂移，或
+# sampled_sessions 可以憑空改成不同數字，gate 不會有反應。兩份「凍結 evidence」
+# 若彼此對不上，其中至少一份就不是真的凍結，而是可以被悄悄改掉的裝飾文字。
+assert(
+  declared_observed == sample_counts,
+  "契約 measured_native_vocabulary.observed_event_types 的數值必須與 runtime sample 的 event_type_counts 逐字相符（非只比對 key）：" \
+  "契約 #{declared_observed.inspect} vs sample #{sample_counts.inspect}",
+  failures
+)
+declared_sampled_sessions = spec.dig("measured_native_vocabulary", "sampled_sessions")
+sample_sampled_sessions = runtime_sample.fetch("sampled_sessions")
+assert(sample_sampled_sessions.to_i > 0, "runtime sample 必須來自至少一個 session", failures)
+assert(
+  declared_sampled_sessions == sample_sampled_sessions,
+  "契約 measured_native_vocabulary.sampled_sessions（#{declared_sampled_sessions.inspect}）" \
+  "必須與 runtime sample 的 sampled_sessions（#{sample_sampled_sessions.inspect}）逐字相符",
+  failures
+)
 
 # --- error_contract 完整性 ---------------------------------------------------
 #
