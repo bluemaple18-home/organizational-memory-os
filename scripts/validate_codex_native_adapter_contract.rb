@@ -29,6 +29,8 @@ EXPECTED_NEGATIVE_LABELS = [
   "outcome NOT_LIFECYCLE with adapter_output_ref present",
   "outcome not in the declared outcomes enum",
   "outcome MAPPED with a native_event_type that has no lifecycle_event_map entry",
+  "a MAPPED run whose mapped_to does not equal the declared map entry",
+  "outcome MAPPED with a blank or absent native_correlation_ref",
   "a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types",
   "a run declaring adapter_required true",
   "a run declaring requires_all_users_install true",
@@ -92,15 +94,20 @@ def codex_mapping_failure(spec, run)
 
   # outcome == "MAPPED"
   return "CODEX_OUTPUT_NOT_REF" unless output_ref.is_a?(String) && URN_PATTERN.match?(output_ref)
+  # POST_MERGE_FIX_02 / SPEC_FREEZE FP-1-A：native_correlation_ref 是這個
+  # Adapter 自己的欄位，明確不是 ai-work-record-hook.yaml 的 task_ref
+  # （那是 task-card URN，本 Adapter 不核發也不解析）。它只承載原生事件
+  # 自己的 per-turn 識別碼，讓呼叫端知道哪些事件屬於同一個 turn——
+  # task_started/task_complete 過去被判「不安全」的根因是呼叫端完全沒有
+  # 欄位可以表達這件事，不是映射本身錯。把 native_correlation_ref 翻成
+  # Hook 真正要的 task_ref 是呼叫端的責任，不是這個 evaluator 的。
+  # 本檔不驗證值是否等於真實 turn_id（mapping_run 是抽象化後的分類紀錄，
+  # 不是原始 payload），只要求呼叫端必須供應一個非空字串。
+  return "CODEX_MISSING_NATIVE_CORRELATION_REF" unless run["native_correlation_ref"].is_a?(String) && !run["native_correlation_ref"].strip.empty?
   return "CODEX_UNCLASSIFIED_NATIVE_EVENT" unless lifecycle_map.key?(native_event)
 
-  # POST_MERGE_FIX_01：lifecycle_map 本輪清空（task_started／task_complete
-  # 皆已改列非生命週期，見契約 design_note），所以 lifecycle_map.key? 對空
-  # Hash 恆為 false，上一行永遠先回傳。「mapped_to 是否等於 declared map
-  # entry」這段是資料驅動的暫時不可達——不是邏輯上永遠不可達，map 一旦有
-  # 條目就會重新可達——故連同 CODEX_MAPPING_TARGET_MISMATCH 一起移除，
-  # 等 runtime probe 讓 map 真的有條目時再依當時的 guard parity 補回
-  # （同 SSP-308 repair-01 對這個模式的同一處理）。
+  declared_target = lifecycle_map.fetch(native_event)
+  return "CODEX_MAPPING_TARGET_MISMATCH" unless run["mapped_to"] == declared_target
 
   nil
 end
@@ -154,8 +161,9 @@ assert(sorted_set(spec.dig("mapping_run", "outcomes")) == sorted_set(EXPECTED_OU
 
 lifecycle_map = spec.dig("lifecycle_event_map", "map") || {}
 non_lifecycle = spec.dig("non_lifecycle_event_types", "events") || []
-# POST_MERGE_FIX_01：lifecycle_map 本輪刻意為空，不再斷言非空——
-# 強行要求非空會逼著在沒有實測發生頻率資料的情況下硬塞猜測的條目回去。
+# POST_MERGE_FIX_02：lifecycle_map 重新有條目（native_correlation_ref 讓 task_started／
+# task_complete 的映射重新安全），恢復非空斷言。
+assert(!lifecycle_map.empty?, "lifecycle_event_map 不得為空", failures)
 lifecycle_map.each do |native_event, target|
   assert(target_lifecycle_keys.include?(target),
          "lifecycle_event_map.#{native_event} 的目標 #{target} 必須是 ai-task-card-record.lifecycle_event_to_status 的 key",

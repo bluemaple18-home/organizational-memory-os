@@ -10,7 +10,8 @@
         "native_event_type": "SomeFutureHookEvent",
         "outcome": "MAPPED",
         "mapped_to": "start",
-        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001"
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
+        "native_correlation_ref": "prompt-8f0e2c1a-1b2c-4d3e-9f0a-1234567890ab"
       }
     },
     {
@@ -68,7 +69,8 @@
         "native_event_type": "SessionEnd",
         "outcome": "MAPPED",
         "mapped_to": "start",
-        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001"
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
+        "native_correlation_ref": "prompt-8f0e2c1a-1b2c-4d3e-9f0a-1234567890ab"
       }
     },
     {
@@ -184,6 +186,58 @@
         "adapter_output_ref": "urn:omos:claude-code-native:evidence:SessionStart:001",
         "error": "boom",
         "ok": true
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_MAPPED_TO_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_MAPPING_TARGET_MISMATCH",
+      "covers_negative_fixture": "a MAPPED run whose mapped_to does not equal the declared map entry",
+      "run": {
+        "native_event_type": "UserPromptSubmit",
+        "outcome": "MAPPED",
+        "mapped_to": "submit_review",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:UserPromptSubmit:001",
+        "native_correlation_ref": "prompt-8f0e2c1a-1b2c-4d3e-9f0a-1234567890ab"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_NATIVE_CORRELATION_REF_ABSENT",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_MISSING_NATIVE_CORRELATION_REF",
+      "covers_negative_fixture": "outcome MAPPED with a blank or absent native_correlation_ref",
+      "run": {
+        "native_event_type": "UserPromptSubmit",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:UserPromptSubmit:001"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_NATIVE_CORRELATION_REF_WHITESPACE",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_MISSING_NATIVE_CORRELATION_REF",
+      "covers_negative_fixture": "outcome MAPPED with a blank or absent native_correlation_ref",
+      "run": {
+        "native_event_type": "UserPromptSubmit",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:UserPromptSubmit:001",
+        "native_correlation_ref": "   "
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_NEG_STOP_HOOK_ACTIVE_NOT_TERMINAL",
+      "expected": "deny",
+      "expected_failure_code": "CLAUDE_CODE_STOP_HOOK_ACTIVE_NOT_TERMINAL",
+      "covers_negative_fixture": "a MAPPED Stop run with stop_hook_active true",
+      "run": {
+        "native_event_type": "Stop",
+        "outcome": "MAPPED",
+        "mapped_to": "submit_review",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:Stop:001",
+        "native_correlation_ref": "prompt-8f0e2c1a-1b2c-4d3e-9f0a-1234567890ab",
+        "stop_hook_active": true
       }
     }
   ],
