@@ -1,6 +1,6 @@
 ---
 id: SSP308-RUNTIME-PROBE-BACKLOG-20260914
-status: PARTIALLY_SUPERSEDED_BY_TASK_REF_FIX
+status: BACKLOG
 type: implementation
 tier: T1
 jira: SSP-308（AIWR-10，後續強化）
@@ -15,14 +15,7 @@ escalated: >-
 
 # SSP-308 Runtime Probe（現為 lifecycle_event_map 的硬性前置）
 
-## PARTIALLY SUPERSEDED（2026-09-14）
-
-`UserPromptSubmit`／`Stop` 都已透過 `task_ref`（`prompt_id`）機制重新映射，
-見 `.work/CARD-NATIVE-ADAPTERS-TASK-REF-CORRELATION-20260914.md`。這張卡
-對這兩個事件不再是待辦，但 `SessionEnd`（`reason` 分布未知）與其他 31 個
-事件仍然沒有 lifecycle 映射，這張卡對它們仍然有效。
-
-## 現況（repair-01 之後，歷史記錄）
+## 現況（repair-01 之後）
 
 `claude-code-native-adapter.yaml` 對真實文件（33 個 hook 事件，凍結於
 `規格/v0.1/fixtures/claude-code-hook-events-doc-snapshot.json`，帶

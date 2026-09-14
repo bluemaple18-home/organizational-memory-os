@@ -1,6 +1,6 @@
 ---
 id: NATIVE-ADAPTERS-TASK-REF-CORRELATION-20260914
-status: AWAITING_BIG_REVIEW
+status: NO_GO_ESCALATED_TO_OWNER_SPEC_FREEZE
 type: post_merge_fix
 tier: T1
 jira: SSP-307（已 ACCEPTED_GO + merged）／SSP-308（已 ACCEPTED_GO + merged）
