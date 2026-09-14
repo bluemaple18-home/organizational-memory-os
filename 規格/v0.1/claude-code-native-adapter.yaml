@@ -1,0 +1,269 @@
+schema:
+  schema_id: urn:omos:schema:claude-code-native-adapter:0.1.0
+  version: 0.2.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-14'
+  traces_to:
+    - AIWR-10
+  builds_on:
+    - 規格/v0.1/ai-task-card-record.yaml
+    - 規格/v0.1/ai-work-record-hook.yaml
+    - 規格/v0.1/codex-native-adapter.yaml
+
+purpose:
+  statement: >-
+    A thin Claude Code Native Adapter contract: classify Claude Code's own
+    published hook event names into either a lifecycle_events entry the
+    existing Hook contract already accepts, or an explicit non-lifecycle
+    category. It gains no acceptance, permission or canonical-writer
+    authority; the core flow runs without the Adapter installed; an
+    unrecognised native event fails loud rather than being silently dropped
+    or guessed. It does not re-define ai-task-card-record.yaml or
+    ai-work-record-hook.yaml -- it references them. Same governance shape as
+    codex-native-adapter.yaml; the two are siblings, not a re-derivation.
+  no_second_workflow_authority: true
+
+repair_01_history:
+  finding_source: SSP-308 big review, first round
+  findings_closed:
+    - id: SSP308-F-01
+      summary: >-
+        the v0.1 documented_native_vocabulary listed only 9 hook event
+        names; the real published set is 33. Re-fetched from source with
+        provenance (see hook_events_doc_snapshot).
+    - id: SSP308-F-02
+      summary: >-
+        SessionStart -> start and Stop -> submit_review were designed
+        assuming each fires at most once per Work Record. Verified false:
+        Stop fires once per turn (so a second turn's Stop would attempt
+        IN_REVIEW -> IN_REVIEW, which does not exist in
+        allowed_status_transitions), and SessionStart re-fires after
+        /clear or a context compaction within the same session (so it can
+        attempt OPEN -> OPEN if compaction happens before the first Stop).
+        Neither is a rare edge case -- both are ordinary multi-turn usage.
+        No hook name in the real 33-event set has a doc-confirmed
+        fires-at-most-once-per-Work-Record guarantee (TaskCreated /
+        TaskCompleted looked promising by name but their documented
+        semantics are about the TaskCreate tool, not confirmed to align
+        with a top-level Work Record boundary). Given this Adapter is a
+        pure per-event function with no state (see hard_stops), it cannot
+        safely distinguish "first SessionStart of a Work Record" from "a
+        later re-fire" without live behavioral data. Resolution: this round
+        maps nothing to a lifecycle_events key. Every one of the 33
+        documented events is classified non-lifecycle. The mapping decision
+        is deferred to .work/CARD-SSP308-RUNTIME-PROBE-BACKLOG-20260914.md,
+        which repair-01 promotes from optional enhancement to a hard
+        blocker for lifecycle_event_map ever gaining an entry.
+    - id: SSP308-F-03
+      summary: >-
+        the v0.1 completeness check compared two lists hand-written in the
+        same YAML file to each other, proving nothing about the real
+        published document. Fixed: completeness is now checked against
+        規格/v0.1/fixtures/claude-code-hook-events-doc-snapshot.json, a
+        frozen extract with source_url + captured_at provenance, fetched
+        independently of this contract file.
+  not_reopened: >-
+    error_contract AST binding, authority boundary, rollback evaluator --
+    the reviewer listed no finding against these; unchanged.
+
+documented_native_vocabulary:
+  source: 規格/v0.1/fixtures/claude-code-hook-events-doc-snapshot.json
+  source_rule: >-
+    the authoritative event-name list lives in that frozen, provenance-
+    carrying fixture (source_url + captured_at), not in this file. This
+    contract's classification is checked against that fixture at gate
+    time -- comparing two lists both hand-written in this same YAML would
+    prove nothing about the real published document (that was SSP308-F-03).
+  rule: >-
+    lifecycle_event_map and non_lifecycle_event_types together must equal
+    exactly the fixture's hook_events -- every documented hook name must be
+    classified one way or the other. A hook name in neither is
+    CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT.
+
+lifecycle_event_map:
+  map: {}
+  rule: >-
+    each key is a Claude Code hook event name; each value must be a key of
+    ai-task-card-record.lifecycle_event_to_status, enforced by a structural
+    assertion at gate time.
+  design_note: >-
+    Deliberately empty this round (see repair_01_history.SSP308-F-02). No
+    hook in the real 33-event set has confirmed fires-at-most-once-per-
+    Work-Record semantics, and this Adapter is architecturally a stateless
+    per-event function (hard_stops forbids a state machine), so it cannot
+    safely disambiguate a genuine lifecycle boundary from a repeat fire.
+    An empty map is the correct output of "don't guess" applied honestly,
+    not an oversight: the card still delivers a complete, accurate
+    classification of all 33 real events, and defers only the mapping
+    decision to when real firing-frequency data exists (see
+    .work/CARD-SSP308-RUNTIME-PROBE-BACKLOG-20260914.md, now a blocker for
+    this map gaining any entry).
+
+non_lifecycle_event_types:
+  events:
+    - ConfigChange
+    - CwdChanged
+    - DirectoryAdded
+    - Elicitation
+    - ElicitationResult
+    - FileChanged
+    - InstructionsLoaded
+    - MessageDisplay
+    - Notification
+    - PermissionDenied
+    - PermissionRequest
+    - PostCompact
+    - PostModelSwitch
+    - PostToolBatch
+    - PostToolUse
+    - PostToolUseFailure
+    - PreCompact
+    - PreModelSwitch
+    - PreToolUse
+    - SessionEnd
+    - SessionStart
+    - Setup
+    - Stop
+    - StopFailure
+    - SubagentStart
+    - SubagentStop
+    - TaskCompleted
+    - TaskCreated
+    - TeammateIdle
+    - UserPromptExpansion
+    - UserPromptSubmit
+    - WorktreeCreate
+    - WorktreeRemove
+  rule: >-
+    every one of the 33 documented hook events is listed here this round
+    (lifecycle_event_map is empty). Listing them here is what distinguishes
+    "known and deliberately excluded" from "unknown" -- a hook event must
+    appear in exactly one of lifecycle_event_map.keys or
+    non_lifecycle_event_types.events, never both, never neither.
+  session_start_note: >-
+    SessionStart and Stop are the two events that look most like lifecycle
+    boundaries by name, and were mapped to start/submit_review in v0.1.
+    Both are here now because neither has a doc-confirmed fires-once
+    guarantee (see repair_01_history.SSP308-F-02) -- not because they are
+    judged irrelevant.
+  task_created_note: >-
+    TaskCreated/TaskCompleted fire "via TaskCreate" per the published docs,
+    which was not confirmed to mean a top-level Work Record boundary as
+    opposed to Claude Code's own internal task/queue mechanism. Classified
+    non-lifecycle pending that clarification, not mapped on a name-based
+    guess.
+
+authority:
+  grants_acceptance: false
+  grants_permission: false
+  grants_canonical_writer: false
+  error_behavior: FAIL_LOUD
+  forbidden_run_fields:
+    - personal_acceptance_ref
+    - verification_receipt_ref
+    - accepted_for_record
+    - canonical_write_receipt_ref
+    - permission_decision_ref
+
+optional_dependency:
+  adapter_required: false
+  core_flow_without_adapter: SUPPORTED
+  rule: >-
+    a run that declares adapter_required true or
+    core_flow_blocked_without_adapter true is CLAUDE_CODE_ADAPTER_MANDATORY.
+
+no_org_wide_install:
+  requires_all_users_install: false
+  rule: requires_all_users_install true is CLAUDE_CODE_ORG_WIDE_INSTALL.
+
+mapping_run:
+  fields:
+    - native_event_type
+    - mapped_to
+    - adapter_output_ref
+    - outcome
+  outcomes:
+    - MAPPED
+    - NOT_LIFECYCLE
+    - DISABLED
+  output_ref_rule: adapter_output_ref is an omos URN string (reference only).
+  rule: >-
+    outcome not in outcomes is CLAUDE_CODE_INVALID_OUTCOME; a non-URN
+    adapter_output_ref on a MAPPED run is CLAUDE_CODE_OUTPUT_NOT_REF; outcome
+    DISABLED while adapter_output_ref is still present is
+    CLAUDE_CODE_DISABLED_STILL_MAPPING; outcome NOT_LIFECYCLE while
+    adapter_output_ref is present is
+    CLAUDE_CODE_NOT_LIFECYCLE_STILL_MAPPING.
+  mapping_binding_rule: >-
+    on a MAPPED run, run.native_event_type must have exactly one entry in
+    lifecycle_event_map and that entry's target must equal run.mapped_to.
+    With lifecycle_event_map empty this round, every MAPPED-outcome run is
+    CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT by construction -- MAPPED remains
+    a structurally supported outcome (for when the map gains entries after
+    the runtime probe) but is not currently reachable via a genuine map hit.
+    On a NOT_LIFECYCLE run, run.native_event_type must be exactly one entry
+    of non_lifecycle_event_types. A native_event_type in neither list is
+    CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT -- the Adapter never guesses at a
+    hook event it has not been told about.
+
+disable_and_rollback:
+  disable_switch: true
+  fallback: CORE_FLOW_DIRECT
+  side_effects:
+    - name: native_hook_registration
+      teardown: unregister the Adapter's hook handlers from the host Claude Code settings
+      failure_state: >-
+        still registered -> the Adapter keeps classifying while disabled;
+        detected by a run emitted with a non-empty adapter_output_ref under
+        disabled state (CLAUDE_CODE_DISABLED_STILL_MAPPING).
+    - name: classification_cache
+      teardown: clear any cached native_event_type -> outcome classification
+      failure_state: >-
+        stale cache -> a hook event added to non_lifecycle_event_types after
+        a contract update is still treated as MAPPED on re-enable;
+        remediation is a forced re-classification against the current map.
+
+error_contract:
+  CLAUDE_CODE_EXCEEDS_AUTHORITY: claude_code_native.error.exceeds_authority
+  FAIL_SILENT: claude_code_native.error.fail_silent
+  CLAUDE_CODE_ADAPTER_MANDATORY: claude_code_native.error.adapter_mandatory
+  CLAUDE_CODE_ORG_WIDE_INSTALL: claude_code_native.error.org_wide_install
+  CLAUDE_CODE_INVALID_OUTCOME: claude_code_native.error.invalid_outcome
+  CLAUDE_CODE_DISABLED_STILL_MAPPING: claude_code_native.error.disabled_still_mapping
+  CLAUDE_CODE_NOT_LIFECYCLE_STILL_MAPPING: claude_code_native.error.not_lifecycle_still_mapping
+  CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT: claude_code_native.error.unclassified_native_event
+  CLAUDE_CODE_OUTPUT_NOT_REF: claude_code_native.error.output_not_ref
+  CLAUDE_CODE_ROLLBACK_MISSING_FIELD: claude_code_native.error.rollback_missing_field
+  CLAUDE_CODE_ROLLBACK_SIDE_EFFECT_UNSPECIFIED: claude_code_native.error.rollback_side_effect_unspecified
+
+runtime_independence: true
+
+cross_reference:
+  task_card_record_spec: 規格/v0.1/ai-task-card-record.yaml
+  hook_spec: 規格/v0.1/ai-work-record-hook.yaml
+  must_match:
+    lifecycle_events_from: ai-task-card-record.lifecycle_event_to_status
+
+hard_stops:
+  - no live hook registration / listener implementation here
+  - pure function plus data tables only; no state machine engine
+  - do not re-define ai-task-card-record.yaml or ai-work-record-hook.yaml
+  - no registry / FSM / database / canonical writer
+  - no message content, tool output, or file content read into this repo
+  - no lifecycle_event_map entry without live firing-frequency evidence
+    from the runtime probe (repair_01_history.SSP308-F-02)
+
+required_negative_fixtures:
+  - a native event type not in lifecycle_event_map or non_lifecycle_event_types
+  - outcome MAPPED with adapter_output_ref not a URN
+  - outcome MAPPED with a native_event_type that has no lifecycle_event_map entry
+  - outcome DISABLED with adapter_output_ref still present
+  - outcome NOT_LIFECYCLE with adapter_output_ref present
+  - outcome not in the declared outcomes enum
+  - a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types
+  - a run declaring adapter_required true
+  - a run declaring requires_all_users_install true
+  - a rollback side effect record missing a required field
+  - a rollback side effect record with an unspecified failure_state
+  - a run carries a forbidden authority field
+  - error but the run still claims success

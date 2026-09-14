@@ -1,0 +1,299 @@
+{
+  "fixture_id": "claude-code-native-adapter-positive-fixtures-v0.1",
+  "mapping_cases": [
+    {
+      "case_id": "CLAUDE_CODE_POS_CONFIGCHANGE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "ConfigChange",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_CWDCHANGED_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "CwdChanged",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_DIRECTORYADDED_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "DirectoryAdded",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_ELICITATION_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "Elicitation",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_ELICITATIONRESULT_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "ElicitationResult",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_FILECHANGED_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "FileChanged",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_INSTRUCTIONSLOADED_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "InstructionsLoaded",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_MESSAGEDISPLAY_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "MessageDisplay",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_NOTIFICATION_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "Notification",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_PERMISSIONDENIED_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PermissionDenied",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_PERMISSIONREQUEST_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PermissionRequest",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_POSTCOMPACT_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PostCompact",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_POSTMODELSWITCH_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PostModelSwitch",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_POSTTOOLBATCH_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PostToolBatch",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_POSTTOOLUSE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PostToolUse",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_POSTTOOLUSEFAILURE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PostToolUseFailure",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_PRECOMPACT_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PreCompact",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_PREMODELSWITCH_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PreModelSwitch",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_PRETOOLUSE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "PreToolUse",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_SESSIONEND_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "SessionEnd",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_SESSIONSTART_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_SETUP_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "Setup",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_STOP_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "Stop",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_STOPFAILURE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "StopFailure",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_SUBAGENTSTART_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "SubagentStart",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_SUBAGENTSTOP_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "SubagentStop",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_TASKCOMPLETED_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "TaskCompleted",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_TASKCREATED_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "TaskCreated",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_TEAMMATEIDLE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "TeammateIdle",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_USERPROMPTEXPANSION_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "UserPromptExpansion",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_USERPROMPTSUBMIT_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "UserPromptSubmit",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_WORKTREECREATE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "WorktreeCreate",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_WORKTREEREMOVE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "WorktreeRemove",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_DISABLED_NO_OUTPUT",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "SessionStart",
+        "outcome": "DISABLED"
+      }
+    }
+  ],
+  "rollback_cases": [
+    {
+      "case_id": "CLAUDE_CODE_ROLLBACK_POS_VALID",
+      "expected": "allow",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {
+            "name": "native_hook_registration",
+            "teardown": "unregister the Adapter's hook handlers",
+            "failure_state": "still registered -> keeps classifying while disabled"
+          },
+          {
+            "name": "classification_cache",
+            "teardown": "clear any cached classification",
+            "failure_state": "stale cache -> a new non-lifecycle type still treated as MAPPED"
+          }
+        ]
+      }
+    }
+  ]
+}
