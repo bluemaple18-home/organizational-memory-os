@@ -1,6 +1,6 @@
 ---
 id: SSP302-RETURN-CONTRACT-SPEC-FREEZE-20260911
-status: AMENDMENT_AWAITING_OWNER_RESIGNATURE
+status: AMENDMENT_OWNER_RESIGNED_20260914
 type: spec_freeze
 tier: T2
 review_line: SSP-302 error-code 契約完整性
@@ -144,7 +144,7 @@ reviewer 把它歸類為「本卡沒做到自己宣稱的事」。我同意 —�
 
 ---
 
-## FP-3-A 修正案（2026-09-14，等待 Owner 重簽）
+## FP-3-A 修正案（2026-09-14，Owner 已重簽）
 
 **背景**：2026-09-11 原始簽核的 FP-3-A 文字是「D2–D4、C1–C12、rescue/ensure 全 RED」。
 closeout（`81e1e86`）實作時我用 Ruby 實際執行驗證，發現 D2 的注入是中段 no-op、
@@ -172,8 +172,9 @@ closeout（`81e1e86`）實作時我用 Ruby 實際執行驗證，發現 D2 的�
 （reviewer 明確表示這三點的技術實作已達標，唯一 blocker 是這條治理缺口）。
 
 ```
-FP-3（修正版）: ____
-重簽日期: ____
+FP-3（修正版）: 同意
+重簽日期: 2026-09-14
+重簽者: Owner（互動對話中明示「同意」，回應 FP-3-A 修正案）
 ```
 
 ---
