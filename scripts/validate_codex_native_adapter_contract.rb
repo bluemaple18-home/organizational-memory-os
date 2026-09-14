@@ -28,8 +28,7 @@ EXPECTED_NEGATIVE_LABELS = [
   "outcome DISABLED with adapter_output_ref still present",
   "outcome NOT_LIFECYCLE with adapter_output_ref present",
   "outcome not in the declared outcomes enum",
-  "a MAPPED run whose native_event_type has no lifecycle_event_map entry",
-  "a MAPPED run whose mapped_to does not equal the declared map entry",
+  "outcome MAPPED with a native_event_type that has no lifecycle_event_map entry",
   "a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types",
   "a run declaring adapter_required true",
   "a run declaring requires_all_users_install true",
@@ -95,12 +94,13 @@ def codex_mapping_failure(spec, run)
   return "CODEX_OUTPUT_NOT_REF" unless output_ref.is_a?(String) && URN_PATTERN.match?(output_ref)
   return "CODEX_UNCLASSIFIED_NATIVE_EVENT" unless lifecycle_map.key?(native_event)
 
-  # CODEX_MAP_TARGET_UNKNOWN（contract 自身的 map entry 指向不存在的 lifecycle key）
-  # 已交給上面的結構斷言在 gate 一開始就攔下，這裡不再重覆判斷 —— 若重覆保留，
-  # declared_target 永遠是已通過結構驗證的合法值，該分支會是永遠踩不到的死碼
-  # （同 SSP-291 EPROFILE_ADAPTER_MAPPING_NOT_BOUND 的取捨）。
-  declared_target = lifecycle_map.fetch(native_event)
-  return "CODEX_MAPPING_TARGET_MISMATCH" unless run["mapped_to"] == declared_target
+  # POST_MERGE_FIX_01：lifecycle_map 本輪清空（task_started／task_complete
+  # 皆已改列非生命週期，見契約 design_note），所以 lifecycle_map.key? 對空
+  # Hash 恆為 false，上一行永遠先回傳。「mapped_to 是否等於 declared map
+  # entry」這段是資料驅動的暫時不可達——不是邏輯上永遠不可達，map 一旦有
+  # 條目就會重新可達——故連同 CODEX_MAPPING_TARGET_MISMATCH 一起移除，
+  # 等 runtime probe 讓 map 真的有條目時再依當時的 guard parity 補回
+  # （同 SSP-308 repair-01 對這個模式的同一處理）。
 
   nil
 end
@@ -154,7 +154,8 @@ assert(sorted_set(spec.dig("mapping_run", "outcomes")) == sorted_set(EXPECTED_OU
 
 lifecycle_map = spec.dig("lifecycle_event_map", "map") || {}
 non_lifecycle = spec.dig("non_lifecycle_event_types", "events") || []
-assert(!lifecycle_map.empty?, "lifecycle_event_map 不得為空", failures)
+# POST_MERGE_FIX_01：lifecycle_map 本輪刻意為空，不再斷言非空——
+# 強行要求非空會逼著在沒有實測發生頻率資料的情況下硬塞猜測的條目回去。
 lifecycle_map.each do |native_event, target|
   assert(target_lifecycle_keys.include?(target),
          "lifecycle_event_map.#{native_event} 的目標 #{target} 必須是 ai-task-card-record.lifecycle_event_to_status 的 key",

@@ -63,23 +63,11 @@
       "case_id": "CODEX_NEG_MAPPED_NO_MAP_ENTRY",
       "expected": "deny",
       "expected_failure_code": "CODEX_UNCLASSIFIED_NATIVE_EVENT",
-      "covers_negative_fixture": "a MAPPED run whose native_event_type has no lifecycle_event_map entry",
+      "covers_negative_fixture": "outcome MAPPED with a native_event_type that has no lifecycle_event_map entry",
       "run": {
         "native_event_type": "thread_goal_updated",
         "outcome": "MAPPED",
         "mapped_to": "start",
-        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
-      }
-    },
-    {
-      "case_id": "CODEX_NEG_MAPPED_TO_MISMATCH",
-      "expected": "deny",
-      "expected_failure_code": "CODEX_MAPPING_TARGET_MISMATCH",
-      "covers_negative_fixture": "a MAPPED run whose mapped_to does not equal the declared map entry",
-      "run": {
-        "native_event_type": "task_started",
-        "outcome": "MAPPED",
-        "mapped_to": "complete",
         "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
       }
     },
@@ -89,7 +77,7 @@
       "expected_failure_code": "CODEX_UNCLASSIFIED_NATIVE_EVENT",
       "covers_negative_fixture": "a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types",
       "run": {
-        "native_event_type": "task_complete",
+        "native_event_type": "SomeFutureNativeEventNotYetObserved",
         "outcome": "NOT_LIFECYCLE"
       }
     },
