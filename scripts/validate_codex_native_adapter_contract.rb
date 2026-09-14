@@ -1,0 +1,288 @@
+#!/usr/bin/env ruby
+#
+# AIWR-09 / SSP-307：Codex Native Adapter 契約 validator。
+#
+# 把 Codex 自己真實會發出的 session 事件類型（event_msg.payload.type，取自本機
+# ~/.codex/sessions 的完整掃描，非人工樣本）分類成兩種之一：對應到既有 Hook 契約
+# 接受的一個 lifecycle_events 項目，或明確列為「非生命週期事件」。任何觀察到但
+# 兩邊都沒列的事件類型一律 fail loud，不猜。
+
+require "json"
+require "set"
+require "yaml"
+require_relative "lib/omos_contract_helpers"
+
+ROOT = File.expand_path("..", __dir__)
+SPEC_PATH = File.join(ROOT, "規格/v0.1/codex-native-adapter.yaml")
+TASK_CARD_SPEC_PATH = File.join(ROOT, "規格/v0.1/ai-task-card-record.yaml")
+RUNTIME_SAMPLE_PATH = File.join(ROOT, "規格/v0.1/fixtures/codex-native-adapter-runtime-sample.json")
+POSITIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/codex-native-adapter-positive-fixtures.json")
+NEGATIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/codex-native-adapter-negative-fixtures.json")
+
+EXPECTED_OUTCOMES = %w[MAPPED NOT_LIFECYCLE DISABLED].freeze
+
+EXPECTED_NEGATIVE_LABELS = [
+  "a native event type not in lifecycle_event_map or non_lifecycle_event_types",
+  "outcome MAPPED with adapter_output_ref not a URN",
+  "outcome DISABLED with adapter_output_ref still present",
+  "outcome NOT_LIFECYCLE with adapter_output_ref present",
+  "outcome not in the declared outcomes enum",
+  "a MAPPED run whose native_event_type has no lifecycle_event_map entry",
+  "a MAPPED run whose mapped_to does not equal the declared map entry",
+  "a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types",
+  "a run declaring adapter_required true",
+  "a run declaring requires_all_users_install true",
+  "a runtime sample event type absent from both classification lists",
+  "a rollback side effect record missing a required field",
+  "a rollback side effect record with an unspecified failure_state",
+  "a run carries a forbidden authority field",
+  "error but the run still claims success"
+].freeze
+
+URN_PATTERN = /\Aurn:omos:/.freeze
+
+EXPECTED_FORBIDDEN_RUN_FIELDS = %w[
+  personal_acceptance_ref verification_receipt_ref accepted_for_record
+  canonical_write_receipt_ref permission_decision_ref
+].freeze
+
+# 回傳 nil 代表 mapping run 合法；否則回傳精確的 machine failure code。
+# lifecycle_event_map / non_lifecycle_event_types 皆從契約執行期讀取，不重述於此。
+# run 是自足 fixture 物件：native_event_type, outcome, mapped_to, adapter_output_ref,
+# adapter_required, requires_all_users_install, grants_acceptance/permission/canonical_writer,
+# error, ok（與 Hermes Adapter 的 run 形狀一致，同一組治理欄位）。
+def codex_mapping_failure(spec, run)
+  lifecycle_map = spec.dig("lifecycle_event_map", "map")
+  non_lifecycle = spec.dig("non_lifecycle_event_types", "events")
+
+  # 1. authority（不取得 acceptance / permission / canonical writer）
+  return "CODEX_EXCEEDS_AUTHORITY" if run["grants_acceptance"] == true
+  return "CODEX_EXCEEDS_AUTHORITY" if run["grants_permission"] == true
+  return "CODEX_EXCEEDS_AUTHORITY" if run["grants_canonical_writer"] == true
+  return "CODEX_EXCEEDS_AUTHORITY" if EXPECTED_FORBIDDEN_RUN_FIELDS.any? { |field| run.key?(field) }
+
+  # 2. fail-loud
+  return "FAIL_SILENT" if present?(run["error"]) && run["ok"] != false
+
+  # 3. Adapter 為可選依賴
+  return "CODEX_ADAPTER_MANDATORY" if run["adapter_required"] == true
+  return "CODEX_ADAPTER_MANDATORY" if run["core_flow_blocked_without_adapter"] == true
+
+  # 4. 非全員安裝
+  return "CODEX_ORG_WIDE_INSTALL" if run["requires_all_users_install"] == true
+
+  outcome = run["outcome"]
+  return "CODEX_INVALID_OUTCOME" unless EXPECTED_OUTCOMES.include?(outcome)
+
+  native_event = run["native_event_type"]
+  output_ref = run["adapter_output_ref"]
+
+  if outcome == "DISABLED"
+    return "CODEX_DISABLED_STILL_MAPPING" if present?(output_ref)
+    return nil
+  end
+
+  if outcome == "NOT_LIFECYCLE"
+    return "CODEX_NOT_LIFECYCLE_STILL_MAPPING" if present?(output_ref)
+    return "CODEX_UNCLASSIFIED_NATIVE_EVENT" unless non_lifecycle.include?(native_event)
+
+    return nil
+  end
+
+  # outcome == "MAPPED"
+  return "CODEX_OUTPUT_NOT_REF" unless output_ref.is_a?(String) && URN_PATTERN.match?(output_ref)
+  return "CODEX_UNCLASSIFIED_NATIVE_EVENT" unless lifecycle_map.key?(native_event)
+
+  # CODEX_MAP_TARGET_UNKNOWN（contract 自身的 map entry 指向不存在的 lifecycle key）
+  # 已交給上面的結構斷言在 gate 一開始就攔下，這裡不再重覆判斷 —— 若重覆保留，
+  # declared_target 永遠是已通過結構驗證的合法值，該分支會是永遠踩不到的死碼
+  # （同 SSP-291 EPROFILE_ADAPTER_MAPPING_NOT_BOUND 的取捨）。
+  declared_target = lifecycle_map.fetch(native_event)
+  return "CODEX_MAPPING_TARGET_MISMATCH" unless run["mapped_to"] == declared_target
+
+  nil
+end
+
+# rollback 契約 evaluator。純函式。回傳 nil 或精確 machine failure code。
+def codex_rollback_failure(rollback)
+  return "CODEX_ROLLBACK_MISSING_FIELD" unless rollback.is_a?(Hash)
+  return "CODEX_ROLLBACK_MISSING_FIELD" unless rollback["disable_switch"] == true
+  return "CODEX_ROLLBACK_MISSING_FIELD" unless rollback["fallback"] == "CORE_FLOW_DIRECT"
+
+  side_effects = rollback["side_effects"]
+  return "CODEX_ROLLBACK_MISSING_FIELD" unless side_effects.is_a?(Array) && !side_effects.empty?
+
+  side_effects.each do |effect|
+    unless effect.is_a?(Hash) && %w[name teardown failure_state].all? { |field| present?(effect[field]) }
+      return "CODEX_ROLLBACK_MISSING_FIELD"
+    end
+    return "CODEX_ROLLBACK_SIDE_EFFECT_UNSPECIFIED" if effect["failure_state"].to_s.strip.length < 8
+  end
+
+  nil
+end
+
+# runtime sample 完整性 evaluator。純函式。回傳 nil 或精確 machine failure code。
+def codex_runtime_sample_failure(observed_event_types, lifecycle_map, non_lifecycle)
+  classified = lifecycle_map + non_lifecycle
+  unclassified = observed_event_types - classified
+  return "CODEX_RUNTIME_SAMPLE_UNCLASSIFIED" unless unclassified.empty?
+
+  nil
+end
+
+failures = []
+spec = read_yaml(SPEC_PATH)
+task_card_spec = read_yaml(TASK_CARD_SPEC_PATH)
+target_lifecycle_keys = task_card_spec.fetch("lifecycle_event_to_status").keys
+spec["cross_reference"] ||= {}
+spec["cross_reference"]["target_lifecycle_keys"] = target_lifecycle_keys
+
+# --- 契約結構斷言 ---------------------------------------------------------
+
+assert(spec.dig("purpose", "no_second_workflow_authority") == true, "purpose.no_second_workflow_authority 必須為 true", failures)
+assert(spec.dig("authority", "grants_acceptance") == false, "authority.grants_acceptance 必須為 false", failures)
+assert(spec.dig("authority", "grants_permission") == false, "authority.grants_permission 必須為 false", failures)
+assert(spec.dig("authority", "grants_canonical_writer") == false, "authority.grants_canonical_writer 必須為 false", failures)
+assert(spec.dig("authority", "error_behavior") == "FAIL_LOUD", "authority.error_behavior 必須為 FAIL_LOUD", failures)
+assert(sorted_set(spec.dig("mapping_run", "outcomes")) == sorted_set(EXPECTED_OUTCOMES), "mapping_run.outcomes 必須剛好是 MAPPED／NOT_LIFECYCLE／DISABLED", failures)
+
+lifecycle_map = spec.dig("lifecycle_event_map", "map") || {}
+non_lifecycle = spec.dig("non_lifecycle_event_types", "events") || []
+assert(!lifecycle_map.empty?, "lifecycle_event_map 不得為空", failures)
+lifecycle_map.each do |native_event, target|
+  assert(target_lifecycle_keys.include?(target),
+         "lifecycle_event_map.#{native_event} 的目標 #{target} 必須是 ai-task-card-record.lifecycle_event_to_status 的 key",
+         failures)
+end
+overlap = lifecycle_map.keys & non_lifecycle
+assert(overlap.empty?, "lifecycle_event_map 與 non_lifecycle_event_types 不得重疊：#{overlap.join(", ")}", failures)
+
+# --- runtime probe：契約分類必須涵蓋真實觀測到的全部事件類型 ---------------
+
+runtime_sample = read_json(RUNTIME_SAMPLE_PATH)
+observed_types = runtime_sample.fetch("event_type_counts").keys
+assert(
+  codex_runtime_sample_failure(observed_types, lifecycle_map.keys, non_lifecycle).nil?,
+  "runtime sample 觀測到但契約未分類的原生事件類型存在（CODEX_RUNTIME_SAMPLE_UNCLASSIFIED）",
+  failures
+)
+declared_observed = spec.dig("measured_native_vocabulary", "observed_event_types")
+assert(
+  sorted_set(declared_observed.keys) == sorted_set(observed_types),
+  "契約 measured_native_vocabulary.observed_event_types 必須與 runtime sample 逐字相符",
+  failures
+)
+assert(runtime_sample.fetch("sampled_sessions").to_i > 0, "runtime sample 必須來自至少一個 session", failures)
+
+# --- error_contract 完整性（沿用 SSP-302 教訓：不能只互比手寫清單）--------
+
+declared_codes = spec.fetch("error_contract", {}).keys
+mapping_run_reachable = %w[
+  CODEX_EXCEEDS_AUTHORITY FAIL_SILENT CODEX_ADAPTER_MANDATORY CODEX_ORG_WIDE_INSTALL
+  CODEX_INVALID_OUTCOME CODEX_DISABLED_STILL_MAPPING CODEX_NOT_LIFECYCLE_STILL_MAPPING
+  CODEX_UNCLASSIFIED_NATIVE_EVENT CODEX_OUTPUT_NOT_REF CODEX_MAPPING_TARGET_MISMATCH
+].freeze
+rollback_reachable = %w[CODEX_ROLLBACK_MISSING_FIELD CODEX_ROLLBACK_SIDE_EFFECT_UNSPECIFIED].freeze
+runtime_sample_reachable = %w[CODEX_RUNTIME_SAMPLE_UNCLASSIFIED].freeze
+assert(
+  sorted_set(declared_codes) == sorted_set(mapping_run_reachable + rollback_reachable + runtime_sample_reachable),
+  "error_contract 與宣告的可回傳集合不符",
+  failures
+)
+
+assert(
+  sorted_set(spec.fetch("required_negative_fixtures", [])) == sorted_set(EXPECTED_NEGATIVE_LABELS),
+  "required_negative_fixtures 與鎖定負例清單不符",
+  failures
+)
+
+# --- disable/rollback side effects -----------------------------------------
+
+rollback = spec.fetch("disable_and_rollback", {})
+assert(codex_rollback_failure(rollback).nil?, "disable_and_rollback 本體必須是 contract-valid rollback 契約", failures)
+
+# --- fixture 驗證 ------------------------------------------------------------
+
+positive_fixtures = read_json(POSITIVE_FIXTURE_PATH)
+negative_fixtures = read_json(NEGATIVE_FIXTURE_PATH)
+positive_cases = positive_fixtures.fetch("mapping_cases")
+negative_cases = negative_fixtures.fetch("mapping_negative_cases")
+
+assert(!positive_cases.empty?, "mapping_cases 不得為空", failures)
+positive_cases.each do |test_case|
+  case_id = test_case.fetch("case_id")
+  assert(test_case.fetch("expected") == "allow", "#{case_id} positive fixture 必須預期 allow", failures)
+  actual = codex_mapping_failure(spec, test_case.fetch("run"))
+  assert(actual.nil?, "#{case_id} 預期 allow，實際被拒：#{actual}", failures)
+end
+
+# 正例必須覆蓋每一個 lifecycle_event_map 條目，且每個 non_lifecycle 事件至少一例。
+covered_mapped = sorted_set(positive_cases.select { |c| c.dig("run", "outcome") == "MAPPED" }.map { |c| c.dig("run", "native_event_type") })
+assert(covered_mapped == sorted_set(lifecycle_map.keys), "positive fixtures 必須覆蓋 lifecycle_event_map 的每一個原生事件", failures)
+covered_not_lifecycle = sorted_set(positive_cases.select { |c| c.dig("run", "outcome") == "NOT_LIFECYCLE" }.map { |c| c.dig("run", "native_event_type") })
+assert(covered_not_lifecycle == sorted_set(non_lifecycle), "positive fixtures 必須覆蓋 non_lifecycle_event_types 的每一項", failures)
+
+negative_cases.each do |test_case|
+  case_id = test_case.fetch("case_id")
+  assert(test_case.fetch("expected") == "deny", "#{case_id} negative fixture 必須預期 deny", failures)
+  expected_code = test_case.fetch("expected_failure_code")
+  assert(declared_codes.include?(expected_code), "#{case_id} 的 expected_failure_code #{expected_code} 未在 error_contract 宣告", failures)
+  actual = codex_mapping_failure(spec, test_case.fetch("run"))
+  assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
+  assert(actual == expected_code, "#{case_id} 預期 failure code #{expected_code}，實際 #{actual.inspect}", failures)
+end
+
+positive_fixtures.fetch("rollback_cases").each do |test_case|
+  case_id = test_case.fetch("case_id")
+  assert(test_case.fetch("expected") == "allow", "#{case_id} rollback positive 必須預期 allow", failures)
+  actual = codex_rollback_failure(test_case.fetch("rollback"))
+  assert(actual.nil?, "#{case_id} 預期 allow，實際被拒：#{actual}", failures)
+end
+
+rollback_negative_cases = negative_fixtures.fetch("rollback_negative_cases")
+rollback_negative_cases.each do |test_case|
+  case_id = test_case.fetch("case_id")
+  assert(test_case.fetch("expected") == "deny", "#{case_id} rollback negative 必須預期 deny", failures)
+  expected_code = test_case.fetch("expected_failure_code")
+  assert(declared_codes.include?(expected_code), "#{case_id} 的 expected_failure_code #{expected_code} 未在 error_contract 宣告", failures)
+  actual = codex_rollback_failure(test_case.fetch("rollback"))
+  assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
+  assert(actual == expected_code, "#{case_id} 預期 failure code #{expected_code}，實際 #{actual.inspect}", failures)
+end
+negative_cases = negative_cases + rollback_negative_cases
+
+reachable_codes = mapping_run_reachable
+covered_codes = sorted_set(negative_cases.map { |c| c.fetch("expected_failure_code") } & reachable_codes)
+uncovered_codes = sorted_set(reachable_codes) - covered_codes
+assert(uncovered_codes.empty?, "以下 mapping-run failure code 沒有任何負例覆蓋：#{uncovered_codes.to_a.join(", ")}", failures)
+
+positive_fixtures.fetch("runtime_sample_cases").each do |test_case|
+  case_id = test_case.fetch("case_id")
+  assert(test_case.fetch("expected") == "allow", "#{case_id} runtime sample positive 必須預期 allow", failures)
+  actual = codex_runtime_sample_failure(test_case.fetch("observed_event_types"), test_case.fetch("classified_lifecycle_keys"), test_case.fetch("classified_non_lifecycle_types"))
+  assert(actual.nil?, "#{case_id} 預期 allow，實際被拒：#{actual}", failures)
+end
+
+runtime_sample_negative_cases = negative_fixtures.fetch("runtime_sample_negative_cases")
+runtime_sample_negative_cases.each do |test_case|
+  case_id = test_case.fetch("case_id")
+  assert(test_case.fetch("expected") == "deny", "#{case_id} runtime sample negative 必須預期 deny", failures)
+  expected_code = test_case.fetch("expected_failure_code")
+  assert(declared_codes.include?(expected_code), "#{case_id} 的 expected_failure_code #{expected_code} 未在 error_contract 宣告", failures)
+  actual = codex_runtime_sample_failure(test_case.fetch("observed_event_types"), test_case.fetch("classified_lifecycle_keys"), test_case.fetch("classified_non_lifecycle_types"))
+  assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
+  assert(actual == expected_code, "#{case_id} 預期 failure code #{expected_code}，實際 #{actual.inspect}", failures)
+end
+negative_cases = negative_cases + runtime_sample_negative_cases
+
+covered_labels = sorted_set(negative_cases.map { |c| c.fetch("covers_negative_fixture") })
+missing_labels = sorted_set(EXPECTED_NEGATIVE_LABELS) - covered_labels
+assert(missing_labels.empty?, "negative fixtures 未覆蓋：#{missing_labels.to_a.join(", ")}", failures)
+
+if failures.empty?
+  puts "PASS codex native adapter contract validation"
+else
+  failures.each { |failure| warn "FAIL #{failure}" }
+  exit 1
+end

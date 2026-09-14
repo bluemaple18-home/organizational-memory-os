@@ -1,0 +1,215 @@
+schema:
+  schema_id: urn:omos:schema:codex-native-adapter:0.1.0
+  version: 0.1.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-09-14'
+  traces_to:
+    - AIWR-09
+  builds_on:
+    - 規格/v0.1/ai-task-card-record.yaml
+    - 規格/v0.1/ai-work-record-hook.yaml
+
+purpose:
+  statement: >-
+    A thin Codex Native Adapter contract: classify Codex's own native session
+    event types (event_msg.payload.type, as emitted by the local Codex CLI /
+    app-server) into either a lifecycle_events entry the existing Hook contract
+    already accepts, or an explicit non-lifecycle category. It gains no
+    acceptance, permission or canonical-writer authority; the core flow runs
+    without the Adapter installed; an unrecognised native event type fails
+    loud rather than being silently dropped or guessed. It does not re-define
+    ai-task-card-record.yaml or ai-work-record-hook.yaml -- it references them.
+  no_second_workflow_authority: true
+
+measured_native_vocabulary:
+  method: >-
+    full-corpus scan of every local Codex session log (~/.codex/sessions/**/*.jsonl)
+    on the development machine, not a hand sample. Only the event_msg.payload.type
+    field (a controlled discriminator, never free-text content) was read; no
+    message content, tool output, or file content was inspected or is stored
+    anywhere in this repo.
+  sampled_sessions: 818
+  observed_event_types:
+    task_started: 9529
+    task_complete: 9392
+    turn_aborted: 104
+    thread_goal_updated: 95
+    thread_settings_applied: 4001
+    item_completed: 60008
+    token_count: 41642
+    user_message: 18
+    agent_message: 18
+    agent_reasoning: 2
+  rule: >-
+    lifecycle_event_map and non_lifecycle_event_types together must equal
+    exactly the keys of observed_event_types -- every native event type this
+    machine has ever actually emitted must be classified one way or the other.
+    A native event type observed but classified in neither is
+    CODEX_UNCLASSIFIED_NATIVE_EVENT.
+
+lifecycle_event_map:
+  map:
+    task_started: start
+    task_complete: complete
+    turn_aborted: cancel
+  rule: >-
+    each key is a native event_msg.payload.type value; each value must be a
+    key of ai-task-card-record.lifecycle_event_to_status, enforced by a
+    structural assertion at gate time (not a per-run evaluator branch --
+    the run evaluator trusts an already-validated map, see design_note in
+    the closeout evidence for why that branch was removed as dead code).
+  design_note: >-
+    Codex's native lifecycle has no equivalent of block / unblock /
+    submit_review -- those are AIWR/task-card constructs with no native Codex
+    session event backing them, so they are deliberately absent from this map
+    rather than guessed. turn_aborted -> cancel is a judgement call, not a
+    forced 1:1 mapping: a turn that ends without completing is closer to
+    "cancelled" than to "blocked" (blocked implies still pending/resumable;
+    an aborted turn is terminal-non-complete). Flagged for reviewer challenge.
+
+non_lifecycle_event_types:
+  events:
+    - item_completed
+    - token_count
+    - thread_settings_applied
+    - thread_goal_updated
+    - user_message
+    - agent_message
+    - agent_reasoning
+  rule: >-
+    these are real, frequently-observed native event types that never drive
+    a task_card lifecycle transition. Listing them here is what distinguishes
+    "known and deliberately excluded" from "unknown" -- an event type must
+    appear in exactly one of lifecycle_event_map.keys or
+    non_lifecycle_event_types.events, never both, never neither.
+
+authority:
+  grants_acceptance: false
+  grants_permission: false
+  grants_canonical_writer: false
+  error_behavior: FAIL_LOUD
+  forbidden_run_fields:
+    - personal_acceptance_ref
+    - verification_receipt_ref
+    - accepted_for_record
+    - canonical_write_receipt_ref
+    - permission_decision_ref
+
+optional_dependency:
+  adapter_required: false
+  core_flow_without_adapter: SUPPORTED
+  rule: >-
+    a run that declares adapter_required true or core_flow_blocked_without_adapter
+    true is CODEX_ADAPTER_MANDATORY.
+
+no_org_wide_install:
+  requires_all_users_install: false
+  rule: requires_all_users_install true is CODEX_ORG_WIDE_INSTALL.
+
+mapping_run:
+  fields:
+    - native_event_type
+    - mapped_to
+    - adapter_output_ref
+    - outcome
+  outcomes:
+    - MAPPED
+    - NOT_LIFECYCLE
+    - DISABLED
+  output_ref_rule: adapter_output_ref is an omos URN string (reference only).
+  rule: >-
+    outcome not in outcomes is CODEX_INVALID_OUTCOME; a non-URN
+    adapter_output_ref on a MAPPED run is CODEX_OUTPUT_NOT_REF; outcome
+    DISABLED while adapter_output_ref is still present is
+    CODEX_DISABLED_STILL_MAPPING; outcome NOT_LIFECYCLE while adapter_output_ref
+    is present is CODEX_NOT_LIFECYCLE_STILL_MAPPING (a non-lifecycle event
+    must never produce a lifecycle output).
+  mapping_binding_rule: >-
+    on a MAPPED run, run.native_event_type must have exactly one entry in
+    lifecycle_event_map and that entry's target must equal run.mapped_to. On
+    a NOT_LIFECYCLE run, run.native_event_type must be exactly one entry of
+    non_lifecycle_event_types. A native_event_type in neither list is
+    CODEX_UNCLASSIFIED_NATIVE_EVENT -- the Adapter never guesses at an event
+    type it has not been told about.
+
+runtime_probe:
+  purpose: >-
+    prove the classification above is not just internally self-consistent
+    (a fixture written by the same hand that wrote the map) but actually
+    covers every native event type this machine's real Codex sessions have
+    produced.
+  evidence_source: 規格/v0.1/fixtures/codex-native-adapter-runtime-sample.json
+  evidence_source_rule: >-
+    a frozen, content-free extract (event type name -> observed count only,
+    no message text, no tool output, no file paths beyond the aggregate
+    counts) of measured_native_vocabulary.observed_event_types above.
+  probe_rule: >-
+    every key in the runtime sample's event_type_counts must appear in
+    exactly one of lifecycle_event_map or non_lifecycle_event_types. A
+    sample key found in neither is CODEX_RUNTIME_SAMPLE_UNCLASSIFIED --
+    real observed native behaviour, not synthetic fixtures alone, must pass
+    the same classification the contract declares.
+
+disable_and_rollback:
+  disable_switch: true
+  fallback: CORE_FLOW_DIRECT
+  side_effects:
+    - name: native_event_subscription
+      teardown: unregister the Adapter's native event listener from the host Codex runtime
+      failure_state: >-
+        still subscribed -> the Adapter keeps classifying while disabled;
+        detected by a run emitted with a non-empty adapter_output_ref under
+        disabled state (CODEX_DISABLED_STILL_MAPPING).
+    - name: classification_cache
+      teardown: clear any cached native_event_type -> outcome classification
+      failure_state: >-
+        stale cache -> a native event type added to non_lifecycle_event_types
+        after a contract update is still treated as MAPPED on re-enable;
+        remediation is a forced re-classification against the current map.
+
+error_contract:
+  CODEX_MAPPING_TARGET_MISMATCH: codex_native.error.mapping_target_mismatch
+  CODEX_UNCLASSIFIED_NATIVE_EVENT: codex_native.error.unclassified_native_event
+  CODEX_ADAPTER_MANDATORY: codex_native.error.adapter_mandatory
+  CODEX_ORG_WIDE_INSTALL: codex_native.error.org_wide_install
+  CODEX_INVALID_OUTCOME: codex_native.error.invalid_outcome
+  CODEX_OUTPUT_NOT_REF: codex_native.error.output_not_ref
+  CODEX_DISABLED_STILL_MAPPING: codex_native.error.disabled_still_mapping
+  CODEX_NOT_LIFECYCLE_STILL_MAPPING: codex_native.error.not_lifecycle_still_mapping
+  CODEX_EXCEEDS_AUTHORITY: codex_native.error.exceeds_authority
+  CODEX_RUNTIME_SAMPLE_UNCLASSIFIED: codex_native.error.runtime_sample_unclassified
+  CODEX_ROLLBACK_MISSING_FIELD: codex_native.error.rollback_missing_field
+  CODEX_ROLLBACK_SIDE_EFFECT_UNSPECIFIED: codex_native.error.rollback_side_effect_unspecified
+  FAIL_SILENT: codex_native.error.fail_silent
+
+runtime_independence: true
+
+cross_reference:
+  task_card_record_spec: 規格/v0.1/ai-task-card-record.yaml
+  hook_spec: 規格/v0.1/ai-work-record-hook.yaml
+  must_match:
+    lifecycle_events_from: ai-task-card-record.lifecycle_event_to_status
+
+hard_stops:
+  - no codex runtime / event bus / connector implementation here
+  - pure function plus data tables only; no state machine engine
+  - do not re-define ai-task-card-record.yaml or ai-work-record-hook.yaml
+  - no registry / FSM / database / canonical writer
+  - no message content, tool output, or file content read into this repo
+
+required_negative_fixtures:
+  - a native event type not in lifecycle_event_map or non_lifecycle_event_types
+  - outcome MAPPED with adapter_output_ref not a URN
+  - outcome DISABLED with adapter_output_ref still present
+  - outcome NOT_LIFECYCLE with adapter_output_ref present
+  - outcome not in the declared outcomes enum
+  - a MAPPED run whose native_event_type has no lifecycle_event_map entry
+  - a MAPPED run whose mapped_to does not equal the declared map entry
+  - a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types
+  - a run declaring adapter_required true
+  - a run declaring requires_all_users_install true
+  - a runtime sample event type absent from both classification lists
+  - a rollback side effect record missing a required field
+  - a rollback side effect record with an unspecified failure_state
+  - a run carries a forbidden authority field
+  - error but the run still claims success

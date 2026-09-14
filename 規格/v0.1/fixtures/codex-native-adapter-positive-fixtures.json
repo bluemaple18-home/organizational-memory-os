@@ -1,0 +1,146 @@
+{
+  "fixture_id": "codex-native-adapter-positive-fixtures-v0.1",
+  "mapping_cases": [
+    {
+      "case_id": "CODEX_POS_TASK_STARTED_MAPS_START",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+      }
+    },
+    {
+      "case_id": "CODEX_POS_TASK_COMPLETE_MAPS_COMPLETE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "task_complete",
+        "outcome": "MAPPED",
+        "mapped_to": "complete",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_complete:001"
+      }
+    },
+    {
+      "case_id": "CODEX_POS_TURN_ABORTED_MAPS_CANCEL",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "turn_aborted",
+        "outcome": "MAPPED",
+        "mapped_to": "cancel",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:turn_aborted:001"
+      }
+    },
+    {
+      "case_id": "CODEX_POS_ITEM_COMPLETED_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "item_completed",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CODEX_POS_TOKEN_COUNT_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "token_count",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CODEX_POS_THREAD_SETTINGS_APPLIED_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "thread_settings_applied",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CODEX_POS_THREAD_GOAL_UPDATED_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "thread_goal_updated",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CODEX_POS_USER_MESSAGE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "user_message",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CODEX_POS_AGENT_MESSAGE_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "agent_message",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CODEX_POS_AGENT_REASONING_NOT_LIFECYCLE",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "agent_reasoning",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CODEX_POS_DISABLED_NO_OUTPUT",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "DISABLED"
+      }
+    }
+  ],
+  "rollback_cases": [
+    {
+      "case_id": "CODEX_ROLLBACK_POS_VALID",
+      "expected": "allow",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {
+            "name": "native_event_subscription",
+            "teardown": "unregister the Adapter's native event listener",
+            "failure_state": "still subscribed -> keeps classifying while disabled"
+          },
+          {
+            "name": "classification_cache",
+            "teardown": "clear any cached classification",
+            "failure_state": "stale cache -> a new non-lifecycle type still treated as MAPPED"
+          }
+        ]
+      }
+    }
+  ],
+  "runtime_sample_cases": [
+    {
+      "case_id": "CODEX_RUNTIME_SAMPLE_POS_FULLY_CLASSIFIED",
+      "expected": "allow",
+      "observed_event_types": [
+        "task_started",
+        "task_complete",
+        "item_completed"
+      ],
+      "classified_lifecycle_keys": [
+        "task_started",
+        "task_complete",
+        "turn_aborted"
+      ],
+      "classified_non_lifecycle_types": [
+        "item_completed",
+        "token_count",
+        "thread_settings_applied",
+        "thread_goal_updated",
+        "user_message",
+        "agent_message",
+        "agent_reasoning"
+      ]
+    }
+  ]
+}

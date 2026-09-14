@@ -1,0 +1,325 @@
+{
+  "fixture_id": "codex-native-adapter-negative-fixtures-v0.1",
+  "mapping_negative_cases": [
+    {
+      "case_id": "CODEX_NEG_UNKNOWN_NATIVE_EVENT_MAPPED",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_UNCLASSIFIED_NATIVE_EVENT",
+      "covers_negative_fixture": "a native event type not in lifecycle_event_map or non_lifecycle_event_types",
+      "run": {
+        "native_event_type": "some_future_native_event",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_OUTPUT_REF_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_OUTPUT_NOT_REF",
+      "covers_negative_fixture": "outcome MAPPED with adapter_output_ref not a URN",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "not-a-urn-string"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_DISABLED_STILL_HAS_OUTPUT",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_DISABLED_STILL_MAPPING",
+      "covers_negative_fixture": "outcome DISABLED with adapter_output_ref still present",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "DISABLED",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_NOT_LIFECYCLE_STILL_HAS_OUTPUT",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_NOT_LIFECYCLE_STILL_MAPPING",
+      "covers_negative_fixture": "outcome NOT_LIFECYCLE with adapter_output_ref present",
+      "run": {
+        "native_event_type": "item_completed",
+        "outcome": "NOT_LIFECYCLE",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_OUTCOME_NOT_IN_ENUM",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_INVALID_OUTCOME",
+      "covers_negative_fixture": "outcome not in the declared outcomes enum",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "PENDING_REVIEW",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_MAPPED_NO_MAP_ENTRY",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_UNCLASSIFIED_NATIVE_EVENT",
+      "covers_negative_fixture": "a MAPPED run whose native_event_type has no lifecycle_event_map entry",
+      "run": {
+        "native_event_type": "thread_goal_updated",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_MAPPED_TO_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_MAPPING_TARGET_MISMATCH",
+      "covers_negative_fixture": "a MAPPED run whose mapped_to does not equal the declared map entry",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "complete",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_NOT_LIFECYCLE_UNCLASSIFIED",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_UNCLASSIFIED_NATIVE_EVENT",
+      "covers_negative_fixture": "a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types",
+      "run": {
+        "native_event_type": "task_complete",
+        "outcome": "NOT_LIFECYCLE"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_ADAPTER_REQUIRED_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_ADAPTER_MANDATORY",
+      "covers_negative_fixture": "a run declaring adapter_required true",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "adapter_required": true
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_ORG_WIDE_INSTALL_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_ORG_WIDE_INSTALL",
+      "covers_negative_fixture": "a run declaring requires_all_users_install true",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "requires_all_users_install": true
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_GRANTS_ACCEPTANCE_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_EXCEEDS_AUTHORITY",
+      "covers_negative_fixture": "a run carries a forbidden authority field",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "grants_acceptance": true
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_ERROR_PRESENT_CLAIMS_OK",
+      "expected": "deny",
+      "expected_failure_code": "FAIL_SILENT",
+      "covers_negative_fixture": "error but the run still claims success",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "error": "boom",
+        "ok": true
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_GRANTS_PERMISSION_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_EXCEEDS_AUTHORITY",
+      "covers_negative_fixture": "a run carries a forbidden authority field",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "grants_permission": true
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_GRANTS_CANONICAL_WRITER_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_EXCEEDS_AUTHORITY",
+      "covers_negative_fixture": "a run carries a forbidden authority field",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "grants_canonical_writer": true
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_FORBIDDEN_FIELD_PRESENT",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_EXCEEDS_AUTHORITY",
+      "covers_negative_fixture": "a run carries a forbidden authority field",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "canonical_write_receipt_ref": "urn:omos:write:001"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_CORE_FLOW_BLOCKED_WITHOUT_ADAPTER",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_ADAPTER_MANDATORY",
+      "covers_negative_fixture": "a run declaring adapter_required true",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "core_flow_blocked_without_adapter": true
+      }
+    }
+  ],
+  "rollback_negative_cases": [
+    {
+      "case_id": "CODEX_ROLLBACK_NEG_MISSING_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_ROLLBACK_MISSING_FIELD",
+      "covers_negative_fixture": "a rollback side effect record missing a required field",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {
+            "name": "native_event_subscription",
+            "teardown": "unregister listener"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CODEX_ROLLBACK_NEG_UNSPECIFIED_FAILURE_STATE",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_ROLLBACK_SIDE_EFFECT_UNSPECIFIED",
+      "covers_negative_fixture": "a rollback side effect record with an unspecified failure_state",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {
+            "name": "native_event_subscription",
+            "teardown": "unregister listener",
+            "failure_state": "n/a"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CODEX_ROLLBACK_NEG_DISABLE_SWITCH_NOT_TRUE",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_ROLLBACK_MISSING_FIELD",
+      "covers_negative_fixture": "a rollback side effect record missing a required field",
+      "rollback": {
+        "disable_switch": false,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": [
+          {
+            "name": "native_event_subscription",
+            "teardown": "unregister the Adapter's native event listener",
+            "failure_state": "still subscribed -> keeps classifying while disabled"
+          },
+          {
+            "name": "classification_cache",
+            "teardown": "clear any cached classification",
+            "failure_state": "stale cache -> a new non-lifecycle type still treated as MAPPED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CODEX_ROLLBACK_NEG_FALLBACK_NOT_CORE_FLOW_DIRECT",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_ROLLBACK_MISSING_FIELD",
+      "covers_negative_fixture": "a rollback side effect record missing a required field",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "SOMETHING_ELSE",
+        "side_effects": [
+          {
+            "name": "native_event_subscription",
+            "teardown": "unregister the Adapter's native event listener",
+            "failure_state": "still subscribed -> keeps classifying while disabled"
+          },
+          {
+            "name": "classification_cache",
+            "teardown": "clear any cached classification",
+            "failure_state": "stale cache -> a new non-lifecycle type still treated as MAPPED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "CODEX_ROLLBACK_NEG_SIDE_EFFECTS_EMPTY",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_ROLLBACK_MISSING_FIELD",
+      "covers_negative_fixture": "a rollback side effect record missing a required field",
+      "rollback": {
+        "disable_switch": true,
+        "fallback": "CORE_FLOW_DIRECT",
+        "side_effects": []
+      }
+    },
+    {
+      "case_id": "CODEX_ROLLBACK_NEG_NOT_AN_OBJECT",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_ROLLBACK_MISSING_FIELD",
+      "covers_negative_fixture": "a rollback side effect record missing a required field",
+      "rollback": null
+    }
+  ],
+  "runtime_sample_negative_cases": [
+    {
+      "case_id": "CODEX_RUNTIME_SAMPLE_NEG_UNCLASSIFIED_TYPE_PRESENT",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_RUNTIME_SAMPLE_UNCLASSIFIED",
+      "covers_negative_fixture": "a runtime sample event type absent from both classification lists",
+      "observed_event_types": [
+        "task_started",
+        "some_future_native_event"
+      ],
+      "classified_lifecycle_keys": [
+        "task_started",
+        "task_complete",
+        "turn_aborted"
+      ],
+      "classified_non_lifecycle_types": [
+        "item_completed",
+        "token_count",
+        "thread_settings_applied",
+        "thread_goal_updated",
+        "user_message",
+        "agent_message",
+        "agent_reasoning"
+      ]
+    }
+  ]
+}
