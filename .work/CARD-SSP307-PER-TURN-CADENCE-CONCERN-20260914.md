@@ -1,6 +1,6 @@
 ---
 id: SSP307-PER-TURN-CADENCE-CONCERN-20260914
-status: AWAITING_OWNER_ROUTING_DECISION
+status: FIX_IMPLEMENTED_AWAITING_BIG_REVIEW
 type: concern
 tier: n/a
 jira: SSP-307（已 ACCEPTED_GO + merged @ 32b3f82，本卡不是 repair）
@@ -42,6 +42,26 @@ per-Work-Record 一次——跟 `SSP308-F-02` 抓到的 `Stop`（Claude Code）
 `IN_REVIEW` 的卡再送一次 `IN_REVIEW`，而 `ai-task-card-record.yaml` 的
 `allowed_status_transitions` 沒有 `IN_REVIEW → IN_REVIEW` 這條邊——跟
 Claude Code 那邊完全同一個 bug 形狀。
+
+## 驗證結果（2026-09-14，已確認為真，並已送修正）
+
+實際算過每個 session 的出現次數分布（830 個真實 session，不是只看總數平均）：
+
+```
+task_started：0或1次 206 個（24.8%）　2次以上 624 個（75.2%，最大 376 次）
+task_complete：0或1次 219 個（26.4%）　2次以上 611 個（73.6%，最大 375 次）
+```
+
+**73~75% 的真實 session 有 2 次以上**——不是少數離群值把平均拉高，是絕大多數
+session 的常態。確認跟 `SSP308-F-02` 同一種形狀：`task_complete → submit_review`
+在第二次觸發時會嘗試 `IN_REVIEW → IN_REVIEW`（不存在的邊）。
+
+**裁決**：直接修，不需要另外問 Owner——這是既有 `SSP-307` review line 的
+正確性缺陷，修法形狀已經有 `SSP-308 repair-01` 的先例可循。已走全新一輪
+big review／worktree／branch（因為 `SSP-307` 已經 merge，這不是重開一個
+還沒關閉的 review，是對已出貨程式碼的修正），見
+`.work/CARD-SSP307-PER-TURN-CADENCE-FIX-20260914.md` 與
+`.work/evidence/SSP307-POST-MERGE-FIX-01-20260914.md`。
 
 ## 為什麼這次沒被抓到（值得記錄的落差）
 
