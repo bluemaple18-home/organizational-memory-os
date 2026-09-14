@@ -69,12 +69,18 @@ lifecycle_event_map:
     Record, and that this makes any single-event-to-submit_review mapping
     unsafe on a second turn (IN_REVIEW -> IN_REVIEW does not exist). This
     raised the question of whether task_started/task_complete have the
-    same per-turn shape. Verified against the real, already-authorized
-    818-session corpus by counting occurrences per individual session file
-    (not just the aggregate total used at original implementation time):
-    task_started has 2+ occurrences in 75.2% of real sessions (624/830,
-    max 376 in one session); task_complete has 2+ occurrences in 73.6%
-    (611/830, max 375). This is the ordinary case, not an outlier. The
+    same per-turn shape. The measured_native_vocabulary corpus above (818
+    sessions) is a frozen vocabulary snapshot from the original
+    implementation, not this round's evidence source. This round ran an
+    independent, separately-dated per-session cadence scan against the
+    real, already-authorized session corpus as it exists now (830
+    sessions -- more than 818 because real time passed and new sessions
+    accumulated between the two scans), counting occurrences per
+    individual session file (not just the aggregate total used at
+    original implementation time): task_started has 2+ occurrences in
+    75.2% of the 830 real sessions scanned this round (624/830, max 376
+    in one session); task_complete has 2+ occurrences in 73.6% (611/830,
+    max 375). This is the ordinary case, not an outlier. The
     original submit_review mapping (like SessionStart -> start /
     Stop -> submit_review in codex-native-adapter's own sibling) assumed
     at-most-once firing per Work Record without verifying it, and the
@@ -113,10 +119,12 @@ non_lifecycle_event_types:
     non_lifecycle_event_types.events, never both, never neither.
   task_started_note: >-
     POST_MERGE_FIX_01 (2026-09-14): task_started occurs 2+ times in 75.2%
-    of real sessions (measured against the full 818-session corpus, per
-    individual session, not the aggregate total). Not a fires-once
-    Work-Record boundary; classified non-lifecycle pending the runtime
-    probe. See lifecycle_event_map.design_note for the full account.
+    of the 830 real sessions scanned in this round's independent
+    per-session cadence check (not the 818-session vocabulary snapshot
+    in measured_native_vocabulary, and not the aggregate total used at
+    original implementation time). Not a fires-once Work-Record boundary;
+    classified non-lifecycle pending the runtime probe. See
+    lifecycle_event_map.design_note for the full account.
   task_complete_note: >-
     POST_MERGE_FIX_01 (2026-09-14): same shape as task_started_note.
     task_complete occurs 2+ times in 73.6% of real sessions. A second
