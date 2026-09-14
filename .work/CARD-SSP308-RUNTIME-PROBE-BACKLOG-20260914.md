@@ -5,37 +5,60 @@ type: implementation
 tier: T1
 jira: SSP-308（AIWR-10，後續強化）
 origin: "SSP-308 kickoff：Owner 選定本輪不做 runtime probe，先寫靜態分類契約"
+escalated: >-
+  repair-01（2026-09-14）：SSP308-F-02 證明沒有任何 hook 名稱有文件確認的
+  「每個 Work Record 最多發生一次」保證，本卡從「選配強化」升級為
+  「lifecycle_event_map 要新增任何條目前的硬性前置」——見
+  規格/v0.1/claude-code-native-adapter.yaml 的 hard_stops 與
+  lifecycle_event_map.design_note。
 ---
 
-# SSP-308 Runtime Probe（後續強化）
+# SSP-308 Runtime Probe（現為 lifecycle_event_map 的硬性前置）
 
-## 為什麼延後
+## 現況（repair-01 之後）
 
-`claude-code-native-adapter.yaml` 目前的完整性驗證是對照**公開文件**的封閉
-hook 事件集合（9 個名稱），不是對照真實觸發過的 session 語料。這對「事件
-名稱要不要分類」是足夠的，但對兩件事沒有覆蓋：
+`claude-code-native-adapter.yaml` 對真實文件（33 個 hook 事件，凍結於
+`規格/v0.1/fixtures/claude-code-hook-events-doc-snapshot.json`，帶
+`source_url`／`captured_at` 出處）已經做到完整分類，但
+**`lifecycle_event_map` 本輪刻意留空**——33 個事件全部分類為
+`non_lifecycle_event_types`。
 
-1. **真實 payload 形狀**——例如 `SessionEnd` 的 `reason` 欄位實際會出現哪些值
-   （clear／logout／exit／other／…），本卡因此無法判斷是否該把某些 reason
-   值視為終態。契約裡的 `session_end_note` 明講了這個限制。
-2. **文件與實際行為是否一致**——公開文件記載的 9 個 hook 名稱，實際觸發時
-   是否真的只有這些、有沒有欄位層級的差異。
+原因：big review 第一輪指出 `SessionStart → start` 與 `Stop → submit_review`
+的粒度不對。實測確認（透過官方文件）：
+
+- `Stop` 是 per-turn cadence，每個 turn 結束都會發，不是每個 Work Record
+  一次。第二個 turn 的 `Stop` 會嘗試 `IN_REVIEW → IN_REVIEW`（不存在的邊）。
+- `SessionStart` 是 per-session cadence，但**文件明講**「`/clear` 或 compaction
+  之後，`SessionStart` 會再次觸發」——同一個 session 內可能發生第二次，
+  若發生在第一個 `Stop` 之前，會嘗試 `OPEN → OPEN`（同樣不存在）。
+- `TaskCreated`／`TaskCompleted` 名稱上像是任務邊界，但文件只寫「透過
+  `TaskCreate` 建立」，沒有確認是否對應到 AIWR 的頂層 Work Record 邊界，
+  還是 Claude Code 自己內部的任務／佇列機制。
+
+這個 Adapter 依 `hard_stops` 是無狀態的純函式（不做狀態機），沒辦法單靠
+事件名稱分辨「這是這個 Work Record 的第一次 SessionStart」還是「這是
+compaction 造成的第二次」。
 
 ## 修法（等有真實觸發環境時）
 
-沿用 `codex-native-adapter.yaml` 的 runtime probe 模式：
-
-1. 實際配置一組 hook（`SessionStart`／`Stop`／`SessionEnd` 至少各一次），
-   在真實 Claude Code session 中觸發，取得真實 payload。
-2. 只萃取受控欄位（hook 名稱、`reason` 等 discriminator），不擷取任何訊息
-   內容、工具輸出、檔案內容——比照 SSP-307 的做法，先問過 Owner 再讀。
-3. 凍結成 `claude-code-native-adapter-runtime-sample.json`，比照
-   `codex-native-adapter.yaml` 的 `measured_native_vocabulary` 加上
-   `codex_runtime_sample_failure`-style 雙向相等 evaluator（記取 SSP307-F-04
-   的教訓，從一開始就做雙向比對，不要重演單向漏洞）。
-4. 若 `SessionEnd` 的 `reason` 值顯示某些原因確實不可恢復，重新評估是否該
-   拆成多個更細的 native_event_type（例如 `SessionEnd.logout` vs
-   `SessionEnd.clear`）。
+1. 實際配置一組 hook（`SessionStart`／`Stop`／`TaskCreated`／`TaskCompleted`
+   至少各觸發幾次，含跨 compaction 的情境），在真實 Claude Code session 中
+   取得真實 payload 與**發生頻率**。
+2. 只萃取受控欄位（hook 名稱、任何 discriminator 欄位如 `reason`），不擷取
+   任何訊息內容、工具輸出、檔案內容——比照 SSP-307 的做法，先問過 Owner
+   再讀。
+3. 具體要回答的問題：
+   - `TaskCreated`／`TaskCompleted` 是否真的對應到一個穩定、每 Work Record
+     恰好一次的邊界？如果是，這可能是比 `SessionStart`／`Stop`更安全的
+     映射對象。
+   - 是否有 payload 欄位能區分「Work Record 的第一次 SessionStart」與
+     「compaction 造成的重複」？
+4. 只有在能確定某個 native event 有「每個 Work Record 最多一次」的保證後，
+   才能讓 `lifecycle_event_map` 新增條目——這是 repair-01 寫進
+   `hard_stops` 的硬性要求，不是建議。
+5. 屆時同步比照 `codex-native-adapter.yaml` 的
+   `codex_runtime_sample_failure`-style 雙向相等 evaluator，從一開始就用
+   雙向比對（記取 SSP307-F-04 的教訓，不要重演單向漏洞）。
 
 ## 不做
 

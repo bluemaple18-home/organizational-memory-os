@@ -19,6 +19,7 @@ require_relative "lib/loop_return_contract"
 
 ROOT = File.expand_path("..", __dir__)
 SPEC_PATH = File.join(ROOT, "規格/v0.1/claude-code-native-adapter.yaml")
+HOOK_EVENTS_SNAPSHOT_PATH = File.join(ROOT, "規格/v0.1/fixtures/claude-code-hook-events-doc-snapshot.json")
 TASK_CARD_SPEC_PATH = File.join(ROOT, "規格/v0.1/ai-task-card-record.yaml")
 POSITIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/claude-code-native-adapter-positive-fixtures.json")
 NEGATIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/claude-code-native-adapter-negative-fixtures.json")
@@ -28,11 +29,10 @@ EXPECTED_OUTCOMES = %w[MAPPED NOT_LIFECYCLE DISABLED].freeze
 EXPECTED_NEGATIVE_LABELS = [
   "a native event type not in lifecycle_event_map or non_lifecycle_event_types",
   "outcome MAPPED with adapter_output_ref not a URN",
+  "outcome MAPPED with a native_event_type that has no lifecycle_event_map entry",
   "outcome DISABLED with adapter_output_ref still present",
   "outcome NOT_LIFECYCLE with adapter_output_ref present",
   "outcome not in the declared outcomes enum",
-  "a MAPPED run whose native_event_type has no lifecycle_event_map entry",
-  "a MAPPED run whose mapped_to does not equal the declared map entry",
   "a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types",
   "a run declaring adapter_required true",
   "a run declaring requires_all_users_install true",
@@ -92,13 +92,12 @@ def claude_code_mapping_failure(spec, run)
   return "CLAUDE_CODE_OUTPUT_NOT_REF" unless output_ref.is_a?(String) && URN_PATTERN.match?(output_ref)
   return "CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT" unless lifecycle_map.key?(native_event)
 
-  # CLAUDE_CODE_MAP_TARGET_UNKNOWN（contract 自身的 map entry 指向不存在的
-  # lifecycle key）交給下面的結構斷言在 gate 一開始就攔下，這裡不重覆判斷——
-  # declared_target 永遠是已通過結構驗證的合法值，重覆保留會是死碼
-  # （同 SSP-291 EPROFILE_ADAPTER_MAPPING_NOT_BOUND、SSP-307 CODEX_MAP_TARGET_UNKNOWN
-  # 的同一取捨）。
-  declared_target = lifecycle_map.fetch(native_event)
-  return "CLAUDE_CODE_MAPPING_TARGET_MISMATCH" unless run["mapped_to"] == declared_target
+  # SSP308-F-02（repair-01）：lifecycle_event_map 本輪為空（見契約 design_note），
+  # 所以 lifecycle_map.key?(native_event) 一律為 false，上一行永遠先回傳。
+  # 「mapped_to 是否等於 declared map entry」這條分支目前是資料驅動的死碼——
+  # 不是邏輯上永遠不可達（map 一旦有條目就會重新可達），而是這一輪的資料使它
+  # 暫時不可達，所以整段連同 CLAUDE_CODE_MAPPING_TARGET_MISMATCH 一起移除，
+  # 等 runtime probe 讓 map 真的有條目時再依當時的 guard parity 補回。
 
   nil
 end
@@ -138,7 +137,9 @@ assert(sorted_set(spec.dig("mapping_run", "outcomes")) == sorted_set(EXPECTED_OU
 
 lifecycle_map = spec.dig("lifecycle_event_map", "map") || {}
 non_lifecycle = spec.dig("non_lifecycle_event_types", "events") || []
-assert(!lifecycle_map.empty?, "lifecycle_event_map 不得為空", failures)
+# SSP308-F-02（repair-01）：lifecycle_map 本輪刻意為空（見契約 design_note），
+# 不再斷言非空——「不得為空」在 v0.1 是合理的，但這輪的正確狀態就是空，
+# 強行要求非空會逼著在沒有實測資料的情況下硬塞一個猜測的條目回去。
 lifecycle_map.each do |native_event, target|
   assert(target_lifecycle_keys.include?(target),
          "lifecycle_event_map.#{native_event} 的目標 #{target} 必須是 ai-task-card-record.lifecycle_event_to_status 的 key",
@@ -147,18 +148,21 @@ end
 overlap = lifecycle_map.keys & non_lifecycle
 assert(overlap.empty?, "lifecycle_event_map 與 non_lifecycle_event_types 不得重疊：#{overlap.join(", ")}", failures)
 
-# --- 完整性：分類必須涵蓋公開文件記載的封閉 hook 事件集合 -------------------
+# --- 完整性：分類必須涵蓋凍結的公開文件事件快照 -----------------------------
 #
-# 這裡不是 runtime probe（本輪範圍縮減，見契約 scope_reduction_from_ssp307）。
-# hook_events 是文件化的封閉集合，完整性對照文件本身驗證，而不是對照即時掃描
-# 出來的語料——這是不同的驗證方式，不是比較弱的驗證。
+# SSP308-F-03（repair-01）：v0.1 是拿同一份 YAML 裡兩張手寫清單互比，
+# 證明不了跟真實文件的關係。改成對照 HOOK_EVENTS_SNAPSHOT_PATH——
+# 一份帶 source_url／captured_at 出處的獨立凍結檔，不是這份契約自己寫的。
 
-documented_hook_events = spec.dig("documented_native_vocabulary", "hook_events")
+hook_events_snapshot = read_json(HOOK_EVENTS_SNAPSHOT_PATH)
+documented_hook_events = hook_events_snapshot.fetch("hook_events")
+assert(present?(hook_events_snapshot["source_url"]), "hook events snapshot 必須記錄 source_url 出處", failures)
+assert(present?(hook_events_snapshot["captured_at"]), "hook events snapshot 必須記錄 captured_at", failures)
 classified = lifecycle_map.keys + non_lifecycle
 assert(
   sorted_set(documented_hook_events) == sorted_set(classified),
-  "documented_native_vocabulary.hook_events 必須與 lifecycle_event_map + non_lifecycle_event_types 的聯集逐字相符：" \
-  "文件 #{sorted_set(documented_hook_events).to_a.sort.inspect} vs 分類 #{sorted_set(classified).to_a.sort.inspect}",
+  "凍結的 hook events 快照必須與 lifecycle_event_map + non_lifecycle_event_types 的聯集逐字相符：" \
+  "快照 #{sorted_set(documented_hook_events).to_a.sort.inspect} vs 分類 #{sorted_set(classified).to_a.sort.inspect}",
   failures
 )
 
