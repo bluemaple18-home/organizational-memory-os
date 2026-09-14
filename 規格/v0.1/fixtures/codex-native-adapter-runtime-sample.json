@@ -1,0 +1,18 @@
+{
+  "fixture_id": "codex-native-adapter-runtime-sample-v0.1",
+  "captured_at": "2026-09-14",
+  "method": "full-corpus scan of ~/.codex/sessions/**/*.jsonl on the development machine; only event_msg.payload.type read, no content",
+  "sampled_sessions": 818,
+  "event_type_counts": {
+    "task_started": 9529,
+    "task_complete": 9392,
+    "turn_aborted": 104,
+    "thread_goal_updated": 95,
+    "thread_settings_applied": 4001,
+    "item_completed": 60008,
+    "token_count": 41642,
+    "user_message": 18,
+    "agent_message": 18,
+    "agent_reasoning": 2
+  }
+}
