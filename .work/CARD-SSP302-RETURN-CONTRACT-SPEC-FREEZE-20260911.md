@@ -1,6 +1,6 @@
 ---
 id: SSP302-RETURN-CONTRACT-SPEC-FREEZE-20260911
-status: AMENDMENT_OWNER_RESIGNED_20260914
+status: OWNER_SIGNED_ACCEPTED_GO_20260914
 type: spec_freeze
 tier: T2
 review_line: SSP-302 error-code 契約完整性

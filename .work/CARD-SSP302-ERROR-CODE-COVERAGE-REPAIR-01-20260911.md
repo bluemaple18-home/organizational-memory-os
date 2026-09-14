@@ -1,6 +1,6 @@
 ---
 id: SSP302-ERROR-CODE-COVERAGE-REPAIR-01-20260911
-status: SUPERSEDED_BY_REPAIR_02
+status: SUPERSEDED_NO_GO_BY_REPAIR_02
 type: repair
 review_line: SSP-302 error-code 契約完整性
 original_review_sha: 19b099bd3bb14325d1b6cca6c22b1d0535bbf505

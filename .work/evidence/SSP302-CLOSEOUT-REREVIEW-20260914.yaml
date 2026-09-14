@@ -1,0 +1,91 @@
+ticket: SSP-302
+requirement: AIWR-05 Loop — error-code 契約完整性收尾
+lane: B
+tier: T1 (closeout implementing an Owner T2 spec-freeze)
+
+review_line:
+  base_sha: "096cea3b92d4b5bb42896b3f8422f3b94da2f0c9"
+  original_review_sha: "19b099bd3bb14325d1b6cca6c22b1d0535bbf505"
+  original_verdict: NO_GO
+  original_counts: { p0: 0, p1: 0, p2: 1, p3: 0 }
+  original_finding: "SSP302-F-01: error_contract 完整性斷言比對兩張手寫清單，非 evaluator 實際可回傳集合"
+
+  repair_01_sha: "cf62d640b78000bb2516526bb4bb75d1afb34a04"
+  repair_01_verdict: NO_GO
+  repair_01_finding: "regex return-form 白名單仍語法特定，只認以 return 開頭的實體行"
+
+  repair_02_sha: "14cf20a879922aa0910458c7ae276a0288fd8d7f"
+  repair_02_verdict: NO_GO
+  repair_02_finding: "隱式回傳（method 最後一個 expression）完全沒有 :return node，AST 掃描看不到"
+  hard_stop_triggered: true
+  hard_stop_rule: "同一 blocker 第 3 次失敗即停"
+
+  spec_freeze_sha: "8b03bbc"
+  spec_freeze_signed_by: OWNER
+  spec_freeze_signature: "FP-1: B / FP-2: A / FP-3: A / FP-4: A（2026-09-11）"
+
+  closeout_sha: "81e1e86a1503efb529d63e53264bc3ed759bbf40"
+  closeout_verdict: NO_GO
+  closeout_finding: "SSP302-CLOSEOUT-F-01（P2）：signed acceptance drift — FP-3-A 驗收基準（D2 判定）在簽核後被 evidence 更正，未經 Owner 重簽"
+
+  fp3_amendment_sha: "07b2812e3ae7755e8ff5947e71f3b8994db88763"
+  fp3_amendment_signed_by: OWNER
+  fp3_amendment_signature: "FP-3（修正版）: 同意，重簽日期 2026-09-14"
+
+  final_verdict: GO
+  final_counts: { p0: 0, p1: 0, p2: 0, p3: 0 }
+  reviewer_routing_decided_by: OWNER
+
+findings:
+  - id: SSP302-F-01
+    severity: P2
+    status: CLOSED
+    summary: reachable_loop_failure_codes 對 evaluator 實際可回傳集合是 under-approximation
+    closed_by: >-
+      改用 Ripper 語法樹窮舉 loop_closeout_failure 的全部 return site（顯式），
+      加上 Owner 簽定的 FP-1-B 出口形狀凍結（bodystmt 無 rescue/else/ensure，
+      最後一句必須恰為 nil 字面量），使方法只剩兩種回傳途徑，出口集合成為全集。
+  - id: SSP302-CLOSEOUT-F-01
+    severity: P2
+    status: CLOSED
+    summary: FP-3-A 驗收基準在 Owner 簽核後被 evidence 修改，未經重簽即用於驗收
+    closed_by: >-
+      新增「FP-3-A 修正案」區塊（保留原簽核文字不重寫），明確寫出修正版驗收條款，
+      Owner 於 07b2812 正式重簽。技術實作（81e1e86）全程未變動。
+
+verification:
+  fp1b_tail_position_bypass: { total: 10, red: 10, green: 0 }
+  fp1b_noop_control_group: { total: 2, green: 2, red: 0 }
+  prior_round_c_series_regression: { total: 12, red: 11, green: 1 }
+  rename_parity: { total: 15, red: 15, green: 0 }
+  guard_parity: { total: 17, red: 17, green: 0, assertion_red: 15, exception_red: 2 }
+  existing_fixture_verdicts_unchanged: true
+  ruby_validators: { pass: 21, fail: 0 }
+  python_engines: { pass: 4, fail: 0 }
+  git_diff_check: clean
+  validator_line_count: 380
+  helper_line_count: 159
+  file_size_limit: 400
+
+mainline_self_verify:
+  merged_at: "e2d1ecb"
+  ruby_validators: { pass: 21, fail: 0 }
+  python_engines: { pass: 4, fail: 0 }
+  git_diff_check: clean
+
+deferred_to_backlog:
+  - id: SSP291-EXIT-SHAPE-BACKLOG-20260911
+    summary: >-
+      evidence_profile_failure（SSP-291，已 merge）有相同的隱式回傳缺口
+      （實測確認）。依 Owner 簽核的 FP-2-A，本卡不處理，另開 backlog 卡；
+      loop_return_contract 模組已泛用化，屆時改中性名稱即可接上。
+
+lessons:
+  - 同一 blocker 連續三輪 NO_GO 觸發全域 hard stop，正確路徑是轉 Owner spec-freeze
+    而非繼續猜下一種語法（regex → 逼近開放集合 → 第四種構造仍會打穿；
+    改為凍結出口形狀 → 可窮舉 → 才真正收斂）。
+  - 簽核後修改任何已簽驗收條款的語意，必須重新取得簽核，即使技術判讀本身正確；
+    治理缺口與技術缺口是兩種不同的 finding，不能互相抵銷。
+
+accepted_by: OWNER
+accepted_on: "2026-09-14"
