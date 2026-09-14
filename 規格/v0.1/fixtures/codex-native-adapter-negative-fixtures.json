@@ -10,7 +10,8 @@
         "native_event_type": "some_future_native_event",
         "outcome": "MAPPED",
         "mapped_to": "start",
-        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "task_ref": "turn-01a08a6f-40cb-7fd3-8c47-e53b18265215"
       }
     },
     {
@@ -68,7 +69,8 @@
         "native_event_type": "thread_goal_updated",
         "outcome": "MAPPED",
         "mapped_to": "start",
-        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "task_ref": "turn-01a08a6f-40cb-7fd3-8c47-e53b18265215"
       }
     },
     {
@@ -184,6 +186,44 @@
         "mapped_to": "start",
         "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
         "core_flow_blocked_without_adapter": true
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_MAPPED_TO_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_MAPPING_TARGET_MISMATCH",
+      "covers_negative_fixture": "a MAPPED run whose mapped_to does not equal the declared map entry",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "complete",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "task_ref": "turn-01a08a6f-40cb-7fd3-8c47-e53b18265215"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_TASK_REF_ABSENT",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_MISSING_TASK_REF",
+      "covers_negative_fixture": "outcome MAPPED with a blank or absent task_ref",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+      }
+    },
+    {
+      "case_id": "CODEX_NEG_TASK_REF_WHITESPACE",
+      "expected": "deny",
+      "expected_failure_code": "CODEX_MISSING_TASK_REF",
+      "covers_negative_fixture": "outcome MAPPED with a blank or absent task_ref",
+      "run": {
+        "native_event_type": "task_started",
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "task_ref": "   "
       }
     }
   ],

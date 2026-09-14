@@ -178,11 +178,14 @@
       }
     },
     {
-      "case_id": "CLAUDE_CODE_POS_STOP_NOT_LIFECYCLE",
+      "case_id": "CLAUDE_CODE_POS_STOP_MAPS_SUBMIT_REVIEW",
       "expected": "allow",
       "run": {
         "native_event_type": "Stop",
-        "outcome": "NOT_LIFECYCLE"
+        "outcome": "MAPPED",
+        "mapped_to": "submit_review",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:Stop:001",
+        "task_ref": "prompt-8f0e2c1a-1b2c-4d3e-9f0a-1234567890ab"
       }
     },
     {
@@ -242,11 +245,14 @@
       }
     },
     {
-      "case_id": "CLAUDE_CODE_POS_USERPROMPTSUBMIT_NOT_LIFECYCLE",
+      "case_id": "CLAUDE_CODE_POS_USERPROMPTSUBMIT_MAPS_START",
       "expected": "allow",
       "run": {
         "native_event_type": "UserPromptSubmit",
-        "outcome": "NOT_LIFECYCLE"
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:UserPromptSubmit:001",
+        "task_ref": "prompt-8f0e2c1a-1b2c-4d3e-9f0a-1234567890ab"
       }
     },
     {

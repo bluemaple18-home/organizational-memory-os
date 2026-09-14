@@ -30,6 +30,8 @@ EXPECTED_NEGATIVE_LABELS = [
   "a native event type not in lifecycle_event_map or non_lifecycle_event_types",
   "outcome MAPPED with adapter_output_ref not a URN",
   "outcome MAPPED with a native_event_type that has no lifecycle_event_map entry",
+  "a MAPPED run whose mapped_to does not equal the declared map entry",
+  "outcome MAPPED with a blank or absent task_ref",
   "outcome DISABLED with adapter_output_ref still present",
   "outcome NOT_LIFECYCLE with adapter_output_ref present",
   "outcome not in the declared outcomes enum",
@@ -90,14 +92,19 @@ def claude_code_mapping_failure(spec, run)
 
   # outcome == "MAPPED"
   return "CLAUDE_CODE_OUTPUT_NOT_REF" unless output_ref.is_a?(String) && URN_PATTERN.match?(output_ref)
+  # POST_MERGE_FIX_01：task_ref 是下游 Hook 用來把事件歸屬到哪一張卡的
+  # 關聯鍵（ai-work-record-hook.yaml 的 event_envelope_fields.task_ref）。
+  # 批次組裝（去重、排序、transition 合法性）是在 task_ref 範圍內做的，
+  # 不是整個 host session 一批——這正是 UserPromptSubmit/Stop 為何過去
+  # 被判定「不安全」的真正根因：不是映射本身錯，是呼叫端沒有欄位可以
+  # 告訴 Hook 這個事件屬於哪個 task_ref。本檔不驗證 task_ref 的值是否等於
+  # 真實 prompt_id（mapping_run 是抽象化後的分類紀錄，不是原始 hook 輸入），
+  # 只要求呼叫端必須供應一個非空字串。
+  return "CLAUDE_CODE_MISSING_TASK_REF" unless run["task_ref"].is_a?(String) && !run["task_ref"].strip.empty?
   return "CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT" unless lifecycle_map.key?(native_event)
 
-  # SSP308-F-02（repair-01）：lifecycle_event_map 本輪為空（見契約 design_note），
-  # 所以 lifecycle_map.key?(native_event) 一律為 false，上一行永遠先回傳。
-  # 「mapped_to 是否等於 declared map entry」這條分支目前是資料驅動的死碼——
-  # 不是邏輯上永遠不可達（map 一旦有條目就會重新可達），而是這一輪的資料使它
-  # 暫時不可達，所以整段連同 CLAUDE_CODE_MAPPING_TARGET_MISMATCH 一起移除，
-  # 等 runtime probe 讓 map 真的有條目時再依當時的 guard parity 補回。
+  declared_target = lifecycle_map.fetch(native_event)
+  return "CLAUDE_CODE_MAPPING_TARGET_MISMATCH" unless run["mapped_to"] == declared_target
 
   nil
 end
@@ -137,9 +144,9 @@ assert(sorted_set(spec.dig("mapping_run", "outcomes")) == sorted_set(EXPECTED_OU
 
 lifecycle_map = spec.dig("lifecycle_event_map", "map") || {}
 non_lifecycle = spec.dig("non_lifecycle_event_types", "events") || []
-# SSP308-F-02（repair-01）：lifecycle_map 本輪刻意為空（見契約 design_note），
-# 不再斷言非空——「不得為空」在 v0.1 是合理的，但這輪的正確狀態就是空，
-# 強行要求非空會逼著在沒有實測資料的情況下硬塞一個猜測的條目回去。
+# POST_MERGE_FIX_01：lifecycle_map 重新有條目（task_ref 讓
+# UserPromptSubmit／Stop 的映射重新安全），恢復非空斷言。
+assert(!lifecycle_map.empty?, "lifecycle_event_map 不得為空", failures)
 lifecycle_map.each do |native_event, target|
   assert(target_lifecycle_keys.include?(target),
          "lifecycle_event_map.#{native_event} 的目標 #{target} 必須是 ai-task-card-record.lifecycle_event_to_status 的 key",

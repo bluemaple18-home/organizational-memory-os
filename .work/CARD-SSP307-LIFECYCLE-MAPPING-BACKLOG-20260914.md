@@ -1,6 +1,6 @@
 ---
 id: SSP307-LIFECYCLE-MAPPING-BACKLOG-20260914
-status: BACKLOG
+status: SUPERSEDED_BY_TASK_REF_FIX
 type: implementation
 tier: T1
 jira: SSP-307（AIWR-09，後續強化）
@@ -9,7 +9,14 @@ origin: "SSP-307 POST_MERGE_FIX_01：lifecycle_event_map 清空後，映射決�
 
 # SSP-307 Lifecycle Mapping（現為硬性前置，等真實發生頻率資料）
 
-## 現況（POST_MERGE_FIX_01 之後）
+## SUPERSEDED（2026-09-14）
+
+`task_started`／`task_complete` 都已透過 `task_ref`（`turn_id`）機制重新映射，
+見 `.work/CARD-NATIVE-ADAPTERS-TASK-REF-CORRELATION-20260914.md`。這張卡
+不再是這兩個事件的待辦。如果未來又找到別的候選事件要映射，開新卡，不要
+重新打開這張。
+
+## 現況（POST_MERGE_FIX_01 之後，歷史記錄）
 
 `codex-native-adapter.yaml` 的 `lifecycle_event_map` 目前清空。
 `task_started`／`task_complete` 都已改列 `non_lifecycle_event_types`——
