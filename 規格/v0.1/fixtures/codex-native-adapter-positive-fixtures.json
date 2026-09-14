@@ -2,23 +2,19 @@
   "fixture_id": "codex-native-adapter-positive-fixtures-v0.1",
   "mapping_cases": [
     {
-      "case_id": "CODEX_POS_TASK_STARTED_MAPS_START",
+      "case_id": "CODEX_POS_TASK_STARTED_NOT_LIFECYCLE",
       "expected": "allow",
       "run": {
         "native_event_type": "task_started",
-        "outcome": "MAPPED",
-        "mapped_to": "start",
-        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001"
+        "outcome": "NOT_LIFECYCLE"
       }
     },
     {
-      "case_id": "CODEX_POS_TASK_COMPLETE_MAPS_SUBMIT_REVIEW",
+      "case_id": "CODEX_POS_TASK_COMPLETE_NOT_LIFECYCLE",
       "expected": "allow",
       "run": {
         "native_event_type": "task_complete",
-        "outcome": "MAPPED",
-        "mapped_to": "submit_review",
-        "adapter_output_ref": "urn:omos:codex-native:evidence:task_complete:001"
+        "outcome": "NOT_LIFECYCLE"
       }
     },
     {
@@ -132,11 +128,10 @@
         "agent_reasoning",
         "turn_aborted"
       ],
-      "classified_lifecycle_keys": [
-        "task_started",
-        "task_complete"
-      ],
+      "classified_lifecycle_keys": [],
       "classified_non_lifecycle_types": [
+        "task_started",
+        "task_complete",
         "item_completed",
         "token_count",
         "thread_settings_applied",
