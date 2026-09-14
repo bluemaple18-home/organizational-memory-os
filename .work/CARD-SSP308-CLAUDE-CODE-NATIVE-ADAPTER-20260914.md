@@ -1,6 +1,6 @@
 ---
 id: SSP308-CLAUDE-CODE-NATIVE-ADAPTER-20260914
-status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
+status: ACCEPTED_GO_20260914
 type: implementation
 jira: SSP-308（AIWR-10 Claude Code Native Adapter／Runtime Probe）
 lane: B

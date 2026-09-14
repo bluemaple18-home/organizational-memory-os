@@ -1,0 +1,95 @@
+ticket: SSP-308
+requirement: AIWR-10 Claude Code Native Adapter / Runtime Probe
+lane: B
+tier: T1
+sibling_of: SSP-307 (AIWR-09 Codex Native Adapter, ACCEPTED_GO @ 32b3f82)
+
+review_line:
+  base_sha: "9a6fd1c"
+  original_review_sha: "90bc32d881abb5a3fae9490a6cfffd2f283c5729"
+  original_verdict: NO_GO
+  original_counts: { p0: 0, p1: 2, p2: 1, p3: 0 }
+  original_findings:
+    - id: SSP308-F-01
+      severity: P1
+      summary: documented_native_vocabulary listed only 9 hooks; real published set is 33
+    - id: SSP308-F-02
+      severity: P1
+      summary: SessionStart->start / Stop->submit_review assume at-most-once-per-Work-Record firing, which is false (Stop is per-turn; SessionStart re-fires after /clear or compaction)
+    - id: SSP308-F-03
+      severity: P2
+      summary: completeness check compared two hand-written lists in the same YAML file, not against an external provenanced source
+
+  repair_01_sha: "081d9601ee33b9ff1a39ead21e713dbac989a375"
+  repair_01_verdict: GO
+  repair_01_counts: { p0: 0, p1: 0, p2: 0, p3: 0 }
+  repair_01_closed: [SSP308-F-01, SSP308-F-02, SSP308-F-03]
+
+  final_verdict: GO
+  final_counts: { p0: 0, p1: 0, p2: 0, p3: 0 }
+  reviewer_routing_decided_by: OWNER
+
+findings:
+  - id: SSP308-F-01
+    severity: P1
+    status: CLOSED
+    closed_by: >-
+      re-fetched https://code.claude.com/docs/en/hooks directly; 33 real
+      event names, frozen into
+      規格/v0.1/fixtures/claude-code-hook-events-doc-snapshot.json with
+      source_url + captured_at provenance.
+  - id: SSP308-F-02
+    severity: P1
+    status: CLOSED
+    closed_by: >-
+      confirmed via official docs that Stop is per-turn cadence and
+      SessionStart re-fires after /clear or compaction within one session;
+      cross-checked against ai-task-card-record.yaml
+      allowed_status_transitions (no OPEN->OPEN or IN_REVIEW->IN_REVIEW
+      edge exists). lifecycle_event_map emptied; all 33 documented events
+      classified non-lifecycle this round. The deferred runtime-probe
+      backlog card (SSP308-RUNTIME-PROBE-BACKLOG-20260914) was escalated
+      from optional enhancement to a hard prerequisite for
+      lifecycle_event_map ever gaining an entry.
+  - id: SSP308-F-03
+    severity: P2
+    status: CLOSED
+    closed_by: >-
+      completeness check now compares against the independent, provenance-
+      carrying frozen snapshot file instead of two lists hand-written in
+      the same contract YAML.
+
+verification:
+  evaluator_guard_parity:
+    claude_code_mapping_failure: { total: 14, red: 14, green: 0 }
+    claude_code_rollback_failure: { total: 6, red: 6, green: 0 }
+  structural_cross_contract_probes: { total: 4, red: 4, green: 0 }
+  ruby_validators: { pass: 23, fail: 0 }
+  python_engines: { pass: 4, fail: 0 }
+  git_diff_check: clean
+  validator_line_count: 267
+  contract_line_count: 269
+  file_size_limit: 400
+
+mainline_self_verify:
+  merged_at: "97d68fe"
+  ruby_validators: { pass: 23, fail: 0 }
+  python_engines: { pass: 4, fail: 0 }
+  git_diff_check: clean
+
+disclosed_but_not_fixed_here:
+  - concern: >-
+      SSP-307 (already ACCEPTED_GO + merged @ 32b3f82) maps
+      task_started -> start and task_complete -> submit_review. Real
+      measured data (task_started 9529 / task_complete 9392 across 818
+      sessions, ~11.6 average occurrences per session) strongly suggests
+      the same per-turn-cadence shape that caused SSP308-F-02. Not fixed
+      in this review line -- SSP-307 is a separate, already-accepted
+      review line; this concern was surfaced directly to Owner for a
+      routing decision, not acted on unilaterally.
+    surfaced_to: OWNER
+    surfaced_at: "2026-09-14, in-conversation, during SSP-308 repair-01 research"
+    action_pending: Owner to decide whether to open a repair card for SSP-307
+
+accepted_by: OWNER
+accepted_on: "2026-09-14"
