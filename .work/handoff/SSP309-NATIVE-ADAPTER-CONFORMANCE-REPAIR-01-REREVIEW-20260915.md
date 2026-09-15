@@ -7,11 +7,11 @@
 ```
 base                5e511c4
 original_review     6ebd527   （NO_GO，P2=2）
-repair_commit        <此次 push 的 HEAD，見下方 commit>
+repair_commit       31b7d56
 branch              cc/ssp309-native-adapter-conformance
 ```
 
-定點 diff：`git diff 6ebd527..<repair_commit>` —— 只動
+定點 diff：`git diff 6ebd527..31b7d56` —— 只動
 `scripts/validate_ssp309_native_adapter_conformance.rb`，沒有動任何契約
 檔案或其他 validator。
 
