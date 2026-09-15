@@ -1,6 +1,7 @@
 ---
 id: NATIVE-ADAPTERS-CORRELATION-CLOSEOUT-20260914
-status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
+status: ACCEPTED_GO
+merged_commit: 6bfacff
 type: implementation
 tier: T1
 jira: SSP-307（已 ACCEPTED_GO + merged）／SSP-308（已 ACCEPTED_GO + merged）
@@ -76,3 +77,21 @@ evaluator 不驗證」。**不動任何 enforcement 邏輯**。新增一個正�
 ## Evidence
 
 `.work/evidence/NATIVE-ADAPTERS-CORRELATION-CLOSEOUT-20260914.md`
+`.work/evidence/NATIVE-ADAPTERS-CORRELATION-CLOSEOUT-REPAIR-01-20260915.md`
+
+## Receipt
+
+- 大 review（`a01f26c`）：NO_GO，P1=1（兩份契約 `design_note` 舊段落
+  自我推翻 FP-1-A／FP-3-A，殘留機械改名前的錯誤宣稱）。FP-2-A（`stop_hook_active`）
+  當輪即接受，未重開。
+- repair-01（`a3b39a7`）：只改契約文字，移除錯誤宣稱，改寫為
+  caller-responsibility 敘述；未動任何 `.rb` evaluator。
+- 定點 re-review（`1cc6ca5`）：GO，P0=P1=P2=P3=0。
+- Mainline self-verify（merge 前）：23 Ruby validators PASS、
+  4 Python schema engine PASS（`document_adapter_mapping_instances`／
+  `cc_cross_layer_contract`／`jira_adapter_mapping_instances`／
+  `std_schema_engine`）、`git diff --check` clean、residual grep 0 命中。
+- 合併：`6bfacff`（`main`），來源 branch
+  `cc/native-adapters-correlation-v2`（`a01f26c`／`3b4338b`／`a3b39a7`／`1cc6ca5`）。
+- 前一輪被 NO_GO、未合併的 `cc/native-adapters-task-ref-correlation`
+  仍不回收，保留參考、不刪。
