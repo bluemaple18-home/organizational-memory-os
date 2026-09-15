@@ -1,6 +1,7 @@
 ---
 id: SSP309-NATIVE-ADAPTER-CONFORMANCE-20260915
-status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
+status: ACCEPTED_GO
+merged_commit: 43fef85
 type: implementation
 tier: T1
 jira: SSP-309 (AIWR-11) — 既有票，非新開
@@ -88,3 +89,8 @@ Code 這邊有已知問題）。**不要求差集為零**——只要求差集�
 - repair-01：兩處都改成讀 parsed YAML 的實際值／內容，不再只驗 key 存在
   或掃 raw text。用 reviewer 給的原始 mutation 對真實檔案重放兩次，皆
   正確被擋，還原後 0 diff。
+- 定點 re-review（`96bce18`）：GO，P0=P1=P2=P3=0。
+- Mainline self-verify（merge 前）：24 Ruby validators PASS、4 Python
+  schema engine PASS、`git diff --check` clean。
+- 合併：`43fef85`（`main`），來源 branch
+  `cc/ssp309-native-adapter-conformance`（`6ebd527`／`31b7d56`／`96bce18`）。
