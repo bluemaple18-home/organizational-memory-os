@@ -7,11 +7,11 @@
 ```
 base                0b5f7f9
 original_review     fc98c82   （NO_GO，P1=2，P2=1）
-repair_commit        <此次 push 的 HEAD，見下方 commit>
+repair_commit       f04f7b1
 branch              cc/ssp310-pilot-runtime-hook
 ```
 
-定點 diff：`git diff fc98c82..<repair_commit>`
+定點 diff：`git diff fc98c82..f04f7b1`
 
 ## 逐筆收法
 
