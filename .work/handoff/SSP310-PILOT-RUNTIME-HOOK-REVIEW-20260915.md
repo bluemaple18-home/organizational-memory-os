@@ -4,11 +4,11 @@
 
 ```
 base    0b5f7f9
-review  <此次 push 的 HEAD，見下方 commit>
+review  fc98c82
 branch  cc/ssp310-pilot-runtime-hook
 ```
 
-`git diff 0b5f7f9..<review>` 只新增：`.claude/hooks/aiwr_pilot_hook.rb`、
+`git diff 0b5f7f9..fc98c82` 只新增：`.claude/hooks/aiwr_pilot_hook.rb`、
 `.claude/settings.json`、卡片、evidence、本交付包。沒有修改任何既有契約
 或 validator。
 
