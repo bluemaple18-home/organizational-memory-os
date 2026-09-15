@@ -126,3 +126,18 @@ hook 實際收到的 stdin JSON），官方文件確認：
 ## Evidence
 
 `.work/evidence/NATIVE-ADAPTERS-TASK-REF-CORRELATION-20260914.md`
+
+## 收尾（2026-09-15）
+
+Owner 簽核的 spec-freeze（`CARD-NATIVE-ADAPTERS-TASK-REF-SPEC-FREEZE-
+20260914.md`，`FP-1: A / FP-2: A / FP-3: A`）後續由**全新**
+worktree／branch（`cc/native-adapters-correlation-v2`）實作，卡片是
+`CARD-NATIVE-ADAPTERS-CORRELATION-CLOSEOUT-20260914.md`，已大 review
+NO_GO 一次 → repair-01 → `GO`，合併 `main` @ `6bfacff`，`ACCEPTED_GO`。
+
+本卡與這個 branch（`cc/native-adapters-task-ref-correlation`）**維持不
+合併**，只作為第一次嘗試的歷史紀錄保留——它發現的根因（`mapping_run`
+缺關聯鍵欄位）分析正確，被完整採用；被 NO_GO 的是欄位命名（`task_ref`
+跟 Hook 既有欄位撞名）與兩個遺漏（Claude `stop_hook_active`、Hook 批次
+組批沒有機器保證），這些都在簽核後的實作裡修正。此分支不會再被回收或
+合併，此後不需要再處理。
