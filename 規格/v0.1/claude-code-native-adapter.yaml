@@ -108,21 +108,40 @@ lifecycle_event_map:
     documented as usable "to correlate the start (UserPromptSubmit) and
     end (Stop) of the same turn." SessionStart does not receive prompt_id
     ("absent until the first user input"), so it stays out of this map --
-    it cannot be correlated to a specific turn's native_correlation_ref, and mapping it
-    to start would double-count the first turn once SessionStart and
-    UserPromptSubmit are both live for it if it were also mapped. This is
-    the same structural finding as the sibling codex-native-adapter's
-    POST_MERGE_FIX_02: the previous "unsafe on repeat" conclusion was true
-    given the Adapter's mapping_run shape had no field to carry which
-    native_correlation_ref an event belonged to, not because UserPromptSubmit/Stop are
-    inherently unsafe. Adding native_correlation_ref (mapping_run.native_correlation_ref_rule) and
-    requiring the caller populate it from the native event's own prompt_id
-    restores the mapping: each prompt_id gets its own Hook batch (see
-    ai-work-record-hook.yaml.capture_contract.event_envelope_fields.native_correlation_ref),
-    and UserPromptSubmit/Stop each appear at most once within it.
-    .work/CARD-SSP308-RUNTIME-PROBE-BACKLOG-20260914.md is superseded by
-    this fix for these two events; it stays open for SessionEnd and any
-    future candidate.
+    it cannot be correlated to a specific turn's native_correlation_ref,
+    and mapping it to start would double-count the first turn once
+    SessionStart and UserPromptSubmit are both live for it if it were
+    also mapped. This is the same structural finding as the sibling
+    codex-native-adapter's POST_MERGE_FIX_02: the previous "unsafe on
+    repeat" conclusion was true given the Adapter's mapping_run shape had
+    no field to carry which turn an event belonged to, not because
+    UserPromptSubmit/Stop are inherently unsafe. Adding
+    native_correlation_ref (mapping_run.native_correlation_ref_rule) and
+    requiring the caller populate it from the native event's own
+    prompt_id gives the caller that per-turn identifier.
+
+    SPEC_FREEZE FP-1-A / FP-3-A (2026-09-15, after big review NO_GO'd a
+    first attempt that named this field task_ref and claimed the Hook
+    itself scopes batches by it): neither claim survives contact with
+    ai-work-record-hook.yaml. Its capture_contract.event_envelope_fields
+    is task_ref, not native_correlation_ref, and task_ref must be an OMOS
+    task-card URN -- a different identity than a raw prompt_id.
+    hook_capture_failure does not scope or group by task_ref either (see
+    ai-work-record-hook.yaml capture_contract.batch_scoping_rule): it
+    checks each envelope's task_ref is a URN independently and then
+    de-dupes / replays the whole raw array as one sequence, with no
+    assertion that every envelope shares one task_ref. So
+    native_correlation_ref does not by itself restore anything -- it only
+    gives the caller a real, stable per-turn identifier. Making the
+    mapping safe still requires the caller to (a) resolve
+    native_correlation_ref to the actual task-card task_ref this event
+    belongs to, and (b) assemble one hook_capture_failure call per
+    task_ref. Both are caller responsibilities this Adapter does not
+    perform and does not claim to. lifecycle_event_map is restored;
+    UserPromptSubmit/Stop move back out of non_lifecycle_event_types on
+    that basis -- .work/CARD-SSP308-RUNTIME-PROBE-BACKLOG-20260914.md is
+    superseded by this fix for these two events; it stays open for
+    SessionEnd and any future candidate.
 
 non_lifecycle_event_types:
   events:
