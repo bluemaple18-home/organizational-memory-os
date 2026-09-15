@@ -1,6 +1,6 @@
 ---
 id: SSP310-PILOT-RUNTIME-HOOK-20260915
-status: AWAITING_BIG_REVIEW
+status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
 type: implementation
 tier: T2
 jira: SSP-310 (AIWR-12) — 既有票，非新開
@@ -84,3 +84,16 @@ Code 版本行為與文件不符），停下回報 Owner，不擅自擴大範圍
 ## Evidence
 
 `.work/evidence/SSP310-PILOT-RUNTIME-HOOK-20260915.md`
+`.work/evidence/SSP310-PILOT-RUNTIME-HOOK-REPAIR-01-20260915.md`
+
+## 大 review 記錄
+
+- `fc98c82`：NO_GO，P1×2（committed `.claude/settings.json` 其實是
+  shared project settings，不是 worktree-only；debug log 透過
+  `e.message` 洩漏 stdin 內容） + P2×1（dry-run 沒有驗證真的符合既有
+  contract，reviewer 重放發現兩個假陽性）。
+- repair-01：`.claude/settings.json` 改名 `.claude/settings.pilot.json`，
+  改用 `claude --settings` 明示啟用；debug log 只記穩定 class/reason
+  code，不再有任何 stdin 衍生文字；`classify` 改成只有確定合法的情況才
+  寫 record，其餘一律不寫。用機械抽取的真實 evaluator 函式重放修復後
+  寫出的 3 筆 record，全部 `VALID (nil)`。
