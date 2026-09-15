@@ -1,6 +1,7 @@
 ---
 id: SSP310-PILOT-RUNTIME-HOOK-20260915
-status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
+status: ACCEPTED_GO
+merged_commit: f939b33
 type: implementation
 tier: T2
 jira: SSP-310 (AIWR-12) — 既有票，非新開
@@ -97,3 +98,10 @@ Code 版本行為與文件不符），停下回報 Owner，不擅自擴大範圍
   code，不再有任何 stdin 衍生文字；`classify` 改成只有確定合法的情況才
   寫 record，其餘一律不寫。用機械抽取的真實 evaluator 函式重放修復後
   寫出的 3 筆 record，全部 `VALID (nil)`。
+- 定點 re-review（`f7eca45`）：GO，P0=P1=P2=P3=0。
+- Mainline self-verify（merge 前）：24 Ruby validators PASS、
+  `git diff --check` clean，額外重放兩個 adversarial case（`stop_hook_
+  active=true`、含密語的 malformed JSON）確認無 evidence 誤寫、無內容
+  洩漏。
+- 合併：`f939b33`（`main`），來源 branch
+  `cc/ssp310-pilot-runtime-hook`（`fc98c82`／`f04f7b1`／`f7eca45`）。
