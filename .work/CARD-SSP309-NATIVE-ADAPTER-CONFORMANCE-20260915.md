@@ -1,6 +1,6 @@
 ---
 id: SSP309-NATIVE-ADAPTER-CONFORMANCE-20260915
-status: AWAITING_BIG_REVIEW
+status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
 type: implementation
 tier: T1
 jira: SSP-309 (AIWR-11) — 既有票，非新開
@@ -79,3 +79,12 @@ Code 這邊有已知問題）。**不要求差集為零**——只要求差集�
 ## Evidence
 
 `.work/evidence/SSP309-NATIVE-ADAPTER-CONFORMANCE-20260915.md`
+`.work/evidence/SSP309-NATIVE-ADAPTER-CONFORMANCE-REPAIR-01-20260915.md`
+
+## 大 review 記錄
+
+- `6ebd527`：NO_GO，P2×2（C-01 `*_rule: null` 空殼騙過豁免；C-02 raw text
+  comment 騙過 count>=2）。
+- repair-01：兩處都改成讀 parsed YAML 的實際值／內容，不再只驗 key 存在
+  或掃 raw text。用 reviewer 給的原始 mutation 對真實檔案重放兩次，皆
+  正確被擋，還原後 0 diff。
