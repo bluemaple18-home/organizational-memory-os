@@ -32,7 +32,10 @@ require "time"
 require "yaml"
 require "fileutils"
 
-PROJECT_DIR = ENV.fetch("CLAUDE_PROJECT_DIR", File.expand_path("../..", __dir__))
+# 一律用這支腳本自己的位置定位 repo（.claude/hooks/ 往上兩層），不依賴
+# CLAUDE_PROJECT_DIR——否則從別的目錄啟動 session 時，log 會被寫到那個
+# 目錄去。這支 hook 服務的永遠是它自己所在的這個 repo。
+PROJECT_DIR = File.expand_path("../..", __dir__)
 SPEC_PATH = File.join(PROJECT_DIR, "規格/v0.1/claude-code-native-adapter.yaml")
 LOG_PATH = File.join(PROJECT_DIR, ".work/evidence/ssp310-pilot-runtime-log.jsonl")
 DEBUG_LOG_PATH = File.join(PROJECT_DIR, ".work/evidence/ssp310-pilot-runtime-debug.log")

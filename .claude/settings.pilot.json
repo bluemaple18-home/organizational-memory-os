@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "ruby \"${CLAUDE_PROJECT_DIR}/.claude/hooks/aiwr_pilot_hook.rb\"",
+            "command": "ruby \"/Users/matt/Documents/ChatGPT/知識庫/.claude/hooks/aiwr_pilot_hook.rb\"",
             "timeout": 10
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "ruby \"${CLAUDE_PROJECT_DIR}/.claude/hooks/aiwr_pilot_hook.rb\"",
+            "command": "ruby \"/Users/matt/Documents/ChatGPT/知識庫/.claude/hooks/aiwr_pilot_hook.rb\"",
             "timeout": 10
           }
         ]
