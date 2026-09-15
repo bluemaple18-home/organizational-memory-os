@@ -1,6 +1,6 @@
 ---
 id: SSP308-RUNTIME-PROBE-BACKLOG-20260914
-status: BACKLOG
+status: PARTIALLY_SUPERSEDED_BY_CORRELATION_CLOSEOUT
 type: implementation
 tier: T1
 jira: SSP-308（AIWR-10，後續強化）
@@ -15,7 +15,16 @@ escalated: >-
 
 # SSP-308 Runtime Probe（現為 lifecycle_event_map 的硬性前置）
 
-## 現況（repair-01 之後）
+## PARTIALLY SUPERSEDED（2026-09-14）
+
+`UserPromptSubmit`／`Stop` 都已透過 `native_correlation_ref`
+（值為 `prompt_id`）機制重新映射，`Stop` 額外用 `stop_hook_active`
+排除掉同一 turn 內的延續事件，見
+`.work/CARD-NATIVE-ADAPTERS-CORRELATION-CLOSEOUT-20260914.md`。這張卡
+對這兩個事件不再是待辦，但 `SessionEnd`（`reason` 分布未知）與其他 31
+個事件仍然沒有 lifecycle 映射，這張卡對它們仍然有效。
+
+## 現況（repair-01 之後，歷史記錄）
 
 `claude-code-native-adapter.yaml` 對真實文件（33 個 hook 事件，凍結於
 `規格/v0.1/fixtures/claude-code-hook-events-doc-snapshot.json`，帶

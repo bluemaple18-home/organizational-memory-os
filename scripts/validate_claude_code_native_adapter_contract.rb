@@ -30,6 +30,9 @@ EXPECTED_NEGATIVE_LABELS = [
   "a native event type not in lifecycle_event_map or non_lifecycle_event_types",
   "outcome MAPPED with adapter_output_ref not a URN",
   "outcome MAPPED with a native_event_type that has no lifecycle_event_map entry",
+  "a MAPPED run whose mapped_to does not equal the declared map entry",
+  "outcome MAPPED with a blank or absent native_correlation_ref",
+  "a MAPPED Stop run with stop_hook_active true",
   "outcome DISABLED with adapter_output_ref still present",
   "outcome NOT_LIFECYCLE with adapter_output_ref present",
   "outcome not in the declared outcomes enum",
@@ -90,14 +93,29 @@ def claude_code_mapping_failure(spec, run)
 
   # outcome == "MAPPED"
   return "CLAUDE_CODE_OUTPUT_NOT_REF" unless output_ref.is_a?(String) && URN_PATTERN.match?(output_ref)
+  # POST_MERGE_FIX_01 / SPEC_FREEZE FP-1-A：native_correlation_ref 是這個
+  # Adapter 自己的欄位，明確不是 ai-work-record-hook.yaml 的 task_ref
+  # （那是 task-card URN，本 Adapter 不核發也不解析）。它只承載原生事件
+  # 自己的 per-turn 識別碼，讓呼叫端知道哪些事件屬於同一個 turn——
+  # UserPromptSubmit/Stop 過去被判「不安全」的根因是呼叫端完全沒有欄位
+  # 可以表達這件事，不是映射本身錯。把 native_correlation_ref 翻成 Hook
+  # 真正要的 task_ref 是呼叫端的責任，不是這個 evaluator 的。本檔不驗證
+  # 值是否等於真實 prompt_id（mapping_run 是抽象化後的分類紀錄，不是
+  # 原始 hook 輸入），只要求呼叫端必須供應一個非空字串。
+  return "CLAUDE_CODE_MISSING_NATIVE_CORRELATION_REF" unless run["native_correlation_ref"].is_a?(String) && !run["native_correlation_ref"].strip.empty?
   return "CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT" unless lifecycle_map.key?(native_event)
 
-  # SSP308-F-02（repair-01）：lifecycle_event_map 本輪為空（見契約 design_note），
-  # 所以 lifecycle_map.key?(native_event) 一律為 false，上一行永遠先回傳。
-  # 「mapped_to 是否等於 declared map entry」這條分支目前是資料驅動的死碼——
-  # 不是邏輯上永遠不可達（map 一旦有條目就會重新可達），而是這一輪的資料使它
-  # 暫時不可達，所以整段連同 CLAUDE_CODE_MAPPING_TARGET_MISMATCH 一起移除，
-  # 等 runtime probe 讓 map 真的有條目時再依當時的 guard parity 補回。
+  # SPEC_FREEZE FP-2-A：Stop 可以在同一個 turn 內觸發多次——Stop hook 用
+  # exit code 2 擋下停止、Claude 繼續講，Stop 會再發一次。官方文件把這個
+  # 情境放在 stop_hook_active 欄位：true 代表這一次是已經被擋過的延續，
+  # 不是真正的終態。如果照樣放行成 submit_review，同一個
+  # native_correlation_ref 底下會收到第二次 submit_review，重新撞上
+  # IN_REVIEW -> IN_REVIEW（原本 big review NO_GO 的 F-02）。只對 Stop
+  # 檢查，因為 stop_hook_active 是文件裡對 Stop 這個 hook 特定的欄位。
+  return "CLAUDE_CODE_STOP_HOOK_ACTIVE_NOT_TERMINAL" if native_event == "Stop" && run["stop_hook_active"] == true
+
+  declared_target = lifecycle_map.fetch(native_event)
+  return "CLAUDE_CODE_MAPPING_TARGET_MISMATCH" unless run["mapped_to"] == declared_target
 
   nil
 end
@@ -137,9 +155,9 @@ assert(sorted_set(spec.dig("mapping_run", "outcomes")) == sorted_set(EXPECTED_OU
 
 lifecycle_map = spec.dig("lifecycle_event_map", "map") || {}
 non_lifecycle = spec.dig("non_lifecycle_event_types", "events") || []
-# SSP308-F-02（repair-01）：lifecycle_map 本輪刻意為空（見契約 design_note），
-# 不再斷言非空——「不得為空」在 v0.1 是合理的，但這輪的正確狀態就是空，
-# 強行要求非空會逼著在沒有實測資料的情況下硬塞一個猜測的條目回去。
+# POST_MERGE_FIX_01：lifecycle_map 重新有條目（native_correlation_ref 讓
+# UserPromptSubmit／Stop 的映射重新安全），恢復非空斷言。
+assert(!lifecycle_map.empty?, "lifecycle_event_map 不得為空", failures)
 lifecycle_map.each do |native_event, target|
   assert(target_lifecycle_keys.include?(target),
          "lifecycle_event_map.#{native_event} 的目標 #{target} 必須是 ai-task-card-record.lifecycle_event_to_status 的 key",

@@ -2,19 +2,25 @@
   "fixture_id": "codex-native-adapter-positive-fixtures-v0.1",
   "mapping_cases": [
     {
-      "case_id": "CODEX_POS_TASK_STARTED_NOT_LIFECYCLE",
+      "case_id": "CODEX_POS_TASK_STARTED_MAPS_START",
       "expected": "allow",
       "run": {
         "native_event_type": "task_started",
-        "outcome": "NOT_LIFECYCLE"
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_started:001",
+        "native_correlation_ref": "turn-01a08a6f-40cb-7fd3-8c47-e53b18265215"
       }
     },
     {
-      "case_id": "CODEX_POS_TASK_COMPLETE_NOT_LIFECYCLE",
+      "case_id": "CODEX_POS_TASK_COMPLETE_MAPS_SUBMIT_REVIEW",
       "expected": "allow",
       "run": {
         "native_event_type": "task_complete",
-        "outcome": "NOT_LIFECYCLE"
+        "outcome": "MAPPED",
+        "mapped_to": "submit_review",
+        "adapter_output_ref": "urn:omos:codex-native:evidence:task_complete:001",
+        "native_correlation_ref": "turn-01a08a6f-40cb-7fd3-8c47-e53b18265215"
       }
     },
     {
@@ -128,10 +134,11 @@
         "agent_reasoning",
         "turn_aborted"
       ],
-      "classified_lifecycle_keys": [],
-      "classified_non_lifecycle_types": [
+      "classified_lifecycle_keys": [
         "task_started",
-        "task_complete",
+        "task_complete"
+      ],
+      "classified_non_lifecycle_types": [
         "item_completed",
         "token_count",
         "thread_settings_applied",

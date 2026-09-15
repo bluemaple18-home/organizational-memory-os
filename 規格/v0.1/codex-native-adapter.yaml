@@ -48,11 +48,16 @@ measured_native_vocabulary:
     CODEX_UNCLASSIFIED_NATIVE_EVENT.
 
 lifecycle_event_map:
-  map: {}
+  map:
+    task_started: start
+    task_complete: submit_review
   rule: >-
     each key is a native event_msg.payload.type value; each value must be a
     key of ai-task-card-record.lifecycle_event_to_status, enforced by a
-    structural assertion at gate time.
+    structural assertion at gate time. A MAPPED mapping_run additionally
+    requires native_correlation_ref (see mapping_run.native_correlation_ref_rule) -- see design_note
+    POST_MERGE_FIX_02 for why this field is what makes the mapping below
+    safe.
   design_note: >-
     SSP307-F-01 (repair-01, 2026-09-14): task_complete was originally mapped
     to complete (-> DONE), but ai-task-card-record.allowed_status_transitions
@@ -87,13 +92,46 @@ lifecycle_event_map:
     verification now shows that assumption was false in the large
     majority of real usage. Per this contract's own no-guessing rule and
     matching the resolution already applied to SSP-308's identical shape
-    of problem: lifecycle_event_map is emptied. task_started and
-    task_complete move to non_lifecycle_event_types (see
-    task_started_note / task_complete_note below). The mapping decision is
-    deferred to a runtime-probe-informed follow-up
-    (.work/CARD-SSP307-PER-TURN-CADENCE-FIX-20260914.md), which is a hard
-    prerequisite for either event regaining a lifecycle_event_map entry --
-    same posture as codex-native-adapter's sibling contract.
+    of problem: lifecycle_event_map was emptied at the time. task_started
+    and task_complete moved to non_lifecycle_event_types, and the mapping
+    decision was deferred to a runtime-probe-informed follow-up.
+
+    POST_MERGE_FIX_02 (2026-09-14): inspected the real payload of
+    task_started / task_complete events in the already-authorized session
+    corpus (structural fields only -- turn_id, started_at,
+    model_context_window, completed_at, duration_ms; no message content
+    was read). Every task_started/task_complete pair for the same turn
+    carries the same turn_id, and every turn within a session has a
+    distinct turn_id. The per-turn-cadence problem in POST_MERGE_FIX_01
+    was never that task_started -> start / task_complete -> submit_review
+    are unsafe mappings -- it was that this Adapter's mapping_run shape had
+    no field carrying which turn each translated event belonged to. Adding
+    native_correlation_ref (mapping_run.native_correlation_ref_rule) and
+    requiring the caller populate it from the native event's own turn_id
+    gives the caller that information.
+
+    SPEC_FREEZE FP-1-A / FP-3-A (2026-09-15, after big review NO_GO'd a
+    first attempt that named this field task_ref and claimed the Hook
+    itself scopes batches by it): neither claim survives contact with
+    ai-work-record-hook.yaml. Its capture_contract.event_envelope_fields
+    is task_ref, not native_correlation_ref, and task_ref must be an OMOS
+    task-card URN -- a different identity than a raw turn_id.
+    hook_capture_failure does not scope or group by task_ref either (see
+    ai-work-record-hook.yaml capture_contract.batch_scoping_rule): it
+    checks each envelope's task_ref is a URN independently and then
+    de-dupes / replays the whole raw array as one sequence, with no
+    assertion that every envelope shares one task_ref. So
+    native_correlation_ref does not by itself restore anything -- it only
+    gives the caller a real, stable per-turn identifier. Making the
+    mapping safe still requires the caller to (a) resolve
+    native_correlation_ref to the actual task-card task_ref this event
+    belongs to, and (b) assemble one hook_capture_failure call per
+    task_ref. Both are caller responsibilities this Adapter does not
+    perform and does not claim to. lifecycle_event_map is restored;
+    task_started and task_complete move back out of
+    non_lifecycle_event_types on that basis --
+    .work/CARD-SSP307-LIFECYCLE-MAPPING-BACKLOG-20260914.md is superseded
+    by this fix for these two events, not still open.
 
     Codex's native lifecycle has no equivalent of block / unblock -- those
     are AIWR/task-card constructs with no native Codex session event backing
@@ -109,28 +147,12 @@ non_lifecycle_event_types:
     - agent_message
     - agent_reasoning
     - turn_aborted
-    - task_started
-    - task_complete
   rule: >-
     these are real, frequently-observed native event types that never drive
     a task_card lifecycle transition. Listing them here is what distinguishes
     "known and deliberately excluded" from "unknown" -- an event type must
     appear in exactly one of lifecycle_event_map.keys or
     non_lifecycle_event_types.events, never both, never neither.
-  task_started_note: >-
-    POST_MERGE_FIX_01 (2026-09-14): task_started occurs 2+ times in 75.2%
-    of the 830 real sessions scanned in this round's independent
-    per-session cadence check (not the 818-session vocabulary snapshot
-    in measured_native_vocabulary, and not the aggregate total used at
-    original implementation time). Not a fires-once Work-Record boundary;
-    classified non-lifecycle pending the runtime probe. See
-    lifecycle_event_map.design_note for the full account.
-  task_complete_note: >-
-    POST_MERGE_FIX_01 (2026-09-14): same shape as task_started_note.
-    task_complete occurs 2+ times in 73.6% of real sessions. A second
-    occurrence mapped to submit_review would attempt
-    IN_REVIEW -> IN_REVIEW, which allowed_status_transitions does not
-    define. Classified non-lifecycle pending the runtime probe.
   turn_aborted_note: >-
     SSP307-F-02 (repair-01, 2026-09-14): turn_aborted was originally mapped
     to cancel, but Codex's own runtime treats an aborted turn as resumable
@@ -173,12 +195,40 @@ mapping_run:
     - native_event_type
     - mapped_to
     - adapter_output_ref
+    - native_correlation_ref
     - outcome
   outcomes:
     - MAPPED
     - NOT_LIFECYCLE
     - DISABLED
   output_ref_rule: adapter_output_ref is an omos URN string (reference only).
+  native_correlation_ref_rule: >-
+    POST_MERGE_FIX_02 (2026-09-14) named this field task_ref, which
+    collided with ai-work-record-hook.yaml.capture_contract.
+    event_envelope_fields.task_ref -- an existing, ACCEPTED_GO field that
+    validate_ai_work_record_hook_contract.rb requires to be an OMOS
+    task-card URN (urn:omos:task-card:<uuid>), not a raw native turn
+    identifier. Big review NO_GO'd that conflation (SPEC_FREEZE FP-1):
+    "which turn produced this event" and "which task card does this event
+    belong to" are two different identities with no guaranteed
+    one-to-one mapping. Renamed to native_correlation_ref per Owner-signed
+    FP-1-A: this field is explicitly NOT ai-work-record-hook.yaml's
+    task_ref, and this Adapter does not mint, resolve, or validate a
+    task-card URN -- that stays entirely out of scope (hard_stops
+    forbids registry/FSM/database). On a MAPPED run,
+    native_correlation_ref must be a non-blank string, populated by the
+    Adapter's caller from the native event's own per-turn identifier
+    (turn_id for Codex; see lifecycle_event_map.design_note
+    POST_MERGE_FIX_02 for the measured evidence this correlation is real
+    and stable per turn). This contract does not itself read or validate
+    the raw turn_id value -- it only requires the field be supplied and
+    non-blank -- because mapping_run is an abstracted classification
+    record, not the raw native event payload. Translating
+    native_correlation_ref into the task_ref the Hook actually requires
+    is the caller's responsibility, not this Adapter's (see
+    ai-work-record-hook.yaml capture_contract.batch_scoping_rule). A
+    MAPPED run with a blank or absent native_correlation_ref is
+    CODEX_MISSING_NATIVE_CORRELATION_REF.
   rule: >-
     outcome not in outcomes is CODEX_INVALID_OUTCOME; a non-URN
     adapter_output_ref on a MAPPED run is CODEX_OUTPUT_NOT_REF; outcome
@@ -231,6 +281,8 @@ disable_and_rollback:
 
 error_contract:
   CODEX_UNCLASSIFIED_NATIVE_EVENT: codex_native.error.unclassified_native_event
+  CODEX_MAPPING_TARGET_MISMATCH: codex_native.error.mapping_target_mismatch
+  CODEX_MISSING_NATIVE_CORRELATION_REF: codex_native.error.missing_native_correlation_ref
   CODEX_ADAPTER_MANDATORY: codex_native.error.adapter_mandatory
   CODEX_ORG_WIDE_INSTALL: codex_native.error.org_wide_install
   CODEX_INVALID_OUTCOME: codex_native.error.invalid_outcome
@@ -252,8 +304,10 @@ cross_reference:
     lifecycle_events_from: ai-task-card-record.lifecycle_event_to_status
 
 hard_stops:
-  - no lifecycle_event_map entry without live firing-frequency evidence
-    from the runtime probe (lifecycle_event_map.design_note POST_MERGE_FIX_01)
+  - no lifecycle_event_map entry without live firing-frequency evidence and
+    a native_correlation_ref correlation key that lets the downstream Hook scope its
+    batch correctly (POST_MERGE_FIX_02 is why task_started/task_complete
+    satisfy this; a future candidate event needs the same evidence bar)
   - no codex runtime / event bus / connector implementation here
   - pure function plus data tables only; no state machine engine
   - do not re-define ai-task-card-record.yaml or ai-work-record-hook.yaml
@@ -267,6 +321,8 @@ required_negative_fixtures:
   - outcome NOT_LIFECYCLE with adapter_output_ref present
   - outcome not in the declared outcomes enum
   - outcome MAPPED with a native_event_type that has no lifecycle_event_map entry
+  - a MAPPED run whose mapped_to does not equal the declared map entry
+  - outcome MAPPED with a blank or absent native_correlation_ref
   - a NOT_LIFECYCLE run whose native_event_type is not in non_lifecycle_event_types
   - a run declaring adapter_required true
   - a run declaring requires_all_users_install true

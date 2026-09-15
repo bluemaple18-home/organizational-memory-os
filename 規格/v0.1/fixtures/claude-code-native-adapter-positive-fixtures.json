@@ -178,11 +178,14 @@
       }
     },
     {
-      "case_id": "CLAUDE_CODE_POS_STOP_NOT_LIFECYCLE",
+      "case_id": "CLAUDE_CODE_POS_STOP_MAPS_SUBMIT_REVIEW",
       "expected": "allow",
       "run": {
         "native_event_type": "Stop",
-        "outcome": "NOT_LIFECYCLE"
+        "outcome": "MAPPED",
+        "mapped_to": "submit_review",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:Stop:001",
+        "native_correlation_ref": "prompt-8f0e2c1a-1b2c-4d3e-9f0a-1234567890ab"
       }
     },
     {
@@ -242,11 +245,14 @@
       }
     },
     {
-      "case_id": "CLAUDE_CODE_POS_USERPROMPTSUBMIT_NOT_LIFECYCLE",
+      "case_id": "CLAUDE_CODE_POS_USERPROMPTSUBMIT_MAPS_START",
       "expected": "allow",
       "run": {
         "native_event_type": "UserPromptSubmit",
-        "outcome": "NOT_LIFECYCLE"
+        "outcome": "MAPPED",
+        "mapped_to": "start",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:UserPromptSubmit:001",
+        "native_correlation_ref": "prompt-8f0e2c1a-1b2c-4d3e-9f0a-1234567890ab"
       }
     },
     {
@@ -271,6 +277,18 @@
       "run": {
         "native_event_type": "SessionStart",
         "outcome": "DISABLED"
+      }
+    },
+    {
+      "case_id": "CLAUDE_CODE_POS_STOP_NOT_ACTIVE_MAPS_SUBMIT_REVIEW",
+      "expected": "allow",
+      "run": {
+        "native_event_type": "Stop",
+        "outcome": "MAPPED",
+        "mapped_to": "submit_review",
+        "adapter_output_ref": "urn:omos:claude-code-native:evidence:Stop:002",
+        "native_correlation_ref": "prompt-1a2b3c4d-5e6f-4a3b-8c9d-0123456789ab",
+        "stop_hook_active": false
       }
     }
   ],

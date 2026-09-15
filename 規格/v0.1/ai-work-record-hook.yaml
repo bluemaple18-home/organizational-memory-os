@@ -36,6 +36,22 @@ capture_contract:
     - event_key
     - evidence_refs
   reference_only: true
+  batch_scoping_rule: >-
+    SPEC_FREEZE FP-3-A (2026-09-14, native-adapters-task_ref-correlation
+    review line): every envelope this evaluator is given in one
+    hook_capture_failure call is assumed to already belong to the same
+    task_ref -- de-duplication and the OPEN/IN_REVIEW transition replay
+    both operate on the whole raw array as a single sequence. This is a
+    caller responsibility, not something hook_capture_failure itself
+    checks: it does not assert that every envelope in raw shares one
+    task_ref, and mixing envelopes from different task_ref values into
+    one call is not currently rejected. Assembling one call per task_ref
+    is on whoever builds the raw array before calling this evaluator
+    (e.g. a Native Adapter's caller translating a native
+    correlation id into the task_ref this batch belongs to). See
+    規格/v0.1/fixtures/ai-work-record-hook-positive-fixtures.json
+    (mixed_task_ref_known_gap case) for a fixture that documents this
+    boundary is real rather than assuming it away.
   idempotency:
     dedupe_by: event_key
     repeated_event_rule: >-

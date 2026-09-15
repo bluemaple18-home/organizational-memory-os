@@ -1,6 +1,6 @@
 schema:
   schema_id: urn:omos:schema:claude-code-native-adapter:0.1.0
-  version: 0.2.0
+  version: 0.3.0
   status: DRAFT_REVIEW_REQUIRED
   date: '2026-09-14'
   traces_to:
@@ -81,23 +81,67 @@ documented_native_vocabulary:
     CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT.
 
 lifecycle_event_map:
-  map: {}
+  map:
+    UserPromptSubmit: start
+    Stop: submit_review
   rule: >-
     each key is a Claude Code hook event name; each value must be a key of
     ai-task-card-record.lifecycle_event_to_status, enforced by a structural
-    assertion at gate time.
+    assertion at gate time. A MAPPED mapping_run additionally requires
+    native_correlation_ref (see mapping_run.native_correlation_ref_rule) -- see design_note
+    POST_MERGE_FIX_01 for why this field is what makes the mapping below
+    safe.
   design_note: >-
-    Deliberately empty this round (see repair_01_history.SSP308-F-02). No
-    hook in the real 33-event set has confirmed fires-at-most-once-per-
-    Work-Record semantics, and this Adapter is architecturally a stateless
-    per-event function (hard_stops forbids a state machine), so it cannot
-    safely disambiguate a genuine lifecycle boundary from a repeat fire.
-    An empty map is the correct output of "don't guess" applied honestly,
-    not an oversight: the card still delivers a complete, accurate
-    classification of all 33 real events, and defers only the mapping
-    decision to when real firing-frequency data exists (see
-    .work/CARD-SSP308-RUNTIME-PROBE-BACKLOG-20260914.md, now a blocker for
-    this map gaining any entry).
+    repair-01 (2026-09-14) left this map deliberately empty: no hook in the
+    real 33-event set had a confirmed fires-at-most-once-per-Work-Record
+    guarantee, and this Adapter is architecturally a stateless per-event
+    function (hard_stops forbids a state machine), so it could not safely
+    disambiguate a genuine lifecycle boundary from a repeat fire.
+
+    POST_MERGE_FIX_01 (2026-09-14, after repair-01 was ACCEPTED_GO and
+    merged): re-fetched the Claude Code hooks documentation for the exact
+    input field schema each hook receives on stdin. Stop's common input
+    fields include prompt_id -- documented as "UUID identifying the user
+    prompt currently being processed... so you can correlate hook output
+    with telemetry for a single prompt" -- and UserPromptSubmit receives
+    the same prompt_id when a new prompt is submitted, explicitly
+    documented as usable "to correlate the start (UserPromptSubmit) and
+    end (Stop) of the same turn." SessionStart does not receive prompt_id
+    ("absent until the first user input"), so it stays out of this map --
+    it cannot be correlated to a specific turn's native_correlation_ref,
+    and mapping it to start would double-count the first turn once
+    SessionStart and UserPromptSubmit are both live for it if it were
+    also mapped. This is the same structural finding as the sibling
+    codex-native-adapter's POST_MERGE_FIX_02: the previous "unsafe on
+    repeat" conclusion was true given the Adapter's mapping_run shape had
+    no field to carry which turn an event belonged to, not because
+    UserPromptSubmit/Stop are inherently unsafe. Adding
+    native_correlation_ref (mapping_run.native_correlation_ref_rule) and
+    requiring the caller populate it from the native event's own
+    prompt_id gives the caller that per-turn identifier.
+
+    SPEC_FREEZE FP-1-A / FP-3-A (2026-09-15, after big review NO_GO'd a
+    first attempt that named this field task_ref and claimed the Hook
+    itself scopes batches by it): neither claim survives contact with
+    ai-work-record-hook.yaml. Its capture_contract.event_envelope_fields
+    is task_ref, not native_correlation_ref, and task_ref must be an OMOS
+    task-card URN -- a different identity than a raw prompt_id.
+    hook_capture_failure does not scope or group by task_ref either (see
+    ai-work-record-hook.yaml capture_contract.batch_scoping_rule): it
+    checks each envelope's task_ref is a URN independently and then
+    de-dupes / replays the whole raw array as one sequence, with no
+    assertion that every envelope shares one task_ref. So
+    native_correlation_ref does not by itself restore anything -- it only
+    gives the caller a real, stable per-turn identifier. Making the
+    mapping safe still requires the caller to (a) resolve
+    native_correlation_ref to the actual task-card task_ref this event
+    belongs to, and (b) assemble one hook_capture_failure call per
+    task_ref. Both are caller responsibilities this Adapter does not
+    perform and does not claim to. lifecycle_event_map is restored;
+    UserPromptSubmit/Stop move back out of non_lifecycle_event_types on
+    that basis -- .work/CARD-SSP308-RUNTIME-PROBE-BACKLOG-20260914.md is
+    superseded by this fix for these two events; it stays open for
+    SessionEnd and any future candidate.
 
 non_lifecycle_event_types:
   events:
@@ -123,7 +167,6 @@ non_lifecycle_event_types:
     - SessionEnd
     - SessionStart
     - Setup
-    - Stop
     - StopFailure
     - SubagentStart
     - SubagentStop
@@ -131,21 +174,23 @@ non_lifecycle_event_types:
     - TaskCreated
     - TeammateIdle
     - UserPromptExpansion
-    - UserPromptSubmit
     - WorktreeCreate
     - WorktreeRemove
   rule: >-
-    every one of the 33 documented hook events is listed here this round
-    (lifecycle_event_map is empty). Listing them here is what distinguishes
-    "known and deliberately excluded" from "unknown" -- a hook event must
-    appear in exactly one of lifecycle_event_map.keys or
-    non_lifecycle_event_types.events, never both, never neither.
+    31 of the 33 documented hook events are listed here (UserPromptSubmit
+    and Stop moved to lifecycle_event_map in POST_MERGE_FIX_01). Listing
+    them here is what distinguishes "known and deliberately excluded" from
+    "unknown" -- a hook event must appear in exactly one of
+    lifecycle_event_map.keys or non_lifecycle_event_types.events, never
+    both, never neither.
   session_start_note: >-
-    SessionStart and Stop are the two events that look most like lifecycle
-    boundaries by name, and were mapped to start/submit_review in v0.1.
-    Both are here now because neither has a doc-confirmed fires-once
-    guarantee (see repair_01_history.SSP308-F-02) -- not because they are
-    judged irrelevant.
+    POST_MERGE_FIX_01 (2026-09-14): SessionStart looks like a lifecycle
+    boundary by name and was mapped to start in v0.1, but the published
+    hook input schema shows it does not receive prompt_id ("absent until
+    the first user input") -- it cannot be correlated to a specific turn's
+    native_correlation_ref the way UserPromptSubmit and Stop can. Kept non-lifecycle, not
+    because it is irrelevant, but because there is no evidenced way to
+    scope it to one native_correlation_ref.
   task_created_note: >-
     TaskCreated/TaskCompleted fire "via TaskCreate" per the published docs,
     which was not confirmed to mean a top-level Work Record boundary as
@@ -181,12 +226,57 @@ mapping_run:
     - native_event_type
     - mapped_to
     - adapter_output_ref
+    - native_correlation_ref
+    - stop_hook_active
     - outcome
+  stop_hook_active_rule: >-
+    SPEC_FREEZE FP-2-A (2026-09-14): Stop can fire multiple times within
+    the same turn -- the published hook input schema documents that a
+    Stop hook can exit with code 2 to block the stop and let Claude
+    continue, and Stop fires again once that continuation ends;
+    stop_hook_active tells the caller whether this particular Stop
+    invocation is such a continuation. A Stop mapping_run with
+    stop_hook_active true is not a genuine turn-end signal and must not
+    be MAPPED to submit_review -- doing so risks a second submit_review
+    within the same native_correlation_ref, which is exactly the illegal
+    IN_REVIEW -> IN_REVIEW transition big review's F-02 finding
+    identified. A MAPPED run for Stop with stop_hook_active true is
+    CLAUDE_CODE_STOP_HOOK_ACTIVE_NOT_TERMINAL. This field is only
+    meaningful for Stop; other native event types ignore it. Absent or
+    false means "not a documented continuation" and is accepted as
+    terminal.
   outcomes:
     - MAPPED
     - NOT_LIFECYCLE
     - DISABLED
   output_ref_rule: adapter_output_ref is an omos URN string (reference only).
+  native_correlation_ref_rule: >-
+    POST_MERGE_FIX_01 (2026-09-14) named this field task_ref, which
+    collided with ai-work-record-hook.yaml.capture_contract.
+    event_envelope_fields.task_ref -- an existing, ACCEPTED_GO field that
+    validate_ai_work_record_hook_contract.rb requires to be an OMOS
+    task-card URN (urn:omos:task-card:<uuid>), not a raw native turn
+    identifier. Big review NO_GO'd that conflation (SPEC_FREEZE FP-1):
+    "which turn produced this event" and "which task card does this event
+    belong to" are two different identities with no guaranteed
+    one-to-one mapping. Renamed to native_correlation_ref per Owner-signed
+    FP-1-A: this field is explicitly NOT ai-work-record-hook.yaml's
+    task_ref, and this Adapter does not mint, resolve, or validate a
+    task-card URN -- that stays entirely out of scope (hard_stops
+    forbids registry/FSM/database). On a MAPPED run,
+    native_correlation_ref must be a non-blank string, populated by the
+    Adapter's caller from the native event's own per-turn identifier
+    (prompt_id for Claude Code -- see lifecycle_event_map.design_note
+    POST_MERGE_FIX_01 for the documented evidence this correlation is
+    real and stable per turn). This contract does not itself read or
+    validate the raw prompt_id value -- it only requires the field be
+    supplied and non-blank -- because mapping_run is an abstracted
+    classification record, not the raw hook input payload. Translating
+    native_correlation_ref into the task_ref the Hook actually requires
+    is the caller's responsibility, not this Adapter's (see
+    ai-work-record-hook.yaml capture_contract.batch_scoping_rule). A
+    MAPPED run with a blank or absent native_correlation_ref is
+    CLAUDE_CODE_MISSING_NATIVE_CORRELATION_REF.
   rule: >-
     outcome not in outcomes is CLAUDE_CODE_INVALID_OUTCOME; a non-URN
     adapter_output_ref on a MAPPED run is CLAUDE_CODE_OUTPUT_NOT_REF; outcome
@@ -197,10 +287,6 @@ mapping_run:
   mapping_binding_rule: >-
     on a MAPPED run, run.native_event_type must have exactly one entry in
     lifecycle_event_map and that entry's target must equal run.mapped_to.
-    With lifecycle_event_map empty this round, every MAPPED-outcome run is
-    CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT by construction -- MAPPED remains
-    a structurally supported outcome (for when the map gains entries after
-    the runtime probe) but is not currently reachable via a genuine map hit.
     On a NOT_LIFECYCLE run, run.native_event_type must be exactly one entry
     of non_lifecycle_event_types. A native_event_type in neither list is
     CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT -- the Adapter never guesses at a
@@ -232,6 +318,9 @@ error_contract:
   CLAUDE_CODE_DISABLED_STILL_MAPPING: claude_code_native.error.disabled_still_mapping
   CLAUDE_CODE_NOT_LIFECYCLE_STILL_MAPPING: claude_code_native.error.not_lifecycle_still_mapping
   CLAUDE_CODE_UNCLASSIFIED_NATIVE_EVENT: claude_code_native.error.unclassified_native_event
+  CLAUDE_CODE_MAPPING_TARGET_MISMATCH: claude_code_native.error.mapping_target_mismatch
+  CLAUDE_CODE_MISSING_NATIVE_CORRELATION_REF: claude_code_native.error.missing_native_correlation_ref
+  CLAUDE_CODE_STOP_HOOK_ACTIVE_NOT_TERMINAL: claude_code_native.error.stop_hook_active_not_terminal
   CLAUDE_CODE_OUTPUT_NOT_REF: claude_code_native.error.output_not_ref
   CLAUDE_CODE_ROLLBACK_MISSING_FIELD: claude_code_native.error.rollback_missing_field
   CLAUDE_CODE_ROLLBACK_SIDE_EFFECT_UNSPECIFIED: claude_code_native.error.rollback_side_effect_unspecified
@@ -250,13 +339,18 @@ hard_stops:
   - do not re-define ai-task-card-record.yaml or ai-work-record-hook.yaml
   - no registry / FSM / database / canonical writer
   - no message content, tool output, or file content read into this repo
-  - no lifecycle_event_map entry without live firing-frequency evidence
-    from the runtime probe (repair_01_history.SSP308-F-02)
+  - no lifecycle_event_map entry without live firing-frequency evidence and
+    a native_correlation_ref correlation key that lets the downstream Hook scope its
+    batch correctly (POST_MERGE_FIX_01 is why UserPromptSubmit/Stop
+    satisfy this; a future candidate event needs the same evidence bar)
 
 required_negative_fixtures:
   - a native event type not in lifecycle_event_map or non_lifecycle_event_types
   - outcome MAPPED with adapter_output_ref not a URN
   - outcome MAPPED with a native_event_type that has no lifecycle_event_map entry
+  - a MAPPED run whose mapped_to does not equal the declared map entry
+  - outcome MAPPED with a blank or absent native_correlation_ref
+  - a MAPPED Stop run with stop_hook_active true
   - outcome DISABLED with adapter_output_ref still present
   - outcome NOT_LIFECYCLE with adapter_output_ref present
   - outcome not in the declared outcomes enum
