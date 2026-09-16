@@ -71,11 +71,21 @@
       "evaluator": "retrieval",
       "expected": "allow",
       "run": {
-        "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666",
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
         "permission_decision_stale": false,
-        "access_granted": true,
-        "decision_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333",
-        "current_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333"
+        "access_granted": true
       }
     },
     {
@@ -83,11 +93,21 @@
       "evaluator": "retrieval",
       "expected": "allow",
       "run": {
-        "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666",
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
         "permission_decision_stale": true,
-        "access_granted": false,
-        "decision_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333",
-        "current_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333"
+        "access_granted": false
       }
     },
     {

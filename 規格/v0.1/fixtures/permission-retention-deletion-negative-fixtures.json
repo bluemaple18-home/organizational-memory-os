@@ -172,11 +172,21 @@
       "expected_failure_code": "PRD_STALE_DECISION_HONOURED",
       "covers_negative_fixture": "a retrieval honouring a stale permission decision",
       "run": {
-        "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666",
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
         "permission_decision_stale": true,
-        "access_granted": true,
-        "decision_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333",
-        "current_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333"
+        "access_granted": true
       }
     },
     {
@@ -186,11 +196,20 @@
       "expected_failure_code": "PRD_MISSING_PERMISSION_DECISION",
       "covers_negative_fixture": "a retrieval without any permission decision",
       "run": {
-        "permission_decision_ref": null,
-        "permission_decision_stale": false,
-        "access_granted": true,
-        "decision_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333",
-        "current_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333"
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": null
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "access_granted": true
       }
     },
     {
@@ -244,7 +263,19 @@
       "expected_failure_code": "PRD_PERMISSION_FRESHNESS_UNKNOWN",
       "covers_negative_fixture": "a retrieval whose acl snapshot freshness cannot be proven",
       "run": {
-        "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666",
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "not-a-urn",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
         "access_granted": true
       }
     },
@@ -255,9 +286,19 @@
       "expected_failure_code": "PRD_STALE_ACL_DECISION_HONOURED",
       "covers_negative_fixture": "a retrieval granted on a decision made against an older acl snapshot",
       "run": {
-        "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666",
-        "decision_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333",
-        "current_acl_snapshot_ref": "urn:omos:acl-snapshot:bbbb2222-cccc-3333-dddd-444444444444",
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:bbbb2222-cccc-7ddd-9eee-444444444444"
+          }
+        },
         "access_granted": true
       }
     },
@@ -285,6 +326,61 @@
             "pre_hold_state": "RETAINED"
           }
         ]
+      }
+    },
+    {
+      "case_id": "PRD_NEG_FRESHNESS_RECORDS_ABSENT",
+      "evaluator": "retrieval",
+      "expected": "deny",
+      "expected_failure_code": "PRD_FRESHNESS_RECORDS_MISSING",
+      "covers_negative_fixture": "a retrieval that supplies no anchor or envelope record",
+      "run": {
+        "access_granted": true
+      }
+    },
+    {
+      "case_id": "PRD_NEG_FRESHNESS_RECORD_EVIDENCE_REF_BLANK",
+      "evaluator": "retrieval",
+      "expected": "deny",
+      "expected_failure_code": "PRD_FRESHNESS_RECORDS_MISSING",
+      "covers_negative_fixture": "a freshness record without an evidence_ref",
+      "run": {
+        "source_anchor": {
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "access_granted": true
+      }
+    },
+    {
+      "case_id": "PRD_NEG_FRESHNESS_RECORDS_DIFFERENT_EVIDENCE",
+      "evaluator": "retrieval",
+      "expected": "deny",
+      "expected_failure_code": "PRD_FRESHNESS_RECORD_MISMATCH",
+      "covers_negative_fixture": "an anchor and envelope that describe different evidence",
+      "run": {
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:9999",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "access_granted": true
       }
     }
   ]

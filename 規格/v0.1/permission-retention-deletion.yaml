@@ -173,10 +173,9 @@ retention_run:
 
 retrieval_run:
   fields:
-    - permission_decision_ref
+    - source_anchor
+    - evidence_envelope
     - permission_decision_stale
-    - decision_acl_snapshot_ref
-    - current_acl_snapshot_ref
     - access_granted
   rule: >-
     A retrieval run that proceeds on a stale decision is rejected. This
@@ -200,6 +199,8 @@ error_contract:
   PRD_HOLD_RELEASE_CONTRADICTS_HISTORY: permission_retention_deletion.error.hold_release_contradicts_history
   PRD_PERMISSION_FRESHNESS_UNKNOWN: permission_retention_deletion.error.permission_freshness_unknown
   PRD_STALE_ACL_DECISION_HONOURED: permission_retention_deletion.error.stale_acl_decision_honoured
+  PRD_FRESHNESS_RECORDS_MISSING: permission_retention_deletion.error.freshness_records_missing
+  PRD_FRESHNESS_RECORD_MISMATCH: permission_retention_deletion.error.freshness_record_mismatch
 
 hard_stops:
   - no retention database, deletion queue or legal-hold registry here

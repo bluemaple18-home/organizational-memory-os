@@ -53,7 +53,10 @@ EXPECTED_NEGATIVE_LABELS = [
   "a retrieval whose acl snapshot freshness cannot be proven",
   "a retrieval granted on a decision made against an older acl snapshot",
   "a history with no transitions at all",
-  "a hold release with no recorded hold entry in the history"
+  "a hold release with no recorded hold entry in the history",
+  "a retrieval that supplies no anchor or envelope record",
+  "a freshness record without an evidence_ref",
+  "an anchor and envelope that describe different evidence"
 ].freeze
 
 def blank?(value)
@@ -159,10 +162,28 @@ end
 def permission_staleness_failure(spec, run)
   acl_pattern = spec.fetch("acl_snapshot_pattern")
 
-  return "PRD_MISSING_PERMISSION_DECISION" if blank?(run["permission_decision_ref"])
+  # repair-02（F-02 第二輪）：兩個 snapshot ref 都由 run 自己提供時，caller
+  # 只要填兩個相同的合法字串就能放行——自述換個位置而已。改成要求提供兩份
+  # **既有契約定義的紀錄**，事實從紀錄自己的欄位讀：
+  #   source_anchor（STD-02）  → access.permission_decision_ref 當初基於
+  #                              access.acl_snapshot_ref 做成
+  #   evidence_envelope（STD-01）→ access.acl_snapshot_ref 是現行 ACL
+  # run 只負責指出「用哪兩份紀錄」，不再直接宣告新鮮度。
+  anchor = run["source_anchor"]
+  envelope = run["evidence_envelope"]
+  return "PRD_FRESHNESS_RECORDS_MISSING" unless anchor.is_a?(Hash) && envelope.is_a?(Hash)
 
-  decision_snapshot = run["decision_acl_snapshot_ref"]
-  current_snapshot = run["current_acl_snapshot_ref"]
+  # 兩份紀錄必須談論同一份證據，否則是拿不相干的東西互比。
+  anchor_evidence_ref = anchor["evidence_ref"]
+  envelope_evidence_ref = envelope["evidence_ref"]
+  return "PRD_FRESHNESS_RECORDS_MISSING" if blank?(anchor_evidence_ref) || blank?(envelope_evidence_ref)
+  return "PRD_FRESHNESS_RECORD_MISMATCH" unless anchor_evidence_ref == envelope_evidence_ref
+
+  decision_ref = anchor.dig("access", "permission_decision_ref")
+  return "PRD_MISSING_PERMISSION_DECISION" if blank?(decision_ref)
+
+  decision_snapshot = anchor.dig("access", "acl_snapshot_ref")
+  current_snapshot = envelope.dig("access", "acl_snapshot_ref")
   freshness_provable = decision_snapshot.is_a?(String) && acl_pattern.match?(decision_snapshot) &&
                        current_snapshot.is_a?(String) && acl_pattern.match?(current_snapshot)
   return "PRD_PERMISSION_FRESHNESS_UNKNOWN" unless freshness_provable
