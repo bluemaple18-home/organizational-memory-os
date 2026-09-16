@@ -1,0 +1,191 @@
+{
+  "contract": "urn:omos:contract:permission-retention-deletion:0.1.0",
+  "cases": [
+    {
+      "case_id": "PRD_POS_RETAINED_TO_EXPIRED",
+      "evaluator": "retention",
+      "expected": "allow",
+      "run": {
+        "from_state": "RETAINED",
+        "to_state": "RETENTION_EXPIRED"
+      }
+    },
+    {
+      "case_id": "PRD_POS_PLACE_LEGAL_HOLD",
+      "evaluator": "retention",
+      "expected": "allow",
+      "run": {
+        "from_state": "RETAINED",
+        "to_state": "LEGAL_HOLD",
+        "legal_hold_active": true
+      }
+    },
+    {
+      "case_id": "PRD_POS_RELEASE_HOLD_BACK_TO_ORIGINAL_STAGE",
+      "evaluator": "retention",
+      "expected": "allow",
+      "run": {
+        "from_state": "LEGAL_HOLD",
+        "to_state": "RETENTION_EXPIRED",
+        "pre_hold_state": "RETENTION_EXPIRED"
+      }
+    },
+    {
+      "case_id": "PRD_POS_EXPIRED_TO_TOMBSTONED",
+      "evaluator": "retention",
+      "expected": "allow",
+      "run": {
+        "from_state": "RETENTION_EXPIRED",
+        "to_state": "TOMBSTONED",
+        "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
+        "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
+        "preserved_identity_fields": [
+          "evidence_id",
+          "digests",
+          "provenance",
+          "chronology"
+        ],
+        "inline_payload_present": false
+      }
+    },
+    {
+      "case_id": "PRD_POS_TOMBSTONED_TO_PURGED",
+      "evaluator": "retention",
+      "expected": "allow",
+      "run": {
+        "from_state": "TOMBSTONED",
+        "to_state": "PURGED",
+        "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
+        "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
+        "preserved_identity_fields": [
+          "evidence_id",
+          "digests",
+          "provenance",
+          "chronology"
+        ],
+        "inline_payload_present": false
+      }
+    },
+    {
+      "case_id": "PRD_POS_FRESH_DECISION_GRANTS_ACCESS",
+      "evaluator": "retrieval",
+      "expected": "allow",
+      "run": {
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "permission_decision_stale": false,
+        "access_granted": true
+      }
+    },
+    {
+      "case_id": "PRD_POS_STALE_DECISION_DENIED_IS_FINE",
+      "evaluator": "retrieval",
+      "expected": "allow",
+      "run": {
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "permission_decision_stale": true,
+        "access_granted": false
+      }
+    },
+    {
+      "case_id": "PRD_POS_HISTORY_HOLD_RELEASE_RETURNS_TO_RECORDED_STAGE",
+      "evaluator": "history",
+      "expected": "allow",
+      "history": {
+        "transitions": [
+          {
+            "from_state": "RETAINED",
+            "to_state": "RETENTION_EXPIRED"
+          },
+          {
+            "from_state": "RETENTION_EXPIRED",
+            "to_state": "LEGAL_HOLD",
+            "legal_hold_active": true
+          },
+          {
+            "from_state": "LEGAL_HOLD",
+            "to_state": "RETENTION_EXPIRED",
+            "pre_hold_state": "RETENTION_EXPIRED"
+          },
+          {
+            "from_state": "RETENTION_EXPIRED",
+            "to_state": "TOMBSTONED",
+            "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
+            "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
+            "preserved_identity_fields": [
+              "evidence_id",
+              "digests",
+              "provenance",
+              "chronology"
+            ],
+            "inline_payload_present": false
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PRD_POS_FORGED_HISTORY_KNOWN_GAP",
+      "evaluator": "history",
+      "expected": "allow",
+      "known_gap": "A self-consistent but fabricated history passes: this layer cannot tell it from the real one. Demonstrates provenance_boundary rather than assuming it away.",
+      "history": {
+        "transitions": [
+          {
+            "from_state": "RETAINED",
+            "to_state": "LEGAL_HOLD"
+          },
+          {
+            "from_state": "LEGAL_HOLD",
+            "to_state": "RETAINED",
+            "pre_hold_state": "RETAINED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PRD_POS_CALLER_SUPPLIED_RECORDS_KNOWN_GAP",
+      "evaluator": "retrieval",
+      "expected": "allow",
+      "known_gap": "The anchor and envelope are supplied by the caller with the run; there is no store to look them up against, so matching snapshots pass even if both records were fabricated.",
+      "run": {
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:known-gap",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:known-gap"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:known-gap",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "access_granted": true
+      }
+    }
+  ]
+}

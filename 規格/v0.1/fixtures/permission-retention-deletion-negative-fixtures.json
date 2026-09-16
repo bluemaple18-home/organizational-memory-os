@@ -1,0 +1,387 @@
+{
+  "contract": "urn:omos:contract:permission-retention-deletion:0.1.0",
+  "cases": [
+    {
+      "case_id": "PRD_NEG_UNKNOWN_FROM_STATE",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_UNKNOWN_RETENTION_STATE",
+      "covers_negative_fixture": "a from_state that is not a declared retention state",
+      "run": {
+        "from_state": "ARCHIVED",
+        "to_state": "RETENTION_EXPIRED"
+      }
+    },
+    {
+      "case_id": "PRD_NEG_UNKNOWN_TO_STATE",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_UNKNOWN_RETENTION_STATE",
+      "covers_negative_fixture": "a to_state that is not a declared retention state",
+      "run": {
+        "from_state": "RETAINED",
+        "to_state": "SHREDDED"
+      }
+    },
+    {
+      "case_id": "PRD_NEG_ILLEGAL_TRANSITION",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_ILLEGAL_RETENTION_TRANSITION",
+      "covers_negative_fixture": "a transition not present in allowed_retention_transitions",
+      "run": {
+        "from_state": "RETAINED",
+        "to_state": "TOMBSTONED"
+      }
+    },
+    {
+      "case_id": "PRD_NEG_DEPART_TERMINAL_STATE",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_TERMINAL_STATE_DEPARTURE",
+      "covers_negative_fixture": "a departure from a terminal state",
+      "run": {
+        "from_state": "PURGED",
+        "to_state": "RETAINED"
+      }
+    },
+    {
+      "case_id": "PRD_NEG_LEGAL_HOLD_BLOCKS_DELETION",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_LEGAL_HOLD_BLOCKS_DELETION",
+      "covers_negative_fixture": "a deletion attempted while legal_hold_active",
+      "run": {
+        "from_state": "RETENTION_EXPIRED",
+        "to_state": "TOMBSTONED",
+        "legal_hold_active": true,
+        "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
+        "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
+        "preserved_identity_fields": [
+          "evidence_id",
+          "digests",
+          "provenance",
+          "chronology"
+        ],
+        "inline_payload_present": false
+      }
+    },
+    {
+      "case_id": "PRD_NEG_HOLD_RELEASE_MISSING_PRE_STATE",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_HOLD_RELEASE_MISSING_PRE_STATE",
+      "covers_negative_fixture": "a hold release without pre_hold_state",
+      "run": {
+        "from_state": "LEGAL_HOLD",
+        "to_state": "RETAINED"
+      }
+    },
+    {
+      "case_id": "PRD_NEG_HOLD_RELEASE_RESETS_RETENTION_CLOCK",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_HOLD_RELEASE_STATE_MISMATCH",
+      "covers_negative_fixture": "a hold release whose target does not equal pre_hold_state",
+      "run": {
+        "from_state": "LEGAL_HOLD",
+        "to_state": "RETAINED",
+        "pre_hold_state": "RETENTION_EXPIRED"
+      }
+    },
+    {
+      "case_id": "PRD_NEG_DELETION_WITHOUT_CONFIRMATION",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_MISSING_DELETION_CONFIRMATION",
+      "covers_negative_fixture": "a deletion without deletion_confirmation_ref",
+      "run": {
+        "from_state": "RETENTION_EXPIRED",
+        "to_state": "TOMBSTONED",
+        "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
+        "preserved_identity_fields": [
+          "evidence_id",
+          "digests",
+          "provenance",
+          "chronology"
+        ],
+        "inline_payload_present": false
+      }
+    },
+    {
+      "case_id": "PRD_NEG_DELETION_WITHOUT_CLEANUP_RECEIPT",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_MISSING_CLEANUP_RECEIPT",
+      "covers_negative_fixture": "a deletion without projection_cleanup_receipt_ref",
+      "run": {
+        "from_state": "RETENTION_EXPIRED",
+        "to_state": "TOMBSTONED",
+        "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
+        "preserved_identity_fields": [
+          "evidence_id",
+          "digests",
+          "provenance",
+          "chronology"
+        ],
+        "inline_payload_present": false
+      }
+    },
+    {
+      "case_id": "PRD_NEG_DELETION_DROPS_IDENTITY",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_IDENTITY_NOT_PRESERVED",
+      "covers_negative_fixture": "a deletion that does not preserve identity fields",
+      "run": {
+        "from_state": "RETENTION_EXPIRED",
+        "to_state": "TOMBSTONED",
+        "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
+        "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
+        "preserved_identity_fields": [
+          "evidence_id",
+          "digests"
+        ],
+        "inline_payload_present": false
+      }
+    },
+    {
+      "case_id": "PRD_NEG_TOMBSTONE_RETAINS_PAYLOAD",
+      "evaluator": "retention",
+      "expected": "deny",
+      "expected_failure_code": "PRD_TOMBSTONE_RETAINS_PAYLOAD",
+      "covers_negative_fixture": "a tombstone that still carries inline payload",
+      "run": {
+        "from_state": "RETENTION_EXPIRED",
+        "to_state": "TOMBSTONED",
+        "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
+        "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
+        "preserved_identity_fields": [
+          "evidence_id",
+          "digests",
+          "provenance",
+          "chronology"
+        ],
+        "inline_payload_present": true
+      }
+    },
+    {
+      "case_id": "PRD_NEG_STALE_DECISION_HONOURED",
+      "evaluator": "retrieval",
+      "expected": "deny",
+      "expected_failure_code": "PRD_STALE_DECISION_HONOURED",
+      "covers_negative_fixture": "a retrieval honouring a stale permission decision",
+      "run": {
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "permission_decision_stale": true,
+        "access_granted": true
+      }
+    },
+    {
+      "case_id": "PRD_NEG_RETRIEVAL_WITHOUT_DECISION",
+      "evaluator": "retrieval",
+      "expected": "deny",
+      "expected_failure_code": "PRD_MISSING_PERMISSION_DECISION",
+      "covers_negative_fixture": "a retrieval without any permission decision",
+      "run": {
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": null
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "access_granted": true
+      }
+    },
+    {
+      "case_id": "PRD_NEG_HISTORY_DISCONTINUOUS",
+      "evaluator": "history",
+      "expected": "deny",
+      "expected_failure_code": "PRD_HISTORY_DISCONTINUOUS",
+      "covers_negative_fixture": "a history whose transitions are discontinuous",
+      "history": {
+        "transitions": [
+          {
+            "from_state": "RETAINED",
+            "to_state": "RETENTION_EXPIRED"
+          },
+          {
+            "from_state": "RETAINED",
+            "to_state": "LEGAL_HOLD"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PRD_NEG_HOLD_RELEASE_CONTRADICTS_HISTORY",
+      "evaluator": "history",
+      "expected": "deny",
+      "expected_failure_code": "PRD_HOLD_RELEASE_CONTRADICTS_HISTORY",
+      "covers_negative_fixture": "a hold release contradicting the recorded hold entry",
+      "history": {
+        "transitions": [
+          {
+            "from_state": "RETAINED",
+            "to_state": "RETENTION_EXPIRED"
+          },
+          {
+            "from_state": "RETENTION_EXPIRED",
+            "to_state": "LEGAL_HOLD",
+            "legal_hold_active": true
+          },
+          {
+            "from_state": "LEGAL_HOLD",
+            "to_state": "RETAINED",
+            "pre_hold_state": "RETAINED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PRD_NEG_FRESHNESS_UNKNOWN",
+      "evaluator": "retrieval",
+      "expected": "deny",
+      "expected_failure_code": "PRD_PERMISSION_FRESHNESS_UNKNOWN",
+      "covers_negative_fixture": "a retrieval whose acl snapshot freshness cannot be proven",
+      "run": {
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "not-a-urn",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "access_granted": true
+      }
+    },
+    {
+      "case_id": "PRD_NEG_GRANTED_ON_OLDER_ACL_SNAPSHOT",
+      "evaluator": "retrieval",
+      "expected": "deny",
+      "expected_failure_code": "PRD_STALE_ACL_DECISION_HONOURED",
+      "covers_negative_fixture": "a retrieval granted on a decision made against an older acl snapshot",
+      "run": {
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:bbbb2222-cccc-7ddd-9eee-444444444444"
+          }
+        },
+        "access_granted": true
+      }
+    },
+    {
+      "case_id": "PRD_NEG_HISTORY_EMPTY",
+      "evaluator": "history",
+      "expected": "deny",
+      "expected_failure_code": "PRD_HISTORY_DISCONTINUOUS",
+      "covers_negative_fixture": "a history with no transitions at all",
+      "history": {
+        "transitions": []
+      }
+    },
+    {
+      "case_id": "PRD_NEG_HOLD_RELEASE_WITHOUT_RECORDED_ENTRY",
+      "evaluator": "history",
+      "expected": "deny",
+      "expected_failure_code": "PRD_HOLD_RELEASE_CONTRADICTS_HISTORY",
+      "covers_negative_fixture": "a hold release with no recorded hold entry in the history",
+      "history": {
+        "transitions": [
+          {
+            "from_state": "LEGAL_HOLD",
+            "to_state": "RETAINED",
+            "pre_hold_state": "RETAINED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PRD_NEG_FRESHNESS_RECORDS_ABSENT",
+      "evaluator": "retrieval",
+      "expected": "deny",
+      "expected_failure_code": "PRD_FRESHNESS_RECORDS_MISSING",
+      "covers_negative_fixture": "a retrieval that supplies no anchor or envelope record",
+      "run": {
+        "access_granted": true
+      }
+    },
+    {
+      "case_id": "PRD_NEG_FRESHNESS_RECORD_EVIDENCE_REF_BLANK",
+      "evaluator": "retrieval",
+      "expected": "deny",
+      "expected_failure_code": "PRD_FRESHNESS_RECORDS_MISSING",
+      "covers_negative_fixture": "a freshness record without an evidence_ref",
+      "run": {
+        "source_anchor": {
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "access_granted": true
+      }
+    },
+    {
+      "case_id": "PRD_NEG_FRESHNESS_RECORDS_DIFFERENT_EVIDENCE",
+      "evaluator": "retrieval",
+      "expected": "deny",
+      "expected_failure_code": "PRD_FRESHNESS_RECORD_MISMATCH",
+      "covers_negative_fixture": "an anchor and envelope that describe different evidence",
+      "run": {
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:eeee5555-ffff-6666-aaaa-777777777777",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:9999",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "access_granted": true
+      }
+    }
+  ]
+}
