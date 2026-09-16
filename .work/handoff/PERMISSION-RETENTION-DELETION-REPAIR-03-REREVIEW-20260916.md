@@ -9,7 +9,7 @@ base                23e6a95
 original_review     12b7c90
 repair_01           4ddbfe5
 repair_02           d058e1f   （NO_GO，P1=1：兩個 normative surface 矛盾）
-repair_commit       <見對話中的派工區塊>
+repair_commit       709f4e9
 branch              cc/permission-retention-deletion
 ```
 
