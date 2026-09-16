@@ -253,6 +253,32 @@ assert(spec.dig("permission_decision_contract", "recompute_strategy") == "ON_NEX
 assert(spec.dig("projection_cleanup_contract", "verifiable") == true,
        "projection_cleanup_contract.verifiable 必須為 true", failures)
 
+# repair-03（big review F-01）：contract 有兩個 normative surface——
+# retrieval_run.fields 與 freshness_binding 的敘述。repair-02 改了輸入形狀卻
+# 沒更新敘述，兩邊導出不同實作。以下雙向鎖住，讓同類漂移一定轉紅：
+#   (1) 宣告的欄位必須真的被 evaluator 讀取，反之亦然；
+#   (2) freshness_binding 的敘述必須提到每一個現行宣告欄位。
+evaluator_source = File.read(__FILE__)[/\ndef permission_staleness_failure\(.*?\n^end\n/m].to_s
+read_keys = evaluator_source.scan(/run\["([a-z_]+)"\]/).flatten.uniq
+declared_retrieval_fields = spec.dig("retrieval_run", "fields") || []
+assert(sorted_set(read_keys) == sorted_set(declared_retrieval_fields),
+       "retrieval_run.fields 必須與 evaluator 實際讀取的 key 相同："\
+       "宣告=#{declared_retrieval_fields.sort} 實讀=#{read_keys.sort}", failures)
+
+# 承載 freshness 事實的是這幾個「紀錄」欄位（access_granted 是被判定的結果，
+# 不是依據，所以不納入）。三方必須對齊：契約宣告、敘述、evaluator 實讀。
+freshness_text = spec.dig("permission_decision_contract", "freshness_binding").to_s
+binding_records = spec.dig("permission_decision_contract", "freshness_binding_records") || []
+assert(!binding_records.empty?, "permission_decision_contract 必須宣告 freshness_binding_records", failures)
+binding_records.each do |field|
+  assert(declared_retrieval_fields.include?(field),
+         "freshness_binding_records 的 #{field} 不在 retrieval_run.fields 裡", failures)
+  assert(read_keys.include?(field),
+         "freshness_binding_records 的 #{field} 沒有被 evaluator 實際讀取", failures)
+  assert(freshness_text.include?(field),
+         "freshness_binding 的敘述未提到 #{field}（敘述與輸入形狀已漂移）", failures)
+end
+
 # provenance 邊界（PRD-PROVENANCE-FP-1-A）：契約宣稱「缺口有示範 fixture 佐證」，
 # 就必須真的有。否則 fixture 被刪掉後，契約仍會宣稱缺口被誠實記錄著。
 assert(spec.dig("provenance_boundary", "does_not_verify") == "SUBMITTED_RECORDS_ARE_AUTHENTIC",

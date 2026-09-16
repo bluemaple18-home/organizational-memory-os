@@ -129,16 +129,34 @@ permission_decision_contract:
     repair-01 (big review F-02): checking only a self-declared
     permission_decision_stale flag means the rule reads "I will block you only
     if you admit you are stale" -- omitting the flag entirely got a grant
-    through. Freshness is therefore bound to STD-01's own access fields
-    instead: a retrieval run must carry decision_acl_snapshot_ref (the
-    acl_snapshot_ref the decision was made against) and
-    current_acl_snapshot_ref (the snapshot in effect now), both matching the
-    acl_snapshot_ref pattern declared in raw-evidence-envelope.schema.json.
-    If the two differ, the source ACL has moved and the decision must not be
-    honoured. If either is missing or malformed, freshness cannot be proven
-    and the run fails closed -- unknown freshness is never treated as fresh.
-    The explicit permission_decision_stale flag still blocks when set, but it
-    is now an additional signal rather than the only one.
+    through.
+
+    repair-02 (big review F-02, second round): the first fix had the run carry
+    two acl_snapshot_ref values directly, which moved the self-declaration
+    rather than removing it -- a caller writing the same legal ref twice was
+    granted. The binding is therefore stated in terms of records, not values:
+    a retrieval run carries source_anchor (an STD-02 SourceAnchor) and
+    evidence_envelope (an STD-01 RawEvidence envelope), and every fact is read
+    from those records' own fields:
+
+      source_anchor.access.permission_decision_ref  -- the decision relied on
+      source_anchor.access.acl_snapshot_ref         -- the ACL it was made against
+      evidence_envelope.access.acl_snapshot_ref     -- the ACL in effect now
+
+    Both records must name the same evidence_ref, otherwise unrelated records
+    are being compared. If the anchor's snapshot differs from the envelope's,
+    the source ACL has moved and the decision must not be honoured. If either
+    record is absent, or either snapshot is missing or does not match the
+    acl_snapshot_ref pattern declared in raw-evidence-envelope.schema.json,
+    freshness cannot be proven and the run fails closed -- unknown freshness is
+    never treated as fresh. The explicit permission_decision_stale flag still
+    blocks when set, but it is an additional signal, not the binding.
+
+    What this does NOT establish is that the submitted records are authentic;
+    see provenance_boundary.
+  freshness_binding_records:
+    - source_anchor
+    - evidence_envelope
   acl_snapshot_pattern_source: 規格/v0.1/raw-evidence-envelope.schema.json#/properties/access/properties/acl_snapshot_ref
 
 # --- FP-5-A：projection / cache cleanup -----------------------------------
