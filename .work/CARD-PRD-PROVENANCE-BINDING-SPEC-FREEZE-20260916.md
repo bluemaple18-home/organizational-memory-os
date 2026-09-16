@@ -1,6 +1,6 @@
 ---
 id: PRD-PROVENANCE-BINDING-SPEC-FREEZE-20260916
-status: AWAITING_OWNER_SIGNATURE
+status: OWNER_SIGNED
 type: spec_freeze
 tier: T2
 blocks: PERMISSION-RETENTION-DELETION-CLOSEOUT-20260916
@@ -53,9 +53,9 @@ trigger: "同一 blocker 連續兩輪被打穿，且查證後確認所有 in-sco
   「ACL 變更即 stale」降級為純語意定義，契約不宣稱能強制。比 (A) 更退一步，
   連缺口都不記錄，CC 不建議。
 
-## 簽核方式
+## 簽核
 
-回一個字母。
+Owner 於 2026-09-16 簽 **(A)**：誠實記錄邊界 ＋ 示範性 fixture，不新增儲存。
 
 ## 目前分支狀態
 

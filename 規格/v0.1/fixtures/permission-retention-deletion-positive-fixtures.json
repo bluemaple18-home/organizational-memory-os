@@ -145,6 +145,47 @@
           }
         ]
       }
+    },
+    {
+      "case_id": "PRD_POS_FORGED_HISTORY_KNOWN_GAP",
+      "evaluator": "history",
+      "expected": "allow",
+      "known_gap": "A self-consistent but fabricated history passes: this layer cannot tell it from the real one. Demonstrates provenance_boundary rather than assuming it away.",
+      "history": {
+        "transitions": [
+          {
+            "from_state": "RETAINED",
+            "to_state": "LEGAL_HOLD"
+          },
+          {
+            "from_state": "LEGAL_HOLD",
+            "to_state": "RETAINED",
+            "pre_hold_state": "RETAINED"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PRD_POS_CALLER_SUPPLIED_RECORDS_KNOWN_GAP",
+      "evaluator": "retrieval",
+      "expected": "allow",
+      "known_gap": "The anchor and envelope are supplied by the caller with the run; there is no store to look them up against, so matching snapshots pass even if both records were fabricated.",
+      "run": {
+        "source_anchor": {
+          "evidence_ref": "urn:omos:evidence:known-gap",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333",
+            "permission_decision_ref": "urn:omos:permission-decision:known-gap"
+          }
+        },
+        "evidence_envelope": {
+          "evidence_ref": "urn:omos:evidence:known-gap",
+          "access": {
+            "acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-7ccc-8ddd-333333333333"
+          }
+        },
+        "access_granted": true
+      }
     }
   ]
 }

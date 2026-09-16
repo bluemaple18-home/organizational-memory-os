@@ -253,6 +253,14 @@ assert(spec.dig("permission_decision_contract", "recompute_strategy") == "ON_NEX
 assert(spec.dig("projection_cleanup_contract", "verifiable") == true,
        "projection_cleanup_contract.verifiable 必須為 true", failures)
 
+# provenance 邊界（PRD-PROVENANCE-FP-1-A）：契約宣稱「缺口有示範 fixture 佐證」，
+# 就必須真的有。否則 fixture 被刪掉後，契約仍會宣稱缺口被誠實記錄著。
+assert(spec.dig("provenance_boundary", "does_not_verify") == "SUBMITTED_RECORDS_ARE_AUTHENTIC",
+       "provenance_boundary.does_not_verify 必須明寫不驗證紀錄真實性", failures)
+declared_gap_fixtures = spec.dig("provenance_boundary", "demonstrative_fixtures") || []
+assert(!declared_gap_fixtures.empty?,
+       "provenance_boundary 必須列出示範性 fixture", failures)
+
 # --- error_contract 與 evaluator 實際可達 code 綁定 ------------------------
 
 EVALUATORS = %w[retention_transition_failure deletion_requirements_failure
@@ -302,6 +310,20 @@ negative_cases.each do |test_case|
   assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
   assert(actual == expected_code, "#{case_id} 預期 #{expected_code}，實際 #{actual.inspect}", failures)
 end
+
+# 示範性 fixture 必須存在於正例中，且要自己標明是已知缺口——避免有人把它們
+# 當成一般正例默默改掉，缺口就又變成「假裝不存在」。
+positive_case_ids = positive_fixtures.fetch("cases").map { |c| c.fetch("case_id") }
+declared_gap_fixtures.each do |case_id|
+  gap_case = positive_fixtures.fetch("cases").find { |c| c.fetch("case_id") == case_id }
+  assert(!gap_case.nil?,
+         "provenance_boundary 宣稱的示範 fixture #{case_id} 不存在於正例中", failures)
+  next if gap_case.nil?
+
+  assert(!blank?(gap_case["known_gap"]),
+         "示範 fixture #{case_id} 必須以 known_gap 說明它為何通過", failures)
+end
+assert(positive_case_ids.uniq.size == positive_case_ids.size, "正例 case_id 不得重複", failures)
 
 covered = sorted_set(negative_cases.map { |c| c.fetch("covers_negative_fixture") })
 missing_labels = sorted_set(EXPECTED_NEGATIVE_LABELS) - covered

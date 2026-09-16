@@ -202,11 +202,47 @@ error_contract:
   PRD_FRESHNESS_RECORDS_MISSING: permission_retention_deletion.error.freshness_records_missing
   PRD_FRESHNESS_RECORD_MISMATCH: permission_retention_deletion.error.freshness_record_mismatch
 
+provenance_boundary:
+  verifies: SUBMITTED_RECORDS_ARE_MUTUALLY_CONSISTENT
+  does_not_verify: SUBMITTED_RECORDS_ARE_AUTHENTIC
+  rule: >-
+    SPEC_FREEZE PRD-PROVENANCE-FP-1-A (2026-09-16): two consecutive big-review
+    rounds established that every authority this contract relies on is supplied
+    by the caller with the run. Round one checked a self-declared
+    pre_hold_state and a self-declared permission_decision_stale flag; round two
+    replaced them with a transitions history and a pair of acl_snapshot_ref
+    values, and a caller that simply submits a self-consistent forged history,
+    or an anchor and envelope carrying the same snapshot, still passes.
+
+    The honest position is that this layer verifies internal consistency, not
+    authenticity. It checks that a retention history is continuous and that a
+    hold release returns to the stage recorded at hold entry *within the
+    submitted history*; it checks that a permission decision's originating ACL
+    snapshot matches the current one *as carried by the submitted anchor and
+    envelope*, and that both describe the same evidence. It does not and cannot
+    check that the submitted history is the real history, or that the submitted
+    records are the real records -- there is no authoritative store in this
+    system to look them up against, and creating one is explicitly out of scope
+    (see hard_stops, and the card's own Constraints).
+
+    Ensuring the submitted records are genuine is therefore the caller's
+    responsibility. This is stated rather than assumed away, following the
+    precedent already set by ai-work-record-hook.yaml capture_contract.
+    batch_scoping_rule. The fixtures named *_KNOWN_GAP below demonstrate that
+    the gap is real: they are positive cases that pass today precisely because
+    authenticity is unverifiable here.
+  caller_responsibility: SUBMITTED_RECORD_AUTHENTICITY
+  precedent: 規格/v0.1/ai-work-record-hook.yaml#capture_contract.batch_scoping_rule
+  demonstrative_fixtures:
+    - PRD_POS_FORGED_HISTORY_KNOWN_GAP
+    - PRD_POS_CALLER_SUPPLIED_RECORDS_KNOWN_GAP
+
 hard_stops:
   - no retention database, deletion queue or legal-hold registry here
   - no new canonical writer
   - no redefinition of STD-01 field names or of the five retention values
   - no state machine engine; transitions are a declared map replayed by a thin evaluator
+  - no authoritative retention-history or decision-receipt store; record authenticity is the caller's responsibility (see provenance_boundary)
 
 cross_reference:
   std01_spec: 規格/v0.1/raw-evidence-envelope.schema.json
