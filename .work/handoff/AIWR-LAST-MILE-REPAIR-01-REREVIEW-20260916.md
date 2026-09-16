@@ -7,11 +7,11 @@
 ```
 base                654313b
 original_review     3d3b53c   （NO_GO，P1=2，P2=1）
-repair_commit       <見對話中的派工區塊>
+repair_commit       7e5eed0
 branch              cc/aiwr-last-mile
 ```
 
-定點 diff：`git diff 3d3b53c..<repair_commit>`
+定點 diff：`git diff 3d3b53c..7e5eed0`
 
 ## 逐筆收法
 
