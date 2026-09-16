@@ -1,6 +1,7 @@
 ---
 id: AIWR-LAST-MILE-CLOSEOUT-20260916
-status: NO_GO_REPAIRED_02_AWAITING_TARGETED_REREVIEW
+status: ACCEPTED_GO
+merged_commit: 80a198a
 type: implementation
 tier: T1
 jira: SSP-310 後續（最後一哩）
@@ -81,6 +82,10 @@ hook 讀 `OMOS_TASK_REF`，把值**原樣**記進 `declared_task_ref`。刻意�
 - repair-02：改為**綁定** `validate_ai_task_card_record_contract.rb` 的
   `CARD_ID_URN` 原始碼（抽不到就 fail loud），而非手抄 UUID regex；
   reviewer 的案例固定成常設負例，另加 canonical UUID 對照組。
+- 定點 re-review（`36c4d97`）：GO，P0=P1=P2=P3=0。
+- Mainline self-verify：25 Ruby validators PASS、4 Python schema engine
+  PASS、`git diff --check` clean、真人 pilot log 未受影響（2 筆、0 行差異）。
+- 合併：`80a198a`（`main`），來源 branch `cc/aiwr-last-mile`。
 
 ## Evidence
 
