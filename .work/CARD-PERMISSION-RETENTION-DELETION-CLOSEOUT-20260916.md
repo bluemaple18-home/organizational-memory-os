@@ -1,6 +1,7 @@
 ---
 id: PERMISSION-RETENTION-DELETION-CLOSEOUT-20260916
-status: NO_GO_REPAIRED_02_AWAITING_TARGETED_REREVIEW
+status: ACCEPTED_GO
+merged_commit: 153700f
 type: implementation
 tier: T1
 jira: SSP-294 前置（repo #4）
@@ -80,6 +81,22 @@ unblocks: CARD-PERMISSION-RETENTION-DELETION-CONTRACT-20260909（BLOCKED_AWAITIN
 4. `LEGAL_HOLD` 無通往刪除狀態的邊；`legal_hold_active` 另有獨立 guard。
 5. 既有 25 支 validator 不受影響，全部 PASS。
 6. `git diff --check` clean。
+
+## 大 review 記錄
+
+- `12b7c90`：NO_GO，P1×2——`pre_hold_state` 與 `permission_decision_stale`
+  都是 caller 自述。
+- repair-01（`4ddbfe5`）：改成 history 陣列＋兩個 snapshot ref → 仍 NO_GO，
+  P1×2，**同一根因**（caller 自己編一份自洽的就能過）。
+- **停止第三次嘗試**，查證後確認 in-scope 已無路（repo 內無任何既有
+  retention 歷史紀錄；建持久紀錄被卡片 Constraints 與 FORBIDDEN_BY_DEFAULT
+  禁止），升級 Owner → 簽 (A)：誠實記錄邊界＋示範性 fixture。
+- repair-02（`d058e1f`）：F-02 改綁 source_anchor／evidence_envelope 的欄位；
+  新增 `provenance_boundary` 與兩個 `*_KNOWN_GAP` fixture。→ NO_GO，P1×1
+  （`freshness_binding` 敘述仍停在舊輸入形狀，兩個 normative surface 矛盾）。
+- repair-03（`709f4e9`）：改寫敘述，並加兩道機器防線（fields ↔ evaluator
+  實讀雙向一致；`freshness_binding_records` 必須同時出現在三處）。
+- 定點 re-review（`655e6a3`）：**GO**，P0=P1=P2=P3=0。
 
 ## Evidence
 
