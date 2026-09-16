@@ -45,8 +45,12 @@ record 1: Stop/submit_review       -> VALID (nil)
 兩筆事件的 `native_correlation_ref` **完全相同**（`unique count = 1`），
 確認 `prompt_id` 真的能把同一個 turn 的 `UserPromptSubmit` 與 `Stop`
 綁在一起——這正是 `SSP-307`／`SSP-308` 兩輪被判「per-turn cadence 不
-安全」的根因，也是 Owner 簽 FP-1-A 時所依據的假設。**現在有真實資料
-支持，不再只是文件推論。**
+安全」的根因，也是 Owner 簽 FP-1-A 時所依據的假設。
+
+**證據範圍（repair-01 依 review 意見收斂措辭）**：這是
+**一個真人 turn 的單次觀測**，證明 FP-1-A 的關聯機制在真實環境可以成立，
+**不能外推**成多 turn、併發 session、或 `Stop` 被阻擋等情境的一般性證明。
+那些情境目前仍只有負例與 dry-run 覆蓋，未有真人資料。
 
 ### 3. 轉移序列合法
 
