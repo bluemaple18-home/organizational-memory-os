@@ -1,0 +1,50 @@
+{
+  "raw_events": [
+    {
+      "task_ref": "urn:omos:task-card:11111111-2222-3333-4444-555555555555",
+      "event": "start",
+      "occurred_at": "2026-09-16T07:22:09Z",
+      "event_key": "[\"f45bea53-915d-4d2b-8a03-c20e4449c032\",\"c49e9276-841b-4d14-869b-ca795c4b48b2\",\"start\"]",
+      "evidence_refs": [
+        "urn:omos:ssp310-pilot-evidence:f45bea53-915d-4d2b-8a03-c20e4449c032:2026-09-16T07:22:09.458025Z"
+      ]
+    },
+    {
+      "task_ref": "urn:omos:task-card:11111111-2222-3333-4444-555555555555",
+      "event": "submit_review",
+      "occurred_at": "2026-09-16T07:22:42Z",
+      "event_key": "[\"f45bea53-915d-4d2b-8a03-c20e4449c032\",\"c49e9276-841b-4d14-869b-ca795c4b48b2\",\"submit_review\"]",
+      "evidence_refs": [
+        "urn:omos:ssp310-pilot-evidence:f45bea53-915d-4d2b-8a03-c20e4449c032:2026-09-16T07:22:42.642740Z"
+      ]
+    }
+  ],
+  "emitted": {
+    "lifecycle_events": [
+      "start",
+      "submit_review"
+    ],
+    "batch": [
+      {
+        "task_ref": "urn:omos:task-card:11111111-2222-3333-4444-555555555555",
+        "event": "start",
+        "occurred_at": "2026-09-16T07:22:09Z",
+        "event_key": "[\"f45bea53-915d-4d2b-8a03-c20e4449c032\",\"c49e9276-841b-4d14-869b-ca795c4b48b2\",\"start\"]",
+        "evidence_refs": [
+          "urn:omos:ssp310-pilot-evidence:f45bea53-915d-4d2b-8a03-c20e4449c032:2026-09-16T07:22:09.458025Z"
+        ]
+      },
+      {
+        "task_ref": "urn:omos:task-card:11111111-2222-3333-4444-555555555555",
+        "event": "submit_review",
+        "occurred_at": "2026-09-16T07:22:42Z",
+        "event_key": "[\"f45bea53-915d-4d2b-8a03-c20e4449c032\",\"c49e9276-841b-4d14-869b-ca795c4b48b2\",\"submit_review\"]",
+        "evidence_refs": [
+          "urn:omos:ssp310-pilot-evidence:f45bea53-915d-4d2b-8a03-c20e4449c032:2026-09-16T07:22:42.642740Z"
+        ]
+      }
+    ]
+  },
+  "host_task_impact": "UNAFFECTED",
+  "disabled": false
+}
