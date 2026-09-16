@@ -78,6 +78,16 @@ def classify(input, lifecycle_map)
   record = { native_event_type: native_event, mapped_to: declared_target, outcome: "MAPPED",
              native_correlation_ref: prompt_id }
   record[:stop_hook_active] = stop_hook_active if native_event == "Stop"
+
+  # SPEC_FREEZE FP-1-A（2026-09-16）：task_ref 的歸屬由呼叫端在啟動 session
+  # 時以 OMOS_TASK_REF 明示宣告，本 Adapter 只是**原樣帶過**，不核發、不解析、
+  # 不驗證這個 URN——與 Native Adapter 契約「不碰 task-card 身分」的邊界一致。
+  # 欄位刻意命名 declared_task_ref（而非 task_ref），讓「這是宣告、不是本層
+  # 解析出來的結果」在資料本身就看得出來。沒宣告時不寫這個欄位，該筆記錄就
+  # 無法被組成 Hook envelope（FP-1-A：沒宣告就不產出 batch）。
+  declared = ENV["OMOS_TASK_REF"]
+  record[:declared_task_ref] = declared if declared.is_a?(String) && !declared.strip.empty?
+
   [record, nil]
 end
 
