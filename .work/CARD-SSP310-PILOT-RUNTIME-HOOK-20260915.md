@@ -105,3 +105,29 @@ Code 版本行為與文件不符），停下回報 Owner，不擅自擴大範圍
   洩漏。
 - 合併：`f939b33`（`main`），來源 branch
   `cc/ssp310-pilot-runtime-hook`（`fc98c82`／`f04f7b1`／`f7eca45`）。
+
+## 真人 pilot 實跑（2026-09-15～16）— `ACCEPTED_GO`
+
+前置 hook 合併後，Owner 親自擔任 PM 角色實跑，本 lane 第一次擷取到真實
+runtime 事件：`UserPromptSubmit→start`／`Stop→submit_review`，兩筆共用
+同一個真實 `prompt_id`，序列對應 `OPEN→IN_REVIEW`（合法邊），餵回既有
+`claude_code_mapping_failure` 皆 `VALID`。
+
+- 大 review（`9640514`）：NO_GO，P1=1——`997df68` 為繞開 macOS TCC 權限
+  問題改用絕對路徑，等於用 worktree 隔離換取啟動目錄自由；權限問題解決後
+  未回頭撤掉。reviewer 實測 main log `2→3`、假 worktree 無 log。
+- repair-01（`17ed917`）：command 改回 `${CLAUDE_PROJECT_DIR}`，hook 保留
+  `__dir__`——兩層一起把 evidence 歸屬鎖回該 worktree。
+- 定點 re-review（`4610c74`）：GO，P0=P1=P2=P3=0。reviewer 用 byte-identical
+  臨時 checkout 重播，確認隔離成立、真人 log 與 `9640514` 逐字一致。
+- 證據：`.work/evidence/SSP310-REAL-PILOT-RUN-20260915.md`、
+  `.work/evidence/SSP310-REAL-PILOT-RUN-REPAIR-01-20260916.md`、
+  `.work/evidence/ssp310-pilot-runtime-log.jsonl`（真實記錄，2 筆）。
+
+**證據範圍限定**：FP-1-A 的關聯機制以「一個真人 turn 的單次觀測」成立，
+未涵蓋多 turn、併發 session、`Stop` 被阻擋（`stop_hook_active=true`）等
+情境——那些目前仍只有負例與 dry-run 覆蓋。
+
+**流程瑕疵已揭露並由 reviewer 裁決**：`997df68` 是程式碼變更卻直接進
+`main` 未先送審，reviewer 裁定不 revert、不重寫歷史，以 forward-fix 處理
+（已於 repair-01 完成）。
