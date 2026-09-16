@@ -2,9 +2,13 @@
 
 日期：2026-09-16　執行者：Owner（matt）　平台：Claude Code v2.1.272
 
-這是本條 lane（`SSP-298`～最後一哩）**第一次產出端到端的真實 capture
-batch**：從真人在終端機做的一件真事，一路走到通過既有 Hook 契約驗證的
-Work Record 批次。
+這是本條 lane（`SSP-298`～最後一哩）**第一次用真實事件走完整條鏈路**：
+從真人在終端機做的一件真事，一路走到通過既有 Hook 契約驗證的 capture
+batch。
+
+**事件是真的，task-card 身分是合成的**——`OMOS_TASK_REF` 是 Owner 手動
+指定的一個 synthetic URN，不對應任何真實存在的 task card。本輪證明的是
+「鏈路接得起來、產物符合契約」，**沒有任何真實卡片被建立或改變狀態**。
 
 ## 鏈路
 
@@ -12,10 +16,11 @@ Work Record 批次。
 真人的一個 turn
   → Claude Code 原生事件（UserPromptSubmit / Stop）
   → .claude/hooks/aiwr_pilot_hook.rb 分類成 mapping_run，
-    並原樣帶上呼叫端宣告的 OMOS_TASK_REF
+    並原樣帶上呼叫端宣告的 OMOS_TASK_REF（synthetic）
   → scripts/build_aiwr_capture_batch.rb 依 task_ref 組批
   → capture batch → hook_capture_failure = nil（VALID）
-  → task-card 狀態：OPEN → IN_REVIEW
+  → 契約 replay 對應 OPEN → IN_REVIEW
+    （只是 evaluator 的轉移重放，沒有任何真實卡片被改狀態）
 ```
 
 ## 啟動方式
@@ -52,8 +57,13 @@ turn    c49e9276-841b-4d14-869b-ca795c4b48b2
 capture-batch-11111111-....json  events=["start","submit_review"]
 ```
 
-略過的正是 2026-09-15 那兩筆——這同時是 **FP-1-A 在真實資料上生效的證明**：
-沒有宣告歸屬的記錄真的進不了 batch，不是靠合成負例假設出來的。
+略過的正是 2026-09-15 那兩筆。這證明的是：**builder 對真實歷史資料中
+缺 `declared_task_ref` 的 record 會略過**，不是靠合成負例假設出來的。
+
+**不能**由此推論「使用者刻意不宣告的 opt-out 流程已經真人實測」——那兩筆
+之所以沒有歸屬，是因為 `declared_task_ref` 機制當時還不存在，不是使用者
+選擇不宣告。真正的 opt-out 情境（機制存在、使用者刻意不設 `OMOS_TASK_REF`）
+目前仍只有合成案例覆蓋。
 
 產出的 batch 已入庫：
 `.work/evidence/capture-batch-11111111-2222-3333-4444-555555555555.json`
@@ -67,17 +77,19 @@ capture-batch-11111111-....json  events=["start","submit_review"]
 ```
 hook_capture_failure → VALID (nil)
 task_ref 唯一值      → ["urn:omos:task-card:11111111-...-555555555555"]（一卡一批）
-序列                  → ["start","submit_review"] → OPEN → IN_REVIEW（合法邊）
+轉移重放（evaluator） → ["start","submit_review"] 對應 OPEN → IN_REVIEW（合法邊）
 debug log            → 空（本輪沒有任何跳過或錯誤）
 ```
 
 ## 證據範圍（誠實限定）
 
-- **單一真人 turn、單一 task card、單一平台**。多 turn 振盪、併發 session、
-  `stop_hook_active=true`、多張卡分批等情境，目前仍只有合成案例與常設
-  gate（`validate_aiwr_capture_batch_builder.rb`）覆蓋，**未有真人資料**。
-- `task_ref` 是 Owner 手動指定的測試用 UUID，**不對應任何真實存在的
-  task card**——本輪驗證的是鏈路與契約合規，不是任務卡本身的真實性。
+- **單一真人 turn、單一「宣告的 synthetic task-card URN」、單一平台**。
+  多 turn 振盪、併發 session、`stop_hook_active=true`、多張卡分批等情境，
+  目前仍只有合成案例與常設 gate（`validate_aiwr_capture_batch_builder.rb`）
+  覆蓋，**未有真人資料**。
+- `task_ref` 是 Owner 手動指定的 synthetic UUID，**不對應任何真實存在的
+  task card**，也沒有任何真實卡片因此被建立或改變狀態。本輪驗證的是鏈路
+  可達與契約合規，不是任務卡身分本身的真實性。
 - 這條路徑永遠不會發出 `complete`（Adapter 無完成權限），所以卡片不會
   因此走到 `DONE`。設計如此。
 
