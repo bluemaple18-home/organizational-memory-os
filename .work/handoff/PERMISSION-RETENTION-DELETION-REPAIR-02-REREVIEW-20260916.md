@@ -8,7 +8,7 @@
 base                23e6a95
 original_review     12b7c90   （NO_GO，P1=2）
 repair_01           4ddbfe5   （NO_GO，P1=2，同一根因）
-repair_commit       <見對話中的派工區塊>
+repair_commit       d058e1f
 branch              cc/permission-retention-deletion
 ```
 
