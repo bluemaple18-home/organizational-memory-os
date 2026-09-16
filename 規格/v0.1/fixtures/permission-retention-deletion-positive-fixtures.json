@@ -1,0 +1,80 @@
+{
+  "contract": "urn:omos:contract:permission-retention-deletion:0.1.0",
+  "cases": [
+    {
+      "case_id": "PRD_POS_RETAINED_TO_EXPIRED",
+      "evaluator": "retention",
+      "expected": "allow",
+      "run": {
+        "from_state": "RETAINED",
+        "to_state": "RETENTION_EXPIRED"
+      }
+    },
+    {
+      "case_id": "PRD_POS_PLACE_LEGAL_HOLD",
+      "evaluator": "retention",
+      "expected": "allow",
+      "run": {
+        "from_state": "RETAINED",
+        "to_state": "LEGAL_HOLD",
+        "legal_hold_active": true
+      }
+    },
+    {
+      "case_id": "PRD_POS_RELEASE_HOLD_BACK_TO_ORIGINAL_STAGE",
+      "evaluator": "retention",
+      "expected": "allow",
+      "run": {
+        "from_state": "LEGAL_HOLD",
+        "to_state": "RETENTION_EXPIRED",
+        "pre_hold_state": "RETENTION_EXPIRED"
+      }
+    },
+    {
+      "case_id": "PRD_POS_EXPIRED_TO_TOMBSTONED",
+      "evaluator": "retention",
+      "expected": "allow",
+      "run": {
+        "from_state": "RETENTION_EXPIRED",
+        "to_state": "TOMBSTONED",
+        "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
+        "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
+        "preserved_identity_fields": ["evidence_id", "digests", "provenance", "chronology"],
+        "inline_payload_present": false
+      }
+    },
+    {
+      "case_id": "PRD_POS_TOMBSTONED_TO_PURGED",
+      "evaluator": "retention",
+      "expected": "allow",
+      "run": {
+        "from_state": "TOMBSTONED",
+        "to_state": "PURGED",
+        "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
+        "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
+        "preserved_identity_fields": ["evidence_id", "digests", "provenance", "chronology"],
+        "inline_payload_present": false
+      }
+    },
+    {
+      "case_id": "PRD_POS_FRESH_DECISION_GRANTS_ACCESS",
+      "evaluator": "retrieval",
+      "expected": "allow",
+      "run": {
+        "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666",
+        "permission_decision_stale": false,
+        "access_granted": true
+      }
+    },
+    {
+      "case_id": "PRD_POS_STALE_DECISION_DENIED_IS_FINE",
+      "evaluator": "retrieval",
+      "expected": "allow",
+      "run": {
+        "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666",
+        "permission_decision_stale": true,
+        "access_granted": false
+      }
+    }
+  ]
+}

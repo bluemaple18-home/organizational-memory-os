@@ -1,0 +1,179 @@
+contract_id: urn:omos:contract:permission-retention-deletion:0.1.0
+schema_version: "0.1.0"
+
+purpose:
+  statement: >-
+    Lock the semantics of three STD-01 fields that already exist but whose
+    meaning was never fixed: payload_retention_state, deletion_confirmation_ref
+    and permission_decision_ref. This contract defines which retention
+    transitions are legal, what a deletion must carry as evidence, when a legal
+    hold blocks deletion, and what happens to an existing permission decision
+    after the source ACL changes. It is a thin evaluator contract only: it does
+    not introduce a retention database, a deletion queue, a legal-hold registry
+    or any new writer.
+  no_second_workflow_authority: true
+
+authority:
+  grants_acceptance: false
+  grants_permission: false
+  grants_canonical_writer: false
+  error_behavior: FAIL_LOUD
+
+owner_signature:
+  signed_at: "2026-09-16"
+  freeze_card: .work/CARD-PERMISSION-RETENTION-DELETION-SPEC-FREEZE-20260916.md
+  points: "FP-1: A / FP-2: A / FP-3: A / FP-4: A / FP-5: A"
+
+# --- FP-1-A：retention 狀態轉移 -------------------------------------------
+
+retention_states:
+  source_of_truth: 規格/v0.1/raw-evidence-envelope.schema.json
+  field: payload_retention_state
+  note: >-
+    The five values are already locked in STD-01 and are NOT redefined here.
+    This contract only fixes which transitions between them are legal.
+
+allowed_retention_transitions:
+  RETAINED:
+    - RETENTION_EXPIRED
+    - LEGAL_HOLD
+  RETENTION_EXPIRED:
+    - TOMBSTONED
+    - LEGAL_HOLD
+  LEGAL_HOLD:
+    - RETAINED
+    - RETENTION_EXPIRED
+  TOMBSTONED:
+    - PURGED
+  PURGED: []
+
+terminal_states:
+  - PURGED
+
+legal_hold_release_rule: >-
+  SPEC_FREEZE FP-1-A: a legal hold may be placed and released, and releasing it
+  returns the evidence to the stage it was at before the hold -- not to an
+  arbitrary earlier stage. Releasing a hold must therefore carry pre_hold_state,
+  and the transition target must equal it. Without this, LEGAL_HOLD -> RETAINED
+  on evidence that was already RETENTION_EXPIRED would silently reset the
+  retention clock, which is a backwards move the linear progression exists to
+  prevent. pre_hold_state itself must be a state that is allowed to enter
+  LEGAL_HOLD.
+
+# --- FP-2-A：deletion 語意 ------------------------------------------------
+
+deletion_contract:
+  identity_preserved: true
+  preserved_fields:
+    - evidence_id
+    - digests
+    - provenance
+    - chronology
+  rule: >-
+    SPEC_FREEZE FP-2-A: deletion clears the payload, never the identity.
+    A transition into TOMBSTONED or PURGED must keep evidence_id, digests,
+    provenance and chronology present, so that the record can still prove
+    "this existed and was deleted under policy" rather than becoming
+    indistinguishable from "this never existed". Entering either state
+    requires a non-blank deletion_confirmation_ref URN, and the payload must
+    be reference-only: any inline payload content on a deleting run is a
+    contract violation, because a tombstone that still carries its payload
+    has not actually deleted anything.
+
+# --- FP-3-A：legal hold ---------------------------------------------------
+
+legal_hold_contract:
+  blocks_deletion: true
+  override_path: none
+  rule: >-
+    SPEC_FREEZE FP-3-A: a legal hold blocks deletion unconditionally and there
+    is no override role. This is enforced twice on purpose: LEGAL_HOLD has no
+    edge to TOMBSTONED or PURGED in allowed_retention_transitions, and a run
+    that declares legal_hold_active while targeting either state is rejected
+    outright even if its declared from-state says otherwise. Consistent with
+    規格/v0.1/personal-harness-integration.yaml, where every DELETE decision
+    lists legal_hold_absent as a required condition.
+
+# --- FP-4-A：ACL delta 傳遞 -----------------------------------------------
+
+permission_decision_contract:
+  staleness_rule: >-
+    SPEC_FREEZE FP-4-A: when the source ACL changes, an existing
+    permission_decision_ref becomes stale. Staleness is not repaired by a
+    background recompute -- this contract deliberately does not introduce a
+    queue or worker. Instead the next access must redo
+    permission-before-retrieval: a retrieval run carrying a stale decision must
+    fail closed rather than proceed on the old answer. A run that claims
+    permission_decision_stale true and still reports granted access is a
+    contract violation.
+  recompute_strategy: ON_NEXT_ACCESS
+  forbidden_strategies:
+    - BACKGROUND_BATCH_RECOMPUTE
+    - REUSE_STALE_DECISION
+
+# --- FP-5-A：projection / cache cleanup -----------------------------------
+
+projection_cleanup_contract:
+  verifiable: true
+  mechanism: RECEIPT_REF
+  rule: >-
+    SPEC_FREEZE FP-5-A: deletion must be verifiable downstream, but this
+    contract does not orchestrate the cleanup. A transition into TOMBSTONED or
+    PURGED must carry projection_cleanup_receipt_ref as a well-formed omos URN.
+    Whether the projection behind that receipt was truly emptied is that
+    projection's own contract to prove; what is enforced here is that a
+    deletion cannot silently skip declaring one.
+
+# --- 評估輸入形狀 ---------------------------------------------------------
+
+retention_run:
+  fields:
+    - from_state
+    - to_state
+    - deletion_confirmation_ref
+    - projection_cleanup_receipt_ref
+    - pre_hold_state
+    - legal_hold_active
+    - preserved_identity_fields
+    - inline_payload_present
+  rule: >-
+    from_state and to_state are payload_retention_state values. The remaining
+    fields are only required where the rules above say so; supplying them on a
+    run that does not need them is not an error.
+
+retrieval_run:
+  fields:
+    - permission_decision_ref
+    - permission_decision_stale
+    - access_granted
+  rule: >-
+    A retrieval run that proceeds on a stale decision is rejected. This
+    contract does not evaluate the decision's content, only whether a known
+    stale decision was honoured anyway.
+
+error_contract:
+  PRD_UNKNOWN_RETENTION_STATE: permission_retention_deletion.error.unknown_retention_state
+  PRD_ILLEGAL_RETENTION_TRANSITION: permission_retention_deletion.error.illegal_retention_transition
+  PRD_TERMINAL_STATE_DEPARTURE: permission_retention_deletion.error.terminal_state_departure
+  PRD_LEGAL_HOLD_BLOCKS_DELETION: permission_retention_deletion.error.legal_hold_blocks_deletion
+  PRD_HOLD_RELEASE_MISSING_PRE_STATE: permission_retention_deletion.error.hold_release_missing_pre_state
+  PRD_HOLD_RELEASE_STATE_MISMATCH: permission_retention_deletion.error.hold_release_state_mismatch
+  PRD_MISSING_DELETION_CONFIRMATION: permission_retention_deletion.error.missing_deletion_confirmation
+  PRD_MISSING_CLEANUP_RECEIPT: permission_retention_deletion.error.missing_cleanup_receipt
+  PRD_IDENTITY_NOT_PRESERVED: permission_retention_deletion.error.identity_not_preserved
+  PRD_TOMBSTONE_RETAINS_PAYLOAD: permission_retention_deletion.error.tombstone_retains_payload
+  PRD_STALE_DECISION_HONOURED: permission_retention_deletion.error.stale_decision_honoured
+  PRD_MISSING_PERMISSION_DECISION: permission_retention_deletion.error.missing_permission_decision
+
+hard_stops:
+  - no retention database, deletion queue or legal-hold registry here
+  - no new canonical writer
+  - no redefinition of STD-01 field names or of the five retention values
+  - no state machine engine; transitions are a declared map replayed by a thin evaluator
+
+cross_reference:
+  std01_spec: 規格/v0.1/raw-evidence-envelope.schema.json
+  legal_hold_precedent: 規格/v0.1/personal-harness-integration.yaml
+  freeze_card: .work/CARD-PERMISSION-RETENTION-DELETION-SPEC-FREEZE-20260916.md
+
+runtime_independence: true
