@@ -4,7 +4,7 @@
 
 ```
 base    710d2c8   （Owner 簽範圍的 commit）
-review  <見對話中的派工區塊>
+review  1fe526e
 branch  cc/canonical-direct-write-audit
 ```
 
