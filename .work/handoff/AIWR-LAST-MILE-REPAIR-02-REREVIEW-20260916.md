@@ -8,11 +8,11 @@
 base                654313b
 original_review     3d3b53c   （第一輪 NO_GO）
 repair_01           7e5eed0   （NO_GO，P1=1：F-01 未完全關閉）
-repair_commit       <見對話中的派工區塊>
+repair_commit       f895daa
 branch              cc/aiwr-last-mile
 ```
 
-定點 diff：`git diff 7e5eed0..<repair_commit>`
+定點 diff：`git diff 7e5eed0..f895daa`
 
 ## 收法
 
