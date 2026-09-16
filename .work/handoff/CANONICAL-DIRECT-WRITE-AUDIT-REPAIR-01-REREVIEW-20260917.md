@@ -7,7 +7,7 @@
 ```
 base                710d2c8
 original_review     1fe526e   （NO_GO，P1=1）
-repair_commit       <見對話中的派工區塊>
+repair_commit       c7412ff
 branch              cc/canonical-direct-write-audit
 ```
 
