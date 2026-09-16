@@ -7,11 +7,11 @@
 ```
 base                f35de26
 original_review     7ce9bfb   （NO_GO，P2=1）
-repair_commit       <見對話中的派工區塊>
+repair_commit       88b2a00
 branch              cc/aiwr-e2e-evidence
 ```
 
-定點 diff：`git diff 7ce9bfb..<repair_commit>` —— **只動
+定點 diff：`git diff 7ce9bfb..88b2a00` —— **只動
 `.work/evidence/AIWR-END-TO-END-REAL-CAPTURE-20260916.md` 的文字**，
 沒有改任何程式碼、契約、或入庫的 batch／log 資料。
 
