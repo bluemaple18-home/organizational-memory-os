@@ -26,19 +26,33 @@
 require "json"
 require "set"
 
-OMOS_URN = /\Aurn:omos:[a-z0-9-]+:.+\z/.freeze
+# repair-01 F-01（P1）：光是「合法 OMOS URN」不足以當 task_ref。
+# hook_capture_failure 只驗泛型的 urn:omos:<kind>:<rest> 格式，所以
+# urn:omos:evidence:... 之類的別種 entity 會被當成 task card 收下去。
+# 本檔是把 declared_task_ref 轉成 Hook envelope `task_ref` 的那一層
+# ——身分收窄的責任就在這裡，必須 fail-closed。
+TASK_CARD_URN = /\Aurn:omos:task-card:.+\z/.freeze
 
 def build_envelope(record)
   {
     "task_ref" => record.fetch("declared_task_ref"),
     "event" => record.fetch("mapped_to"),
     "occurred_at" => record.fetch("occurred_at"),
-    # FP-3-A：決定性 key，不含時間戳。
-    "event_key" => [record.fetch("session_id"),
-                    record.fetch("native_correlation_ref"),
-                    record.fetch("mapped_to")].join(":"),
+    "event_key" => event_key_for(record),
     "evidence_refs" => [record.fetch("adapter_output_ref")]
   }
+end
+
+# FP-3-A：決定性、不含時間戳。
+#
+# repair-01 F-02（P1）：原本用 ":" 串接三個值，會碰撞——
+# ("a:b","c","start") 與 ("a","b:c","start") 都得到 "a:b:c:start"，
+# 兩個不同 turn 被當成同一事件去重。改用 JSON array 編碼，分隔語意由
+# JSON 的引號與跳脫負責，任何含 ":" 的值都不會造成歧義。
+def event_key_for(record)
+  JSON.generate([record.fetch("session_id"),
+                 record.fetch("native_correlation_ref"),
+                 record.fetch("mapped_to")])
 end
 
 def build_capture(envelopes)
@@ -63,12 +77,24 @@ def main(log_path, out_dir)
 
   # 只收 MAPPED 且有呼叫端宣告的記錄。沒有 declared_task_ref 的一律略過
   # ——FP-1-A 明定沒宣告就不產出 batch，不猜、不套用預設值。
-  attributed = records.select do |r|
-    r["outcome"] == "MAPPED" &&
-      r["declared_task_ref"].is_a?(String) &&
-      OMOS_URN.match?(r["declared_task_ref"])
+  declared = records.select do |r|
+    r["outcome"] == "MAPPED" && r["declared_task_ref"].is_a?(String) &&
+      !r["declared_task_ref"].strip.empty?
   end
 
+  # F-01 fail-closed：有宣告但不是 task-card URN，代表該 session 的
+  # OMOS_TASK_REF 設錯了。不靜默略過（會讓人以為只是沒宣告），也不放行
+  # （會把別種 entity 當成 task card 寫進 Hook envelope）——整批停住、
+  # 指出錯誤的值，什麼都不產出。
+  mis_declared = declared.reject { |r| TASK_CARD_URN.match?(r["declared_task_ref"]) }
+  unless mis_declared.empty?
+    warn "declared_task_ref 不是 task-card URN，拒絕組批（fail-closed）："
+    mis_declared.map { |r| r["declared_task_ref"] }.uniq.each { |v| warn "  #{v}" }
+    warn "task_ref 必須符合 urn:omos:task-card:<id>；請修正 OMOS_TASK_REF 後重跑。"
+    exit 3
+  end
+
+  attributed = declared
   skipped = records.size - attributed.size
   if attributed.empty?
     warn "沒有任何帶 declared_task_ref 的 MAPPED 記錄（共讀入 #{records.size} 筆）。"
@@ -96,9 +122,13 @@ def main(log_path, out_dir)
   end
 end
 
-if ARGV.size != 2
-  warn "用法：ruby scripts/build_aiwr_capture_batch.rb <mapping-run-log.jsonl> <out-dir>"
-  exit 1
-end
+# 只有被當成指令執行時才跑 main；被 require 進來（例如常設 regression
+# gate）時只提供上面那些純函式，不產生任何副作用。
+if __FILE__ == $PROGRAM_NAME
+  if ARGV.size != 2
+    warn "用法：ruby scripts/build_aiwr_capture_batch.rb <mapping-run-log.jsonl> <out-dir>"
+    exit 1
+  end
 
-main(ARGV[0], ARGV[1])
+  main(ARGV[0], ARGV[1])
+end

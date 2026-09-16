@@ -1,6 +1,6 @@
 ---
 id: AIWR-LAST-MILE-CLOSEOUT-20260916
-status: AWAITING_BIG_REVIEW
+status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
 type: implementation
 tier: T1
 jira: SSP-310 後續（最後一哩）
@@ -60,11 +60,23 @@ hook 讀 `OMOS_TASK_REF`，把值**原樣**記進 `declared_task_ref`。刻意�
   那需要 Owner 再開一次 session，是下一步，不在本卡。
 - `complete` 永遠不會由這條路徑發出（Adapter 無完成權限），所以卡片不會
   走到 `DONE`。設計如此。
-- batch 的驗證目前靠「從既有 validator 機械抽取 `hook_capture_failure`」
-  在 review 時重播，**不是**常設 gate 的一部分。要變成常設 gate 需把該
-  函式抽成共用 lib，那會動到已 `ACCEPTED_GO` 的 SSP-301 交付物，屬
-  Refactor Mode，不在本卡範圍。
+- ~~batch 的驗證不在常設 gate 內~~ **（repair-01 已解決，此限制不再成立）**：
+  新增 `scripts/validate_aiwr_capture_batch_builder.rb` 進入常設 gate。
+  它以機械抽取的方式綁定既有 `hook_capture_failure` 的原始碼，**沒有**
+  動到 SSP-301 本體，也沒有重寫第二份 capture 規則。
+
+## 大 review 記錄
+
+- `3d3b53c`：NO_GO，P1×2 + P2×1——(F-01) `task_ref` 只驗泛型 OMOS URN，
+  別種 entity 會被當成 task card；(F-02) `event_key` 用 `join(":")` 串接，
+  `("a:b","c")` 與 `("a","b:c")` 碰撞，不同 turn 被誤併；(F-03) builder
+  沒有常設 regression gate，前兩個錯誤被 24 支既有 validator 全數放行。
+- repair-01：身分收窄為 `urn:omos:task-card:` 並 fail-closed 整批拒絕；
+  `event_key` 改用 `JSON.generate([...])` 消除歧義；新增
+  `scripts/validate_aiwr_capture_batch_builder.rb` 進常設 gate（25 支），
+  並以 enforcement parity 證明兩個 bug 放回去就會紅。
 
 ## Evidence
 
 `.work/evidence/AIWR-LAST-MILE-CLOSEOUT-20260916.md`
+`.work/evidence/AIWR-LAST-MILE-CLOSEOUT-REPAIR-01-20260916.md`
