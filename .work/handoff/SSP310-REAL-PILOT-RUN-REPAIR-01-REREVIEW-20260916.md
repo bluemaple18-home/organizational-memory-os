@@ -8,7 +8,8 @@
 base                75f2a28
 original_review     9640514   （NO_GO，P1=1）
 repair_commit       17ed917
-delivery            64d01ea
+delivery            本檔所在的 docs commit（SHA 見對話中的派工區塊；
+                    本檔不自我指涉以免 SHA 與內容互相追不上）
 branch              main
 ```
 
