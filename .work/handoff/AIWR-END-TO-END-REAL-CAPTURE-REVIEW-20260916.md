@@ -4,7 +4,7 @@
 
 ```
 base    f35de26
-review  <見對話中的派工區塊>
+review  7ce9bfb
 branch  cc/aiwr-e2e-evidence
 ```
 
