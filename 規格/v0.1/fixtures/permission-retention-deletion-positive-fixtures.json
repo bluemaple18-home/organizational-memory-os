@@ -39,7 +39,12 @@
         "to_state": "TOMBSTONED",
         "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
         "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
-        "preserved_identity_fields": ["evidence_id", "digests", "provenance", "chronology"],
+        "preserved_identity_fields": [
+          "evidence_id",
+          "digests",
+          "provenance",
+          "chronology"
+        ],
         "inline_payload_present": false
       }
     },
@@ -52,7 +57,12 @@
         "to_state": "PURGED",
         "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
         "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
-        "preserved_identity_fields": ["evidence_id", "digests", "provenance", "chronology"],
+        "preserved_identity_fields": [
+          "evidence_id",
+          "digests",
+          "provenance",
+          "chronology"
+        ],
         "inline_payload_present": false
       }
     },
@@ -63,7 +73,9 @@
       "run": {
         "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666",
         "permission_decision_stale": false,
-        "access_granted": true
+        "access_granted": true,
+        "decision_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333",
+        "current_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333"
       }
     },
     {
@@ -73,7 +85,45 @@
       "run": {
         "permission_decision_ref": "urn:omos:permission-decision:dddd4444-eeee-5555-ffff-666666666666",
         "permission_decision_stale": true,
-        "access_granted": false
+        "access_granted": false,
+        "decision_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333",
+        "current_acl_snapshot_ref": "urn:omos:acl-snapshot:aaaa1111-bbbb-2222-cccc-333333333333"
+      }
+    },
+    {
+      "case_id": "PRD_POS_HISTORY_HOLD_RELEASE_RETURNS_TO_RECORDED_STAGE",
+      "evaluator": "history",
+      "expected": "allow",
+      "history": {
+        "transitions": [
+          {
+            "from_state": "RETAINED",
+            "to_state": "RETENTION_EXPIRED"
+          },
+          {
+            "from_state": "RETENTION_EXPIRED",
+            "to_state": "LEGAL_HOLD",
+            "legal_hold_active": true
+          },
+          {
+            "from_state": "LEGAL_HOLD",
+            "to_state": "RETENTION_EXPIRED",
+            "pre_hold_state": "RETENTION_EXPIRED"
+          },
+          {
+            "from_state": "RETENTION_EXPIRED",
+            "to_state": "TOMBSTONED",
+            "deletion_confirmation_ref": "urn:omos:deletion-confirmation:11111111-2222-3333-4444-555555555555",
+            "projection_cleanup_receipt_ref": "urn:omos:projection-cleanup-receipt:aaaa1111-bbbb-2222-cccc-333333333333",
+            "preserved_identity_fields": [
+              "evidence_id",
+              "digests",
+              "provenance",
+              "chronology"
+            ],
+            "inline_payload_present": false
+          }
+        ]
       }
     }
   ]

@@ -53,12 +53,29 @@ terminal_states:
 legal_hold_release_rule: >-
   SPEC_FREEZE FP-1-A: a legal hold may be placed and released, and releasing it
   returns the evidence to the stage it was at before the hold -- not to an
-  arbitrary earlier stage. Releasing a hold must therefore carry pre_hold_state,
-  and the transition target must equal it. Without this, LEGAL_HOLD -> RETAINED
-  on evidence that was already RETENTION_EXPIRED would silently reset the
-  retention clock, which is a backwards move the linear progression exists to
-  prevent. pre_hold_state itself must be a state that is allowed to enter
-  LEGAL_HOLD.
+  arbitrary earlier stage. Without this, LEGAL_HOLD -> RETAINED on evidence that
+  was already RETENTION_EXPIRED would silently reset the retention clock, which
+  is a backwards move the linear progression exists to prevent.
+
+  repair-01 (big review F-01): a self-declared pre_hold_state on the release run
+  is NOT sufficient -- a caller that simply writes pre_hold_state RETAINED gets
+  exactly the backwards move the rule forbids. The authoritative check is
+  therefore the recorded history, not the release run's own claim: a hold
+  release must be evaluated as part of an ordered retention_history, and the
+  target state must equal the state the evidence actually held when it entered
+  LEGAL_HOLD in that same history. pre_hold_state remains on the run as a
+  declaration, but the history is what binds it; if the two disagree, the
+  history wins and the run is rejected.
+
+retention_history:
+  fields:
+    - transitions
+  rule: >-
+    An ordered array of retention transitions for one piece of evidence. Each
+    transition is a retention_run. Continuity is required: every transition's
+    from_state must equal the previous transition's to_state, so the sequence
+    cannot silently skip a stage. Hold entry (-> LEGAL_HOLD) records the state
+    being held; the matching release is checked against that recorded value.
 
 # --- FP-2-A：deletion 語意 ------------------------------------------------
 
@@ -103,13 +120,26 @@ permission_decision_contract:
     background recompute -- this contract deliberately does not introduce a
     queue or worker. Instead the next access must redo
     permission-before-retrieval: a retrieval run carrying a stale decision must
-    fail closed rather than proceed on the old answer. A run that claims
-    permission_decision_stale true and still reports granted access is a
-    contract violation.
+    fail closed rather than proceed on the old answer.
   recompute_strategy: ON_NEXT_ACCESS
   forbidden_strategies:
     - BACKGROUND_BATCH_RECOMPUTE
     - REUSE_STALE_DECISION
+  freshness_binding: >-
+    repair-01 (big review F-02): checking only a self-declared
+    permission_decision_stale flag means the rule reads "I will block you only
+    if you admit you are stale" -- omitting the flag entirely got a grant
+    through. Freshness is therefore bound to STD-01's own access fields
+    instead: a retrieval run must carry decision_acl_snapshot_ref (the
+    acl_snapshot_ref the decision was made against) and
+    current_acl_snapshot_ref (the snapshot in effect now), both matching the
+    acl_snapshot_ref pattern declared in raw-evidence-envelope.schema.json.
+    If the two differ, the source ACL has moved and the decision must not be
+    honoured. If either is missing or malformed, freshness cannot be proven
+    and the run fails closed -- unknown freshness is never treated as fresh.
+    The explicit permission_decision_stale flag still blocks when set, but it
+    is now an additional signal rather than the only one.
+  acl_snapshot_pattern_source: 規格/v0.1/raw-evidence-envelope.schema.json#/properties/access/properties/acl_snapshot_ref
 
 # --- FP-5-A：projection / cache cleanup -----------------------------------
 
@@ -145,6 +175,8 @@ retrieval_run:
   fields:
     - permission_decision_ref
     - permission_decision_stale
+    - decision_acl_snapshot_ref
+    - current_acl_snapshot_ref
     - access_granted
   rule: >-
     A retrieval run that proceeds on a stale decision is rejected. This
@@ -164,6 +196,10 @@ error_contract:
   PRD_TOMBSTONE_RETAINS_PAYLOAD: permission_retention_deletion.error.tombstone_retains_payload
   PRD_STALE_DECISION_HONOURED: permission_retention_deletion.error.stale_decision_honoured
   PRD_MISSING_PERMISSION_DECISION: permission_retention_deletion.error.missing_permission_decision
+  PRD_HISTORY_DISCONTINUOUS: permission_retention_deletion.error.history_discontinuous
+  PRD_HOLD_RELEASE_CONTRADICTS_HISTORY: permission_retention_deletion.error.hold_release_contradicts_history
+  PRD_PERMISSION_FRESHNESS_UNKNOWN: permission_retention_deletion.error.permission_freshness_unknown
+  PRD_STALE_ACL_DECISION_HONOURED: permission_retention_deletion.error.stale_acl_decision_honoured
 
 hard_stops:
   - no retention database, deletion queue or legal-hold registry here

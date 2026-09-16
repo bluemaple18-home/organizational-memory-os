@@ -47,7 +47,13 @@ EXPECTED_NEGATIVE_LABELS = [
   "a deletion that does not preserve identity fields",
   "a tombstone that still carries inline payload",
   "a retrieval honouring a stale permission decision",
-  "a retrieval without any permission decision"
+  "a retrieval without any permission decision",
+  "a history whose transitions are discontinuous",
+  "a hold release contradicting the recorded hold entry",
+  "a retrieval whose acl snapshot freshness cannot be proven",
+  "a retrieval granted on a decision made against an older acl snapshot",
+  "a history with no transitions at all",
+  "a hold release with no recorded hold entry in the history"
 ].freeze
 
 def blank?(value)
@@ -107,10 +113,62 @@ def deletion_requirements_failure(spec, run)
   nil
 end
 
-# --- permission decision 時效（FP-4-A）------------------------------------
+# --- retention 歷史重放（FP-1-A，repair-01 F-01）--------------------------
+#
+# 單筆 run 無法證明「解除 hold 回到原階段」——release 自己填的
+# pre_hold_state 是自述，caller 想寫什麼都行。真正綁得住的是**記錄下來的
+# 歷史**：進 hold 那一刻的狀態是什麼，解除就只能回到那個狀態。
 
-def permission_staleness_failure(_spec, run)
+def retention_history_failure(spec, history)
+  transitions = history["transitions"]
+  return "PRD_HISTORY_DISCONTINUOUS" unless transitions.is_a?(Array) && !transitions.empty?
+
+  state_at_hold_entry = nil
+  previous_to_state = nil
+
+  transitions.each do |run|
+    # 連續性：這一步的起點必須等於上一步的終點，序列不得跳階。
+    return "PRD_HISTORY_DISCONTINUOUS" if !previous_to_state.nil? && run["from_state"] != previous_to_state
+
+    step_failure = retention_transition_failure(spec, run) || deletion_requirements_failure(spec, run)
+    return step_failure if step_failure
+
+    if run["to_state"] == "LEGAL_HOLD"
+      state_at_hold_entry = run["from_state"]
+    elsif run["from_state"] == "LEGAL_HOLD"
+      # 解除 hold：以歷史記錄為準，run 自己宣告的 pre_hold_state 不算數。
+      return "PRD_HOLD_RELEASE_CONTRADICTS_HISTORY" if state_at_hold_entry.nil?
+      return "PRD_HOLD_RELEASE_CONTRADICTS_HISTORY" if run["to_state"] != state_at_hold_entry
+
+      state_at_hold_entry = nil
+    end
+
+    previous_to_state = run["to_state"]
+  end
+
+  nil
+end
+
+# --- permission decision 時效（FP-4-A，repair-01 F-02）-------------------
+#
+# 只看 caller 自述的 permission_decision_stale 等於「你承認 stale 我才擋」，
+# 省略該欄位就能矇混過去。改成綁 STD-01 的 acl_snapshot_ref：decision 當時
+# 的快照與現行快照不同 → 一定 stale；任一邊缺失或格式不對 → 無法證明新鮮度
+# → fail closed（未知一律不視為新鮮）。
+
+def permission_staleness_failure(spec, run)
+  acl_pattern = spec.fetch("acl_snapshot_pattern")
+
   return "PRD_MISSING_PERMISSION_DECISION" if blank?(run["permission_decision_ref"])
+
+  decision_snapshot = run["decision_acl_snapshot_ref"]
+  current_snapshot = run["current_acl_snapshot_ref"]
+  freshness_provable = decision_snapshot.is_a?(String) && acl_pattern.match?(decision_snapshot) &&
+                       current_snapshot.is_a?(String) && acl_pattern.match?(current_snapshot)
+  return "PRD_PERMISSION_FRESHNESS_UNKNOWN" unless freshness_provable
+
+  return "PRD_STALE_ACL_DECISION_HONOURED" if decision_snapshot != current_snapshot &&
+                                              run["access_granted"] == true
   return "PRD_STALE_DECISION_HONOURED" if run["permission_decision_stale"] == true &&
                                           run["access_granted"] == true
 
@@ -130,6 +188,12 @@ assert(spec.dig("authority", "grants_permission") == false, "authority.grants_pe
 assert(spec.dig("authority", "grants_canonical_writer") == false,
        "authority.grants_canonical_writer 必須為 false", failures)
 assert(spec.dig("authority", "error_behavior") == "FAIL_LOUD", "authority.error_behavior 必須為 FAIL_LOUD", failures)
+
+# 綁定 STD-01：acl_snapshot_ref 的 pattern 直接取自 schema，不手抄。
+acl_pattern_source = std01.dig("properties", "access", "properties", "acl_snapshot_ref", "pattern")
+assert(acl_pattern_source.is_a?(String) && !acl_pattern_source.empty?,
+       "在 STD-01 找不到 access.acl_snapshot_ref 的 pattern（結構已改變？）", failures)
+spec["acl_snapshot_pattern"] = Regexp.new(acl_pattern_source.to_s)
 
 # 綁定 STD-01：轉移表的狀態集合必須與 payload_retention_state 的 enum 完全相同。
 std01_states = std01.dig("properties", "payload_retention_state", "enum")
@@ -171,7 +235,7 @@ assert(spec.dig("projection_cleanup_contract", "verifiable") == true,
 # --- error_contract 與 evaluator 實際可達 code 綁定 ------------------------
 
 EVALUATORS = %w[retention_transition_failure deletion_requirements_failure
-                permission_staleness_failure].freeze
+                retention_history_failure permission_staleness_failure].freeze
 
 declared_codes = spec.fetch("error_contract").keys
 EVALUATORS.each do |evaluator_name|
@@ -193,6 +257,7 @@ def evaluate(spec, test_case)
   case test_case.fetch("evaluator")
   when "retention" then retention_transition_failure(spec, test_case.fetch("run")) ||
                         deletion_requirements_failure(spec, test_case.fetch("run"))
+  when "history" then retention_history_failure(spec, test_case.fetch("history"))
   when "retrieval" then permission_staleness_failure(spec, test_case.fetch("run"))
   else raise "未知的 evaluator：#{test_case.fetch('evaluator')}"
   end
