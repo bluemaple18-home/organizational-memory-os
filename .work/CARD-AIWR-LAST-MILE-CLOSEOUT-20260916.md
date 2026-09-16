@@ -1,6 +1,6 @@
 ---
 id: AIWR-LAST-MILE-CLOSEOUT-20260916
-status: NO_GO_REPAIRED_01_AWAITING_TARGETED_REREVIEW
+status: NO_GO_REPAIRED_02_AWAITING_TARGETED_REREVIEW
 type: implementation
 tier: T1
 jira: SSP-310 後續（最後一哩）
@@ -76,7 +76,14 @@ hook 讀 `OMOS_TASK_REF`，把值**原樣**記進 `declared_task_ref`。刻意�
   `scripts/validate_aiwr_capture_batch_builder.rb` 進常設 gate（25 支），
   並以 enforcement parity 證明兩個 bug 放回去就會紅。
 
+- `7e5eed0`：定點 re-review NO_GO，P1×1——F-01 只擋 entity 種類（前綴），
+  沒擋 identity 形狀，`urn:omos:task-card:not-a-uuid` 仍被放行。
+- repair-02：改為**綁定** `validate_ai_task_card_record_contract.rb` 的
+  `CARD_ID_URN` 原始碼（抽不到就 fail loud），而非手抄 UUID regex；
+  reviewer 的案例固定成常設負例，另加 canonical UUID 對照組。
+
 ## Evidence
 
 `.work/evidence/AIWR-LAST-MILE-CLOSEOUT-20260916.md`
 `.work/evidence/AIWR-LAST-MILE-CLOSEOUT-REPAIR-01-20260916.md`
+`.work/evidence/AIWR-LAST-MILE-CLOSEOUT-REPAIR-02-20260916.md`

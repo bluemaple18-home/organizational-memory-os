@@ -19,7 +19,7 @@ require "fileutils"
 require "tmpdir"
 require_relative "build_aiwr_capture_batch"
 
-ROOT = File.expand_path("..", __dir__)
+# ROOT 由 build_aiwr_capture_batch.rb 定義（上面已 require_relative）。
 HOOK_VALIDATOR_PATH = File.join(ROOT, "scripts/validate_ai_work_record_hook_contract.rb")
 CARD_SPEC_PATH = File.join(ROOT, "規格/v0.1/ai-task-card-record.yaml")
 HOOK_SPEC_PATH = File.join(ROOT, "規格/v0.1/ai-work-record-hook.yaml")
@@ -141,15 +141,29 @@ end
 
 # --- 負例 1（F-01）：宣告的不是 task-card URN → 必須整批拒絕 -------------
 
-mis_declared = [
-  mapping_record(session_id: "s1", correlation_ref: "t1", event: "start",
-                 task_ref: "urn:omos:evidence:not-a-task-card", at: "2026-09-16T01:00:00Z"),
-  mapping_record(session_id: "s1", correlation_ref: "t1", event: "submit_review",
-                 task_ref: "urn:omos:evidence:not-a-task-card", at: "2026-09-16T01:01:00Z")
-]
-status = build_batches_expecting_refusal(mis_declared)
-assert(!status.nil? && status != 0,
-       "F-01 負例：非 task-card URN 必須被 fail-closed 拒絕（非 0 結束碼），實際 #{status.inspect}", failures)
+# 兩種都必須被拒：
+#   (a) 根本不是 task-card entity
+#   (b) 是 task-card 前綴，但 identity 形狀不是 canonical 的 UUID
+#       （repair-02：只擋前綴不夠，會放行不存在的身分）
+[
+  ["urn:omos:evidence:not-a-task-card", "不是 task-card entity"],
+  ["urn:omos:task-card:not-a-uuid", "task-card 前綴但非 canonical UUID 形狀"]
+].each do |bad_ref, label|
+  mis_declared = [
+    mapping_record(session_id: "s1", correlation_ref: "t1", event: "start",
+                   task_ref: bad_ref, at: "2026-09-16T01:00:00Z"),
+    mapping_record(session_id: "s1", correlation_ref: "t1", event: "submit_review",
+                   task_ref: bad_ref, at: "2026-09-16T01:01:00Z")
+  ]
+  status = build_batches_expecting_refusal(mis_declared)
+  assert(!status.nil? && status != 0,
+         "F-01 負例（#{label}）：#{bad_ref} 必須被 fail-closed 拒絕（非 0 結束碼），實際 #{status.inspect}",
+         failures)
+end
+
+# 對照組：canonical UUID 形狀必須放行（確認收窄沒有過頭）。
+assert(TASK_CARD_URN.match?(TASK_A),
+       "canonical UUID 形狀的 task_ref 不該被擋：#{TASK_A}", failures)
 
 # --- 負例 2（F-02）：分隔符歧義的兩個不同 turn 不得被誤併 ----------------
 #

@@ -12,10 +12,11 @@
 #           本檔不核發、不解析、不推論任何 task-card URN。
 #   FP-2-A：終點是產出「通過既有 hook_capture_failure 的 capture batch
 #           JSON」，不寫入任何 canonical store（系統裡也沒有那種 store）。
-#   FP-3-A：event_key = session_id + native_correlation_ref + event 的
-#           決定性字串——同一 turn 的同一事件重放會正確去重，跨 turn 不會
-#           誤併。刻意不用 adapter_output_ref（含微秒時間戳，每次都不同，
-#           去重會形同虛設）。
+#   FP-3-A：event_key 由 (session_id, native_correlation_ref, event) 以
+#           JSON tuple 編碼（見 event_key_for 的 repair-01 說明——原本的
+#           ":" 串接會碰撞）。決定性、不含時間戳；同一 turn 的同一事件重放
+#           會正確去重，跨 turn 不會誤併。刻意不用 adapter_output_ref
+#           （含微秒時間戳，每次都不同，去重會形同虛設）。
 #
 # 用法：
 #   ruby scripts/build_aiwr_capture_batch.rb <mapping-run-log.jsonl> <out-dir>
@@ -31,7 +32,26 @@ require "set"
 # urn:omos:evidence:... 之類的別種 entity 會被當成 task card 收下去。
 # 本檔是把 declared_task_ref 轉成 Hook envelope `task_ref` 的那一層
 # ——身分收窄的責任就在這裡，必須 fail-closed。
-TASK_CARD_URN = /\Aurn:omos:task-card:.+\z/.freeze
+#
+# repair-02 F-01（P1，第二輪）：收窄到 `urn:omos:task-card:` 前綴仍不夠，
+# `urn:omos:task-card:not-a-uuid` 這種不存在的身分照樣會過。canonical 的
+# task-card identity 形狀定義在
+# scripts/validate_ai_task_card_record_contract.rb 的 CARD_ID_URN。
+#
+# 這裡**綁定**那個常數的原始碼，而不是手抄一份 UUID regex——手抄就會變成
+# 兩份各自演化的清單，上游改了這裡不會知道。抽不到就 fail loud。
+ROOT = File.expand_path("..", __dir__)
+CARD_RECORD_VALIDATOR_PATH = File.join(ROOT, "scripts/validate_ai_task_card_record_contract.rb")
+
+def canonical_task_card_urn_pattern
+  source = File.read(CARD_RECORD_VALIDATOR_PATH)
+  literal = source[/\nCARD_ID_URN = (\/.*?\/)\.freeze\n/m, 1]
+  raise "抽不到 CARD_ID_URN（#{CARD_RECORD_VALIDATOR_PATH} 結構已改變？）" unless literal
+
+  eval(literal) # rubocop:disable Security/Eval -- 來源是本 repo 自己的 validator 原始碼
+end
+
+TASK_CARD_URN = canonical_task_card_urn_pattern.freeze
 
 def build_envelope(record)
   {
@@ -90,7 +110,8 @@ def main(log_path, out_dir)
   unless mis_declared.empty?
     warn "declared_task_ref 不是 task-card URN，拒絕組批（fail-closed）："
     mis_declared.map { |r| r["declared_task_ref"] }.uniq.each { |v| warn "  #{v}" }
-    warn "task_ref 必須符合 urn:omos:task-card:<id>；請修正 OMOS_TASK_REF 後重跑。"
+    warn "task_ref 必須符合 canonical task-card identity 形狀 #{TASK_CARD_URN.source}"
+    warn "（綁定自 validate_ai_task_card_record_contract.rb 的 CARD_ID_URN）；請修正 OMOS_TASK_REF 後重跑。"
     exit 3
   end
 
