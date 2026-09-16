@@ -4,7 +4,7 @@
 
 ```
 base    23e6a95   （Owner 簽核凍結卡的 commit）
-review  <見對話中的派工區塊>
+review  12b7c90
 branch  cc/permission-retention-deletion
 ```
 
