@@ -6,7 +6,7 @@
 base            38b5d59   （既有 evidence/handoff 誤記 63464c3；worktree 建立時
                            main 已推進到 38b5d59，見下方「SHA 校正」）
 original_review 0205d7b
-repair_commit   （本次 commit，待 push 後補上）
+repair_commit   f7af260
 ```
 
 ## SHA 校正
