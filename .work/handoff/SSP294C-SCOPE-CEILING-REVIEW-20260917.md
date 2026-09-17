@@ -4,7 +4,7 @@
 
 ```
 base    9864303
-review  <見對話中的派工區塊>
+review  61ba39b
 branch  cc/ssp294-scope-ceiling
 ```
 
