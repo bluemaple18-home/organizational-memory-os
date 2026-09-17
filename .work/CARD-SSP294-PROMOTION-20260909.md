@@ -46,7 +46,7 @@ forbidden 完全沒驗；15 格只驗「每格存在」＋ 1 條具體條件。
 
 | 切片 | 內容 | 綁定上游 | 狀態 |
 |---|---|---|---|
-| A | gate 組成：6 required 必須全滿足、3 forbidden 任一即拒 | `promotion_widening_gate` | `.work/CARD-SSP294A-PROMOTION-GATE-20260917.md` |
+| A | gate 組成：6 required 必須全滿足、3 forbidden 任一即拒 | `promotion_widening_gate` | **`ACCEPTED_GO`**（merged `b49348e`）|
 | B | 15 個 actor × 材料類別決策格逐格重放 | `actor_action_policy.PROMOTE` | 待開 |
 | C | 升格時的 retention/deletion 傳遞 ＋ 不得繞過 canonical writer | repo #4 契約、repo #5 `promotion_path` | 待開（可能需 T2，碰 authority 邊界）|
 

@@ -1,6 +1,7 @@
 ---
 id: SSP294A-PROMOTION-GATE-20260917
-status: AWAITING_BIG_REVIEW
+status: ACCEPTED_GO
+merged_commit: b49348e
 type: implementation
 tier: T1
 jira: SSP-294（EMEM-05 Promotion）切片 A
@@ -61,6 +62,17 @@ parent_card: CARD-SSP294-PROMOTION-20260909
 超出範圍。與 `permission-retention-deletion.yaml#provenance_boundary` 同一邊界，
 先講清楚而不是等 review 抓。
 
+## 大 review 記錄
+
+- `c8a8511`：NO_GO，P1（`declared_paths` 用 `.to_a` 前處理，Hash／缺欄位／
+  String 皆可繞過 forbidden 檢查）＋ P2（provenance boundary 未承認
+  `declared_paths` 同為自述）。
+- repair-01（`43afef5`）：型別 fail-closed ＋ boundary 補上
+  `THE_DECLARED_PATHS_ARE_COMPLETE`。
+- 定點 re-review（`18a2b49`）：**GO**，P0=P1=0。P2 residual（substring
+  prose scanner）已登 backlog，不阻擋本卡。
+
 ## Evidence
 
 `.work/evidence/SSP294A-PROMOTION-GATE-20260917.md`
+`.work/evidence/SSP294A-PROMOTION-GATE-REPAIR-01-20260917.md`
