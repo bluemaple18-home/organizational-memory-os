@@ -35,7 +35,10 @@ EXPECTED_NEGATIVE_LABELS = [
   "a promotion naming a condition the upstream gate does not declare",
   "a promotion declaring a path the upstream gate forbids",
   "a promotion declaring a forbidden path while satisfying every required condition",
-  "a promotion whose satisfied_conditions is not a condition-to-receipt map"
+  "a promotion whose satisfied_conditions is not a condition-to-receipt map",
+  "a promotion with no declared_paths field at all",
+  "a promotion whose declared_paths is not a list",
+  "a promotion whose declared_paths contains a non-string entry"
 ].freeze
 
 def urn?(value)
@@ -49,8 +52,15 @@ def promotion_gate_failure(gate, run)
 
   return "PROMOTION_INVALID_OUTCOME" unless EXPECTED_OUTCOMES.include?(run["outcome"])
 
+  # repair-01（big review P1）：原本直接 `run["declared_paths"].to_a`——把輸入
+  # 前處理掉，型別資訊就消失了：Hash 會變成 pair 陣列（比不中任何 forbidden）、
+  # 缺欄位變成空陣列（一律通過）、String 則直接 NoMethodError。三條 forbidden
+  # 的核心 enforcement 因此可被輸入型別繞過。先 fail-closed 鎖型別再比對。
+  declared_paths = run["declared_paths"]
+  return "PROMOTION_DECLARED_PATHS_NOT_LIST" unless declared_paths.is_a?(Array)
+  return "PROMOTION_DECLARED_PATHS_NOT_LIST" unless declared_paths.all? { |path| path.is_a?(String) }
+
   # forbidden 先驗：宣告了禁止路徑就不可能被 approvals 贖回，不管 outcome 是什麼。
-  declared_paths = run["declared_paths"].to_a
   return "PROMOTION_FORBIDDEN_PATH_DECLARED" if declared_paths.any? { |path| forbidden.include?(path) }
 
   # DENIED 不需要滿足 gate——被擋下來的升格本來就不必備齊條件。
@@ -84,8 +94,17 @@ assert(spec.dig("authority", "grants_permission") == false, "authority.grants_pe
 assert(spec.dig("authority", "grants_canonical_writer") == false,
        "authority.grants_canonical_writer 必須為 false", failures)
 assert(spec.dig("authority", "error_behavior") == "FAIL_LOUD", "authority.error_behavior 必須為 FAIL_LOUD", failures)
-assert(spec.dig("provenance_boundary", "does_not_verify") == "THE_REFERENCED_RECEIPTS_ARE_AUTHENTIC",
-       "provenance_boundary 必須明寫不驗證 receipt 真實性", failures)
+# provenance_boundary 必須同時承認兩件本層驗不了的事：receipt 真實性，以及
+# declared_paths 的完整性（caller 可能刻意漏報真正用過的 forbidden path）。
+EXPECTED_BOUNDARY_ADMISSIONS = %w[
+  THE_REFERENCED_RECEIPTS_ARE_AUTHENTIC
+  THE_DECLARED_PATHS_ARE_COMPLETE
+].freeze
+declared_admissions = spec.dig("provenance_boundary", "does_not_verify")
+assert(declared_admissions.is_a?(Array) &&
+       sorted_set(declared_admissions) == sorted_set(EXPECTED_BOUNDARY_ADMISSIONS),
+       "provenance_boundary.does_not_verify 必須列出本層驗不了的兩件事："\
+       "#{EXPECTED_BOUNDARY_ADMISSIONS.inspect}，實際 #{declared_admissions.inspect}", failures)
 
 # 綁定上游：gate_ref 必須真的能在 personal-harness-integration.yaml 裡 resolve 出東西。
 gate_ref = spec.dig("widening_gate_binding", "gate_ref").to_s

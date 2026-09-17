@@ -51,14 +51,19 @@ promotion_run:
     name what it is relying on, in the same shape FP-5-A already established
     for projection_cleanup_receipt_ref in permission-retention-deletion.yaml.
   declared_paths_rule: >-
-    Whatever promotion mechanism the run claims to have used. Any entry that
+    Whatever promotion mechanism the run claims to have used. Must be a list of
+    strings: a missing or malformed declared_paths fails closed rather than
+    being coerced into an empty list, because coercion silently disables the
+    forbidden-path check entirely (big review P1). Any entry that
     appears in the upstream gate's forbidden list rejects the run outright,
     whether or not every required condition is also satisfied -- a forbidden
     path is not redeemable by collecting approvals.
 
 provenance_boundary:
   verifies: THE_RUN_SATISFIES_THE_DECLARED_GATE
-  does_not_verify: THE_REFERENCED_RECEIPTS_ARE_AUTHENTIC
+  does_not_verify:
+    - THE_REFERENCED_RECEIPTS_ARE_AUTHENTIC
+    - THE_DECLARED_PATHS_ARE_COMPLETE
   rule: >-
     Stated up front rather than discovered in review: this evaluator checks
     that a promotion run names a receipt for every condition the upstream gate
@@ -69,12 +74,22 @@ provenance_boundary:
     caller's responsibility. The same boundary is already documented and
     accepted in permission-retention-deletion.yaml#provenance_boundary.
 
+    repair-01 adds the second half of the same admission, prompted by review:
+    declared_paths is equally self-reported. This evaluator rejects a run that
+    declares a forbidden path, and now also rejects one whose declared_paths is
+    missing or malformed, but it cannot detect a caller that quietly omits the
+    forbidden path it actually used. Proving which mechanism a promotion really
+    went through needs an execution record this system does not have. Under-
+    reporting is therefore out of scope here and stays the caller's
+    responsibility -- stated rather than left to be discovered in review.
+
 error_contract:
   PROMOTION_INVALID_OUTCOME: emem_promotion_gate.error.invalid_outcome
   PROMOTION_GATE_CONDITION_UNSATISFIED: emem_promotion_gate.error.gate_condition_unsatisfied
   PROMOTION_CONDITION_RECEIPT_NOT_REF: emem_promotion_gate.error.condition_receipt_not_ref
   PROMOTION_UNKNOWN_GATE_CONDITION: emem_promotion_gate.error.unknown_gate_condition
   PROMOTION_FORBIDDEN_PATH_DECLARED: emem_promotion_gate.error.forbidden_path_declared
+  PROMOTION_DECLARED_PATHS_NOT_LIST: emem_promotion_gate.error.declared_paths_not_list
 
 hard_stops:
   - no restatement of the upstream gate's required/forbidden lists
