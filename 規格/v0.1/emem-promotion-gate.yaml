@@ -1,0 +1,104 @@
+contract_id: urn:omos:contract:emem-promotion-gate:0.1.0
+schema_version: "0.1.0"
+
+purpose:
+  statement: >-
+    Enforce the promotion widening gate that personal-harness-integration.yaml
+    already declares. The gate's composition -- which conditions are required
+    and which paths are forbidden -- is NOT restated here; it is read from the
+    upstream contract at evaluation time. This slice only defines what a
+    promotion run must look like and rejects runs that claim a promotion
+    without satisfying the declared gate.
+  no_second_workflow_authority: true
+
+authority:
+  grants_acceptance: false
+  grants_permission: false
+  grants_canonical_writer: false
+  error_behavior: FAIL_LOUD
+
+slice_of: SSP-294（EMEM-05 Promotion）切片 A —— gate 組成
+sibling_slices:
+  - "切片 B：actor × 材料類別的 15 個決策格重放（待開）"
+  - "切片 C：retention/deletion 傳遞 ＋ canonical writer 不得繞過（待開）"
+
+# --- 綁定上游，不重述 ------------------------------------------------------
+
+widening_gate_binding:
+  gate_ref: personal-harness-integration.ownership_visibility_contract.promotion_widening_gate
+  rule: >-
+    The required and forbidden lists live upstream and are read from there at
+    evaluation time. This contract deliberately does not copy them: a second
+    hand-written copy would drift, and the repo has repeatedly been bitten by
+    exactly that. If the upstream gate gains a required condition, runs that do
+    not satisfy it start failing here with no edit to this file.
+
+# --- 評估輸入形狀 ---------------------------------------------------------
+
+promotion_run:
+  fields:
+    - outcome
+    - satisfied_conditions
+    - declared_paths
+  outcomes:
+    - PROMOTED
+    - DENIED
+  satisfied_conditions_rule: >-
+    A map from a gate condition name to the omos URN of the receipt that
+    evidences it, e.g. reviewer_approval -> urn:omos:review-receipt:<id>.
+    A bare list of names would let a caller assert satisfaction with no
+    artefact behind it; requiring a reference at least forces the caller to
+    name what it is relying on, in the same shape FP-5-A already established
+    for projection_cleanup_receipt_ref in permission-retention-deletion.yaml.
+  declared_paths_rule: >-
+    Whatever promotion mechanism the run claims to have used. Must be a list of
+    strings: a missing or malformed declared_paths fails closed rather than
+    being coerced into an empty list, because coercion silently disables the
+    forbidden-path check entirely (big review P1). Any entry that
+    appears in the upstream gate's forbidden list rejects the run outright,
+    whether or not every required condition is also satisfied -- a forbidden
+    path is not redeemable by collecting approvals.
+
+provenance_boundary:
+  verifies: THE_RUN_SATISFIES_THE_DECLARED_GATE
+  does_not_verify:
+    - THE_REFERENCED_RECEIPTS_ARE_AUTHENTIC
+    - THE_DECLARED_PATHS_ARE_COMPLETE
+  rule: >-
+    Stated up front rather than discovered in review: this evaluator checks
+    that a promotion run names a receipt for every condition the upstream gate
+    requires, and that it does not declare a forbidden path. It cannot check
+    that urn:omos:review-receipt:<id> corresponds to a review that actually
+    happened -- there is no receipt store in this system to resolve it against,
+    and building one is out of scope. Resolving those references is the
+    caller's responsibility. The same boundary is already documented and
+    accepted in permission-retention-deletion.yaml#provenance_boundary.
+
+    repair-01 adds the second half of the same admission, prompted by review:
+    declared_paths is equally self-reported. This evaluator rejects a run that
+    declares a forbidden path, and now also rejects one whose declared_paths is
+    missing or malformed, but it cannot detect a caller that quietly omits the
+    forbidden path it actually used. Proving which mechanism a promotion really
+    went through needs an execution record this system does not have. Under-
+    reporting is therefore out of scope here and stays the caller's
+    responsibility -- stated rather than left to be discovered in review.
+
+error_contract:
+  PROMOTION_INVALID_OUTCOME: emem_promotion_gate.error.invalid_outcome
+  PROMOTION_GATE_CONDITION_UNSATISFIED: emem_promotion_gate.error.gate_condition_unsatisfied
+  PROMOTION_CONDITION_RECEIPT_NOT_REF: emem_promotion_gate.error.condition_receipt_not_ref
+  PROMOTION_UNKNOWN_GATE_CONDITION: emem_promotion_gate.error.unknown_gate_condition
+  PROMOTION_FORBIDDEN_PATH_DECLARED: emem_promotion_gate.error.forbidden_path_declared
+  PROMOTION_DECLARED_PATHS_NOT_LIST: emem_promotion_gate.error.declared_paths_not_list
+
+hard_stops:
+  - no restatement of the upstream gate's required/forbidden lists
+  - no receipt store, registry or writer
+  - no per-actor policy here; that is slice B
+  - no canonical writer authority
+
+cross_reference:
+  upstream_gate: 規格/v0.1/personal-harness-integration.yaml
+  provenance_precedent: 規格/v0.1/permission-retention-deletion.yaml
+
+runtime_independence: true

@@ -1,0 +1,182 @@
+{
+  "contract": "urn:omos:contract:emem-promotion-gate:0.1.0",
+  "cases": [
+    {
+      "case_id": "PROMO_NEG_INVALID_OUTCOME",
+      "expected": "deny",
+      "expected_failure_code": "PROMOTION_INVALID_OUTCOME",
+      "covers_negative_fixture": "an outcome outside the declared enum",
+      "run": {
+        "outcome": "MAYBE",
+        "satisfied_conditions": {
+          "promotion_proposal": "urn:omos:gate-receipt:00000000-1111-2222-3333-444444444444",
+          "evidence_support_check": "urn:omos:gate-receipt:00000001-1111-2222-3333-444444444444",
+          "source_acl_check": "urn:omos:gate-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:gate-receipt:00000003-1111-2222-3333-444444444444",
+          "reviewer_approval": "urn:omos:gate-receipt:00000004-1111-2222-3333-444444444444",
+          "canonical_single_writer": "urn:omos:gate-receipt:00000005-1111-2222-3333-444444444444"
+        },
+        "declared_paths": []
+      }
+    },
+    {
+      "case_id": "PROMO_NEG_MISSING_REQUIRED_CONDITION",
+      "expected": "deny",
+      "expected_failure_code": "PROMOTION_GATE_CONDITION_UNSATISFIED",
+      "covers_negative_fixture": "a promotion missing a condition the upstream gate requires",
+      "run": {
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "promotion_proposal": "urn:omos:gate-receipt:00000000-1111-2222-3333-444444444444",
+          "evidence_support_check": "urn:omos:gate-receipt:00000001-1111-2222-3333-444444444444",
+          "source_acl_check": "urn:omos:gate-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:gate-receipt:00000003-1111-2222-3333-444444444444",
+          "reviewer_approval": "urn:omos:gate-receipt:00000004-1111-2222-3333-444444444444"
+        },
+        "declared_paths": []
+      }
+    },
+    {
+      "case_id": "PROMO_NEG_RECEIPT_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "PROMOTION_CONDITION_RECEIPT_NOT_REF",
+      "covers_negative_fixture": "a promotion whose condition receipt is not an omos URN",
+      "run": {
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "promotion_proposal": "not-a-urn",
+          "evidence_support_check": "urn:omos:gate-receipt:00000001-1111-2222-3333-444444444444",
+          "source_acl_check": "urn:omos:gate-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:gate-receipt:00000003-1111-2222-3333-444444444444",
+          "reviewer_approval": "urn:omos:gate-receipt:00000004-1111-2222-3333-444444444444",
+          "canonical_single_writer": "urn:omos:gate-receipt:00000005-1111-2222-3333-444444444444"
+        },
+        "declared_paths": []
+      }
+    },
+    {
+      "case_id": "PROMO_NEG_UNKNOWN_CONDITION",
+      "expected": "deny",
+      "expected_failure_code": "PROMOTION_UNKNOWN_GATE_CONDITION",
+      "covers_negative_fixture": "a promotion naming a condition the upstream gate does not declare",
+      "run": {
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "promotion_proposal": "urn:omos:gate-receipt:00000000-1111-2222-3333-444444444444",
+          "evidence_support_check": "urn:omos:gate-receipt:00000001-1111-2222-3333-444444444444",
+          "source_acl_check": "urn:omos:gate-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:gate-receipt:00000003-1111-2222-3333-444444444444",
+          "reviewer_approval": "urn:omos:gate-receipt:00000004-1111-2222-3333-444444444444",
+          "canonical_single_writer": "urn:omos:gate-receipt:00000005-1111-2222-3333-444444444444",
+          "some_condition_upstream_never_declared": "urn:omos:gate-receipt:9999"
+        },
+        "declared_paths": []
+      }
+    },
+    {
+      "case_id": "PROMO_NEG_FORBIDDEN_PATH",
+      "expected": "deny",
+      "expected_failure_code": "PROMOTION_FORBIDDEN_PATH_DECLARED",
+      "covers_negative_fixture": "a promotion declaring a path the upstream gate forbids",
+      "run": {
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {},
+        "declared_paths": [
+          "direct_copy_to_shared_canonical"
+        ]
+      }
+    },
+    {
+      "case_id": "PROMO_NEG_FORBIDDEN_PATH_NOT_REDEEMED_BY_APPROVALS",
+      "expected": "deny",
+      "expected_failure_code": "PROMOTION_FORBIDDEN_PATH_DECLARED",
+      "covers_negative_fixture": "a promotion declaring a forbidden path while satisfying every required condition",
+      "run": {
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "promotion_proposal": "urn:omos:gate-receipt:00000000-1111-2222-3333-444444444444",
+          "evidence_support_check": "urn:omos:gate-receipt:00000001-1111-2222-3333-444444444444",
+          "source_acl_check": "urn:omos:gate-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:gate-receipt:00000003-1111-2222-3333-444444444444",
+          "reviewer_approval": "urn:omos:gate-receipt:00000004-1111-2222-3333-444444444444",
+          "canonical_single_writer": "urn:omos:gate-receipt:00000005-1111-2222-3333-444444444444"
+        },
+        "declared_paths": [
+          "model_confidence_only"
+        ]
+      }
+    },
+    {
+      "case_id": "PROMO_NEG_CONDITIONS_NOT_A_MAP",
+      "expected": "deny",
+      "expected_failure_code": "PROMOTION_GATE_CONDITION_UNSATISFIED",
+      "covers_negative_fixture": "a promotion whose satisfied_conditions is not a condition-to-receipt map",
+      "run": {
+        "outcome": "PROMOTED",
+        "satisfied_conditions": [
+          "reviewer_approval"
+        ],
+        "declared_paths": []
+      }
+    },
+    {
+      "case_id": "PROMO_NEG_DECLARED_PATHS_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "PROMOTION_DECLARED_PATHS_NOT_LIST",
+      "covers_negative_fixture": "a promotion with no declared_paths field at all",
+      "run": {
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "promotion_proposal": "urn:omos:gate-receipt:00000000-1111-2222-3333-444444444444",
+          "evidence_support_check": "urn:omos:gate-receipt:00000001-1111-2222-3333-444444444444",
+          "source_acl_check": "urn:omos:gate-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:gate-receipt:00000003-1111-2222-3333-444444444444",
+          "reviewer_approval": "urn:omos:gate-receipt:00000004-1111-2222-3333-444444444444",
+          "canonical_single_writer": "urn:omos:gate-receipt:00000005-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "PROMO_NEG_DECLARED_PATHS_IS_MAP",
+      "expected": "deny",
+      "expected_failure_code": "PROMOTION_DECLARED_PATHS_NOT_LIST",
+      "covers_negative_fixture": "a promotion whose declared_paths is not a list",
+      "run": {
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "promotion_proposal": "urn:omos:gate-receipt:00000000-1111-2222-3333-444444444444",
+          "evidence_support_check": "urn:omos:gate-receipt:00000001-1111-2222-3333-444444444444",
+          "source_acl_check": "urn:omos:gate-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:gate-receipt:00000003-1111-2222-3333-444444444444",
+          "reviewer_approval": "urn:omos:gate-receipt:00000004-1111-2222-3333-444444444444",
+          "canonical_single_writer": "urn:omos:gate-receipt:00000005-1111-2222-3333-444444444444"
+        },
+        "declared_paths": {
+          "direct_copy_to_shared_canonical": true
+        }
+      }
+    },
+    {
+      "case_id": "PROMO_NEG_DECLARED_PATHS_NON_STRING_ENTRY",
+      "expected": "deny",
+      "expected_failure_code": "PROMOTION_DECLARED_PATHS_NOT_LIST",
+      "covers_negative_fixture": "a promotion whose declared_paths contains a non-string entry",
+      "run": {
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "promotion_proposal": "urn:omos:gate-receipt:00000000-1111-2222-3333-444444444444",
+          "evidence_support_check": "urn:omos:gate-receipt:00000001-1111-2222-3333-444444444444",
+          "source_acl_check": "urn:omos:gate-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:gate-receipt:00000003-1111-2222-3333-444444444444",
+          "reviewer_approval": "urn:omos:gate-receipt:00000004-1111-2222-3333-444444444444",
+          "canonical_single_writer": "urn:omos:gate-receipt:00000005-1111-2222-3333-444444444444"
+        },
+        "declared_paths": [
+          {
+            "path": "direct_copy_to_shared_canonical"
+          }
+        ]
+      }
+    }
+  ]
+}
