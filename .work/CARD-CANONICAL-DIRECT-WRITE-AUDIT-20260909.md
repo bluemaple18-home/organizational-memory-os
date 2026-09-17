@@ -3,7 +3,7 @@ id: CANONICAL-DIRECT-WRITE-AUDIT-20260909
 status: AUDIT_COMPLETE_AWAITING_OWNER_DISPOSITION
 merged_commit: a4ac172
 scope_signature: "FP-1: B / FP-2: A / FP-3: A / FP-4: B（2026-09-16）"
-findings: "F-01 (P2) core_pipeline 未綁定且未被讀取；F-02 (P3) e2e prose 箭頭重述"
+findings: "F-01 (P2) 已於 2026-09-17 收掉（CARD-CORE-PIPELINE-PROMOTION-BINDING-20260917，merged b908339）；F-02 (P3) Owner 裁定維持不處理"
 type: audit
 lane: A（repo 施工順序 #5 / SSP-294 前置）
 tier: T3

@@ -1,6 +1,7 @@
 ---
 id: CORE-PIPELINE-PROMOTION-BINDING-20260917
-status: AWAITING_BIG_REVIEW
+status: ACCEPTED_GO
+merged_commit: b908339
 type: implementation
 tier: T1
 closes_finding: "repo #5 稽核 F-01（P2）"
@@ -80,6 +81,25 @@ canonical gate 的例外清單清空（`known unbound=0`）。註解寫明「空
 4. `KNOWN_UNBOUND` 清空，`known unbound=0`。
 5. 27 支 validator 全 PASS；`git diff --check` clean。
 
+## 大 review 記錄
+
+- `1f3b0f4`：NO_GO，P1（用現行 upstream 名稱過濾，孤兒被自己濾掉）＋ P2
+  （pointer prefix bypass：`promotion_pathology`）。
+- repair-01（`f56560c`）：改取實際切片、收緊 prefix → NO_GO，P1 regression
+  （`covers` 自己界定檢查範圍，砍短即可躲）＋ P2（`.bogus` 形狀正確但不存在）。
+- repair-02（`a8bb251`）：補區間外檢查（`covers` 無法少報）＋ pointer 改為
+  實際 resolve 進 boundary。
+- 定點 re-review（`ebc2568`）：**GO**，P0=P1=0。
+
+**已接受的邊界**：孤兒名稱若落在 `covers` 宣告範圍之外，兩支 gate 抓不到。
+reviewer 裁定區間外本就未宣稱屬於 canonical restatement，要辨識「這是以前的
+canonical 名稱」需另存歷史身分或做 ownership partition，超出本卡 scope。
+
+**同型錯誤四次**：整份文字判定綁定／pointer prefix 太鬆／過濾後再比對／
+被驗方界定檢查範圍。共同型態是「比對的對象被前處理過，或由被驗方決定」。
+
 ## Evidence
 
 `.work/evidence/CORE-PIPELINE-PROMOTION-BINDING-20260917.md`
+`.work/evidence/CORE-PIPELINE-PROMOTION-BINDING-REPAIR-01-20260917.md`
+`.work/evidence/CORE-PIPELINE-PROMOTION-BINDING-REPAIR-02-20260917.md`
