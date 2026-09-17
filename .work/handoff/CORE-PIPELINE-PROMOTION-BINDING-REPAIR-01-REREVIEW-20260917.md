@@ -7,7 +7,7 @@
 ```
 base                8bf224c
 original_review     1f3b0f4   （NO_GO，P1=1 / P2=1）
-repair_commit       <見對話中的派工區塊>
+repair_commit       f56560c
 branch              cc/core-pipeline-promotion-binding
 ```
 
