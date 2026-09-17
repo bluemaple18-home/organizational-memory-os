@@ -677,6 +677,31 @@ core_pipeline:
   - RECALL_OR_CORRECTION
   - OPTIONAL_PROMOTION_PROPOSAL
 
+# repo #5 稽核 F-01（2026-09-16 發現，2026-09-17 收斂）：core_pipeline 的中段
+# 是 canonical 升格路徑的重述，但過去沒有任何東西宣告這件事，也沒有 validator
+# 讀它——相鄰的 core_invariants 反而有被 boundary validator 斷言。
+#
+# 這裡明確宣告「哪一段是重述、重述了上游的哪些步驟」。covers 必須逐項都是
+# 上游**現在**仍存在的步驟，所以上游若移除或改名某步，這裡會立刻變成孤兒而
+# 轉紅——那正是單靠「順序與跳步檢查」補不到的缺口（舊名稱會直接從比對範圍
+# 消失，靜默通過）。
+core_pipeline_promotion_binding:
+  promotion_path_ref: ai-work-record-boundary.promotion_path.ordered_steps
+  covers:
+    - PERSONAL_MEMORY_CANDIDATE
+    - VERIFICATION
+    - PERSONAL_ACCEPTANCE
+    - PERSONAL_MEMORY_RECORD
+  rule: >-
+    The listed steps are a restatement of the canonical promotion path, not an
+    independent ordering. Each must be a step that currently exists in
+    ai-work-record-boundary.promotion_path.ordered_steps, they must appear in
+    that same relative order, and they must be contiguous there -- core_pipeline
+    may describe only part of the canonical path, but it may not silently drop a
+    step from the part it does describe. core_pipeline's own additional stages
+    (SOURCE, OBJECT_LINKING, RECALL_OR_CORRECTION, ...) are outside the canonical
+    path and are not governed by this binding.
+
 core_invariants:
   - RAW_EVIDENCE_NE_PERSONAL_MEMORY
   - WORK_RECORD_NE_PERSONAL_MEMORY

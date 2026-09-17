@@ -266,6 +266,67 @@ EXPECTED_REUSED_CORE_INVARIANTS.each do |invariant|
   assert(personal_core_invariants.include?(invariant), "personal spec core_invariants 必須含被引用的 #{invariant}", failures)
 end
 
+# repo #5 稽核 F-01：core_pipeline 的中段是 canonical 升格路徑的重述。過去
+# 只有 core_invariants 被讀、緊鄰的 core_pipeline 沒有——本區塊補平這個不對稱。
+#
+# 檢查的是「重述的那一段是否仍對得上上游現在的樣子」：
+#   1. covers 的每一步都必須是上游**現存**步驟（上游移除／改名 → 這裡變孤兒 → 紅）
+#   2. covers 必須是上游的**連續且同序**切片（不得在自己描述的範圍內跳步）
+#   3. core_pipeline 實際出現的 canonical 步驟必須剛好等於 covers（宣告與內容一致）
+personal_binding = personal_spec.fetch("core_pipeline_promotion_binding", {})
+personal_core_pipeline = personal_spec.fetch("core_pipeline", [])
+promotion_steps = spec.dig("promotion_path", "ordered_steps").to_a
+
+assert(personal_binding["promotion_path_ref"] == "ai-work-record-boundary.promotion_path.ordered_steps",
+       "personal spec core_pipeline_promotion_binding.promotion_path_ref 必須指向 boundary promotion_path.ordered_steps",
+       failures)
+
+covers = personal_binding.fetch("covers", [])
+assert(!covers.empty?, "core_pipeline_promotion_binding.covers 不得為空", failures)
+
+orphans = covers - promotion_steps
+assert(orphans.empty?,
+       "core_pipeline_promotion_binding.covers 含上游已不存在的步驟（移除或改名？）：#{orphans.join(', ')}",
+       failures)
+
+if orphans.empty? && !covers.empty?
+  indices = covers.map { |step| promotion_steps.index(step) }
+  expected_slice = promotion_steps[indices.min..indices.max]
+  assert(covers == expected_slice,
+         "core_pipeline_promotion_binding.covers 必須是上游 ordered_steps 的連續同序切片：" \
+         "宣告=#{covers.inspect} 上游對應區間=#{expected_slice.inspect}", failures)
+end
+
+# repair-01（big review P1）：原本用「現行 upstream 名稱」過濾 core_pipeline
+# 再與 covers 比對——等於把要抓的孤兒自己濾掉了。上游移除／改名後，只要
+# covers 跟著更新，舊名稱仍可安靜殘留在 core_pipeline 裡。
+#
+# 改成取 core_pipeline 中「covers 第一個元素到最後一個元素」的**實際切片**，
+# 要求它逐項剛好等於 covers。不過濾，所以任何殘留或插入都會現形。
+first_index = personal_core_pipeline.index(covers.first)
+last_index = personal_core_pipeline.rindex(covers.last)
+assert(!first_index.nil? && !last_index.nil?,
+       "core_pipeline 必須實際包含 covers 的首尾步驟（#{covers.first} / #{covers.last}）", failures)
+
+if first_index && last_index
+  actual_slice = personal_core_pipeline[first_index..last_index]
+  assert(actual_slice == covers,
+         "core_pipeline 在 covers 涵蓋範圍內的實際內容必須逐項等於 covers（不得殘留或插入）：" \
+         "實際=#{actual_slice.inspect} 宣告=#{covers.inspect}", failures)
+
+  # repair-02（big review P1 regression）：只驗 covers 自己界定的首尾區間，
+  # 等於讓被驗的一方決定要驗多大範圍——把 covers 前後縮短，被砍掉的
+  # canonical 步驟就落到區間外、不再被檢查。
+  #
+  # 補上區間外檢查：宣告範圍之外不得再出現任何 canonical 步驟。covers 因此
+  # 無法少報——少報一步，那一步就會出現在區間外而轉紅。
+  outside = personal_core_pipeline[0...first_index] + personal_core_pipeline[(last_index + 1)..].to_a
+  stragglers = outside.select { |step| promotion_steps.include?(step) }
+  assert(stragglers.empty?,
+         "core_pipeline 在 covers 宣告範圍之外仍出現 canonical 步驟（covers 少報？）：" \
+         "#{stragglers.join(', ')}", failures)
+end
+
 assert(
   sorted_set(spec.fetch("required_negative_fixtures", [])) == sorted_set(EXPECTED_BOUNDARY_NEGATIVE_LABELS),
   "required_negative_fixtures 與鎖定 label 清單不符",
