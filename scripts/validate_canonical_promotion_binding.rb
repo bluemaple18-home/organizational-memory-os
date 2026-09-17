@@ -133,13 +133,28 @@ end
 #
 # 改成只認**結構化欄位的值**：某個 scalar 的值本身就是 pointer（或其點號延伸），
 # 才算綁定。散文因為前後有句子，整值比對不會命中。
+# pointer 必須真的能在 boundary 裡 resolve 出東西，而不是形狀對就算。
+def resolvable_pointer?(value)
+  prefix = "ai-work-record-boundary."
+  return false unless value.start_with?(prefix)
+
+  segments = value[prefix.length..].to_s.split(".")
+  return false if segments.empty?
+  return false unless segments.first == "promotion_path"
+
+  boundary = read_yaml(BOUNDARY_SPEC_PATH)
+  !boundary.dig(*segments).nil?
+end
+
 def bound_to_upstream?(node)
   case node
   when Hash then node.any? { |_key, value| bound_to_upstream?(value) }
   when Array then node.any? { |item| bound_to_upstream?(item) }
-  # repair-01（big review P2）：`[\w.]*` 會讓 promotion_pathology 這種
-  # prefix 相同的假 pointer 也通過。延伸段前面必須真的有一個 `.`。
-  when String then /\A#{Regexp.escape(BOUNDARY_POINTER)}(\.[\w.]+)?\z/.match?(node.strip)
+  # repair-01（P2）：`[\w.]*` 會讓 promotion_pathology 通過。
+  # repair-02（P2 第二輪）：光驗字串形狀還是在猜——`.promotion_path.bogus`
+  # 形狀正確但子路徑根本不存在。改成**實際 resolve 到上游結構**：把 pointer
+  # 去掉前綴後逐段 dig 進 boundary，dig 得到東西才算數。
+  when String then resolvable_pointer?(node.strip)
   else false
   end
 end

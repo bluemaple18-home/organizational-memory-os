@@ -313,6 +313,18 @@ if first_index && last_index
   assert(actual_slice == covers,
          "core_pipeline 在 covers 涵蓋範圍內的實際內容必須逐項等於 covers（不得殘留或插入）：" \
          "實際=#{actual_slice.inspect} 宣告=#{covers.inspect}", failures)
+
+  # repair-02（big review P1 regression）：只驗 covers 自己界定的首尾區間，
+  # 等於讓被驗的一方決定要驗多大範圍——把 covers 前後縮短，被砍掉的
+  # canonical 步驟就落到區間外、不再被檢查。
+  #
+  # 補上區間外檢查：宣告範圍之外不得再出現任何 canonical 步驟。covers 因此
+  # 無法少報——少報一步，那一步就會出現在區間外而轉紅。
+  outside = personal_core_pipeline[0...first_index] + personal_core_pipeline[(last_index + 1)..].to_a
+  stragglers = outside.select { |step| promotion_steps.include?(step) }
+  assert(stragglers.empty?,
+         "core_pipeline 在 covers 宣告範圍之外仍出現 canonical 步驟（covers 少報？）：" \
+         "#{stragglers.join(', ')}", failures)
 end
 
 assert(
