@@ -1,6 +1,6 @@
 ---
 id: CANONICAL-DIRECT-WRITE-AUDIT-SCOPE-FREEZE-20260916
-status: AWAITING_OWNER_SIGNATURE
+status: OWNER_SIGNED
 type: scope_freeze
 tier: T3
 implements_card: CARD-CANONICAL-DIRECT-WRITE-AUDIT-20260909
@@ -74,9 +74,9 @@ jira: SSP-294 最後一個前置（repo #5）
 
 ---
 
-## 簽核方式
+## 簽核
 
-回四個字母，例如：`B A A B`。
+Owner 於 2026-09-16 簽 **`B A A B`**。
 
 ## 簽核後
 

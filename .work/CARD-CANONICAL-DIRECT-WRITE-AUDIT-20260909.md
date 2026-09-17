@@ -1,6 +1,8 @@
 ---
 id: CANONICAL-DIRECT-WRITE-AUDIT-20260909
-status: BLOCKED_AWAITING_OWNER_SCOPE_DECISION
+status: AUDIT_COMPLETE_AWAITING_OWNER_DISPOSITION
+scope_signature: "FP-1: B / FP-2: A / FP-3: A / FP-4: B（2026-09-16）"
+findings: "F-01 (P2) core_pipeline 未綁定且未被讀取；F-02 (P3) e2e prose 箭頭重述"
 type: audit
 lane: A（repo 施工順序 #5 / SSP-294 前置）
 tier: T3
