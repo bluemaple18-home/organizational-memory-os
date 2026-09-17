@@ -4,7 +4,7 @@
 
 ```
 base    63464c3
-review  <見對話中的派工區塊>
+review  0205d7b
 branch  cc/ssp323-historical-comparison
 ```
 
