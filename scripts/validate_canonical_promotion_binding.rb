@@ -137,7 +137,9 @@ def bound_to_upstream?(node)
   case node
   when Hash then node.any? { |_key, value| bound_to_upstream?(value) }
   when Array then node.any? { |item| bound_to_upstream?(item) }
-  when String then /\A#{Regexp.escape(BOUNDARY_POINTER)}[\w.]*\z/.match?(node.strip)
+  # repair-01（big review P2）：`[\w.]*` 會讓 promotion_pathology 這種
+  # prefix 相同的假 pointer 也通過。延伸段前面必須真的有一個 `.`。
+  when String then /\A#{Regexp.escape(BOUNDARY_POINTER)}(\.[\w.]+)?\z/.match?(node.strip)
   else false
   end
 end

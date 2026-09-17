@@ -297,10 +297,23 @@ if orphans.empty? && !covers.empty?
          "宣告=#{covers.inspect} 上游對應區間=#{expected_slice.inspect}", failures)
 end
 
-pipeline_canonical_steps = personal_core_pipeline.select { |step| promotion_steps.include?(step) }
-assert(pipeline_canonical_steps == covers,
-       "core_pipeline 實際出現的 canonical 步驟必須與 covers 宣告一致：" \
-       "實際=#{pipeline_canonical_steps.inspect} 宣告=#{covers.inspect}", failures)
+# repair-01（big review P1）：原本用「現行 upstream 名稱」過濾 core_pipeline
+# 再與 covers 比對——等於把要抓的孤兒自己濾掉了。上游移除／改名後，只要
+# covers 跟著更新，舊名稱仍可安靜殘留在 core_pipeline 裡。
+#
+# 改成取 core_pipeline 中「covers 第一個元素到最後一個元素」的**實際切片**，
+# 要求它逐項剛好等於 covers。不過濾，所以任何殘留或插入都會現形。
+first_index = personal_core_pipeline.index(covers.first)
+last_index = personal_core_pipeline.rindex(covers.last)
+assert(!first_index.nil? && !last_index.nil?,
+       "core_pipeline 必須實際包含 covers 的首尾步驟（#{covers.first} / #{covers.last}）", failures)
+
+if first_index && last_index
+  actual_slice = personal_core_pipeline[first_index..last_index]
+  assert(actual_slice == covers,
+         "core_pipeline 在 covers 涵蓋範圍內的實際內容必須逐項等於 covers（不得殘留或插入）：" \
+         "實際=#{actual_slice.inspect} 宣告=#{covers.inspect}", failures)
+end
 
 assert(
   sorted_set(spec.fetch("required_negative_fixtures", [])) == sorted_set(EXPECTED_BOUNDARY_NEGATIVE_LABELS),
