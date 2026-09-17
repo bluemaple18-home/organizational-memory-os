@@ -21,6 +21,44 @@
   - [SSP-296](https://multiforcedatateam.atlassian.net/browse/SSP-296) — EMEM-07 Role Profiles（Deferred）
   - [SSP-297](https://multiforcedatateam.atlassian.net/browse/SSP-297) — EMEM-08 AI Core Developer Adapter（Optional）
 
+## 2026-09-17 Personal Memory Owner Amendment
+
+原 2026-09-07 建卡結果保留為歷史紀錄；本節登錄後續有效增量，不改寫原 feature identity。
+
+### 有效新增卡
+
+- [SSP-323](https://multiforcedatateam.atlassian.net/browse/SSP-323) — `EMEM-09｜員工個人知識每週沉澱 Harness`
+  - Git authority：`.work/CARD-SSP323-WEEKLY-PERSONAL-HARNESS-20260917.md`
+  - 目的：重用既有 Personal Memory contract 與 AI Core donor，補 platform-neutral / local-first Personal Store、Weekly Grill、batch acceptance、歷史比較去重、organizational-value assessment、`NEEDS_ORG_FOLLOWUP`。
+- [SSP-324](https://multiforcedatateam.atlassian.net/browse/SSP-324) — `EMEM-10｜Personal → Company 最小證據封包與上傳邊界`
+  - Git authority：`.work/CARD-SSP324-MINIMAL-EVIDENCE-PACKAGE-20260917.md`
+  - 目的：作為 SSP-294 downstream amendment，只補 Minimal Evidence Package、禁止 reverse access、Evidence Package 非正式 company retrieval corpus、immutable revision / dedup resend rule。
+
+### Current-truth dependencies
+
+```text
+SSP-323 + SSP-324
+        ↓
+SSP-295 真人產品部 Vertical Pilot
+        ↓
+SSP-286 MVP closure
+```
+
+`SSP-294` 原 A/B/C promotion governance 不回退、不重做；`SSP-324` 只接在 downstream payload boundary。
+
+### Duplicate cleanup
+
+Jira 工具於 2026-09-17 重複建立 `SSP-325～329`，內容均為 EMEM-09 複本。這些卡已標記：
+
+```text
+DUPLICATE
+DO NOT USE
+DO NOT IMPLEMENT
+NOT AUTHORITY
+```
+
+所有實作、review、dependency、trace 只能引用 `SSP-323`，不得引用 `SSP-325～329`。
+
 ## AI 工作紀錄自動化執行層
 
 - [SSP-287](https://multiforcedatateam.atlassian.net/browse/SSP-287) — `[MVP] 建立 AI 工作紀錄自動化執行層` — 待辦事項
@@ -40,11 +78,14 @@
 - `SSP-286` relates to `SSP-285`
 - `SSP-287` relates to `SSP-285`
 - `SSP-287` relates to `SSP-286`
+- `SSP-323` relates to `SSP-295`
+- `SSP-324` relates to `SSP-294`
+- `SSP-324` relates to `SSP-295`
 
 ## 建立後對帳
 
-- 20 個 identity marker 各自搜尋到唯一 Jira issue。
+- 2026-09-07 原始 20 個 identity marker 各自搜尋到唯一 Jira issue。
 - 2 張主票 parent = `MNG-305`。
-- 18 張子任務 parent 皆符合 dry-run。
-- `SSP-288／SSP-289` 狀態為「完成」；其餘為「待辦事項」。
-- Priority 均為 `P2`；未填 assignee、開始日與截止日。
+- 原 18 張子任務 parent 皆符合 dry-run。
+- 2026-09-17 有效新增子任務只有 `SSP-323`、`SSP-324`。
+- `SSP-325～329` 為 duplicate，不計入有效 backlog。
