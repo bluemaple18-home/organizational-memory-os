@@ -1,0 +1,129 @@
+contract_id: urn:omos:contract:emem-promotion-policy:0.1.0
+schema_version: "0.1.0"
+
+purpose:
+  statement: >-
+    Replay the per-actor promotion decision table that
+    personal-harness-integration.yaml already declares. Fifteen cells
+    (5 actors x 3 material classes) each carry a decision and, where
+    CONDITIONAL, a list of required conditions. Today only one cell has any of
+    its conditions checked. This slice makes every cell load-bearing. The table
+    itself is NOT restated here -- it is read from the upstream contract at
+    evaluation time.
+  no_second_workflow_authority: true
+
+authority:
+  grants_acceptance: false
+  grants_permission: false
+  grants_canonical_writer: false
+  error_behavior: FAIL_LOUD
+
+slice_of: SSP-294（EMEM-05 Promotion）切片 B —— actor × 材料類別決策表
+sibling_slices:
+  - "切片 A：gate 組成（ACCEPTED_GO）"
+  - "切片 C：retention/deletion 傳遞 ＋ canonical writer 不得繞過（待開）"
+
+# --- 綁定上游，不重述 ------------------------------------------------------
+
+decision_table_binding:
+  policy_ref: personal-harness-integration.ownership_visibility_contract.actor_action_policy
+  action: PROMOTE
+  rule: >-
+    Actors, material classes, decisions and required_conditions all live
+    upstream and are read from there at evaluation time. This contract copies
+    none of them. Adding an actor upstream, flipping a cell from CONDITIONAL to
+    DENY, or adding a condition to a cell all take effect here with no edit to
+    this file -- and the fixture-coverage assertion below turns red until the
+    new cell is exercised, so a silently unexercised cell cannot appear.
+
+# --- 評估輸入形狀 ---------------------------------------------------------
+
+promotion_decision_run:
+  fields:
+    - actor
+    - material_class
+    - outcome
+    - satisfied_conditions
+  outcomes:
+    - PROMOTED
+    - DENIED
+  satisfied_conditions_rule: >-
+    Same shape as the gate slice: a map from condition name to the omos URN of
+    the receipt evidencing it. Deliberately not coerced -- a missing or
+    malformed map fails closed rather than being read as "no conditions
+    satisfied", because that coercion is what let the sibling slice's
+    forbidden-path check be bypassed (切片 A big review P1).
+  decision_semantics: >-
+    A DENY cell means the action is not available to that actor for that class
+    at all: a run reporting PROMOTED against a DENY cell is rejected regardless
+    of what conditions it claims. A CONDITIONAL cell requires every condition
+    the upstream cell lists. DENIED is always acceptable -- refusing to promote
+    never needs justification here.
+
+fixture_policy_override_rule: >-
+  A fixture case may carry its own policy table instead of the upstream one.
+  This exists for guards that upstream data cannot currently produce -- a cell
+  whose decision is neither of the recognised values, for instance, cannot be
+  built from a healthy upstream, yet the guard must still exist because an
+  upstream typo would otherwise be read as the permissive branch. Cases without
+  an override are evaluated against the real upstream table, which is the
+  normal path.
+
+fixture_coverage_rule: >-
+  Every cell in the upstream table must be exercised by at least one fixture
+  case. A table that grows a cell nobody tests is the failure mode this slice
+  exists to prevent: the cell would be declared, unexercised, and therefore
+  effectively unenforced -- which is precisely the state the whole table was in
+  before this slice.
+
+provenance_boundary:
+  verifies: THE_RUN_MATCHES_THE_DECLARED_CELL
+  does_not_verify:
+    - THE_REFERENCED_RECEIPTS_ARE_AUTHENTIC
+    - THE_DECLARED_ACTOR_IS_THE_REAL_ACTOR
+  rule: >-
+    Declared up front rather than found in review. This evaluator checks a run
+    against the cell its declared actor and material_class point at. It cannot
+    verify that the caller really is that actor -- a run claiming a more
+    permissive role than the caller actually holds would simply be evaluated
+    against that more permissive cell. Authenticating
+    the actor needs an identity boundary this contract does not own, and
+    inventing one here would be a second authority. Nor can it resolve the
+    receipts named in satisfied_conditions, for the same reason as the sibling
+    slices. Both remain the caller's responsibility, consistent with
+    permission-retention-deletion.yaml#provenance_boundary and
+    emem-promotion-gate.yaml#provenance_boundary.
+
+error_contract:
+  POLICY_UNKNOWN_ACTOR: emem_promotion_policy.error.unknown_actor
+  POLICY_UNKNOWN_MATERIAL_CLASS: emem_promotion_policy.error.unknown_material_class
+  POLICY_INVALID_OUTCOME: emem_promotion_policy.error.invalid_outcome
+  POLICY_DENIED_CELL_PROMOTED: emem_promotion_policy.error.denied_cell_promoted
+  POLICY_CONDITIONS_NOT_MAP: emem_promotion_policy.error.conditions_not_map
+  POLICY_CONDITION_UNSATISFIED: emem_promotion_policy.error.condition_unsatisfied
+  POLICY_UNKNOWN_CONDITION: emem_promotion_policy.error.unknown_condition
+  POLICY_CONDITION_RECEIPT_NOT_REF: emem_promotion_policy.error.condition_receipt_not_ref
+  POLICY_UNKNOWN_DECISION: emem_promotion_policy.error.unknown_decision
+
+hard_stops:
+  - no restatement of the upstream actor / class / decision / condition table
+  - no identity or authentication authority
+  - no receipt store, registry or writer
+  - no gate composition here; that is slice A
+
+known_duplication:
+  what: "satisfied_conditions 的型別與 URN 檢查與 emem-promotion-gate 相同（約兩行）"
+  why_not_shared: >-
+    Extracting a shared helper would mean editing
+    validate_emem_promotion_gate_contract.rb, which is already ACCEPTED_GO and
+    merged. Refactoring accepted code to save two lines is a worse trade than
+    the duplication, and doing it silently inside an unrelated slice is exactly
+    the kind of scope creep review has flagged. Recorded here so it is a
+    deliberate choice rather than an oversight; if a third slice needs the same
+    shape, that is the point to extract it properly under Refactor Mode.
+
+cross_reference:
+  upstream_policy: 規格/v0.1/personal-harness-integration.yaml
+  sibling_gate: 規格/v0.1/emem-promotion-gate.yaml
+
+runtime_independence: true

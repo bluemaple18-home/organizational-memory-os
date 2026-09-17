@@ -1,0 +1,178 @@
+{
+  "contract": "urn:omos:contract:emem-promotion-policy:0.1.0",
+  "cases": [
+    {
+      "case_id": "POLICY_NEG_UNKNOWN_ACTOR",
+      "expected": "deny",
+      "expected_failure_code": "POLICY_UNKNOWN_ACTOR",
+      "covers_negative_fixture": "a run naming an actor the upstream table does not declare",
+      "run": {
+        "actor": "ACTOR_THAT_DOES_NOT_EXIST_UPSTREAM",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "is_owner": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_NEG_UNKNOWN_CLASS",
+      "expected": "deny",
+      "expected_failure_code": "POLICY_UNKNOWN_MATERIAL_CLASS",
+      "covers_negative_fixture": "a run naming a material class the cell table does not declare",
+      "run": {
+        "actor": "EMPLOYEE",
+        "material_class": "PUBLIC_MARKETING",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "is_owner": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_NEG_INVALID_OUTCOME",
+      "expected": "deny",
+      "expected_failure_code": "POLICY_INVALID_OUTCOME",
+      "covers_negative_fixture": "an outcome outside the declared enum",
+      "run": {
+        "actor": "EMPLOYEE",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "ESCALATED",
+        "satisfied_conditions": {
+          "is_owner": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_NEG_DENY_CELL_PROMOTED",
+      "expected": "deny",
+      "expected_failure_code": "POLICY_DENIED_CELL_PROMOTED",
+      "covers_negative_fixture": "a promotion against a cell the table marks DENY",
+      "run": {
+        "actor": "ADMIN",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {}
+      }
+    },
+    {
+      "case_id": "POLICY_NEG_CONDITIONS_NOT_MAP",
+      "expected": "deny",
+      "expected_failure_code": "POLICY_CONDITIONS_NOT_MAP",
+      "covers_negative_fixture": "a promotion whose satisfied_conditions is not a map",
+      "run": {
+        "actor": "EMPLOYEE",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": [
+          "is_owner",
+          "promotion_review_approved",
+          "scope_widening_checked",
+          "redaction_complete"
+        ]
+      }
+    },
+    {
+      "case_id": "POLICY_NEG_MISSING_CONDITION",
+      "expected": "deny",
+      "expected_failure_code": "POLICY_CONDITION_UNSATISFIED",
+      "covers_negative_fixture": "a promotion missing a condition the cell requires",
+      "run": {
+        "actor": "EMPLOYEE",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "is_owner": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_NEG_UNKNOWN_CONDITION",
+      "expected": "deny",
+      "expected_failure_code": "POLICY_UNKNOWN_CONDITION",
+      "covers_negative_fixture": "a promotion naming a condition the cell does not require",
+      "run": {
+        "actor": "EMPLOYEE",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "is_owner": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444",
+          "condition_upstream_never_declared": "urn:omos:promotion-receipt:00000099-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_NEG_RECEIPT_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "POLICY_CONDITION_RECEIPT_NOT_REF",
+      "covers_negative_fixture": "a promotion whose condition receipt is not an omos URN",
+      "run": {
+        "actor": "EMPLOYEE",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "is_owner": "not-a-urn",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_NEG_UNRECOGNISED_DECISION",
+      "expected": "deny",
+      "expected_failure_code": "POLICY_UNKNOWN_DECISION",
+      "covers_negative_fixture": "a cell whose decision value the contract does not recognise",
+      "policy": {
+        "SOME_ACTOR": {
+          "SOME_CLASS": {
+            "decision": "MAYBE_ALLOWED",
+            "required_conditions": []
+          }
+        }
+      },
+      "run": {
+        "actor": "SOME_ACTOR",
+        "material_class": "SOME_CLASS",
+        "outcome": "DENIED",
+        "satisfied_conditions": {}
+      }
+    },
+    {
+      "case_id": "POLICY_NEG_CELL_REQUIRED_CONDITIONS_NOT_LIST",
+      "expected": "deny",
+      "expected_failure_code": "POLICY_CONDITIONS_NOT_MAP",
+      "covers_negative_fixture": "a cell whose required_conditions is not a list",
+      "policy": {
+        "SOME_ACTOR": {
+          "SOME_CLASS": {
+            "decision": "CONDITIONAL",
+            "required_conditions": "not-a-list"
+          }
+        }
+      },
+      "run": {
+        "actor": "SOME_ACTOR",
+        "material_class": "SOME_CLASS",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "x": "urn:omos:promotion-receipt:1"
+        }
+      }
+    }
+  ]
+}

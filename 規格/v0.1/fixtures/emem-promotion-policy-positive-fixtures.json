@@ -1,0 +1,199 @@
+{
+  "contract": "urn:omos:contract:emem-promotion-policy:0.1.0",
+  "cases": [
+    {
+      "case_id": "POLICY_POS_EMPLOYEE_EMPLOYEE_PRIVATE_ALL_CONDITIONS",
+      "expected": "allow",
+      "run": {
+        "actor": "EMPLOYEE",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "is_owner": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_POS_EMPLOYEE_COMPANY_MANAGED_PERSONAL_ALL_CONDITIONS",
+      "expected": "allow",
+      "run": {
+        "actor": "EMPLOYEE",
+        "material_class": "COMPANY_MANAGED_PERSONAL",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "is_owner": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_POS_EMPLOYEE_SHARED_WORK_CONTEXT_ALL_CONDITIONS",
+      "expected": "allow",
+      "run": {
+        "actor": "EMPLOYEE",
+        "material_class": "SHARED_WORK_CONTEXT",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "source_acl_allows_requester": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_POS_MANAGER_EMPLOYEE_PRIVATE_DENIED",
+      "expected": "allow",
+      "run": {
+        "actor": "MANAGER",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "DENIED",
+        "satisfied_conditions": {}
+      }
+    },
+    {
+      "case_id": "POLICY_POS_MANAGER_COMPANY_MANAGED_PERSONAL_ALL_CONDITIONS",
+      "expected": "allow",
+      "run": {
+        "actor": "MANAGER",
+        "material_class": "COMPANY_MANAGED_PERSONAL",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "manager_business_need": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "company_policy_allows_manager_promotion": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "employee_notice_given": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000004-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000005-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_POS_MANAGER_SHARED_WORK_CONTEXT_ALL_CONDITIONS",
+      "expected": "allow",
+      "run": {
+        "actor": "MANAGER",
+        "material_class": "SHARED_WORK_CONTEXT",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "manager_business_need": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "source_acl_allows_requester": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000004-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_POS_ADMIN_EMPLOYEE_PRIVATE_DENIED",
+      "expected": "allow",
+      "run": {
+        "actor": "ADMIN",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "DENIED",
+        "satisfied_conditions": {}
+      }
+    },
+    {
+      "case_id": "POLICY_POS_ADMIN_COMPANY_MANAGED_PERSONAL_DENIED",
+      "expected": "allow",
+      "run": {
+        "actor": "ADMIN",
+        "material_class": "COMPANY_MANAGED_PERSONAL",
+        "outcome": "DENIED",
+        "satisfied_conditions": {}
+      }
+    },
+    {
+      "case_id": "POLICY_POS_ADMIN_SHARED_WORK_CONTEXT_DENIED",
+      "expected": "allow",
+      "run": {
+        "actor": "ADMIN",
+        "material_class": "SHARED_WORK_CONTEXT",
+        "outcome": "DENIED",
+        "satisfied_conditions": {}
+      }
+    },
+    {
+      "case_id": "POLICY_POS_REVIEWER_EMPLOYEE_PRIVATE_ALL_CONDITIONS",
+      "expected": "allow",
+      "run": {
+        "actor": "REVIEWER",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "review_assignment": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "employee_consent": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000004-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_POS_REVIEWER_COMPANY_MANAGED_PERSONAL_ALL_CONDITIONS",
+      "expected": "allow",
+      "run": {
+        "actor": "REVIEWER",
+        "material_class": "COMPANY_MANAGED_PERSONAL",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "review_assignment": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_POS_REVIEWER_SHARED_WORK_CONTEXT_ALL_CONDITIONS",
+      "expected": "allow",
+      "run": {
+        "actor": "REVIEWER",
+        "material_class": "SHARED_WORK_CONTEXT",
+        "outcome": "PROMOTED",
+        "satisfied_conditions": {
+          "review_assignment": "urn:omos:promotion-receipt:00000000-1111-2222-3333-444444444444",
+          "promotion_review_approved": "urn:omos:promotion-receipt:00000001-1111-2222-3333-444444444444",
+          "scope_widening_checked": "urn:omos:promotion-receipt:00000002-1111-2222-3333-444444444444",
+          "redaction_complete": "urn:omos:promotion-receipt:00000003-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "POLICY_POS_SYSTEM_EMPLOYEE_PRIVATE_DENIED",
+      "expected": "allow",
+      "run": {
+        "actor": "SYSTEM",
+        "material_class": "EMPLOYEE_PRIVATE",
+        "outcome": "DENIED",
+        "satisfied_conditions": {}
+      }
+    },
+    {
+      "case_id": "POLICY_POS_SYSTEM_COMPANY_MANAGED_PERSONAL_DENIED",
+      "expected": "allow",
+      "run": {
+        "actor": "SYSTEM",
+        "material_class": "COMPANY_MANAGED_PERSONAL",
+        "outcome": "DENIED",
+        "satisfied_conditions": {}
+      }
+    },
+    {
+      "case_id": "POLICY_POS_SYSTEM_SHARED_WORK_CONTEXT_DENIED",
+      "expected": "allow",
+      "run": {
+        "actor": "SYSTEM",
+        "material_class": "SHARED_WORK_CONTEXT",
+        "outcome": "DENIED",
+        "satisfied_conditions": {}
+      }
+    }
+  ]
+}
