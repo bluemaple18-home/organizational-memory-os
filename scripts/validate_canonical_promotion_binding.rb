@@ -37,11 +37,14 @@ OVERLAP_THRESHOLD = 2
 # 稽核當下已登記的未綁定重述。每一筆都必須附 finding 編號與理由。
 # 新增任何一筆都代表「又多了一條沒綁的路徑」，應該先問為什麼，而不是往這裡加。
 KNOWN_UNBOUND = {
-  "personal-harness-integration.yaml#core_pipeline" =>
-    "FINDING F-01（repo #5 稽核，2026-09-16）：core_pipeline 自行宣告 10 步流程，" \
-    "其中含 canonical 尾段（CANDIDATE → VERIFICATION → PERSONAL_ACCEPTANCE → RECORD），" \
-    "未 pointer-bind 回 boundary，且無任何 validator 讀取它。" \
-    "目前順序與上游一致、非現行繞過路徑；處置權依 FP-3-A 在 Owner。"
+  # repo #5 稽核 F-01 原本登記在此（personal-harness-integration.yaml#core_pipeline）。
+  # 2026-09-17 Owner 裁決：不長期停留在例外清單。該契約已加上
+  # core_pipeline_promotion_binding 明確指回上游，並由
+  # validate_ai_work_record_boundary_contract.rb 斷言 covers 與上游一致
+  # （含孤兒步驟檢查），例外因此移除。
+  #
+  # 這裡保持空的才是正常狀態。要往裡面加任何一筆，代表又出現一條沒綁的
+  # canonical 路徑重述——先問為什麼，不要先加例外。
 }.freeze
 
 def canonical_steps
@@ -124,6 +127,21 @@ def weakened_rules(spec, upstream_rules)
   found
 end
 
+# repair-02（CC 自檢）：原本用「整份檔案文字裡有沒有出現 pointer 字串」判定
+# 已綁定——散文裡提一句就算數。於是把 promotion_path_ref 改成 none、只靠下方
+# rule 說明文字裡的那串字，仍會被當成已綁定。那又是「驗存在、不驗實質」。
+#
+# 改成只認**結構化欄位的值**：某個 scalar 的值本身就是 pointer（或其點號延伸），
+# 才算綁定。散文因為前後有句子，整值比對不會命中。
+def bound_to_upstream?(node)
+  case node
+  when Hash then node.any? { |_key, value| bound_to_upstream?(value) }
+  when Array then node.any? { |item| bound_to_upstream?(item) }
+  when String then /\A#{Regexp.escape(BOUNDARY_POINTER)}[\w.]*\z/.match?(node.strip)
+  else false
+  end
+end
+
 failures = []
 steps = canonical_steps
 upstream_rules = read_yaml(BOUNDARY_SPEC_PATH).dig("promotion_path", "rules") || {}
@@ -133,9 +151,8 @@ Dir[SPEC_GLOB].sort.each do |spec_path|
   basename = File.basename(spec_path)
   next if basename == File.basename(BOUNDARY_SPEC_PATH) # 上游自己不算重述
 
-  raw = File.read(spec_path)
   spec = read_yaml(spec_path)
-  bound = raw.include?(BOUNDARY_POINTER)
+  bound = bound_to_upstream?(spec)
 
   # 規則弱化與有沒有 pointer 無關，先驗——這是 FP-2-A 的「不得放寬 forbidden」。
   weakened_rules(spec, upstream_rules).each do |detail|

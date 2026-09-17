@@ -266,6 +266,42 @@ EXPECTED_REUSED_CORE_INVARIANTS.each do |invariant|
   assert(personal_core_invariants.include?(invariant), "personal spec core_invariants 必須含被引用的 #{invariant}", failures)
 end
 
+# repo #5 稽核 F-01：core_pipeline 的中段是 canonical 升格路徑的重述。過去
+# 只有 core_invariants 被讀、緊鄰的 core_pipeline 沒有——本區塊補平這個不對稱。
+#
+# 檢查的是「重述的那一段是否仍對得上上游現在的樣子」：
+#   1. covers 的每一步都必須是上游**現存**步驟（上游移除／改名 → 這裡變孤兒 → 紅）
+#   2. covers 必須是上游的**連續且同序**切片（不得在自己描述的範圍內跳步）
+#   3. core_pipeline 實際出現的 canonical 步驟必須剛好等於 covers（宣告與內容一致）
+personal_binding = personal_spec.fetch("core_pipeline_promotion_binding", {})
+personal_core_pipeline = personal_spec.fetch("core_pipeline", [])
+promotion_steps = spec.dig("promotion_path", "ordered_steps").to_a
+
+assert(personal_binding["promotion_path_ref"] == "ai-work-record-boundary.promotion_path.ordered_steps",
+       "personal spec core_pipeline_promotion_binding.promotion_path_ref 必須指向 boundary promotion_path.ordered_steps",
+       failures)
+
+covers = personal_binding.fetch("covers", [])
+assert(!covers.empty?, "core_pipeline_promotion_binding.covers 不得為空", failures)
+
+orphans = covers - promotion_steps
+assert(orphans.empty?,
+       "core_pipeline_promotion_binding.covers 含上游已不存在的步驟（移除或改名？）：#{orphans.join(', ')}",
+       failures)
+
+if orphans.empty? && !covers.empty?
+  indices = covers.map { |step| promotion_steps.index(step) }
+  expected_slice = promotion_steps[indices.min..indices.max]
+  assert(covers == expected_slice,
+         "core_pipeline_promotion_binding.covers 必須是上游 ordered_steps 的連續同序切片：" \
+         "宣告=#{covers.inspect} 上游對應區間=#{expected_slice.inspect}", failures)
+end
+
+pipeline_canonical_steps = personal_core_pipeline.select { |step| promotion_steps.include?(step) }
+assert(pipeline_canonical_steps == covers,
+       "core_pipeline 實際出現的 canonical 步驟必須與 covers 宣告一致：" \
+       "實際=#{pipeline_canonical_steps.inspect} 宣告=#{covers.inspect}", failures)
+
 assert(
   sorted_set(spec.fetch("required_negative_fixtures", [])) == sorted_set(EXPECTED_BOUNDARY_NEGATIVE_LABELS),
   "required_negative_fixtures 與鎖定 label 清單不符",
