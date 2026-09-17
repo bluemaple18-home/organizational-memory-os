@@ -8,7 +8,7 @@
 base                8bf224c
 original_review     1f3b0f4
 repair_01           f56560c   （NO_GO：P1 regression + P2 未收乾淨）
-repair_commit       <見對話中的派工區塊>
+repair_commit       a8bb251
 branch              cc/core-pipeline-promotion-binding
 ```
 
