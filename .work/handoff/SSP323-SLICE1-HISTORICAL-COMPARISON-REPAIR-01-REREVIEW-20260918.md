@@ -5,7 +5,8 @@
 ```
 base             38b5d59   （校正——原始 handoff 誤記 63464c3，見下方）
 original_review  0205d7b
-delivery         f7af260
+repair_commit    f7af260   （程式碼修法本身）
+delivery         2fa4be2   （branch HEAD，含本 handoff／evidence 文件）
 branch           cc/ssp323-historical-comparison
 ```
 

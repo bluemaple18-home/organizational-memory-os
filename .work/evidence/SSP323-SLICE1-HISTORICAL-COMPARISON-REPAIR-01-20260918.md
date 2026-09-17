@@ -6,7 +6,8 @@
 base            38b5d59   （既有 evidence/handoff 誤記 63464c3；worktree 建立時
                            main 已推進到 38b5d59，見下方「SHA 校正」）
 original_review 0205d7b
-repair_commit   f7af260
+repair_commit   f7af260   （程式碼修法本身）
+delivery        2fa4be2   （branch HEAD，含本檔／handoff 文件；review 應以此為準）
 ```
 
 ## SHA 校正
@@ -178,3 +179,18 @@ git diff --check                              → clean
   指示留 residual。
 - 平台中立本機邊界（切片 3）、Organizational Value Assessment（切片 2）：
   與原卡相同，未變。
+
+## Reviewer 裁決（2026-09-18，對 `delivery=2fa4be2`）
+
+```
+GO — P0=0 / P1=0 / P2=1（既有 residual） / P3=1
+```
+
+三筆 P1 全數 CLOSED（F-01/F-02/F-03 逐一重播確認）；31/31 validator PASS；
+新 guard 經聚合器同步驗證。F-02 的 `raise` 設計獲接受（現階段不需另造
+`INTERNAL_INVARIANT_VIOLATION`）。既有 P2（category/disposition 被夾帶但
+忽略）維持 backlog，不擋。新增 **P3 文件問題**：原 handoff 把 `delivery`
+誤標成 `repair_commit`（f7af260）而非實際 branch HEAD（2fa4be2）——已在本檔
+與 handoff 補正（見上方鎖定區塊），純文件澄清，不影響已驗證的程式行為。
+
+**`SSP-323` 切片 1：`ACCEPTED_GO`。**
