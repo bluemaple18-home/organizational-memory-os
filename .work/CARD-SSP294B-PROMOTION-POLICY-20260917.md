@@ -1,6 +1,7 @@
 ---
 id: SSP294B-PROMOTION-POLICY-20260917
-status: AWAITING_BIG_REVIEW
+status: ACCEPTED_GO
+merged_commit: 75ac95d
 type: implementation
 tier: T1
 jira: SSP-294（EMEM-05 Promotion）切片 B
@@ -74,6 +75,17 @@ actor／類別／decision／條件全部 evaluation 時從上游讀，契約一�
 `satisfied_conditions` 的型別與 URN 檢查與切片 A 相同（約兩行）。未抽共用
 helper，因為那要動已 `ACCEPTED_GO` 的切片 A；為兩行去重構已驗收程式碼是壞
 交易。第三片若需要同樣形狀，那才是正式抽出的時機。
+
+## 大 review 記錄
+
+- `4b5924d`：**GO**，P0=P1=0，P2×2 residual（皆不阻擋，已登 backlog）：
+  1. 決策感知覆蓋把正負例混在一起只看 `outcome == PROMOTED`——同格若有
+     PROMOTED 負例，刪掉唯一成功正例仍會 PASS。註解宣稱的「CONDITIONAL 必須
+     有成功正例」因此沒有完全被 enforce。修法：promoted coverage 只取
+     `expected == allow` 的正例。
+  2. `provenance_boundary` 承認了 actor 可能是自述，但 `material_class` 同樣
+     由 caller 自述、同樣能選到不同 policy cell，未列入 `does_not_verify`。
+     修法：補 `THE_DECLARED_MATERIAL_CLASS_IS_THE_REAL_CLASS`。
 
 ## Evidence
 
