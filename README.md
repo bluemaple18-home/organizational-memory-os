@@ -92,17 +92,19 @@ Usage / Feedback / Evaluation Evidence
 3. [`文件/核心知識主幹.md`](文件/核心知識主幹.md)
 4. [`文件/MVP與優先級.md`](文件/MVP與優先級.md)
 5. [`文件/個人證據與工作紀錄.md`](文件/個人證據與工作紀錄.md)
-6. [`文件/權限政策與設定治理.md`](文件/權限政策與設定治理.md)
-7. [`文件/上下文預算與檢索.md`](文件/上下文預算與檢索.md)
-8. [`文件/驗證治理.md`](文件/驗證治理.md)
-9. [`文件/SaaS能力等級.md`](文件/SaaS能力等級.md)
-10. [`文件/SaaS控制平面.md`](文件/SaaS控制平面.md)
-11. [`文件/先例技術來源地圖.md`](文件/先例技術來源地圖.md)
-12. [`文件/待辦重整.md`](文件/待辦重整.md)
-13. [`文件/企業產品能力.md`](文件/企業產品能力.md)
-14. [`文件/AI-Core邊界.md`](文件/AI-Core邊界.md)
-15. [`文件/禁止重刻政策.md`](文件/禁止重刻政策.md)
-16. [`文件/未決問題與已定裁決.md`](文件/未決問題與已定裁決.md)
+6. [`文件/個人記憶Local-First與Weekly-Grill裁決-20260917.md`](文件/個人記憶Local-First與Weekly-Grill裁決-20260917.md)
+7. [`文件/權限政策與設定治理.md`](文件/權限政策與設定治理.md)
+8. [`文件/上下文預算與檢索.md`](文件/上下文預算與檢索.md)
+9. [`文件/驗證治理.md`](文件/驗證治理.md)
+10. [`文件/SaaS能力等級.md`](文件/SaaS能力等級.md)
+11. [`文件/SaaS控制平面.md`](文件/SaaS控制平面.md)
+12. [`文件/先例技術來源地圖.md`](文件/先例技術來源地圖.md)
+13. [`文件/待辦重整.md`](文件/待辦重整.md)
+14. [`文件/待辦補充-個人知識庫Harness-20260830.md`](文件/待辦補充-個人知識庫Harness-20260830.md)
+15. [`文件/企業產品能力.md`](文件/企業產品能力.md)
+16. [`文件/AI-Core邊界.md`](文件/AI-Core邊界.md)
+17. [`文件/禁止重刻政策.md`](文件/禁止重刻政策.md)
+18. [`文件/未決問題與已定裁決.md`](文件/未決問題與已定裁決.md)
 
 ## MVP North Star
 
@@ -129,6 +131,35 @@ Outlook / Teams（下一來源批次）
 
 Advanced Graph UI、Achievement、Skill Marketplace、Shared Blackboard、Multi-Agent Runtime 都不是 MVP blocker。
 
+## 2026-09-17 Personal Memory MVP Amendment
+
+Personal Memory 主線不建立每員工一套 AI Core，也不提供另一個公司 AI Runtime。
+
+```text
+Employee Existing AI Platform
++ Company Personal Harness / Skill
++ Local Personal Store
+        ↓
+Weekly Grill
+        ↓
+Personal Memory / Promotion Candidate / NEEDS_ORG_FOLLOWUP
+        ↓
+Minimal Evidence Package
+        ↓
+Existing Organizational Governance
+```
+
+目前有效新增卡只有：
+
+- `SSP-323 / EMEM-09`：Weekly Personal Knowledge Harness。
+- `SSP-324 / EMEM-10`：Personal → Company Minimal Evidence Package / upload boundary。
+
+`SSP-325～329` 為 Jira 重複建立，全部 `DUPLICATE / DO NOT USE`，不是 repo authority。
+
+完整 Owner 裁決：[`文件/個人記憶Local-First與Weekly-Grill裁決-20260917.md`](文件/個人記憶Local-First與Weekly-Grill裁決-20260917.md)
+
+Backlog current truth：[`文件/待辦補充-個人知識庫Harness-20260830.md`](文件/待辦補充-個人知識庫Harness-20260830.md)
+
 ## 三個狀態維度不可混用
 
 - **架構優先級**：P0 / P1 / P2 / Trigger-based
@@ -139,11 +170,17 @@ Advanced Graph UI、Achievement、Skill Marketplace、Shared Blackboard、Multi-
 
 ## 目前施工 Frontier
 
-2026-08-26 current truth reconciliation 已完成。下一輪不再重做架構研究，依序封：
+Core contract 的 Document/Jira Adapter、Permission/Retention/Deletion、Canonical Direct-Write Audit 與 Personal EMEM-02～05 已有 accepted current truth；不得再從 2026-08-26 的舊 frontier 重做概念研究。
 
-1. Raw Evidence Contract
-2. Document Adapter Mapping
-3. Jira Adapter Mapping
-4. Permission / Retention / Deletion Contract
-5. Canonical Direct-Write Audit
-6. 最新繁體中文互動 Architecture Canvas
+Personal Memory MVP 目前收斂為：
+
+```text
+SSP-323 / EMEM-09
++ SSP-324 / EMEM-10
+        ↓
+SSP-295 / EMEM-06 真人產品部 Pilot
+        ↓
+SSP-286 MVP closure
+```
+
+施工前先做既有 contract diff / donor crosswalk；能 reuse 的一律 reuse，禁止另起第二套 Personal schema、DB、workflow 或 runtime。
