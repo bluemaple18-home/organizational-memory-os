@@ -4,7 +4,7 @@
 
 ```
 base    3706d09
-review  <見對話中的派工區塊>
+review  c8a8511
 branch  cc/ssp294-promotion-gate
 ```
 
