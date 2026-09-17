@@ -1,0 +1,53 @@
+{
+  "contract": "urn:omos:contract:emem-scope-ceiling:0.1.0",
+  "cases": [
+    {
+      "case_id": "CEILING_POS_PROVABLE_NARROWING_NEEDS_NOTHING",
+      "expected": "allow",
+      "run": {
+        "from_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "to_scope": "SELF_ONLY",
+        "outcome": "APPLIED"
+      }
+    },
+    {
+      "case_id": "CEILING_POS_WIDENING_WITH_RECEIPTS_AND_GATE",
+      "expected": "allow",
+      "run": {
+        "from_scope": "SELF_ONLY",
+        "to_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "outcome": "APPLIED",
+        "receipts": {
+          "source_acl_snapshot": "urn:omos:acl-receipt:00000000-1111-2222-3333-444444444444",
+          "personal_acl_decision": "urn:omos:acl-receipt:00000001-1111-2222-3333-444444444444",
+          "policy_ref": "urn:omos:acl-receipt:00000002-1111-2222-3333-444444444444"
+        },
+        "promotion_gate_ref": "urn:omos:promotion-gate-run:aaaa1111-2222-3333-4444-555555555555"
+      }
+    },
+    {
+      "case_id": "CEILING_POS_REFUSED_NEEDS_NOTHING",
+      "expected": "allow",
+      "run": {
+        "from_scope": "SELF_ONLY",
+        "to_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "outcome": "REFUSED"
+      }
+    },
+    {
+      "case_id": "CEILING_POS_INCOMPARABLE_WITH_RECEIPTS_AND_GATE",
+      "expected": "allow",
+      "run": {
+        "from_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "to_scope": "WORK_CONTEXT_PARTICIPANTS",
+        "outcome": "APPLIED",
+        "receipts": {
+          "source_acl_snapshot": "urn:omos:acl-receipt:00000000-1111-2222-3333-444444444444",
+          "personal_acl_decision": "urn:omos:acl-receipt:00000001-1111-2222-3333-444444444444",
+          "policy_ref": "urn:omos:acl-receipt:00000002-1111-2222-3333-444444444444"
+        },
+        "promotion_gate_ref": "urn:omos:promotion-gate-run:aaaa1111-2222-3333-4444-555555555555"
+      }
+    }
+  ]
+}

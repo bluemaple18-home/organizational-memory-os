@@ -1,0 +1,133 @@
+contract_id: urn:omos:contract:emem-scope-ceiling:0.1.0
+schema_version: "0.1.0"
+
+purpose:
+  statement: >-
+    Enforce the source ACL ceiling that personal-harness-integration.yaml
+    already declares: a personal memory may narrow its visibility freely, but
+    may not widen it without passing the promotion gate, and any such change
+    must carry the receipts the upstream contract lists. Today the only check
+    on this rule is an assertion that the rule's own prose contains the words
+    "cannot widen" -- whether a widening was actually stopped has never been
+    evaluated.
+  no_second_workflow_authority: true
+
+authority:
+  grants_acceptance: false
+  grants_permission: false
+  grants_canonical_writer: false
+  error_behavior: FAIL_LOUD
+
+slice_of: SSP-294（EMEM-05 Promotion）切片 C —— source ACL ceiling
+owner_signature:
+  signed_at: "2026-09-17"
+  freeze_card: .work/CARD-SSP294C-SCOPE-FREEZE-20260917.md
+  points: "FP-1: A / FP-2: A / FP-3: A"
+
+# --- FP-2-A：兩個 promotion 是不同的東西 ----------------------------------
+
+promotion_name_collision:
+  this_contract_governs: actor_action_policy.PROMOTE（個人 → 公司／共享的可見範圍放寬）
+  unrelated_contract: ai-work-record-boundary.promotion_path（證據 → 個人記憶紀錄的 6 步鏈）
+  rule: >-
+    SPEC_FREEZE FP-2-A (2026-09-17): two different things in this repository are
+    both called "promotion" and they must not be applied to each other.
+    promotion_path describes how material becomes a personal memory record at
+    all; the PROMOTE action described here describes how something that is
+    already a personal memory has its visibility widened. Binding one to the
+    other would make the six-step evidence chain a precondition for a
+    visibility change, or conversely let a visibility approval stand in for
+    evidence acceptance. Neither is correct. The canonical binding gate
+    (scripts/validate_canonical_promotion_binding.rb) governs promotion_path
+    only; this contract governs the PROMOTE action only.
+
+# --- FP-3-A：綁定上游，不重述 ----------------------------------------------
+
+ceiling_binding:
+  inheritance_ref: personal-harness-integration.ownership_visibility_contract.source_acl_inheritance
+  scopes_ref: personal-harness-integration.ownership_visibility_contract.visibility_scopes
+  rule: >-
+    The required receipts and the per-scope widening_requires_promotion_gate
+    flags are read from upstream at evaluation time. This contract names none
+    of them.
+
+scope_ordering:
+  derivation: DEFAULT_READERS_SUBSET
+  rule: >-
+    Upstream declares no ordering over visibility scopes -- only each scope's
+    default_readers. Rather than invent a lattice, this contract derives the
+    relation from that declared data: a change is provably narrowing when the
+    target scope's default_readers are a strict subset of the source scope's.
+
+    Deriving it this way surfaced something that matters: at least one pair of
+    upstream scopes is not comparable at all under this relation -- neither
+    reader set contains the other. A move between such a pair is therefore
+    neither provably a narrowing nor provably a widening.
+
+    Such changes are treated as widening. The rule being enforced is a ceiling,
+    so the failure that matters is letting a widening through unchecked; an
+    unprovable narrowing being asked for receipts costs a caller some paperwork,
+    while an unprovable widening slipping past defeats the contract entirely.
+    Fail-closed is therefore the only defensible direction here, and it is
+    recorded rather than left implicit.
+
+# --- 評估輸入形狀 ---------------------------------------------------------
+
+scope_change_run:
+  fields:
+    - from_scope
+    - to_scope
+    - receipts
+    - promotion_gate_ref
+    - outcome
+  outcomes:
+    - APPLIED
+    - REFUSED
+  receipts_rule: >-
+    A map from the receipt name upstream requires to the omos URN evidencing
+    it. Not coerced: a missing or malformed map fails closed rather than being
+    read as "no receipts", which is the coercion that let a sibling slice's
+    check be bypassed entirely.
+  promotion_gate_ref_rule: >-
+    The omos URN of the promotion gate run that authorised this widening.
+    Required whenever the change is not provably a narrowing and the source
+    scope declares widening_requires_promotion_gate. This contract does not
+    evaluate the gate run itself -- that is slice A's evaluator; here only the
+    reference is required, so that a widening cannot claim to have been
+    authorised without naming what authorised it.
+
+provenance_boundary:
+  verifies: THE_CHANGE_CARRIES_WHAT_THE_CEILING_REQUIRES
+  does_not_verify:
+    - THE_REFERENCED_RECEIPTS_ARE_AUTHENTIC
+    - THE_REFERENCED_GATE_RUN_ACTUALLY_PASSED
+    - THE_DECLARED_SCOPES_MATCH_THE_REAL_MATERIAL
+  rule: >-
+    Declared up front. This evaluator checks that a scope change names the
+    receipts and gate run the upstream ceiling requires. It cannot resolve
+    those URNs, cannot confirm the referenced gate run returned a pass, and
+    cannot confirm the run's declared from_scope is the material's real current
+    scope -- all three need stores or an identity boundary this contract does
+    not own. Consistent with the sibling slices' boundaries.
+
+error_contract:
+  CEILING_UNKNOWN_SCOPE: emem_scope_ceiling.error.unknown_scope
+  CEILING_INVALID_OUTCOME: emem_scope_ceiling.error.invalid_outcome
+  CEILING_RECEIPTS_NOT_MAP: emem_scope_ceiling.error.receipts_not_map
+  CEILING_RECEIPT_MISSING: emem_scope_ceiling.error.receipt_missing
+  CEILING_RECEIPT_NOT_REF: emem_scope_ceiling.error.receipt_not_ref
+  CEILING_UNKNOWN_RECEIPT: emem_scope_ceiling.error.unknown_receipt
+  CEILING_WIDENING_WITHOUT_GATE: emem_scope_ceiling.error.widening_without_gate
+
+hard_stops:
+  - no restatement of the upstream receipts or scope definitions
+  - no invented scope lattice; the ordering is derived from declared default_readers
+  - no retention propagation semantics (FP-1-A：上游無宣告，另卡處理)
+  - no binding to ai-work-record-boundary.promotion_path (FP-2-A)
+
+cross_reference:
+  upstream: 規格/v0.1/personal-harness-integration.yaml
+  sibling_gate: 規格/v0.1/emem-promotion-gate.yaml
+  sibling_policy: 規格/v0.1/emem-promotion-policy.yaml
+
+runtime_independence: true

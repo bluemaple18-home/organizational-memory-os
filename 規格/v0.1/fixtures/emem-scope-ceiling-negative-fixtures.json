@@ -1,0 +1,143 @@
+{
+  "contract": "urn:omos:contract:emem-scope-ceiling:0.1.0",
+  "cases": [
+    {
+      "case_id": "CEILING_NEG_UNKNOWN_SCOPE",
+      "expected": "deny",
+      "expected_failure_code": "CEILING_UNKNOWN_SCOPE",
+      "covers_negative_fixture": "a change naming a scope the upstream contract does not declare",
+      "run": {
+        "from_scope": "SCOPE_NOT_DECLARED_UPSTREAM",
+        "to_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "outcome": "APPLIED"
+      }
+    },
+    {
+      "case_id": "CEILING_NEG_INVALID_OUTCOME",
+      "expected": "deny",
+      "expected_failure_code": "CEILING_INVALID_OUTCOME",
+      "covers_negative_fixture": "an outcome outside the declared enum",
+      "run": {
+        "from_scope": "SELF_ONLY",
+        "to_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "outcome": "PENDING"
+      }
+    },
+    {
+      "case_id": "CEILING_NEG_RECEIPTS_NOT_MAP",
+      "expected": "deny",
+      "expected_failure_code": "CEILING_RECEIPTS_NOT_MAP",
+      "covers_negative_fixture": "a change whose receipts field is not a map",
+      "run": {
+        "from_scope": "SELF_ONLY",
+        "to_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "outcome": "APPLIED",
+        "receipts": [
+          "source_acl_snapshot",
+          "personal_acl_decision",
+          "policy_ref"
+        ],
+        "promotion_gate_ref": "urn:omos:promotion-gate-run:aaaa1111-2222-3333-4444-555555555555"
+      }
+    },
+    {
+      "case_id": "CEILING_NEG_RECEIPT_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "CEILING_RECEIPT_MISSING",
+      "covers_negative_fixture": "a widening missing a receipt the ceiling requires",
+      "run": {
+        "from_scope": "SELF_ONLY",
+        "to_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "outcome": "APPLIED",
+        "receipts": {
+          "source_acl_snapshot": "urn:omos:acl-receipt:00000000-1111-2222-3333-444444444444",
+          "personal_acl_decision": "urn:omos:acl-receipt:00000001-1111-2222-3333-444444444444"
+        },
+        "promotion_gate_ref": "urn:omos:promotion-gate-run:aaaa1111-2222-3333-4444-555555555555"
+      }
+    },
+    {
+      "case_id": "CEILING_NEG_RECEIPT_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "CEILING_RECEIPT_NOT_REF",
+      "covers_negative_fixture": "a widening whose receipt is not an omos URN",
+      "run": {
+        "from_scope": "SELF_ONLY",
+        "to_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "outcome": "APPLIED",
+        "receipts": {
+          "source_acl_snapshot": "not-a-urn",
+          "personal_acl_decision": "urn:omos:acl-receipt:00000001-1111-2222-3333-444444444444",
+          "policy_ref": "urn:omos:acl-receipt:00000002-1111-2222-3333-444444444444"
+        },
+        "promotion_gate_ref": "urn:omos:promotion-gate-run:aaaa1111-2222-3333-4444-555555555555"
+      }
+    },
+    {
+      "case_id": "CEILING_NEG_UNKNOWN_RECEIPT",
+      "expected": "deny",
+      "expected_failure_code": "CEILING_UNKNOWN_RECEIPT",
+      "covers_negative_fixture": "a widening naming a receipt the ceiling does not require",
+      "run": {
+        "from_scope": "SELF_ONLY",
+        "to_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "outcome": "APPLIED",
+        "receipts": {
+          "source_acl_snapshot": "urn:omos:acl-receipt:00000000-1111-2222-3333-444444444444",
+          "personal_acl_decision": "urn:omos:acl-receipt:00000001-1111-2222-3333-444444444444",
+          "policy_ref": "urn:omos:acl-receipt:00000002-1111-2222-3333-444444444444",
+          "receipt_upstream_never_required": "urn:omos:acl-receipt:00000099-1111-2222-3333-444444444444"
+        },
+        "promotion_gate_ref": "urn:omos:promotion-gate-run:aaaa1111-2222-3333-4444-555555555555"
+      }
+    },
+    {
+      "case_id": "CEILING_NEG_INCOMPARABLE_WITHOUT_GATE",
+      "expected": "deny",
+      "expected_failure_code": "CEILING_WIDENING_WITHOUT_GATE",
+      "covers_negative_fixture": "a move between incomparable scopes with no gate reference",
+      "run": {
+        "from_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "to_scope": "WORK_CONTEXT_PARTICIPANTS",
+        "outcome": "APPLIED",
+        "receipts": {
+          "source_acl_snapshot": "urn:omos:acl-receipt:00000000-1111-2222-3333-444444444444",
+          "personal_acl_decision": "urn:omos:acl-receipt:00000001-1111-2222-3333-444444444444",
+          "policy_ref": "urn:omos:acl-receipt:00000002-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "CEILING_NEG_WIDENING_WITHOUT_GATE_FROM_SELF_ONLY",
+      "expected": "deny",
+      "expected_failure_code": "CEILING_WIDENING_WITHOUT_GATE",
+      "covers_negative_fixture": "a widening with no promotion gate reference",
+      "run": {
+        "from_scope": "SELF_ONLY",
+        "to_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "outcome": "APPLIED",
+        "receipts": {
+          "source_acl_snapshot": "urn:omos:acl-receipt:00000000-1111-2222-3333-444444444444",
+          "personal_acl_decision": "urn:omos:acl-receipt:00000001-1111-2222-3333-444444444444",
+          "policy_ref": "urn:omos:acl-receipt:00000002-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "CEILING_NEG_WIDENING_WITHOUT_GATE_FROM_WORK_CONTEXT_PARTICIPANTS",
+      "expected": "deny",
+      "expected_failure_code": "CEILING_WIDENING_WITHOUT_GATE",
+      "covers_negative_fixture": "a widening with no promotion gate reference",
+      "run": {
+        "from_scope": "WORK_CONTEXT_PARTICIPANTS",
+        "to_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+        "outcome": "APPLIED",
+        "receipts": {
+          "source_acl_snapshot": "urn:omos:acl-receipt:00000000-1111-2222-3333-444444444444",
+          "personal_acl_decision": "urn:omos:acl-receipt:00000001-1111-2222-3333-444444444444",
+          "policy_ref": "urn:omos:acl-receipt:00000002-1111-2222-3333-444444444444"
+        }
+      }
+    }
+  ]
+}
