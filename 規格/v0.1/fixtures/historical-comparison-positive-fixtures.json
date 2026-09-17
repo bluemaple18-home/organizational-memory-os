@@ -123,7 +123,7 @@
         ],
         "contradicts_prior": true,
         "contradiction_reasons": [
-          "new source directly conflicts"
+          "conflict_determination"
         ],
         "contradiction_evidence_refs": [
           "urn:omos:evidence-ref:00000004-1111-2222-3333-444444444444"
@@ -157,7 +157,7 @@
         ],
         "contradicts_prior": true,
         "contradiction_reasons": [
-          "新證據同時推翻先前結論"
+          "conclusion"
         ],
         "contradiction_evidence_refs": [
           "urn:omos:evidence-ref:00000005-1111-2222-3333-444444444444"

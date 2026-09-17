@@ -38,15 +38,19 @@ FORBIDDEN_LIFECYCLE_FIELDS = %w[
 EXPECTED_NEGATIVE_LABELS = [
   "a run carrying a forbidden lifecycle field",
   "no_prior_record true together with a prior_content_hash present",
+  "a prior_record_ref present with prior_content_hash missing",
   "material_effect true with no reasons",
   "material_effect true with reasons naming no recognised dimension",
   "material_effect true with no evidence_refs",
   "contradicts_prior true with no reasons",
+  "contradicts_prior true with reasons naming no recognised dimension",
   "contradicts_prior true with no evidence_refs",
   "material_effect true while no_prior_record is also true",
   "contradicts_prior true while no_prior_record is also true",
   "an evidence_ref that is not an omos URN",
-  "current_content_hash missing"
+  "an evidence_refs field that is not an array",
+  "current_content_hash missing",
+  "content hash changed from prior with no new evidence, material_effect or contradicts_prior to explain it"
 ].freeze
 
 def urn?(value)
@@ -83,6 +87,21 @@ def historical_comparison_failure(run, material_dimensions)
 
   no_prior_record = run["prior_record_ref"].nil?
   return "COMPARISON_PRIOR_RECORD_INCONSISTENT" if no_prior_record && !run["prior_content_hash"].nil?
+  # repair-01 F-02a：有 prior_record_ref 卻缺 prior_content_hash，會讓後面
+  # 的雜湊比對用 nil 當「之前的值」，產生不可信的 identical_to_prior 判定。
+  return "COMPARISON_MISSING_PRIOR_HASH" if !no_prior_record && blank?(run["prior_content_hash"])
+
+  # repair-01 F-03：evidence_refs 的陣列形狀必須先鎖，才能安全做集合運算。
+  # 修正前：scalar 字串會在 compute_signals 的 `.to_set` 直接 NoMethodError
+  # ——不是 fail-closed 拒絕，是程式當掉。
+  [run["prior_evidence_refs"], run["current_evidence_refs"]].each do |refs|
+    next if refs.nil?
+
+    return "COMPARISON_EVIDENCE_REFS_NOT_ARRAY" unless refs.is_a?(Array)
+  end
+
+  evidence_fields = [run["prior_evidence_refs"] || [], run["current_evidence_refs"] || []].flatten
+  return "COMPARISON_EVIDENCE_REF_NOT_URN" unless evidence_fields.all? { |r| urn?(r) }
 
   material_effect = run["material_effect"] == true
   contradicts_prior = run["contradicts_prior"] == true
@@ -103,13 +122,27 @@ def historical_comparison_failure(run, material_dimensions)
   if contradicts_prior
     reasons = run["contradiction_reasons"]
     return "COMPARISON_JUDGMENT_UNSUBSTANTIATED" unless reasons.is_a?(Array) && !reasons.empty?
+    # repair-01 F-01：contradicts_prior 的理由跟 material_effect 一樣，必須
+    # 落在 material_effect_dimensions 之內——修正前這裡沒有 allowlist，任意
+    # 文字（例如 "vibes"）就能讓優先序最高的 CONTRADICTED 成立。
+    return "COMPARISON_JUDGMENT_UNRECOGNISED_DIMENSION" unless reasons.all? { |r| material_dimensions.include?(r) }
 
     refs = run["contradiction_evidence_refs"]
     return "COMPARISON_JUDGMENT_UNSUBSTANTIATED" unless refs.is_a?(Array) && !refs.empty? && refs.all? { |r| urn?(r) }
   end
 
-  evidence_fields = [run["prior_evidence_refs"] || [], run["current_evidence_refs"] || []].flatten
-  return "COMPARISON_EVIDENCE_REF_NOT_URN" unless evidence_fields.all? { |r| urn?(r) }
+  # repair-01 F-02b：讓 classify 對任何通過以上檢查的 run 都是 total function。
+  # 有 prior record、雜湊真的不同，卻沒有任何訊號解釋為什麼（沒有新證據、
+  # 沒有宣告 material_effect、沒有宣告 contradicts_prior），代表送進來的資料
+  # 本身不完整——必須在這裡 fail-closed，不能讓 classify 落到「不應該到得了
+  # 這裡」的分支後悄悄回傳 nil/nil。
+  unless no_prior_record
+    signals = compute_signals(run)
+    hash_changed = run["current_content_hash"] != run["prior_content_hash"]
+    if hash_changed && !signals[:has_new_evidence] && !material_effect && !contradicts_prior
+      return "COMPARISON_HASH_CHANGED_WITHOUT_EXPLANATION"
+    end
+  end
 
   nil
 end
@@ -138,10 +171,14 @@ def classify(run, dispositions)
     return { category: "UNCHANGED", disposition: dispositions.fetch("UNCHANGED") }
   end
 
-  # 不應該到得了這裡：has_new_evidence 與 identical_to_prior 都是從同一組
-  # 資料算出來的互補訊號，兩者都是 false 代表資料本身有缺口。fail loud，
-  # 不要預設一個可能是錯的分類。
-  { category: nil, disposition: nil }
+  # repair-01：這裡現在必須真的不可達。historical_comparison_failure 已經
+  # 對「有 prior、雜湊改變、卻沒有 has_new_evidence／material_effect／
+  # contradicts_prior 任何訊號解釋」fail-closed 擋掉，所以任何通過前面檢查
+  # 才呼叫到這裡的 run，identical_to_prior 必為 true，會在上面分支命中。
+  # 如果真的落到這裡，代表兩支函式的邏輯已經不同步——fail loud（raise），
+  # 不要回傳看起來合法、實際上是缺口的 nil/nil。
+  raise "unreachable classify state：has_new_evidence 與 identical_to_prior 皆為 false，" \
+        "但 historical_comparison_failure 應已擋下這種 run（資料可能未先過 failure 檢查）"
 end
 
 # --- 契約結構斷言 ---------------------------------------------------------
@@ -202,10 +239,13 @@ ERROR_CONTRACT = {
   "COMPARISON_FORBIDDEN_LIFECYCLE_FIELD" => "historical_comparison.error.forbidden_lifecycle_field",
   "COMPARISON_MISSING_CURRENT_HASH" => "historical_comparison.error.missing_current_hash",
   "COMPARISON_PRIOR_RECORD_INCONSISTENT" => "historical_comparison.error.prior_record_inconsistent",
+  "COMPARISON_MISSING_PRIOR_HASH" => "historical_comparison.error.missing_prior_hash",
+  "COMPARISON_EVIDENCE_REFS_NOT_ARRAY" => "historical_comparison.error.evidence_refs_not_array",
   "COMPARISON_JUDGMENT_WITHOUT_PRIOR" => "historical_comparison.error.judgment_without_prior",
   "COMPARISON_JUDGMENT_UNSUBSTANTIATED" => "historical_comparison.error.judgment_unsubstantiated",
   "COMPARISON_JUDGMENT_UNRECOGNISED_DIMENSION" => "historical_comparison.error.judgment_unrecognised_dimension",
-  "COMPARISON_EVIDENCE_REF_NOT_URN" => "historical_comparison.error.evidence_ref_not_urn"
+  "COMPARISON_EVIDENCE_REF_NOT_URN" => "historical_comparison.error.evidence_ref_not_urn",
+  "COMPARISON_HASH_CHANGED_WITHOUT_EXPLANATION" => "historical_comparison.error.hash_changed_without_explanation"
 }.freeze
 
 declared_codes = ERROR_CONTRACT.keys
