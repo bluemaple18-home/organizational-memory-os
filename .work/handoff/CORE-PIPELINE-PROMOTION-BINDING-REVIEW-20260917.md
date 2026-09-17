@@ -4,7 +4,7 @@
 
 ```
 base    8bf224c
-review  <見對話中的派工區塊>
+review  1f3b0f4
 branch  cc/core-pipeline-promotion-binding
 ```
 
