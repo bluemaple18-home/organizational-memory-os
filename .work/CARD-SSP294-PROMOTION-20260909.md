@@ -1,6 +1,7 @@
 ---
 id: SSP294-PROMOTION-20260909
-status: UNBLOCKED_SLICING_IN_PROGRESS
+status: ALL_SLICES_ACCEPTED_GO
+merged_commits: "A=b49348e / B=75ac95d / C=2f9284b"
 type: implementation
 jira: SSP-294
 lane: A
@@ -34,6 +35,12 @@ tier: T1
 在 #4 / #5 鎖定前實作 `SSP-294` 會等於自訂一份 Permission/Retention 與 writer 稽核語意，
 違反 `文件/待辦重整.md` 施工順序與 `MEASURED_GAP_REQUIRED`。
 
+## 三個切片皆已完成（2026-09-17）
+
+`SSP-294` 的三個切片全部 `ACCEPTED_GO`。原始範圍中「升格後 retention/deletion
+傳遞語意」在切片 C 的 T2 範圍裁決（FP-1-A）確認**上游沒有宣告**，非強制缺口
+而是缺政策，已排除出本票，需另開 Owner 決策卡。
+
 ## 解除後的切法（2026-09-17）
 
 研究後確認：**上游 `personal-harness-integration.yaml` 早已把政策宣告完整**
@@ -48,7 +55,7 @@ forbidden 完全沒驗；15 格只驗「每格存在」＋ 1 條具體條件。
 |---|---|---|---|
 | A | gate 組成：6 required 必須全滿足、3 forbidden 任一即拒 | `promotion_widening_gate` | **`ACCEPTED_GO`**（merged `b49348e`）|
 | B | 15 個 actor × 材料類別決策格逐格重放 | `actor_action_policy.PROMOTE` | **`ACCEPTED_GO`**（merged `75ac95d`）|
-| C | 升格時的 retention/deletion 傳遞 ＋ 不得繞過 canonical writer | repo #4 契約、repo #5 `promotion_path` | 待開（可能需 T2，碰 authority 邊界）|
+| C | source ACL ceiling 強制（FP-1-A 縮範圍：不含 retention 傳遞，另開 Owner 決策卡）| `source_acl_inheritance` | **`ACCEPTED_GO`**（merged `2f9284b`）|
 
 ## Traces to
 

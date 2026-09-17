@@ -1,6 +1,7 @@
 ---
 id: SSP294C-SCOPE-CEILING-20260917
-status: AWAITING_BIG_REVIEW
+status: ACCEPTED_GO
+merged_commit: 2f9284b
 type: implementation
 tier: T1
 jira: SSP-294（EMEM-05 Promotion）切片 C
@@ -58,6 +59,19 @@ sibling: CARD-SSP294A / CARD-SSP294B（皆 ACCEPTED_GO）
 run 是否真的通過（那是切片 A 的責任）、宣告的 `from_scope` 是否真是材料的
 現行範圍。
 
+## 大 review 記錄
+
+- `61ba39b`：NO_GO，P1×1（FP-2-A 只有文字宣告，validator 沒真的禁止結構化
+  binding；reviewer 塞 `promotion_path_ref` 進契約，兩條散文斷言照樣 PASS）
+  + P2×2 residual（覆蓋斷言不分旗標值宣稱過寬／`from_scope == to_scope`
+  語意未定義，皆非阻擋）。
+- repair-01（`8e185c1`）：新增結構化掃描，契約結構裡任何字串整值符合
+  `ai-work-record-boundary.promotion_path` 形狀即違規。
+- 定點 re-review（`588c6f0`）：**GO**，P0=P1=0。reviewer 確認 repo 現有
+  真正的 `promotion_path` binding 都是同一種 dot-pointer scalar 形狀，本次
+  修補覆蓋實際契約慣例，不只是擋單一 exploit。
+
 ## Evidence
 
 `.work/evidence/SSP294C-SCOPE-CEILING-20260917.md`
+`.work/evidence/SSP294C-SCOPE-CEILING-REPAIR-01-20260917.md`
