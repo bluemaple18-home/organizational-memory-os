@@ -115,6 +115,33 @@ assert(collision["rule"].to_s.include?("promotion_path"),
 assert(spec.fetch("hard_stops", []).any? { |s| s.include?("promotion_path") },
        "hard_stops 必須明寫不得綁定 promotion_path", failures)
 
+# repair-01（big review P1）：上面兩條只驗「文字有沒有寫著不能綁」，沒有驗
+# 「契約本身真的沒有綁」——reviewer 塞了一個結構化 promotion_path_ref 進去，
+# 兩條斷言照樣 PASS。FP-2-A 是禁令，不能只靠散文宣告，這裡補機器掃描：
+# 整份契約結構裡，任何字串值只要 resolve 得到
+# ai-work-record-boundary.promotion_path（或其子路徑），就是違反禁令。
+def promotion_path_pointer?(value)
+  return false unless value.is_a?(String)
+
+  /\Aai-work-record-boundary\.promotion_path(\.[\w.]+)?\z/.match?(value.strip)
+end
+
+def find_promotion_path_bindings(node, path, acc)
+  case node
+  when Hash
+    node.each { |key, value| find_promotion_path_bindings(value, path.empty? ? key.to_s : "#{path}.#{key}", acc) }
+  when Array
+    node.each_with_index { |item, index| find_promotion_path_bindings(item, "#{path}[#{index}]", acc) }
+  when String
+    acc << path if promotion_path_pointer?(node)
+  end
+  acc
+end
+
+forbidden_bindings = find_promotion_path_bindings(spec, "", [])
+assert(forbidden_bindings.empty?,
+       "FP-2-A 違規：契約結構裡出現指向 ai-work-record-boundary.promotion_path 的欄位"        "（禁令不能只靠散文，這裡是機器掃描）：#{forbidden_bindings.join(', ')}", failures)
+
 # 綁定上游：兩個 ref 都必須 resolve 得到（尾端多餘 '.' 也要擋）。
 def resolve_upstream(spec, upstream, key, failures)
   ref = spec.dig("ceiling_binding", key).to_s
