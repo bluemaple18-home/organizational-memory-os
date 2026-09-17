@@ -7,7 +7,7 @@
 ```
 base                3706d09
 original_review     c8a8511   （NO_GO，P1=1 / P2=1）
-repair_commit       <見對話中的派工區塊>
+repair_commit       43afef5
 branch              cc/ssp294-promotion-gate
 ```
 
