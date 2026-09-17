@@ -4,7 +4,7 @@
 
 ```
 base    8334020
-review  <見對話中的派工區塊>
+review  4b5924d
 branch  cc/ssp294-promotion-policy
 ```
 
