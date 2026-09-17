@@ -22,6 +22,7 @@ SLICE_VALIDATORS = %w[
   validate_personal_evidence_profile_contract
   validate_recall_context_pack_contract
   validate_correction_flow_contract
+  validate_historical_comparison_contract
 ].freeze
 
 any_failure = false

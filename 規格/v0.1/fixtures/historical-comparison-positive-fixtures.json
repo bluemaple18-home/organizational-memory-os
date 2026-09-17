@@ -1,0 +1,172 @@
+{
+  "contract": "historical_comparison",
+  "cases": [
+    {
+      "case_id": "HC_POS_UNSEEN",
+      "expected": "allow",
+      "run": {
+        "prior_record_ref": null,
+        "current_content_hash": "h1",
+        "current_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      },
+      "expected_classification": {
+        "category": "UNSEEN",
+        "disposition": "INITIAL_SUBMISSION"
+      }
+    },
+    {
+      "case_id": "HC_POS_UNCHANGED",
+      "expected": "allow",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h1",
+        "prior_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ],
+        "current_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      },
+      "expected_classification": {
+        "category": "UNCHANGED",
+        "disposition": "NO_RESEND"
+      }
+    },
+    {
+      "case_id": "HC_POS_NEW_EVIDENCE_NO_MATERIAL_EFFECT",
+      "expected": "allow",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h1",
+        "prior_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ],
+        "current_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444",
+          "urn:omos:evidence-ref:00000002-1111-2222-3333-444444444444"
+        ]
+      },
+      "expected_classification": {
+        "category": "NEW_EVIDENCE",
+        "disposition": "LOCAL_RECURRENCE_ONLY"
+      }
+    },
+    {
+      "case_id": "HC_POS_NEW_EVIDENCE_WITH_MATERIAL_EFFECT",
+      "expected": "allow",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "prior_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ],
+        "current_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444",
+          "urn:omos:evidence-ref:00000003-1111-2222-3333-444444444444"
+        ],
+        "material_effect": true,
+        "material_effect_reasons": [
+          "applicability"
+        ],
+        "material_effect_evidence_refs": [
+          "urn:omos:evidence-ref:00000003-1111-2222-3333-444444444444"
+        ]
+      },
+      "expected_classification": {
+        "category": "NEW_EVIDENCE",
+        "disposition": "EVIDENCE_UPDATE_REVISION"
+      }
+    },
+    {
+      "case_id": "HC_POS_MATERIALLY_CHANGED_NO_NEW_EVIDENCE",
+      "expected": "allow",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "prior_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ],
+        "current_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ],
+        "material_effect": true,
+        "material_effect_reasons": [
+          "conclusion"
+        ],
+        "material_effect_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      },
+      "expected_classification": {
+        "category": "MATERIALLY_CHANGED",
+        "disposition": "CORRECTION_SUPERSESSION_PROPOSAL"
+      }
+    },
+    {
+      "case_id": "HC_POS_CONTRADICTED",
+      "expected": "allow",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "prior_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ],
+        "current_evidence_refs": [
+          "urn:omos:evidence-ref:00000004-1111-2222-3333-444444444444"
+        ],
+        "contradicts_prior": true,
+        "contradiction_reasons": [
+          "new source directly conflicts"
+        ],
+        "contradiction_evidence_refs": [
+          "urn:omos:evidence-ref:00000004-1111-2222-3333-444444444444"
+        ]
+      },
+      "expected_classification": {
+        "category": "CONTRADICTED",
+        "disposition": "CORRECTION_CONFLICT_PROPOSAL"
+      }
+    },
+    {
+      "case_id": "HC_POS_CONTRADICTION_PRECEDENCE_OVER_NEW_EVIDENCE",
+      "expected": "allow",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "prior_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ],
+        "current_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444",
+          "urn:omos:evidence-ref:00000005-1111-2222-3333-444444444444"
+        ],
+        "material_effect": true,
+        "material_effect_reasons": [
+          "risk"
+        ],
+        "material_effect_evidence_refs": [
+          "urn:omos:evidence-ref:00000005-1111-2222-3333-444444444444"
+        ],
+        "contradicts_prior": true,
+        "contradiction_reasons": [
+          "新證據同時推翻先前結論"
+        ],
+        "contradiction_evidence_refs": [
+          "urn:omos:evidence-ref:00000005-1111-2222-3333-444444444444"
+        ]
+      },
+      "expected_classification": {
+        "category": "CONTRADICTED",
+        "disposition": "CORRECTION_CONFLICT_PROPOSAL"
+      }
+    }
+  ]
+}
