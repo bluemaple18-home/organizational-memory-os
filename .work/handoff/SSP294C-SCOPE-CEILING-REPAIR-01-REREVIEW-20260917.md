@@ -7,7 +7,7 @@
 ```
 base                9864303
 original_review     61ba39b   （NO_GO，P1=1）
-repair_commit       <見對話中的派工區塊>
+repair_commit       8e185c1
 branch              cc/ssp294-scope-ceiling
 ```
 
