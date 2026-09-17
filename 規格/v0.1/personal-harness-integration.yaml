@@ -1150,6 +1150,74 @@ work_record:
   does_not_answer: what should be remembered long term
   may_generate_candidates: '0..N'
 
+historical_comparison:
+  slice_of: SSP-323（EMEM-09）切片 1
+  purpose: >-
+    Classify how a submission compares to prior history for the same
+    identity, and derive whether a resend/update is warranted. This is a
+    comparison RESULT, not a second candidate lifecycle: it does not read or
+    set candidate_status, record_status, verification_status or
+    acceptance_status, and every disposition still passes through the
+    existing PersonalMemoryCandidate lifecycle and acceptance gate
+    unchanged. SSP-324's dedup/resend rule binds to the dispositions
+    declared here rather than restating them.
+  categories:
+    - UNSEEN
+    - UNCHANGED
+    - NEW_EVIDENCE
+    - MATERIALLY_CHANGED
+    - CONTRADICTED
+  dispositions:
+    UNSEEN: INITIAL_SUBMISSION
+    UNCHANGED: NO_RESEND
+    NEW_EVIDENCE_WITHOUT_MATERIAL_EFFECT: LOCAL_RECURRENCE_ONLY
+    NEW_EVIDENCE_WITH_MATERIAL_EFFECT: EVIDENCE_UPDATE_REVISION
+    MATERIALLY_CHANGED: CORRECTION_SUPERSESSION_PROPOSAL
+    CONTRADICTED: CORRECTION_CONFLICT_PROPOSAL
+  material_effect_dimensions:
+    - evidence_strength_tier
+    - applicability
+    - risk
+    - conflict_determination
+    - redaction_or_sensitivity_requirement
+    - conclusion
+  category_and_disposition_derivation: >-
+    category and disposition are NEVER caller-declared -- both are computed
+    by the evaluator from primitive signals, so a caller cannot assert an
+    arbitrary classification and have it trusted. This directly answers a
+    review finding against an earlier design in this repository (SSP-294)
+    where a caller-declared classification was checked only for internal
+    self-consistency, not against the facts it claimed to summarize.
+
+    Precedence, highest first (a submission can trigger more than one
+    signal at once -- e.g. new evidence that also contradicts a prior
+    conclusion -- so an explicit order is required, not just five
+    mutually-assumed-exclusive names):
+
+      1. no_prior_record            -> UNSEEN
+      2. contradicts_prior          -> CONTRADICTED
+      3. has_new_evidence           -> NEW_EVIDENCE
+                                        (material_effect then selects which
+                                        of the two NEW_EVIDENCE dispositions)
+      4. material_effect            -> MATERIALLY_CHANGED
+                                        (material effect with no new
+                                        evidence: the same material was
+                                        re-examined and the conclusion no
+                                        longer holds, distinct from new
+                                        evidence arriving)
+      5. identical_to_prior         -> UNCHANGED
+
+    no_prior_record, identical_to_prior and has_new_evidence are
+    machine-checkable and computed directly from the submitted prior/current
+    identity, content hash and evidence_refs -- never read from a
+    caller-declared boolean. material_effect and contradicts_prior require
+    semantic judgment this evaluator cannot perform; the caller supplies
+    them, but a bare boolean is not accepted on its own -- each true value
+    must carry non-empty reasons naming which material_effect_dimensions
+    changed, and at least one evidence_ref. A caller cannot claim
+    material_effect or contradicts_prior when no_prior_record is true --
+    there is nothing prior to differ from or contradict.
+
 personal_memory_governance:
   required_dimensions:
     - source support

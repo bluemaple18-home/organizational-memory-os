@@ -1,0 +1,225 @@
+{
+  "contract": "historical_comparison",
+  "cases": [
+    {
+      "case_id": "HC_NEG_FORBIDDEN_LIFECYCLE_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_FORBIDDEN_LIFECYCLE_FIELD",
+      "covers_negative_fixture": "a run carrying a forbidden lifecycle field",
+      "run": {
+        "prior_record_ref": null,
+        "current_content_hash": "h1",
+        "candidate_status": "PROPOSED"
+      }
+    },
+    {
+      "case_id": "HC_NEG_PRIOR_RECORD_INCONSISTENT",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_PRIOR_RECORD_INCONSISTENT",
+      "covers_negative_fixture": "no_prior_record true together with a prior_content_hash present",
+      "run": {
+        "prior_record_ref": null,
+        "prior_content_hash": "h1",
+        "current_content_hash": "h1"
+      }
+    },
+    {
+      "case_id": "HC_NEG_MATERIAL_EFFECT_NO_REASONS",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_JUDGMENT_UNSUBSTANTIATED",
+      "covers_negative_fixture": "material_effect true with no reasons",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "material_effect": true,
+        "material_effect_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      }
+    },
+    {
+      "case_id": "HC_NEG_MATERIAL_EFFECT_UNRECOGNISED_DIMENSION",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_JUDGMENT_UNRECOGNISED_DIMENSION",
+      "covers_negative_fixture": "material_effect true with reasons naming no recognised dimension",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "material_effect": true,
+        "material_effect_reasons": [
+          "vibes"
+        ],
+        "material_effect_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      }
+    },
+    {
+      "case_id": "HC_NEG_MATERIAL_EFFECT_NO_EVIDENCE",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_JUDGMENT_UNSUBSTANTIATED",
+      "covers_negative_fixture": "material_effect true with no evidence_refs",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "material_effect": true,
+        "material_effect_reasons": [
+          "risk"
+        ]
+      }
+    },
+    {
+      "case_id": "HC_NEG_CONTRADICTS_NO_REASONS",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_JUDGMENT_UNSUBSTANTIATED",
+      "covers_negative_fixture": "contradicts_prior true with no reasons",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "contradicts_prior": true,
+        "contradiction_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      }
+    },
+    {
+      "case_id": "HC_NEG_CONTRADICTS_NO_EVIDENCE",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_JUDGMENT_UNSUBSTANTIATED",
+      "covers_negative_fixture": "contradicts_prior true with no evidence_refs",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "contradicts_prior": true,
+        "contradiction_reasons": [
+          "risk"
+        ]
+      }
+    },
+    {
+      "case_id": "HC_NEG_CONTRADICTS_UNRECOGNISED_DIMENSION",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_JUDGMENT_UNRECOGNISED_DIMENSION",
+      "covers_negative_fixture": "contradicts_prior true with reasons naming no recognised dimension",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "contradicts_prior": true,
+        "contradiction_reasons": [
+          "vibes"
+        ],
+        "contradiction_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      }
+    },
+    {
+      "case_id": "HC_NEG_MATERIAL_EFFECT_WITHOUT_PRIOR",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_JUDGMENT_WITHOUT_PRIOR",
+      "covers_negative_fixture": "material_effect true while no_prior_record is also true",
+      "run": {
+        "prior_record_ref": null,
+        "current_content_hash": "h1",
+        "material_effect": true,
+        "material_effect_reasons": [
+          "risk"
+        ],
+        "material_effect_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      }
+    },
+    {
+      "case_id": "HC_NEG_CONTRADICTS_WITHOUT_PRIOR",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_JUDGMENT_WITHOUT_PRIOR",
+      "covers_negative_fixture": "contradicts_prior true while no_prior_record is also true",
+      "run": {
+        "prior_record_ref": null,
+        "current_content_hash": "h1",
+        "contradicts_prior": true,
+        "contradiction_reasons": [
+          "x"
+        ],
+        "contradiction_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      }
+    },
+    {
+      "case_id": "HC_NEG_EVIDENCE_REF_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_EVIDENCE_REF_NOT_URN",
+      "covers_negative_fixture": "an evidence_ref that is not an omos URN",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h1",
+        "prior_evidence_refs": [
+          "not-a-urn"
+        ],
+        "current_evidence_refs": [
+          "not-a-urn"
+        ]
+      }
+    },
+    {
+      "case_id": "HC_NEG_MISSING_CURRENT_HASH",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_MISSING_CURRENT_HASH",
+      "covers_negative_fixture": "current_content_hash missing",
+      "run": {
+        "prior_record_ref": null
+      }
+    },
+    {
+      "case_id": "HC_NEG_MISSING_PRIOR_HASH",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_MISSING_PRIOR_HASH",
+      "covers_negative_fixture": "a prior_record_ref present with prior_content_hash missing",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "current_content_hash": "h1"
+      }
+    },
+    {
+      "case_id": "HC_NEG_EVIDENCE_REFS_NOT_ARRAY",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_EVIDENCE_REFS_NOT_ARRAY",
+      "covers_negative_fixture": "an evidence_refs field that is not an array",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h1",
+        "prior_evidence_refs": "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444",
+        "current_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      }
+    },
+    {
+      "case_id": "HC_NEG_HASH_CHANGED_WITHOUT_EXPLANATION",
+      "expected": "deny",
+      "expected_failure_code": "COMPARISON_HASH_CHANGED_WITHOUT_EXPLANATION",
+      "covers_negative_fixture": "content hash changed from prior with no new evidence, material_effect or contradicts_prior to explain it",
+      "run": {
+        "prior_record_ref": "urn:omos:memory-record:1",
+        "prior_content_hash": "h1",
+        "current_content_hash": "h2",
+        "prior_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ],
+        "current_evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ]
+      }
+    }
+  ]
+}
