@@ -5,7 +5,7 @@
 ```
 base             faf6822
 original_review  ebd2dd3（審的是 faf6822..3cecb25）
-repair_commit    （本次 commit，待 push 後補上）
+repair_commit    7879330
 branch           cc/ssp324-package-boundary
 ```
 

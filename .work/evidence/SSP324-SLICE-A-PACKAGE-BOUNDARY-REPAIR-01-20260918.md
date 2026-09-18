@@ -5,7 +5,7 @@
 ```
 base            faf6822
 original_review ebd2dd3（審的是 faf6822..3cecb25；ebd2dd3 只是 handoff SHA 補正）
-repair_commit   （本次 commit，待 push 後補上）
+repair_commit   7879330
 ```
 
 ## Reviewer NO_GO（2026-09-18，對 `3cecb25`）
