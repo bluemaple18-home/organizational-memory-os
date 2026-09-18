@@ -1,0 +1,676 @@
+{
+  "contract": "weekly_review_cycle",
+  "cases": [
+    {
+      "case_id": "WRC_NEG_REVIEW_PERIOD_ID_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "WRC_REVIEW_PERIOD_ID_NOT_URN",
+      "covers_negative_fixture": "review_period_id that is not an omos URN",
+      "run": {
+        "review_period_id": "2026-W38",
+        "closeouts": [{}]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_CLOSEOUTS_EMPTY",
+      "expected": "deny",
+      "expected_failure_code": "WRC_CLOSEOUTS_NOT_ARRAY",
+      "covers_negative_fixture": "closeouts that is not a non-empty array",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-004:2026-W38",
+        "closeouts": []
+      }
+    },
+    {
+      "case_id": "WRC_NEG_CLOSEOUT_ENTRY_NOT_MAP",
+      "expected": "deny",
+      "expected_failure_code": "WRC_CLOSEOUT_ENTRY_NOT_MAP",
+      "covers_negative_fixture": "a closeout entry that is not a map",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-020:2026-W38",
+        "closeouts": ["oops"]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_REQUIRED_FIELD_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "WRC_REQUIRED_FIELD_MISSING",
+      "covers_negative_fixture": "a closeout entry missing a required field",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-005:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-005:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_FORBIDDEN_FIELD_PRESENT",
+      "expected": "deny",
+      "expected_failure_code": "WRC_FORBIDDEN_FIELD_PRESENT",
+      "covers_negative_fixture": "a closeout entry carrying a forbidden field",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-006:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-006:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {},
+            "weekly_work_summary": "本週做了什麼的完整摘要"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_CADENCE_FIELD_BLANK",
+      "expected": "deny",
+      "expected_failure_code": "WRC_CADENCE_FIELD_NOT_STRING",
+      "covers_negative_fixture": "a cadence field present but blank or non-string",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-021:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-021:2026-W38",
+            "scheduled_review_period_start": null,
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_REVIEW_PERIOD_ID_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "WRC_REVIEW_PERIOD_ID_MISMATCH",
+      "covers_negative_fixture": "a closeout entry whose review_period_id does not match the run",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-007:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-007:2026-W39",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_INVALID_ATTEMPT_KIND",
+      "expected": "deny",
+      "expected_failure_code": "WRC_INVALID_ATTEMPT_KIND",
+      "covers_negative_fixture": "an invalid attempt_kind",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-008:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-008:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "MANUAL_OVERRIDE",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_INVALID_FINAL_STATUS",
+      "expected": "deny",
+      "expected_failure_code": "WRC_INVALID_FINAL_STATUS",
+      "covers_negative_fixture": "an invalid final_status",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-009:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-009:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "IN_PROGRESS",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_MULTIPLE_SCHEDULED_ATTEMPTS",
+      "expected": "deny",
+      "expected_failure_code": "WRC_MULTIPLE_SCHEDULED_ATTEMPTS",
+      "covers_negative_fixture": "more than one SCHEDULED attempt",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-010:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-010:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T13:05:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "FAILED",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          },
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-010:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T14:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "FAILED",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_PERIOD_START_INCONSISTENT",
+      "expected": "deny",
+      "expected_failure_code": "WRC_PERIOD_START_INCONSISTENT",
+      "covers_negative_fixture": "closeout attempts disagreeing on scheduled_review_period_start",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-011:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-011:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T13:05:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "FAILED",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          },
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-011:2026-W38",
+            "scheduled_review_period_start": "2026-09-25",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-21T09:00:00Z",
+            "attempt_kind": "CATCH_UP",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": true,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_SKIPPED_BEFORE_CATCH_UP_EXHAUSTED",
+      "expected": "deny",
+      "expected_failure_code": "WRC_SKIPPED_BEFORE_CATCH_UP_EXHAUSTED",
+      "covers_negative_fixture": "SKIPPED asserted before catch_up_deadline_passed is true",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-012:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-012:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-19T08:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "SKIPPED",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_ITEM_REF_NOT_CANDIDATE",
+      "expected": "deny",
+      "expected_failure_code": "WRC_ITEM_REF_NOT_CANDIDATE",
+      "covers_negative_fixture": "an item ref that is not a PersonalMemoryCandidate identity",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-022:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-022:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:record:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:record:1": { "category": "UNCHANGED" }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_ITEM_DISPOSITION_UNKNOWN_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "WRC_ITEM_DISPOSITION_UNKNOWN_FIELD",
+      "covers_negative_fixture": "an item_dispositions entry carrying a field outside the allowlist",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-023:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-023:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "UNCHANGED",
+                "candidate_status": "ACCEPTED_FOR_RECORD"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_RECORD_REF_HASH_PAYLOAD",
+      "expected": "deny",
+      "expected_failure_code": "WRC_RECORD_REF_NOT_RECORD",
+      "covers_negative_fixture": "a record_ref that is not a PersonalMemoryRecord identity string",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-025:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-025:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "UNCHANGED",
+                "record_ref": {
+                  "candidate_status": "ACCEPTED_FOR_RECORD",
+                  "weekly_work_summary": "secret"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_RECORD_REF_NOT_URN_STRING",
+      "expected": "deny",
+      "expected_failure_code": "WRC_RECORD_REF_NOT_RECORD",
+      "covers_negative_fixture": "a record_ref that is not a PersonalMemoryRecord identity string",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-026:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-026:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "UNCHANGED",
+                "record_ref": "not-a-record-ref"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_PROMOTION_REF_HASH_PAYLOAD",
+      "expected": "deny",
+      "expected_failure_code": "WRC_PROMOTION_REF_NOT_URN",
+      "covers_negative_fixture": "a promotion_ref that is not an omos URN",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-027:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-027:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T13:20:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "FAILED",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": { "weekly_work_summary": "secret" },
+                "promotion_idempotency_key": "key-A"
+              }
+            }
+          },
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-027:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T14:00:00Z",
+            "attempt_kind": "RETRY",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": { "weekly_work_summary": "secret" },
+                "promotion_idempotency_key": "key-A"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_PROMOTION_IDEMPOTENCY_KEY_HASH_PAYLOAD",
+      "expected": "deny",
+      "expected_failure_code": "WRC_PROMOTION_IDEMPOTENCY_KEY_NOT_STRING",
+      "covers_negative_fixture": "a promotion_idempotency_key that is present but not a non-blank string",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-028:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-028:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-1",
+                "promotion_idempotency_key": { "weekly_work_summary": "secret" }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_PROMOTION_REF_WITHOUT_KEY",
+      "expected": "deny",
+      "expected_failure_code": "WRC_PROMOTION_REF_WITHOUT_IDEMPOTENCY_KEY",
+      "covers_negative_fixture": "a promotion_ref present without a promotion_idempotency_key",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-024:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-024:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-1"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_ITEM_DISPOSITION_INCOMPLETE",
+      "expected": "deny",
+      "expected_failure_code": "WRC_ITEM_DISPOSITION_INCOMPLETE",
+      "covers_negative_fixture": "selected_item_refs and item_dispositions not matching",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-013:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-013:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [
+              "urn:omos:personal-memory:candidate:1",
+              "urn:omos:personal-memory:candidate:2"
+            ],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": { "category": "UNCHANGED" }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_ITEM_DISPOSITION_NOT_MAP",
+      "expected": "deny",
+      "expected_failure_code": "WRC_ITEM_DISPOSITION_NOT_MAP",
+      "covers_negative_fixture": "an item_dispositions entry that is not a map",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-014:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-014:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": "UNCHANGED"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_UNKNOWN_DISPOSITION_CATEGORY",
+      "expected": "deny",
+      "expected_failure_code": "WRC_UNKNOWN_DISPOSITION_CATEGORY",
+      "covers_negative_fixture": "an item_dispositions entry naming an unrecognised category",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-015:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-015:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": { "category": "PROBABLY_FINE" }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_NEEDS_FOLLOWUP_WITH_PROMOTION_REF",
+      "expected": "deny",
+      "expected_failure_code": "WRC_NEEDS_FOLLOWUP_WITH_RECORD_OR_PROMOTION_REF",
+      "covers_negative_fixture": "a NEEDS_ORG_FOLLOWUP entry carrying record_ref or promotion_ref",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-016:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-016:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "NEEDS_ORG_FOLLOWUP",
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-9"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_DUPLICATE_TERMINAL_CLOSEOUT",
+      "expected": "deny",
+      "expected_failure_code": "WRC_DUPLICATE_TERMINAL_CLOSEOUT",
+      "covers_negative_fixture": "more than one terminal-status closeout in the history",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-017:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-017:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          },
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-017:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-21T09:00:00Z",
+            "attempt_kind": "CATCH_UP",
+            "final_status": "NO_PROMOTION",
+            "catch_up_deadline_passed": true,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_CLOSEOUT_AFTER_TERMINAL",
+      "expected": "deny",
+      "expected_failure_code": "WRC_CLOSEOUT_AFTER_TERMINAL",
+      "covers_negative_fixture": "a closeout attempt following a terminal-status closeout",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-018:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-018:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          },
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-018:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-19T09:00:00Z",
+            "attempt_kind": "RETRY",
+            "final_status": "FAILED",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_PROMOTION_IDENTITY_DRIFT",
+      "expected": "deny",
+      "expected_failure_code": "WRC_PROMOTION_IDENTITY_DRIFT",
+      "covers_negative_fixture": "the same item's promotion identity (ref or key) drifting across retries",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-019:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-019:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T13:20:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "FAILED",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:5"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:5": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-1",
+                "promotion_idempotency_key": "urn:omos:idempotency:acme:e-019:2026-W38:candidate-5"
+              }
+            }
+          },
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-019:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T14:00:00Z",
+            "attempt_kind": "RETRY",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:5"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:5": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-2",
+                "promotion_idempotency_key": "urn:omos:idempotency:acme:e-019:2026-W38:candidate-5"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

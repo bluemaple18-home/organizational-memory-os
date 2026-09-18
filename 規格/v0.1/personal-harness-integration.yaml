@@ -1299,6 +1299,102 @@ organizational_value_assessment:
       Expert routing, taxonomy and cross-person conflict resolution stay
       in the Organizational Layer (SSP-324), not here.
 
+weekly_review_cycle:
+  slice_of: SSP-323（EMEM-09）切片 4
+  purpose: >-
+    Wire slices 1-3 into an actually executable Weekly Grill closeout
+    loop. review_period_id is the core identity: every closeout attempt
+    for the same scheduled period -- whether it runs on time, as a
+    catch-up on the next business day, or as a retry after a failure --
+    must carry the SAME review_period_id, so duplicate-closeout or
+    duplicate-promotion cannot be produced by re-deriving identity from
+    whichever day the work actually happened on.
+  binds_to:
+    - historical_comparison.categories（item disposition 的機器可查分類
+      詞彙，直接讀取，不重述——這同時是「不讓固定問卷冒充 dynamic
+      grill」的機器邊界：本片自己完全不新造分類詞彙）
+    - organizational_value_assessment（NEEDS_ORG_FOLLOWUP 是
+      item_dispositions 唯一額外允許的分類，來自切片 2 的推導結果）
+    - runtime_policy.local_first_export_surface（closeout receipt 正是
+      該封閉列舉的第二項）
+    - personal_memory_resource_contracts.resources.PersonalMemoryCandidate
+      （item_dispositions 只能引用既有 candidate 生命週期，不自建一套）
+  cadence_policy:
+    default_anchor: FRIDAY_AFTERNOON
+    anchor_is_tenant_configurable: true
+    anchor_change_forbidden_from_altering: closeout_statuses / attempt_kinds / closeout_receipt schema
+    catch_up_rule: >-
+      A missed scheduled review period rolls forward to the next business
+      day. The catch-up attempt keeps the ORIGINAL review_period_id and
+      the original scheduled_review_period_start -- it never becomes part
+      of the following period's closeout, and the following period's new
+      evidence is never mixed into this period's review.
+    skipped_requires_exhausted_catch_up: >-
+      SKIPPED is a final, explicit disposition. A period that is merely
+      awaiting its catch-up window is not SKIPPED -- asserting SKIPPED
+      before the catch-up deadline has passed is rejected outright, not
+      merely discouraged.
+  closeout_statuses:
+    - COMPLETE
+    - FAILED
+    - SKIPPED
+    - NO_PROMOTION
+  terminal_statuses:
+    - COMPLETE
+    - SKIPPED
+    - NO_PROMOTION
+  attempt_kinds:
+    - SCHEDULED
+    - CATCH_UP
+    - RETRY
+  closeout_receipt:
+    required_fields:
+      - review_period_id
+      - scheduled_review_period_start
+      - scheduled_anchor_at
+      - actual_closeout_at
+      - attempt_kind
+      - final_status
+      - catch_up_deadline_passed
+      - selected_item_refs
+      - item_dispositions
+    forbidden_fields:
+      - full_personal_store_ref
+      - weekly_work_summary
+      - personal_store_snapshot
+      - candidate_status
+      - record_status
+      - verification_status
+      - acceptance_status
+      - conflict_resolution_status
+    forbidden_fields_note: >-
+      The last five reuse historical_comparison's FORBIDDEN_LIFECYCLE_
+      FIELDS: the receipt itself must never carry bulk lifecycle state
+      any more than a single comparison run may -- a closeout is a
+      lightweight pointer record (selected_item_refs / item_dispositions
+      are bounded refs and enum categories, never inline content), never
+      a second WeeklyReviewBundle resource with its own record identity,
+      and batch confirmation therefore cannot itself accept anything: the
+      only acceptance authority remains each PersonalMemoryCandidate's own
+      existing verification/acceptance gate.
+  item_disposition_rule: >-
+    selected_item_refs and item_dispositions must have identical key
+    sets -- every selected item reaches a disposition in the same review
+    session it was selected in; NEEDS_ORG_FOLLOWUP (the disposition
+    supplied by organizational_value_assessment) is the only legal way to
+    defer an item without answering it, not silent carry-over to next
+    week. An item_dispositions entry whose category is NEEDS_ORG_FOLLOWUP
+    must not carry record_ref or promotion_ref -- it stays a follow-up
+    signal, never a Knowledge or Canonical creation.
+  promotion_idempotency_rule: >-
+    When the same item appears with a promotion_idempotency_key across
+    more than one closeout attempt for the same review_period_id (a
+    retry re-touching the same item), that key must be identical every
+    time. A retry that produced a DIFFERENT key for the same item is
+    indistinguishable from a retry that created a second, duplicate
+    promotion -- the identity that downstream Promotion idempotency
+    relies on would have silently drifted.
+
 personal_memory_governance:
   required_dimensions:
     - source support
