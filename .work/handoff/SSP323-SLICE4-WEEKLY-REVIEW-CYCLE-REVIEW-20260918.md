@@ -4,7 +4,7 @@
 
 ```
 base    b1d40d7
-review  （本次 commit，待 push 後補上）
+review  ca3b42e
 branch  cc/ssp323-weekly-review-cycle
 ```
 
