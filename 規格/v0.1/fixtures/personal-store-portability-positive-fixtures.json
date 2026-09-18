@@ -2,53 +2,187 @@
   "contract": "personal_store_portability",
   "cases": [
     {
-      "case_id": "PORTABILITY_POS_CLAUDE_CODE_VS_CODEX",
+      "case_id": "PORTABILITY_POS_CANDIDATE_CLAUDE_CODE_VS_CODEX",
       "expected": "allow",
       "projection_a": {
         "executor_ref": "Claude Code",
         "executor_session_ref": "urn:omos:executor-session:claude-code:1",
-        "record_id": "urn:omos:personal-memory:candidate:1",
-        "content_digest": "sha256:aaaa1111",
-        "evidence_refs": [
-          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444",
-          "urn:omos:evidence-ref:00000002-1111-2222-3333-444444444444"
-        ],
-        "created_at": "2026-09-18T09:00:00Z"
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": {
+          "candidate_id": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "memory_kind": "LESSON_LEARNED",
+          "content": {
+            "statement_or_structured_content": "重複發生的排程 workaround，已記錄具體步驟"
+          },
+          "applicability": {
+            "scope_mode": "PROJECT",
+            "applies_to_refs": [
+              "urn:omos:project:p-1",
+              "urn:omos:project:p-2"
+            ]
+          },
+          "validity_interval": { "effective_from": "2026-09-10T00:00:00Z" },
+          "support_link_refs": [
+            "urn:omos:personal-memory:support-link:00000001-aaaa-bbbb-cccc-444444444444"
+          ],
+          "provenance": {
+            "generated_from_refs": [
+              "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+            ],
+            "proposed_by": "urn:omos:employee:e-001"
+          },
+          "governance": {
+            "ownership_mode": "EMPLOYEE_PRIVATE",
+            "visibility_scope": "PERSONAL",
+            "sensitivity": "LOW",
+            "acl_ref": "urn:omos:acl:a-1",
+            "verification_status": "NOT_RUN",
+            "acceptance_status": "PENDING"
+          },
+          "chronology": { "created_at": "2026-09-10T00:00:00Z" },
+          "candidate_status": "PROPOSED"
+        }
       },
       "projection_b": {
         "executor_ref": "Codex",
         "executor_session_ref": "urn:omos:executor-session:codex:9",
-        "record_id": "urn:omos:personal-memory:candidate:1",
-        "content_digest": "sha256:aaaa1111",
-        "evidence_refs": [
-          "urn:omos:evidence-ref:00000002-1111-2222-3333-444444444444",
-          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
-        ],
-        "created_at": "2026-09-18T09:00:00Z"
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": {
+          "candidate_id": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "memory_kind": "LESSON_LEARNED",
+          "content": {
+            "statement_or_structured_content": "重複發生的排程 workaround，已記錄具體步驟"
+          },
+          "applicability": {
+            "scope_mode": "PROJECT",
+            "applies_to_refs": [
+              "urn:omos:project:p-2",
+              "urn:omos:project:p-1"
+            ]
+          },
+          "validity_interval": { "effective_from": "2026-09-10T00:00:00Z" },
+          "support_link_refs": [
+            "urn:omos:personal-memory:support-link:00000001-aaaa-bbbb-cccc-444444444444"
+          ],
+          "provenance": {
+            "generated_from_refs": [
+              "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+            ],
+            "proposed_by": "urn:omos:employee:e-001"
+          },
+          "governance": {
+            "ownership_mode": "EMPLOYEE_PRIVATE",
+            "visibility_scope": "PERSONAL",
+            "sensitivity": "LOW",
+            "acl_ref": "urn:omos:acl:a-1",
+            "verification_status": "NOT_RUN",
+            "acceptance_status": "PENDING"
+          },
+          "chronology": { "created_at": "2026-09-10T00:00:00Z" },
+          "candidate_status": "PROPOSED"
+        }
       }
     },
     {
-      "case_id": "PORTABILITY_POS_HERMES_VS_DEEPSEEK",
+      "case_id": "PORTABILITY_POS_RECORD_HERMES_VS_DEEPSEEK",
       "expected": "allow",
       "projection_a": {
         "executor_ref": "Hermes",
         "executor_session_ref": "urn:omos:executor-session:hermes:2",
-        "record_id": "urn:omos:personal-memory:record:7",
-        "content_digest": "sha256:bbbb2222",
-        "evidence_refs": [
-          "urn:omos:evidence-ref:00000003-1111-2222-3333-444444444444"
-        ],
-        "created_at": "2026-09-10T00:00:00Z"
+        "resource_kind": "PersonalMemoryRecord",
+        "resource": {
+          "record_id": "urn:omos:personal-memory:record:00000002-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "origin_candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "memory_kind": "LESSON_LEARNED",
+          "content": { "statement_or_structured_content": "已驗收的教訓內容" },
+          "applicability": {
+            "scope_mode": "PROJECT",
+            "applies_to_refs": ["urn:omos:project:p-1"]
+          },
+          "validity_interval": { "effective_from": "2026-09-10T00:00:00Z" },
+          "support_link_refs": [
+            "urn:omos:personal-memory:support-link:00000001-aaaa-bbbb-cccc-444444444444"
+          ],
+          "candidate_snapshot": {
+            "candidate_status": "ACCEPTED_FOR_RECORD",
+            "verification_status": "PASS",
+            "acceptance_status": "ACCEPTED"
+          },
+          "governance": {
+            "ownership_mode": "EMPLOYEE_PRIVATE",
+            "visibility_scope": "PERSONAL",
+            "verification_status": "PASS",
+            "acceptance_status": "ACCEPTED",
+            "verification_receipt_ref": "urn:omos:verification-receipt:v-1",
+            "personal_acceptance_ref": "urn:omos:acceptance-receipt:a-1",
+            "sensitivity": "LOW",
+            "acl_ref": "urn:omos:acl:a-1",
+            "freshness": "FRESH",
+            "review_due_at": "2026-12-01T00:00:00Z",
+            "conflict_refs": [],
+            "supersedes": null,
+            "superseded_by": null,
+            "retention_state": "RETAINED"
+          },
+          "chronology": {
+            "created_at": "2026-09-10T00:00:00Z",
+            "effective_from": "2026-09-10T00:00:00Z"
+          },
+          "record_status": "ACTIVE"
+        }
       },
       "projection_b": {
         "executor_ref": "DeepSeek Harness",
         "executor_session_ref": "urn:omos:executor-session:deepseek:4",
-        "record_id": "urn:omos:personal-memory:record:7",
-        "content_digest": "sha256:bbbb2222",
-        "evidence_refs": [
-          "urn:omos:evidence-ref:00000003-1111-2222-3333-444444444444"
-        ],
-        "created_at": "2026-09-10T00:00:00Z"
+        "resource_kind": "PersonalMemoryRecord",
+        "resource": {
+          "record_id": "urn:omos:personal-memory:record:00000002-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "origin_candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "memory_kind": "LESSON_LEARNED",
+          "content": { "statement_or_structured_content": "已驗收的教訓內容" },
+          "applicability": {
+            "scope_mode": "PROJECT",
+            "applies_to_refs": ["urn:omos:project:p-1"]
+          },
+          "validity_interval": { "effective_from": "2026-09-10T00:00:00Z" },
+          "support_link_refs": [
+            "urn:omos:personal-memory:support-link:00000001-aaaa-bbbb-cccc-444444444444"
+          ],
+          "candidate_snapshot": {
+            "candidate_status": "ACCEPTED_FOR_RECORD",
+            "verification_status": "PASS",
+            "acceptance_status": "ACCEPTED"
+          },
+          "governance": {
+            "ownership_mode": "EMPLOYEE_PRIVATE",
+            "visibility_scope": "PERSONAL",
+            "verification_status": "PASS",
+            "acceptance_status": "ACCEPTED",
+            "verification_receipt_ref": "urn:omos:verification-receipt:v-1",
+            "personal_acceptance_ref": "urn:omos:acceptance-receipt:a-1",
+            "sensitivity": "LOW",
+            "acl_ref": "urn:omos:acl:a-1",
+            "freshness": "FRESH",
+            "review_due_at": "2026-12-01T00:00:00Z",
+            "conflict_refs": [],
+            "supersedes": null,
+            "superseded_by": null,
+            "retention_state": "RETAINED"
+          },
+          "chronology": {
+            "created_at": "2026-09-10T00:00:00Z",
+            "effective_from": "2026-09-10T00:00:00Z"
+          },
+          "record_status": "ACTIVE"
+        }
       }
     }
   ]

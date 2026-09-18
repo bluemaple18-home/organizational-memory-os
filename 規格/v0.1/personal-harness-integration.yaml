@@ -1514,25 +1514,37 @@ runtime_policy:
       declared above (already enforced by
       ai-work-record-boundary.cross_reference) rather than replacing them
       with a second vocabulary or a second executor list.
-    portable_fields:
-      - record_id
-      - content_digest
-      - evidence_refs
-      - created_at
+    binds_to: personal_memory_resource_contracts.resources
+    repair_01_note: >-
+      The first version of this block declared its own four-field
+      portable_fields list (record_id / content_digest / evidence_refs /
+      created_at) instead of binding to the real PersonalMemoryCandidate /
+      PersonalMemoryRecord required_fields. A review found this let
+      ownership, visibility, ACL, status and the real content drift
+      silently across executors -- a caller-supplied content_digest was
+      never actually compared against content -- and that the restated
+      list collided with PersonalMemoryCandidate's own forbidden
+      record_id. This block no longer declares a second core-semantics
+      field list: portability for a projection is defined against
+      whichever resource kind it declares (PersonalMemoryCandidate or
+      PersonalMemoryRecord), read from personal_memory_resource_contracts.
+      resources.<kind>.required_fields / .forbidden at evaluation time.
     executor_provenance_fields:
       - executor_ref
       - executor_session_ref
     no_migration_invariant: >-
-      portable_fields must fully determine a Personal Store record's core
-      semantics, equivalently regardless of which optional_executor
-      produced the local projection. executor_provenance_fields are
-      supplementary provenance metadata only: they may legitimately differ
-      when the same record is re-projected by a different executor, must
-      never appear in portable_fields, and must never be read to decide
-      whether two projections represent the same underlying Personal
-      truth -- record_id (itself a portable_field) is the only identity
-      key. Switching executor therefore requires no rewrite of any
-      portable_field and no knowledge migration.
+      executor_provenance_fields live alongside a projection's `resource`
+      object, never inside it, and must never intersect with any resource
+      kind's required_fields in personal_memory_resource_contracts -- they
+      are the only things permitted to differ when the same resource is
+      re-projected by a different executor. Every required_field of the
+      resource's declared kind must be present (the key itself, not
+      merely a non-null value -- some required fields such as
+      governance.supersedes are legitimately null) and equal between the
+      two projections (URN/array-valued fields compared as sets); any
+      field that kind's contract forbids must not appear in either
+      projection's resource object. Switching executor therefore requires
+      no rewrite of any resource field and no knowledge migration.
   local_first_export_surface:
     - minimal_evidence_package
     - weekly_closeout_receipt
