@@ -1,0 +1,125 @@
+{
+  "contract": "minimal_evidence_package",
+  "cases": [
+    {
+      "case_id": "MEP_POS_EMPLOYEE_PRIVATE_WITH_CONSENT",
+      "expected": "allow",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:35bfbc1e43af9bbff3c3cf4309620d1cc2b0874958ed6f70377658de2a66054d",
+          "evidence_refs": [
+            "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345602"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_POS_SHARED_WORK_CONTEXT_WITHOUT_CONSENT",
+      "expected": "allow",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+          "scope_mode": "SHARED_WORK_CONTEXT",
+          "ownership_mode": "JOINT_WORK_CONTEXT",
+          "visibility_scope": "WORK_CONTEXT_PARTICIPANTS",
+          "sensitivity": "LOW",
+          "consent_ref": null,
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:35bfbc1e43af9bbff3c3cf4309620d1cc2b0874958ed6f70377658de2a66054d",
+          "evidence_refs": [
+            "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345602"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_POS_NEEDS_ORG_FOLLOWUP_NULL_SUGGESTED_EXPERT",
+      "expected": "allow",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+          "scope_mode": "COMPANY_MANAGED_PERSONAL",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity": "LOW",
+          "consent_ref": null,
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:35bfbc1e43af9bbff3c3cf4309620d1cc2b0874958ed6f70377658de2a66054d",
+          "evidence_refs": [
+            "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345602"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": "當初這個排程規則是誰訂的，本人不知道",
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    }
+  ]
+}
