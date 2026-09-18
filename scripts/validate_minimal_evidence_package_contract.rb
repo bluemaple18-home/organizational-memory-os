@@ -63,10 +63,25 @@ def canonical_ref?(value, allowed_kinds)
   allowed_kinds.any? { |kind| CANONICAL_REF_PATTERNS[kind]&.match?(value) }
 end
 
-def build_canonical_ref_pattern(ref_template, kind)
-  uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+# repair-02：上游 identifiers.omos_generated 宣告的是 algorithm: UUIDv7，
+# 不是「任意 UUID」。version nibble 直接從那個宣告推導（UUIDv7 -> 7），
+# 上游哪天改版本號，matcher 跟著走，不必回來改這裡。
+# UUID 版本位在第三段首字、variant 位在第四段首字（RFC 9562：8/9/a/b）。
+def uuid_pattern(version_digit)
+  "[0-9a-f]{8}-[0-9a-f]{4}-#{version_digit}[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}"
+end
+
+def build_canonical_ref_pattern(ref_template, kind, version_digit)
   literal = Regexp.escape(ref_template).sub(Regexp.escape("{resource-kind}"), Regexp.escape(kebab(kind)))
-                                       .sub(Regexp.escape("{uuid}"), uuid)
+                                       .sub(Regexp.escape("{uuid}"), uuid_pattern(version_digit))
+  /\A#{literal}\z/
+end
+
+# id_templates 的 placeholder 是 {uuidv7}，同一條 identity shape 規則也要
+# 套用在 candidate_ref 上——repair-02 之前這裡只比對前綴，等於 kind 對了
+# 但 identity 沒綁。
+def build_id_template_pattern(id_template, version_digit)
+  literal = Regexp.escape(id_template).sub(Regexp.escape("{uuidv7}"), uuid_pattern(version_digit))
   /\A#{literal}\z/
 end
 
@@ -115,6 +130,8 @@ EXPECTED_NEGATIVE_LABELS = [
   "a source_anchor_ref that is not a canonical SOURCE_ANCHOR ref",
   "a provenance_chain_ref that is not a canonical omos resource ref",
   "a source_acl_snapshot_ref that does not match the STD-01 acl_snapshot_ref pattern",
+  "an evidence_ref whose identity is not the upstream-declared UUID version",
+  "a source_anchor_ref whose identity is not the upstream-declared UUID version",
   "a content_snapshot over the declared byte bound",
   "a content_hash that is not a sha256 serialization",
   "a content_hash that does not match the recomputed digest of content_snapshot",
@@ -129,7 +146,7 @@ EXPECTED_NEGATIVE_LABELS = [
 
 # --- 結構驗證（fail-closed）------------------------------------------------
 
-def transmission_failure(run, mode_definitions, candidate_ref_prefix, all_resource_kinds,
+def transmission_failure(run, mode_definitions, candidate_ref_pattern, all_resource_kinds,
                          acl_snapshot_pattern, max_content_bytes)
   request = run["access_request"]
   return "MEP_ACCESS_REQUEST_NOT_MAP" unless request.is_a?(Hash)
@@ -149,7 +166,7 @@ def transmission_failure(run, mode_definitions, candidate_ref_prefix, all_resour
 
   return "MEP_REF_FIELD_NOT_URN" unless URN_FIELDS.all? { |f| urn?(package[f]) }
   return "MEP_CANDIDATE_REF_NOT_CANDIDATE" unless package["candidate_ref"].is_a?(String) &&
-                                                  package["candidate_ref"].start_with?(candidate_ref_prefix)
+                                                  candidate_ref_pattern.match?(package["candidate_ref"])
   return "MEP_REF_LIST_NOT_ARRAY" unless REF_LIST_FIELDS.all? { |f| package[f].is_a?(Array) && !package[f].empty? }
 
   # repair-01：ref 不再只驗「是某種 omos URN」，而是綁上游真正定義它的形狀。
@@ -231,8 +248,17 @@ assert(ref_template.is_a?(String) && ref_template.include?("{resource-kind}") &&
 [EVIDENCE_KIND, SOURCE_ANCHOR_KIND].each do |kind|
   assert(all_resource_kinds.include?(kind), "common-vocabulary.resource_kinds 必須含 #{kind}（本片 pin 它）", failures)
 end
+# repair-02：identity shape 綁上游宣告的 algorithm，而不是「任意 UUID」。
+id_algorithm = vocab.dig("identifiers", "omos_generated", "algorithm").to_s
+id_serialization = vocab.dig("identifiers", "omos_generated", "id_serialization").to_s
+assert(/\AUUIDv(\d)\z/.match?(id_algorithm),
+       "common-vocabulary.identifiers.omos_generated.algorithm 必須是 UUIDv<n> 形式（matcher 由它推導）", failures)
+assert(id_serialization == "lowercase-hyphenated-uuid",
+       "id_serialization 若改變，本 matcher 的小寫十六進位假設就不再成立，必須一起檢討", failures)
+uuid_version_digit = id_algorithm[/\AUUIDv(\d)\z/, 1] || "7"
+
 CANONICAL_REF_PATTERNS = all_resource_kinds.each_with_object({}) do |kind, acc|
-  acc[kind] = build_canonical_ref_pattern(ref_template.to_s, kind)
+  acc[kind] = build_canonical_ref_pattern(ref_template.to_s, kind, uuid_version_digit)
 end.freeze
 
 # acl_snapshot_ref 的 pattern 直接取自 STD-01 schema，不手抄——與
@@ -258,7 +284,9 @@ candidate_id_template = spec.dig("personal_memory_resource_contracts", "shared_c
                                   "PersonalMemoryCandidate")
 assert(candidate_id_template.is_a?(String) && candidate_id_template.include?("{"),
        "id_templates.PersonalMemoryCandidate 必須存在（本片綁定它，不重述）", failures)
-candidate_ref_prefix = candidate_id_template.to_s.split("{").first
+candidate_ref_pattern = build_id_template_pattern(candidate_id_template.to_s, uuid_version_digit)
+assert(candidate_id_template.to_s.include?("{uuidv7}"),
+       "id_templates.PersonalMemoryCandidate 的 placeholder 必須是 {uuidv7}（matcher 依它套用 identity shape）", failures)
 
 # --- fixtures -------------------------------------------------------------
 
@@ -270,7 +298,7 @@ positive_fixtures.fetch("cases").each do |test_case|
   run = test_case.fetch("run")
   assert(test_case.fetch("expected") == "allow", "#{case_id} 正例必須預期 allow", failures)
 
-  actual_failure = transmission_failure(run, mode_definitions, candidate_ref_prefix, all_resource_kinds,
+  actual_failure = transmission_failure(run, mode_definitions, candidate_ref_pattern, all_resource_kinds,
                                        acl_snapshot_pattern, max_content_bytes)
   assert(actual_failure.nil?, "#{case_id} 預期 allow，實際被拒：#{actual_failure}", failures)
 end
@@ -282,7 +310,7 @@ negative_cases.each do |test_case|
   assert(test_case.fetch("expected") == "deny", "#{case_id} 負例必須預期 deny", failures)
   expected_code = test_case.fetch("expected_failure_code")
 
-  actual = transmission_failure(run, mode_definitions, candidate_ref_prefix, all_resource_kinds,
+  actual = transmission_failure(run, mode_definitions, candidate_ref_pattern, all_resource_kinds,
                                        acl_snapshot_pattern, max_content_bytes)
   assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
   assert(actual == expected_code, "#{case_id} 預期 #{expected_code}，實際 #{actual.inspect}", failures)
