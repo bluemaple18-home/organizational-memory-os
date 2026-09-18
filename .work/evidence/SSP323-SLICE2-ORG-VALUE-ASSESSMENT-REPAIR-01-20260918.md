@@ -6,6 +6,7 @@
 base            f38e82c
 original_review 80bce4c
 repair_commit   71124da
+delivery        0604b85   （branch HEAD，含本檔／handoff 文件；review 應以此為準）
 ```
 
 ## Reviewer NO_GO（2026-09-18，對 `80bce4c`）
