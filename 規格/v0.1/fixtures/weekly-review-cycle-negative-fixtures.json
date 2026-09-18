@@ -22,6 +22,16 @@
       }
     },
     {
+      "case_id": "WRC_NEG_CLOSEOUT_ENTRY_NOT_MAP",
+      "expected": "deny",
+      "expected_failure_code": "WRC_CLOSEOUT_ENTRY_NOT_MAP",
+      "covers_negative_fixture": "a closeout entry that is not a map",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-020:2026-W38",
+        "closeouts": ["oops"]
+      }
+    },
+    {
       "case_id": "WRC_NEG_REQUIRED_FIELD_MISSING",
       "expected": "deny",
       "expected_failure_code": "WRC_REQUIRED_FIELD_MISSING",
@@ -61,6 +71,28 @@
             "selected_item_refs": [],
             "item_dispositions": {},
             "weekly_work_summary": "本週做了什麼的完整摘要"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_CADENCE_FIELD_BLANK",
+      "expected": "deny",
+      "expected_failure_code": "WRC_CADENCE_FIELD_NOT_STRING",
+      "covers_negative_fixture": "a cadence field present but blank or non-string",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-021:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-021:2026-W38",
+            "scheduled_review_period_start": null,
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
           }
         ]
       }
@@ -215,6 +247,84 @@
             "catch_up_deadline_passed": false,
             "selected_item_refs": [],
             "item_dispositions": {}
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_ITEM_REF_NOT_CANDIDATE",
+      "expected": "deny",
+      "expected_failure_code": "WRC_ITEM_REF_NOT_CANDIDATE",
+      "covers_negative_fixture": "an item ref that is not a PersonalMemoryCandidate identity",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-022:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-022:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:record:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:record:1": { "category": "UNCHANGED" }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_ITEM_DISPOSITION_UNKNOWN_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "WRC_ITEM_DISPOSITION_UNKNOWN_FIELD",
+      "covers_negative_fixture": "an item_dispositions entry carrying a field outside the allowlist",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-023:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-023:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "UNCHANGED",
+                "candidate_status": "ACCEPTED_FOR_RECORD"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_PROMOTION_REF_WITHOUT_KEY",
+      "expected": "deny",
+      "expected_failure_code": "WRC_PROMOTION_REF_WITHOUT_IDEMPOTENCY_KEY",
+      "covers_negative_fixture": "a promotion_ref present without a promotion_idempotency_key",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-024:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-024:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-1"
+              }
+            }
           }
         ]
       }
@@ -388,10 +498,10 @@
       }
     },
     {
-      "case_id": "WRC_NEG_PROMOTION_IDEMPOTENCY_KEY_DRIFT",
+      "case_id": "WRC_NEG_PROMOTION_IDENTITY_DRIFT",
       "expected": "deny",
-      "expected_failure_code": "WRC_PROMOTION_IDEMPOTENCY_KEY_DRIFT",
-      "covers_negative_fixture": "the same item's promotion_idempotency_key drifting across retries",
+      "expected_failure_code": "WRC_PROMOTION_IDENTITY_DRIFT",
+      "covers_negative_fixture": "the same item's promotion identity (ref or key) drifting across retries",
       "run": {
         "review_period_id": "urn:omos:personal-memory:review-period:acme:e-019:2026-W38",
         "closeouts": [
@@ -407,7 +517,8 @@
             "item_dispositions": {
               "urn:omos:personal-memory:candidate:5": {
                 "category": "NEW_EVIDENCE",
-                "promotion_idempotency_key": "key-A"
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-1",
+                "promotion_idempotency_key": "urn:omos:idempotency:acme:e-019:2026-W38:candidate-5"
               }
             }
           },
@@ -423,7 +534,8 @@
             "item_dispositions": {
               "urn:omos:personal-memory:candidate:5": {
                 "category": "NEW_EVIDENCE",
-                "promotion_idempotency_key": "key-B"
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-2",
+                "promotion_idempotency_key": "urn:omos:idempotency:acme:e-019:2026-W38:candidate-5"
               }
             }
           }
