@@ -4,7 +4,7 @@
 
 ```
 base    faf6822
-review  （本次 commit，待 push 後補上）
+review  3cecb25
 branch  cc/ssp324-package-boundary
 ```
 
