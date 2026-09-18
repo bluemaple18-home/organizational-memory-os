@@ -28,6 +28,7 @@ SLICE_VALIDATORS = %w[
   validate_weekly_review_cycle_contract
   validate_minimal_evidence_package_contract
   validate_evidence_package_revision_contract
+  validate_company_side_evidence_boundary_contract
 ].freeze
 
 any_failure = false

@@ -1655,6 +1655,73 @@ evidence_package_revision:
     all is decided by the upstream disposition, never by whether a hash
     moved.
 
+company_side_evidence_boundary:
+  slice_of: SSP-324（EMEM-10）切片 C
+  purpose: >-
+    What the company side may and may not do with a Minimal Evidence
+    Package once it has arrived, and the boundary that keeps
+    NEEDS_ORG_FOLLOWUP from quietly becoming Knowledge. Evidence Package !=
+    Company Knowledge; NEEDS_ORG_FOLLOWUP != Company Knowledge.
+  binds_to:
+    - promotion_flow.required_steps（canonical 只能走完整的 promotion
+      路徑，本片不重述那串步驟，直接比對）
+    - promotion_flow.direct_copy_to_shared_canonical: forbidden
+    - capability_safety_floor.invariants（permission_before_retrieval／
+      canonical_single_writer 是既有 floor，本片只確認自己沒有繞過它們）
+    - core_invariants.PERSONAL_MEMORY_NE_COMPANY_CANONICAL_KNOWLEDGE
+    - recall_context_pack.contract.pack_required_fields（正式 retrieval 的
+      欄位詞彙由它定義，本片檢查封包不得出現在那些欄位裡）
+  allowed_purposes:
+    - PROMOTION_REVIEW_SUPPORT
+    - VERIFICATION_SUPPORT
+    - AUDIT_DISPUTE_PROVENANCE
+  forbidden_purposes:
+    - GENERAL_SEARCH_CORPUS
+    - RAG_RETRIEVAL_SOURCE
+    - COMPANY_CANONICAL_KNOWLEDGE
+    - PERSONAL_STORE_REPLICA
+  purpose_rule: >-
+    Both lists come from the parent card verbatim in intent, and are
+    declared here because upstream has no purpose vocabulary to read. The
+    evaluator asserts they are disjoint and that the allowed list is a
+    closed enum: a purpose outside it is rejected rather than treated as
+    "not forbidden". "Not on the ban list" is exactly how slice A's first
+    version leaked, so this one is an allowlist from the start.
+  handling_forbidden_fields:
+    - canonical_record_ref
+    - retrieval_corpus_ref
+    - rag_index_ref
+    - personal_store_replica_ref
+  canonical_requires_full_promotion: >-
+    A handling record may carry promotion_proposal_ref only for
+    PROMOTION_REVIEW_SUPPORT, and when it does it must list
+    promotion_steps_completed equal to promotion_flow.required_steps --
+    read from upstream at evaluation time, never restated here. That is
+    what "the package is not a shortcut into canonical" has to mean
+    mechanically: the package supports the review, it does not replace the
+    steps. direct_copy_to_shared_canonical stays forbidden upstream and
+    this contract adds no exception to it.
+  retrieval_exclusion:
+    evidence_package_ref_prefix: "urn:omos:personal-memory:evidence-package:"
+    rule: >-
+      A formal retrieval pack must not reach an Evidence Package. The
+      evaluator checks the retrieval pack's selected_memories and
+      source_refs (field names read from
+      recall_context_pack.contract.pack_required_fields, not invented
+      here) contain neither the handled package_ref itself nor anything
+      carrying the evidence-package prefix. The prefix is declared here
+      because no upstream id_template defines it; it is bound instead by
+      asserting the handled package_ref itself matches it, so the
+      declaration cannot drift away from the packages actually in use.
+  needs_org_followup_boundary: >-
+    A follow-up carried into the Organizational Layer may name a
+    suggested_expert or leave it null -- both legal, and null must not
+    weaken it. What it may never do is acquire canonical identity: a
+    follow-up record carrying canonical_record_ref, or any of the
+    lifecycle fields historical_comparison already forbids, is rejected.
+    Expert routing, taxonomy and cross-person conflict resolution remain
+    the Organizational Layer's, and are explicitly out of this contract.
+
 personal_memory_governance:
   required_dimensions:
     - source support
