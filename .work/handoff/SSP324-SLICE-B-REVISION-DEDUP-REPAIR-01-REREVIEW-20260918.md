@@ -5,7 +5,7 @@
 ```
 base             72ac78d
 original_review  2b7dcef（審的是 72ac78d..3119fa1）
-repair_commit    （本次 commit，待 push 後補上）
+repair_commit    15074ce
 branch           cc/ssp324-revision-dedup
 ```
 
