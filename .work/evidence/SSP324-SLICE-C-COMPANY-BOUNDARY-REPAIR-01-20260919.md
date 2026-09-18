@@ -5,7 +5,7 @@
 ```
 base            9ac5de7
 original_review 48af52a（審的是 9ac5de7..4b4298c）
-repair_commit   （本次 commit，待 push 後補上）
+repair_commit   c6abe1e
 ```
 
 ## Reviewer NO_GO（對 `48af52a`）
