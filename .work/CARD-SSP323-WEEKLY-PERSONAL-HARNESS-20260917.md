@@ -102,6 +102,26 @@ Disposition
 - 真正無法回答／缺外部 evidence，而仍有高組織價值時，輸出 `NEEDS_ORG_FOLLOWUP`。
 - `suggested_expert` 只是 optional hint；`null` 合法。
 
+#### Cadence / schedule policy
+
+MVP 預設節奏：
+
+```text
+每週五下午
+→ 提醒員工啟動 Weekly Grill
+→ 若當日因休假、國定假日、工作衝突或未完成
+→ 順延到下一個工作日補做
+```
+
+規則：
+
+- 「週五下午」是 MVP 的預設組織政策，不是 Personal Memory core lifecycle 的硬編碼。
+- Tenant / Company 可透過組織政策調整 weekly anchor（例如週四、其他工作週最後一天）；不得因此 fork Personal Memory contract。
+- 未指定精確時刻時只表達 afternoon window，不在核心契約硬寫固定 clock time。
+- 補做時仍關閉原本應回顧的週期，不把下一個工作日的新資料混成第二次同週回顧。
+- 同一 review period 最多產生一個有效 weekly closeout；retry / catch-up 不得造成 duplicate Promotion 或 duplicate closeout。
+- `SKIPPED` 必須是明確處置，不可把「週五沒做、下一工作日待補」提前記成永久略過。
+
 ### 4. Batch acceptance UX
 
 - 員工不逐條按 Accept。
@@ -185,6 +205,7 @@ Assessment 至少可說明：
 6. `NEEDS_ORG_FOLLOWUP` 在 `suggested_expert=null` 時合法且不得升為 Knowledge。
 7. COMPANY_MANAGED/SHARED work material 的 simple veto 不能取代 policy gate；EMPLOYEE_PRIVATE 無 consent fail closed。
 8. Company receipt 不包含完整 Personal Store 或 weekly work summary。
+9. MVP 預設每週五下午觸發 review window；未完成時順延下一工作日，且同一 review period 不得重複 closeout／Promotion。
 
 ## Hard stops
 
