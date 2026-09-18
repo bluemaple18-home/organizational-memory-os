@@ -1543,6 +1543,118 @@ minimal_evidence_package:
     place that defines it, and means a future mode that becomes
     consent-requiring is covered without touching this contract.
 
+evidence_package_revision:
+  slice_of: SSP-324（EMEM-10）切片 B
+  purpose: >-
+    Immutable submission / revision semantics and the dedup-resend rule for
+    Minimal Evidence Packages. The validation unit is the submission CHAIN
+    for one candidate, not a single package: "不得每週因同一知識再次發生就
+    往公司重送 duplicate package" and "previous package 必須可追溯" are only
+    visible across submissions -- the same lesson weekly_review_cycle
+    learned about closeout histories.
+  binds_to:
+    - historical_comparison.categories / .dispositions（dedup／resend 規則
+      的唯一權威。SSP-324 卡片那張表逐條就是這裡的 dispositions，本區塊
+      一個字都不抄，評估當下從上游讀）
+    - correction_flow.contract.correction_kinds（revision 走既有
+      correction／supersession，不建立第二套 revision lifecycle）
+    - minimal_evidence_package（切片 A 的封閉封包。本片不重驗封包內部形狀，
+      只驗鏈關係——見 layering_boundary）
+  layering_boundary: >-
+    Slice A owns package-internal shape (its package_required_fields is a
+    closed allowlist); slice B owns the relationships BETWEEN packages.
+    B therefore wraps A's package in an envelope rather than adding fields
+    to it -- adding revision fields into the package would have forced
+    reopening an accepted closed shape. B still value-shape-locks the three
+    package fields it actually reads (package_id / candidate_ref /
+    content_hash) instead of trusting them, but it does not re-implement
+    A's validation.
+
+    repair-01: the first version claimed this layering but did not enforce
+    it -- a B submission carrying a 3-of-20-field package, or one with an
+    extra field, passed, because "both validators run under the same
+    aggregator" is not composition: the aggregator merely runs two fixture
+    sets. B now calls the SAME package evaluator A calls, extracted to
+    scripts/lib/minimal_evidence_package_shape.rb from A with
+    byte-identical behaviour, so a package embedded in a submission is held
+    to the whole slice A contract. Neutralising one guard inside that
+    shared evaluator turns BOTH slices red -- the machine proof that the
+    two are one implementation, not two that happen to agree.
+  package_evaluator_shared_with: scripts/lib/minimal_evidence_package_shape.rb
+  submission_allowed_fields:
+    - submission_id
+    - supersedes_package_ref
+    - comparison
+    - correction_proposal_ref
+    - correction_kind
+    - package
+  forbidden_self_declared_fields:
+    - comparison_category
+    - disposition
+  classification_provenance: >-
+    repair-02: the first two versions let the submission DECLARE
+    comparison_category and disposition, and only checked the pair was a
+    legal one. That is vocabulary binding, not result binding -- a caller
+    could keep content_hash, evidence_refs, redaction_ref and sensitivity
+    all identical to the predecessor, self-report MATERIALLY_CHANGED plus
+    a well-formed CORRECTION_SUPERSESSION_PROPOSAL, and send a revision
+    having demonstrated no material effect whatsoever, straight through
+    the parent card's Acceptance #7.
+
+    historical_comparison already states that category and disposition are
+    NEVER caller-declared. So a submission now carries `comparison` -- the
+    primitive signals that contract consumes (prior/current identity,
+    content hashes, evidence_refs sets, and the substantiated
+    material_effect / contradicts_prior judgments) -- and this contract
+    derives category and disposition by calling the SAME evaluator slice 1
+    calls (scripts/lib/historical_comparison_derivation.rb). Declaring
+    comparison_category or disposition on a submission is rejected
+    outright.
+  comparison_chain_binding: >-
+    The primitives must describe the actual chain, or they would simply be
+    fabricable one level up: comparison.current_content_hash must equal the
+    submission's own package content_hash, and for any later submission
+    comparison.prior_content_hash must equal the predecessor package's
+    content_hash. The first submission must have no prior record and later
+    ones must have one, matching the chain's own shape.
+  non_transmittable_dispositions:
+    - NO_RESEND
+    - LOCAL_RECURRENCE_ONLY
+  non_transmittable_rule: >-
+    This is the one genuinely NEW decision in this block, so it is declared
+    here rather than read from upstream -- but each listed value must exist
+    in historical_comparison.dispositions, asserted at evaluation time, so
+    it cannot drift away from the vocabulary it selects from. A comparison
+    whose disposition is one of these authorizes no company-bound
+    submission at all: UNCHANGED means no resend, and NEW_EVIDENCE without
+    material effect stays local recurrence history. A submission carrying
+    such a disposition is itself the contradiction -- it was sent.
+  correction_required_dispositions:
+    - CORRECTION_SUPERSESSION_PROPOSAL
+    - CORRECTION_CONFLICT_PROPOSAL
+  chain_rules: >-
+    The first submission supersedes nothing and must be the UNSEEN /
+    INITIAL_SUBMISSION case; every later submission must name a
+    predecessor that already appears earlier in the same chain, so the
+    history stays traceable. package_id must be unique across the chain and
+    no two submissions may name the same predecessor: a duplicate id or a
+    forked chain is an in-place overwrite wearing a resubmission costume,
+    which correction_flow already forbids as in_place_record_overwrite.
+    submission_id must be unique too, or an immutable submission audit has
+    ambiguous identity. UNSEEN / INITIAL_SUBMISSION is allowed only as the
+    first entry: repair-01 found the original check was one-directional
+    (first must be UNSEEN) and so let a second entry declare itself an
+    initial submission all over again.
+
+    repair-01 also removed an earlier rule that a revision must change
+    content_hash. That rule was wrong: slice A's content_hash covers
+    content_snapshot only, while the parent card explicitly allows new
+    evidence, redaction, policy, applicability and risk changes to produce
+    a revision with the statement text untouched -- it would have rejected
+    exactly those legitimate revisions. Whether something may be sent at
+    all is decided by the upstream disposition, never by whether a hash
+    moved.
+
 personal_memory_governance:
   required_dimensions:
     - source support
