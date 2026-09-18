@@ -1,0 +1,289 @@
+{
+  "contract": "personal_store_portability",
+  "cases": [
+    {
+      "case_id": "PORTABILITY_NEG_UNKNOWN_EXECUTOR",
+      "expected": "deny",
+      "expected_failure_code": "PORTABILITY_UNKNOWN_EXECUTOR",
+      "covers_negative_fixture": "an executor_ref not in optional_executors",
+      "projection_a": {
+        "executor_ref": "Claude Code",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": { "candidate_id": "urn:omos:personal-memory:candidate:1" }
+      },
+      "projection_b": {
+        "executor_ref": "ChatGPT Desktop",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": { "candidate_id": "urn:omos:personal-memory:candidate:1" }
+      }
+    },
+    {
+      "case_id": "PORTABILITY_NEG_SAME_EXECUTOR",
+      "expected": "deny",
+      "expected_failure_code": "PORTABILITY_SAME_EXECUTOR",
+      "covers_negative_fixture": "both projections declaring the same executor_ref",
+      "projection_a": {
+        "executor_ref": "Claude Code",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": { "candidate_id": "urn:omos:personal-memory:candidate:1" }
+      },
+      "projection_b": {
+        "executor_ref": "Claude Code",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": { "candidate_id": "urn:omos:personal-memory:candidate:1" }
+      }
+    },
+    {
+      "case_id": "PORTABILITY_NEG_EXECUTOR_REF_NOT_STRING",
+      "expected": "deny",
+      "expected_failure_code": "PORTABILITY_EXECUTOR_REF_NOT_STRING",
+      "covers_negative_fixture": "an executor_ref that is not a string",
+      "projection_a": {
+        "executor_ref": 123,
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": { "candidate_id": "urn:omos:personal-memory:candidate:1" }
+      },
+      "projection_b": {
+        "executor_ref": "Codex",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": { "candidate_id": "urn:omos:personal-memory:candidate:1" }
+      }
+    },
+    {
+      "case_id": "PORTABILITY_NEG_UNKNOWN_RESOURCE_KIND",
+      "expected": "deny",
+      "expected_failure_code": "PORTABILITY_UNKNOWN_RESOURCE_KIND",
+      "covers_negative_fixture": "an unknown resource_kind not declared in personal_memory_resource_contracts.resources",
+      "projection_a": {
+        "executor_ref": "Claude Code",
+        "resource_kind": "PersonalMemorySnapshot",
+        "resource": { "id": "urn:omos:personal-memory:snapshot:1" }
+      },
+      "projection_b": {
+        "executor_ref": "Codex",
+        "resource_kind": "PersonalMemorySnapshot",
+        "resource": { "id": "urn:omos:personal-memory:snapshot:1" }
+      }
+    },
+    {
+      "case_id": "PORTABILITY_NEG_RESOURCE_KIND_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "PORTABILITY_RESOURCE_KIND_MISMATCH",
+      "covers_negative_fixture": "the two projections declaring different resource_kind",
+      "projection_a": {
+        "executor_ref": "Claude Code",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": { "candidate_id": "urn:omos:personal-memory:candidate:1" }
+      },
+      "projection_b": {
+        "executor_ref": "Codex",
+        "resource_kind": "PersonalMemoryRecord",
+        "resource": { "record_id": "urn:omos:personal-memory:record:1" }
+      }
+    },
+    {
+      "case_id": "PORTABILITY_NEG_RESOURCE_NOT_MAP",
+      "expected": "deny",
+      "expected_failure_code": "PORTABILITY_RESOURCE_NOT_MAP",
+      "covers_negative_fixture": "a resource field that is not a map",
+      "projection_a": {
+        "executor_ref": "Claude Code",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": "urn:omos:personal-memory:candidate:1"
+      },
+      "projection_b": {
+        "executor_ref": "Codex",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": { "candidate_id": "urn:omos:personal-memory:candidate:1" }
+      }
+    },
+    {
+      "case_id": "PORTABILITY_NEG_FORBIDDEN_FIELD_PRESENT",
+      "expected": "deny",
+      "expected_failure_code": "PORTABILITY_FORBIDDEN_FIELD_PRESENT",
+      "covers_negative_fixture": "a resource carrying a field the resource contract forbids",
+      "projection_a": {
+        "executor_ref": "Claude Code",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": {
+          "candidate_id": "urn:omos:personal-memory:candidate:1",
+          "record_id": "urn:omos:personal-memory:record:1"
+        }
+      },
+      "projection_b": {
+        "executor_ref": "Codex",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": {
+          "candidate_id": "urn:omos:personal-memory:candidate:1"
+        }
+      }
+    },
+    {
+      "case_id": "PORTABILITY_NEG_FIELD_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "PORTABILITY_FIELD_MISSING",
+      "covers_negative_fixture": "a required field missing from one projection's resource",
+      "projection_a": {
+        "executor_ref": "Claude Code",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": {
+          "candidate_id": "urn:omos:personal-memory:candidate:1",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "memory_kind": "LESSON_LEARNED",
+          "content": { "statement_or_structured_content": "內容" },
+          "applicability": { "scope_mode": "PROJECT", "applies_to_refs": ["urn:omos:project:p-1"] },
+          "validity_interval": { "effective_from": "2026-09-10T00:00:00Z" },
+          "support_link_refs": ["urn:omos:personal-memory:support-link:1"],
+          "provenance": { "generated_from_refs": ["urn:omos:evidence-ref:1"], "proposed_by": "urn:omos:employee:e-001" },
+          "governance": {
+            "ownership_mode": "EMPLOYEE_PRIVATE",
+            "visibility_scope": "PERSONAL",
+            "sensitivity": "LOW",
+            "acl_ref": "urn:omos:acl:a-1",
+            "verification_status": "NOT_RUN",
+            "acceptance_status": "PENDING"
+          },
+          "chronology": { "created_at": "2026-09-10T00:00:00Z" },
+          "candidate_status": "PROPOSED"
+        }
+      },
+      "projection_b": {
+        "executor_ref": "Codex",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": {
+          "candidate_id": "urn:omos:personal-memory:candidate:1",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "memory_kind": "LESSON_LEARNED",
+          "content": { "statement_or_structured_content": "內容" },
+          "applicability": { "scope_mode": "PROJECT", "applies_to_refs": ["urn:omos:project:p-1"] },
+          "validity_interval": { "effective_from": "2026-09-10T00:00:00Z" },
+          "support_link_refs": ["urn:omos:personal-memory:support-link:1"],
+          "provenance": { "generated_from_refs": ["urn:omos:evidence-ref:1"], "proposed_by": "urn:omos:employee:e-001" },
+          "governance": {
+            "ownership_mode": "EMPLOYEE_PRIVATE",
+            "visibility_scope": "PERSONAL",
+            "sensitivity": "LOW",
+            "verification_status": "NOT_RUN",
+            "acceptance_status": "PENDING"
+          },
+          "chronology": { "created_at": "2026-09-10T00:00:00Z" },
+          "candidate_status": "PROPOSED"
+        }
+      }
+    },
+    {
+      "case_id": "PORTABILITY_NEG_CONTENT_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "PORTABILITY_FIELD_MISMATCH",
+      "covers_negative_fixture": "content that differs between the two projections' resource",
+      "projection_a": {
+        "executor_ref": "Claude Code",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": {
+          "candidate_id": "urn:omos:personal-memory:candidate:1",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "memory_kind": "LESSON_LEARNED",
+          "content": { "statement_or_structured_content": "内容 A：workaround 步驟一二三" },
+          "applicability": { "scope_mode": "PROJECT", "applies_to_refs": ["urn:omos:project:p-1"] },
+          "validity_interval": { "effective_from": "2026-09-10T00:00:00Z" },
+          "support_link_refs": ["urn:omos:personal-memory:support-link:1"],
+          "provenance": { "generated_from_refs": ["urn:omos:evidence-ref:1"], "proposed_by": "urn:omos:employee:e-001" },
+          "governance": {
+            "ownership_mode": "EMPLOYEE_PRIVATE",
+            "visibility_scope": "PERSONAL",
+            "sensitivity": "LOW",
+            "acl_ref": "urn:omos:acl:a-1",
+            "verification_status": "NOT_RUN",
+            "acceptance_status": "PENDING"
+          },
+          "chronology": { "created_at": "2026-09-10T00:00:00Z" },
+          "candidate_status": "PROPOSED"
+        }
+      },
+      "projection_b": {
+        "executor_ref": "Codex",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": {
+          "candidate_id": "urn:omos:personal-memory:candidate:1",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "memory_kind": "LESSON_LEARNED",
+          "content": { "statement_or_structured_content": "内容 B：跟 A 完全不同的敘述，同一個 candidate_id 卻被改寫" },
+          "applicability": { "scope_mode": "PROJECT", "applies_to_refs": ["urn:omos:project:p-1"] },
+          "validity_interval": { "effective_from": "2026-09-10T00:00:00Z" },
+          "support_link_refs": ["urn:omos:personal-memory:support-link:1"],
+          "provenance": { "generated_from_refs": ["urn:omos:evidence-ref:1"], "proposed_by": "urn:omos:employee:e-001" },
+          "governance": {
+            "ownership_mode": "EMPLOYEE_PRIVATE",
+            "visibility_scope": "PERSONAL",
+            "sensitivity": "LOW",
+            "acl_ref": "urn:omos:acl:a-1",
+            "verification_status": "NOT_RUN",
+            "acceptance_status": "PENDING"
+          },
+          "chronology": { "created_at": "2026-09-10T00:00:00Z" },
+          "candidate_status": "PROPOSED"
+        }
+      }
+    },
+    {
+      "case_id": "PORTABILITY_NEG_OWNERSHIP_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "PORTABILITY_FIELD_MISMATCH",
+      "covers_negative_fixture": "governance ownership_mode that differs between the two projections' resource",
+      "projection_a": {
+        "executor_ref": "Claude Code",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": {
+          "candidate_id": "urn:omos:personal-memory:candidate:1",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "memory_kind": "LESSON_LEARNED",
+          "content": { "statement_or_structured_content": "內容" },
+          "applicability": { "scope_mode": "PROJECT", "applies_to_refs": ["urn:omos:project:p-1"] },
+          "validity_interval": { "effective_from": "2026-09-10T00:00:00Z" },
+          "support_link_refs": ["urn:omos:personal-memory:support-link:1"],
+          "provenance": { "generated_from_refs": ["urn:omos:evidence-ref:1"], "proposed_by": "urn:omos:employee:e-001" },
+          "governance": {
+            "ownership_mode": "EMPLOYEE_PRIVATE",
+            "visibility_scope": "PERSONAL",
+            "sensitivity": "LOW",
+            "acl_ref": "urn:omos:acl:a-1",
+            "verification_status": "NOT_RUN",
+            "acceptance_status": "PENDING"
+          },
+          "chronology": { "created_at": "2026-09-10T00:00:00Z" },
+          "candidate_status": "PROPOSED"
+        }
+      },
+      "projection_b": {
+        "executor_ref": "Codex",
+        "resource_kind": "PersonalMemoryCandidate",
+        "resource": {
+          "candidate_id": "urn:omos:personal-memory:candidate:1",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "memory_kind": "LESSON_LEARNED",
+          "content": { "statement_or_structured_content": "內容" },
+          "applicability": { "scope_mode": "PROJECT", "applies_to_refs": ["urn:omos:project:p-1"] },
+          "validity_interval": { "effective_from": "2026-09-10T00:00:00Z" },
+          "support_link_refs": ["urn:omos:personal-memory:support-link:1"],
+          "provenance": { "generated_from_refs": ["urn:omos:evidence-ref:1"], "proposed_by": "urn:omos:employee:e-001" },
+          "governance": {
+            "ownership_mode": "COMPANY_MANAGED_PERSONAL",
+            "visibility_scope": "PERSONAL",
+            "sensitivity": "LOW",
+            "acl_ref": "urn:omos:acl:a-1",
+            "verification_status": "NOT_RUN",
+            "acceptance_status": "PENDING"
+          },
+          "chronology": { "created_at": "2026-09-10T00:00:00Z" },
+          "candidate_status": "PROPOSED"
+        }
+      }
+    }
+  ]
+}
