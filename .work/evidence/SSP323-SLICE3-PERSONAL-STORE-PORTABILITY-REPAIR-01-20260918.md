@@ -5,7 +5,7 @@
 ```
 base            b1885e7
 original_review bfd97b7
-repair_commit   （本次 commit，待 push 後補上）
+repair_commit   08633ee
 ```
 
 ## Reviewer NO_GO（2026-09-18，對 `bfd97b7`）

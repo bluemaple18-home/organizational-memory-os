@@ -5,7 +5,7 @@
 ```
 base             b1885e7
 original_review  bfd97b7
-repair_commit    （本次 commit，程式碼修法本身，待 push 後補上）
+repair_commit    08633ee
 branch           cc/ssp323-personal-store-portability
 ```
 
