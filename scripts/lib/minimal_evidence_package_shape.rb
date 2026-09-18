@@ -35,7 +35,9 @@ module MinimalEvidencePackageShape
 
   # 只能驗到「generic omos URN」的欄位：org 端 identity（tenant／employee／
   # consent／redaction），不是 OMOS canonical resource，上游沒有對應 kind。
-  URN_FIELDS = %w[package_id employee_owner_ref].freeze
+  # package_id 已於 slice C repair-01 改綁 minimal_evidence_package.
+  # package_identity.id_template，不再只是 generic URN。
+  URN_FIELDS = %w[employee_owner_ref].freeze
   # 必為「非空陣列」的 ref 清單欄位（元素形狀另外依 ref_binding 逐欄驗）。
   REF_LIST_FIELDS = %w[evidence_refs source_anchor_refs provenance_chain_refs].freeze
   TEXT_FIELDS = %w[tenant_id sensitivity content_snapshot content_hash submitted_at].freeze
@@ -98,6 +100,10 @@ module MinimalEvidencePackageShape
 
     patterns = bindings[:canonical_ref_patterns]
     return "MEP_REF_FIELD_NOT_URN" unless URN_FIELDS.all? { |f| urn?(package[f]) }
+    # slice C repair-01：封包身分由 package_identity.id_template 定義，A 的
+    # 准入與 C 的排除共用同一個判定，不再各自猜字串。
+    return "MEP_PACKAGE_ID_NOT_EVIDENCE_PACKAGE" unless package["package_id"].is_a?(String) &&
+                                                        bindings[:package_id_pattern].match?(package["package_id"])
     return "MEP_CANDIDATE_REF_NOT_CANDIDATE" unless package["candidate_ref"].is_a?(String) &&
                                                     bindings[:candidate_ref_pattern].match?(package["candidate_ref"])
     return "MEP_REF_LIST_NOT_ARRAY" unless REF_LIST_FIELDS.all? { |f| package[f].is_a?(Array) && !package[f].empty? }
@@ -174,6 +180,10 @@ module MinimalEvidencePackageShape
     end
 
     mep = spec["minimal_evidence_package"] || {}
+    package_id_template = mep.dig("package_identity", "id_template")
+    unless package_id_template.is_a?(String) && package_id_template.include?("{uuidv7}")
+      problems << "minimal_evidence_package.package_identity.id_template 必須存在且以 {uuidv7} 為 placeholder"
+    end
     max_content_bytes = mep.dig("content_bound", "max_bytes")
     unless max_content_bytes.is_a?(Integer) && max_content_bytes.positive?
       problems << "minimal_evidence_package.content_bound.max_bytes 必須是正整數（policy 住在契約，不在 evaluator）"
@@ -184,6 +194,8 @@ module MinimalEvidencePackageShape
       canonical_ref_patterns: patterns,
       acl_snapshot_pattern: Regexp.new(acl_pattern_source.to_s),
       candidate_ref_pattern: build_id_template_pattern(candidate_id_template.to_s, version_digit),
+      package_id_pattern: build_id_template_pattern(package_id_template.to_s, version_digit),
+      package_id_template: package_id_template.to_s,
       mode_definitions: spec.dig("ownership_visibility_contract", "mode_definitions") || {},
       max_content_bytes: max_content_bytes.is_a?(Integer) ? max_content_bytes : 0,
       uuid_version_digit: version_digit

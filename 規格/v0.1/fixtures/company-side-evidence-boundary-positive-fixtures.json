@@ -1,0 +1,84 @@
+{
+  "contract": "company_side_evidence_boundary",
+  "cases": [
+    {
+      "case_id": "CSB_POS_VERIFICATION_SUPPORT",
+      "expected": "allow",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "VERIFICATION_SUPPORT"
+      }
+    },
+    {
+      "case_id": "CSB_POS_AUDIT_PROVENANCE",
+      "expected": "allow",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "AUDIT_DISPUTE_PROVENANCE"
+      }
+    },
+    {
+      "case_id": "CSB_POS_PROMOTION_REVIEW_WITH_FULL_STEPS",
+      "expected": "allow",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "PROMOTION_REVIEW_SUPPORT",
+        "promotion_proposal_ref": "urn:omos:personal-memory:promotion-proposal:01922b3c-4d5e-7f01-8abc-def012345701",
+        "promotion_steps_completed": [
+          "PromotionProposal",
+          "permission_and_scope_check",
+          "ownership_and_visibility_check",
+          "evidence_support_check",
+          "redaction",
+          "verification",
+          "review",
+          "canonical_single_writer"
+        ]
+      }
+    },
+    {
+      "case_id": "CSB_POS_FOLLOWUP_NULL_SUGGESTED_EXPERT",
+      "expected": "allow",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "VERIFICATION_SUPPORT",
+        "needs_org_followup": {
+          "unresolved_question": "當初誰訂的排程規則",
+          "suggested_expert": null
+        }
+      }
+    },
+    {
+      "case_id": "CSB_POS_FOLLOWUP_WITH_SUGGESTED_EXPERT",
+      "expected": "allow",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "VERIFICATION_SUPPORT",
+        "needs_org_followup": {
+          "unresolved_question": "同上",
+          "suggested_expert": "urn:omos:employee:e-009"
+        }
+      }
+    },
+    {
+      "case_id": "CSB_POS_RETRIEVAL_PACK_REAL_SHAPE_WITHOUT_PACKAGE",
+      "expected": "allow",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "VERIFICATION_SUPPORT",
+        "retrieval_pack": {
+          "selected_memories": [
+            {
+              "memory_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "owner_ref": "urn:omos:employee:01922b3c-4d5e-7f01-8abc-def012345901",
+              "freshness": "FRESH"
+            }
+          ],
+          "source_refs": [
+            "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+          ]
+        }
+      }
+    }
+  ]
+}
