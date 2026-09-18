@@ -4,7 +4,7 @@
 
 ```
 base    72ac78d
-review  （本次 commit，待 push 後補上）
+review  3119fa1
 branch  cc/ssp324-revision-dedup
 ```
 
