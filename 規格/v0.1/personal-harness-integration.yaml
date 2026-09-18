@@ -1395,6 +1395,99 @@ weekly_review_cycle:
     promotion -- the identity that downstream Promotion idempotency
     relies on would have silently drifted.
 
+minimal_evidence_package:
+  slice_of: SSP-324（EMEM-10）切片 A
+  purpose: >-
+    The Personal -> Company transmission envelope, and the ONLY way company
+    side ever obtains personal material. This is a payload boundary, not a
+    second Promotion design: SSP-294's widening gate, actor x material
+    policy matrix and source ACL ceiling still decide whether anything may
+    be promoted, and Verification / Review / Acceptance / Canonical Single
+    Writer are unchanged. Evidence Package != Company Knowledge.
+  binds_to:
+    - ownership_visibility_contract.mode_definitions（scope_mode 對應的
+      ownership_mode／visibility_scope／consent 要求，全部從上游讀，
+      package 只是宣告自己屬於哪個 mode，數值必須對得上）
+    - personal_memory_resource_contracts...id_templates.PersonalMemoryCandidate
+      （candidate_ref 必須真的是 Candidate identity）
+    - runtime_policy.local_first_export_surface（本區塊正是該封閉列舉裡
+      minimal_evidence_package 這一項的實際 enforcement；切片 3 review
+      留下的 P2「宣稱比 enforcement 大」由此收斂）
+  access_boundary:
+    allowed_request_kinds:
+      - PACKAGE_LOOKUP
+    forbidden_request_kinds:
+      - BROWSE
+      - SEARCH
+      - PULL
+      - REMOTE_QUERY
+      - REMOTE_MOUNT
+    allowed_request_fields:
+      - request_kind
+      - package_ref
+    rule: >-
+      Company side may only ask for one already-submitted package by its
+      exact package_ref. There is no query, filter, scope or wildcard
+      field in the request vocabulary at all -- an open browse/search/pull
+      is not "denied by policy", it is structurally unrepresentable, which
+      is what "no reverse local connector / search API" has to mean if it
+      is to be more than a sentence. A request naming a package_ref that
+      is not the package actually being transmitted is also rejected, so a
+      bounded lookup cannot be used to fetch something else.
+  package_required_fields:
+    - package_id
+    - tenant_id
+    - employee_owner_ref
+    - candidate_ref
+    - scope_mode
+    - ownership_mode
+    - visibility_scope
+    - sensitivity
+    - consent_ref
+    - content_snapshot
+    - content_hash
+    - evidence_refs
+    - source_anchor_refs
+    - provenance_chain_refs
+    - source_acl_snapshot_ref
+    - redaction_ref
+    - organizational_value_reasons
+    - unresolved_question
+    - suggested_expert
+    - submitted_at
+  package_forbidden_fields:
+    - full_personal_store_ref
+    - personal_store_snapshot
+    - weekly_work_summary
+    - candidate_status
+    - record_status
+    - verification_status
+    - acceptance_status
+    - conflict_resolution_status
+  package_forbidden_fields_note: >-
+    The first three are the "whole Personal Store dump" ban; the last five
+    are the same FORBIDDEN_LIFECYCLE_FIELDS boundary historical_comparison
+    and weekly_review_cycle already enforce -- a package carries bounded
+    refs plus one content snapshot, never lifecycle state, because
+    verification_status / acceptance_status remain SSP-294's to decide
+    after the package arrives, not something the package asserts about
+    itself on the way in.
+  governance_binding_rule: >-
+    A package declares scope_mode (a key of
+    ownership_visibility_contract.mode_definitions) and then its
+    ownership_mode and visibility_scope must equal exactly what that mode
+    declares upstream. They are cross-checked, never trusted as
+    independent self-reported values -- a package cannot claim
+    EMPLOYEE_PRIVATE while carrying a company-wide visibility_scope.
+  consent_rule: >-
+    Whether consent is required is read from the upstream mode's
+    consent_or_notice_required value, not hardcoded to one mode name: any
+    scope_mode whose upstream declaration is CONSENT_REQUIRED must carry a
+    non-null consent_ref, and fails closed without one. This keeps
+    EMPLOYEE_PRIVATE's "no consent, no upload" rule bound to the single
+    place that defines it, and means a future mode that becomes
+    consent-requiring is covered without touching this contract.
+
 personal_memory_governance:
   required_dimensions:
     - source support

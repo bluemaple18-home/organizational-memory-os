@@ -1,0 +1,902 @@
+{
+  "contract": "minimal_evidence_package",
+  "cases": [
+    {
+      "case_id": "MEP_NEG_ACCESS_REQUEST_NOT_MAP",
+      "expected": "deny",
+      "expected_failure_code": "MEP_ACCESS_REQUEST_NOT_MAP",
+      "covers_negative_fixture": "an access_request that is not a map",
+      "run": {
+        "access_request": "give me everything",
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_FORBIDDEN_ACCESS_KIND_BROWSE",
+      "expected": "deny",
+      "expected_failure_code": "MEP_FORBIDDEN_ACCESS_KIND",
+      "covers_negative_fixture": "an access_request naming a forbidden request kind",
+      "run": {
+        "access_request": {
+          "request_kind": "BROWSE",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_FORBIDDEN_ACCESS_KIND_SEARCH",
+      "expected": "deny",
+      "expected_failure_code": "MEP_FORBIDDEN_ACCESS_KIND",
+      "covers_negative_fixture": "an access_request naming a forbidden request kind",
+      "run": {
+        "access_request": {
+          "request_kind": "SEARCH",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_FORBIDDEN_ACCESS_KIND_PULL",
+      "expected": "deny",
+      "expected_failure_code": "MEP_FORBIDDEN_ACCESS_KIND",
+      "covers_negative_fixture": "an access_request naming a forbidden request kind",
+      "run": {
+        "access_request": {
+          "request_kind": "PULL",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_FORBIDDEN_ACCESS_KIND_REMOTE_QUERY",
+      "expected": "deny",
+      "expected_failure_code": "MEP_FORBIDDEN_ACCESS_KIND",
+      "covers_negative_fixture": "an access_request naming a forbidden request kind",
+      "run": {
+        "access_request": {
+          "request_kind": "REMOTE_QUERY",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_FORBIDDEN_ACCESS_KIND_REMOTE_MOUNT",
+      "expected": "deny",
+      "expected_failure_code": "MEP_FORBIDDEN_ACCESS_KIND",
+      "covers_negative_fixture": "an access_request naming a forbidden request kind",
+      "run": {
+        "access_request": {
+          "request_kind": "REMOTE_MOUNT",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_ACCESS_REQUEST_UNKNOWN_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "MEP_ACCESS_REQUEST_UNKNOWN_FIELD",
+      "covers_negative_fixture": "an access_request carrying a field outside the allowlist",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "query": "sensitivity:HIGH"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_PACKAGE_REF_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "MEP_PACKAGE_REF_NOT_URN",
+      "covers_negative_fixture": "an access_request package_ref that is not an omos URN",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": {
+            "wildcard": "*"
+          }
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_PACKAGE_NOT_MAP",
+      "expected": "deny",
+      "expected_failure_code": "MEP_PACKAGE_NOT_MAP",
+      "covers_negative_fixture": "a package that is not a map",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": "whole-store-dump"
+      }
+    },
+    {
+      "case_id": "MEP_NEG_REQUIRED_FIELD_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "MEP_REQUIRED_FIELD_MISSING",
+      "covers_negative_fixture": "a package missing a required field",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_FORBIDDEN_FIELD_PRESENT",
+      "expected": "deny",
+      "expected_failure_code": "MEP_FORBIDDEN_FIELD_PRESENT",
+      "covers_negative_fixture": "a package carrying a forbidden field",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z",
+          "personal_store_snapshot": {
+            "everything": "..."
+          }
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_PACKAGE_REF_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "MEP_PACKAGE_REF_MISMATCH",
+      "covers_negative_fixture": "a package_id that does not match the requested package_ref",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000009-9999-9999-9999-999999999999",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_REF_FIELD_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "MEP_REF_FIELD_NOT_URN",
+      "covers_negative_fixture": "a single-value ref field that is not an omos URN",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_CANDIDATE_REF_NOT_CANDIDATE",
+      "expected": "deny",
+      "expected_failure_code": "MEP_CANDIDATE_REF_NOT_CANDIDATE",
+      "covers_negative_fixture": "a candidate_ref that is not a PersonalMemoryCandidate identity",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:record:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_REF_LIST_EMPTY",
+      "expected": "deny",
+      "expected_failure_code": "MEP_REF_LIST_NOT_URN_ARRAY",
+      "covers_negative_fixture": "a ref list field that is not a non-empty array of omos URNs",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_UNKNOWN_SCOPE_MODE",
+      "expected": "deny",
+      "expected_failure_code": "MEP_UNKNOWN_SCOPE_MODE",
+      "covers_negative_fixture": "a scope_mode not declared in ownership_visibility_contract.mode_definitions",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "PUBLIC_EVERYTHING",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_OWNERSHIP_MODE_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "MEP_OWNERSHIP_MODE_MISMATCH",
+      "covers_negative_fixture": "an ownership_mode that disagrees with the upstream mode definition",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "COMPANY_MANAGED_EMPLOYEE_CONTEXT",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_VISIBILITY_SCOPE_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "MEP_VISIBILITY_SCOPE_MISMATCH",
+      "covers_negative_fixture": "a visibility_scope that disagrees with the upstream mode definition",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "EMPLOYEE_AND_POLICY_SYSTEM",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_CONSENT_REQUIRED_BUT_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "MEP_CONSENT_REQUIRED_BUT_MISSING",
+      "covers_negative_fixture": "a consent-requiring scope_mode with no consent_ref",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": null,
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_TEXT_FIELD_BLANK",
+      "expected": "deny",
+      "expected_failure_code": "MEP_TEXT_FIELD_BLANK",
+      "covers_negative_fixture": "a text field that is blank or not a string",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "   ",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_NULLABLE_FIELD_NOT_STRING",
+      "expected": "deny",
+      "expected_failure_code": "MEP_NULLABLE_FIELD_NOT_STRING",
+      "covers_negative_fixture": "a nullable field present but not a string",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": {
+            "weekly_work_summary": "secret"
+          },
+          "organizational_value_reasons": [
+            "同一個 workaround 三個月內被四個同事各自重做過"
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    },
+    {
+      "case_id": "MEP_NEG_VALUE_REASONS_EMPTY",
+      "expected": "deny",
+      "expected_failure_code": "MEP_VALUE_REASONS_EMPTY",
+      "covers_negative_fixture": "organizational_value_reasons that is not a non-empty array of non-blank strings",
+      "run": {
+        "access_request": {
+          "request_kind": "PACKAGE_LOOKUP",
+          "package_ref": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444"
+        },
+        "package": {
+          "package_id": "urn:omos:personal-memory:evidence-package:00000001-1111-2222-3333-444444444444",
+          "tenant_id": "urn:omos:tenant:acme",
+          "employee_owner_ref": "urn:omos:employee:e-001",
+          "candidate_ref": "urn:omos:personal-memory:candidate:00000001-1111-2222-3333-444444444444",
+          "scope_mode": "EMPLOYEE_PRIVATE",
+          "ownership_mode": "EMPLOYEE_CONTROLLED",
+          "visibility_scope": "SELF_ONLY",
+          "sensitivity": "LOW",
+          "consent_ref": "urn:omos:consent:c-1",
+          "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
+          "content_hash": "sha256:aaaa1111bbbb2222",
+          "evidence_refs": [
+            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_anchor_refs": [
+            "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
+          ],
+          "provenance_chain_refs": [
+            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+          ],
+          "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
+          "redaction_ref": null,
+          "organizational_value_reasons": [
+            "   "
+          ],
+          "unresolved_question": null,
+          "suggested_expert": null,
+          "submitted_at": "2026-09-18T15:00:00Z"
+        }
+      }
+    }
+  ]
+}

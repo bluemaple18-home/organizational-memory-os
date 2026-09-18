@@ -26,6 +26,7 @@ SLICE_VALIDATORS = %w[
   validate_organizational_value_assessment_contract
   validate_personal_store_portability_contract
   validate_weekly_review_cycle_contract
+  validate_minimal_evidence_package_contract
 ].freeze
 
 any_failure = false
