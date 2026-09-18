@@ -5,7 +5,7 @@
 ```
 base            faf6822
 repair-01       7879330（delivery fd1278b）
-repair_commit   （本次 commit，待 push 後補上）
+repair_commit   8ed905a
 ```
 
 ## Reviewer NO_GO（2026-09-18，對 `7879330` / delivery `fd1278b`）
