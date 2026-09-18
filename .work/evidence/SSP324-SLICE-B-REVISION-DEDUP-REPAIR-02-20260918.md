@@ -5,7 +5,7 @@
 ```
 base            72ac78d
 repair-01       15074ce（delivery f250451）
-repair_commit   （本次 commit，待 push 後補上）
+repair_commit   5db98e0
 ```
 
 ## Reviewer NO_GO（對 `f250451`）
