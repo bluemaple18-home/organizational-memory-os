@@ -4,7 +4,7 @@
 
 ```
 base    b1885e7
-review  （本次 commit，待 push 後補上）
+review  8385b06
 branch  cc/ssp323-personal-store-portability
 ```
 
