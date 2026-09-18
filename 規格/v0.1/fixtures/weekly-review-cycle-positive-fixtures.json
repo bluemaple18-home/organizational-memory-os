@@ -1,0 +1,111 @@
+{
+  "contract": "weekly_review_cycle",
+  "cases": [
+    {
+      "case_id": "WRC_POS_SIMPLE_COMPLETE",
+      "expected": "allow",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-001:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-001:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [
+              "urn:omos:personal-memory:candidate:1",
+              "urn:omos:personal-memory:candidate:2"
+            ],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": { "category": "UNCHANGED" },
+              "urn:omos:personal-memory:candidate:2": {
+                "category": "NEEDS_ORG_FOLLOWUP",
+                "record_ref": null,
+                "promotion_ref": null
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_POS_FAILED_THEN_CATCH_UP_COMPLETE",
+      "expected": "allow",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-002:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-002:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T13:05:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "FAILED",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": [],
+            "item_dispositions": {}
+          },
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-002:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-21T09:00:00Z",
+            "attempt_kind": "CATCH_UP",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": true,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:3"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:3": { "category": "MATERIALLY_CHANGED" }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_POS_RETRY_SAME_IDEMPOTENCY_KEY",
+      "expected": "allow",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-003:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-003:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T13:20:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "FAILED",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:4"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:4": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-1",
+                "promotion_idempotency_key": "urn:omos:idempotency:acme:e-003:2026-W38:candidate-4"
+              }
+            }
+          },
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-003:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T14:00:00Z",
+            "attempt_kind": "RETRY",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:4"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:4": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-1",
+                "promotion_idempotency_key": "urn:omos:idempotency:acme:e-003:2026-W38:candidate-4"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
