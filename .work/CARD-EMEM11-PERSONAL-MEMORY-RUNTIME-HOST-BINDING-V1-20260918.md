@@ -232,6 +232,72 @@ v1 由 SessionStart / explicit command 檢查：
 
 ---
 
+## Design Freeze（Slice 1 開工前置條件，Owner 已裁決 2026-09-18）
+
+以下六點為 Owner 對 CC 評估的逐點裁決，**全部是 EMEM-11 本身的施工約束，
+不是新 capability，不另開卡**。Slice 1 開工前須全部成立。
+
+### A｜Local MCP 只服務本機已綁定的 Host（P0 邊界）
+
+EMEM-11 的 local MCP 必須明寫成「只服務本機已綁定 HostSessionBinding 的
+Personal Host」。`stdio` 本身沒有網路 listener，這正好適合作為 v1 的 hard
+boundary。**不得因 support／doctor／debug 加 HTTP tunnel、remote query 或
+company-side forwarding**，否則會直接繞過 SSP-324 的 reverse-access 禁令。
+這一條必須有負例。
+
+### B｜`supported_hosts_v1 ⊂ runtime_policy.optional_executors`
+
+`optional_executors` 是 core contract 的「可當 executor 的 vocabulary」，
+v1 supported hosts 是 delivery scope，兩者不同層。正式寫成子集關係，
+**不修改既有六個 executor**，因此不重開 SSP-323 切片 3。
+
+### C｜HostSessionBinding 不得另造第二套 provenance vocabulary
+
+`HostSessionBinding.host` / `host_session_id` 的正式 mapping 直接是既有的
+`executor_ref` / `executor_session_ref`。HostSessionBinding 可以額外保存
+`cwd` / `project_ref` / `effective_scope`，但 **executor identity 必須引用
+既有欄位**。這正是先前 review 已抓過的「第二份語意清單」問題。
+
+### D｜SQLite constraint 是 enforcement，不是 authority
+
+`review_period_id`、terminal closeout 唯一性、promotion idempotency 都要
+**從 `weekly_review_cycle` contract derive**。不得在 DB migration 裡另寫
+一套「一週唯一」語意。資料庫只能 enforce 已存在的 identity / uniqueness。
+
+### E｜Owner 對 `FORBIDDEN_BY_DEFAULT` 的授權範圍（限定寫法）
+
+不是「Owner 允許跨過所有 `FORBIDDEN_BY_DEFAULT`」，而是：
+
+> Owner 對 EMEM-11 這個 bounded capability 明確授權新增一個 **local
+> embedded store、deterministic runtime writer、local host binding**；
+> 權限僅限 Personal scope，**不取得 Company Canonical / Promotion /
+> Acceptance authority**。
+
+這樣 review 不會每輪重問，也不會變成未來別人拿來當總豁免。
+
+### F｜CLI 可無 Host 使用，但不得成為 DB bypass
+
+```text
+Codex / Claude → MCP ─┐
+                      ├→ same Personal Memory Runtime → SQLite
+CLI / doctor ─────────┘
+```
+
+CLI 可無 Host 使用（`doctor` / `inspect` / `export` / `weekly-review` /
+local maintenance），但**同樣走 Runtime 的 policy / transaction 層，不可
+direct SQL**。這樣 vendor 消失時 Personal Store 仍是可用產品，而不是寄生
+在 Codex / CC 上。
+
+### 總 invariant（一次釘死 A 與 F）
+
+```text
+HOST_BINDING_IS_AN_ADAPTER_NOT_THE_RUNTIME
+LOCAL_CLI_AND_HOST_MCP_SHARE_THE_SAME_RUNTIME_AUTHORITY
+NO_REMOTE_PERSONAL_STORE_ACCESS_SURFACE
+```
+
+---
+
 ## Slice 1｜Local Personal Store Runtime
 
 ### Scope
