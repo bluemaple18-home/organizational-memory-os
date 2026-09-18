@@ -5,8 +5,7 @@
 ```
 base             f38e82c
 original_review  80bce4c
-repair_commit    （本次 commit，程式碼修法本身）
-delivery         （branch HEAD，含本 handoff／evidence 文件；push 後補上）
+repair_commit    71124da   （程式碼修法本身）
 branch           cc/ssp323-org-value-assessment
 ```
 

@@ -5,7 +5,7 @@
 ```
 base            f38e82c
 original_review 80bce4c
-repair_commit   （本次 commit，待 push 後補上）
+repair_commit   71124da
 ```
 
 ## Reviewer NO_GO（2026-09-18，對 `80bce4c`）
