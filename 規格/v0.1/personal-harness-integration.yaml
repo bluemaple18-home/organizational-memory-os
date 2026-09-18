@@ -1543,6 +1543,67 @@ minimal_evidence_package:
     place that defines it, and means a future mode that becomes
     consent-requiring is covered without touching this contract.
 
+evidence_package_revision:
+  slice_of: SSP-324（EMEM-10）切片 B
+  purpose: >-
+    Immutable submission / revision semantics and the dedup-resend rule for
+    Minimal Evidence Packages. The validation unit is the submission CHAIN
+    for one candidate, not a single package: "不得每週因同一知識再次發生就
+    往公司重送 duplicate package" and "previous package 必須可追溯" are only
+    visible across submissions -- the same lesson weekly_review_cycle
+    learned about closeout histories.
+  binds_to:
+    - historical_comparison.categories / .dispositions（dedup／resend 規則
+      的唯一權威。SSP-324 卡片那張表逐條就是這裡的 dispositions，本區塊
+      一個字都不抄，評估當下從上游讀）
+    - correction_flow.contract.correction_kinds（revision 走既有
+      correction／supersession，不建立第二套 revision lifecycle）
+    - minimal_evidence_package（切片 A 的封閉封包。本片不重驗封包內部形狀，
+      只驗鏈關係——見 layering_boundary）
+  layering_boundary: >-
+    Slice A owns package-internal shape (its package_required_fields is a
+    closed allowlist); slice B owns the relationships BETWEEN packages.
+    B therefore wraps A's package in an envelope rather than adding fields
+    to it -- adding revision fields into the package would have forced
+    reopening an accepted closed shape. B still value-shape-locks the three
+    package fields it actually reads (package_id / candidate_ref /
+    content_hash) instead of trusting them, but it does not re-implement
+    A's validation: both validators run under the same aggregator, so any
+    package that is transmitted has passed A.
+  submission_allowed_fields:
+    - submission_id
+    - supersedes_package_ref
+    - comparison_category
+    - disposition
+    - correction_proposal_ref
+    - correction_kind
+    - package
+  non_transmittable_dispositions:
+    - NO_RESEND
+    - LOCAL_RECURRENCE_ONLY
+  non_transmittable_rule: >-
+    This is the one genuinely NEW decision in this block, so it is declared
+    here rather than read from upstream -- but each listed value must exist
+    in historical_comparison.dispositions, asserted at evaluation time, so
+    it cannot drift away from the vocabulary it selects from. A comparison
+    whose disposition is one of these authorizes no company-bound
+    submission at all: UNCHANGED means no resend, and NEW_EVIDENCE without
+    material effect stays local recurrence history. A submission carrying
+    such a disposition is itself the contradiction -- it was sent.
+  correction_required_dispositions:
+    - CORRECTION_SUPERSESSION_PROPOSAL
+    - CORRECTION_CONFLICT_PROPOSAL
+  chain_rules: >-
+    The first submission supersedes nothing and must be the UNSEEN /
+    INITIAL_SUBMISSION case; every later submission must name a
+    predecessor that already appears earlier in the same chain, so the
+    history stays traceable. package_id must be unique across the chain and
+    no two submissions may name the same predecessor: a duplicate id or a
+    forked chain is an in-place overwrite wearing a resubmission costume,
+    which correction_flow already forbids as in_place_record_overwrite. A
+    revision must also change content_hash -- identical content is by
+    definition the UNCHANGED case, which is non-transmittable.
+
 personal_memory_governance:
   required_dimensions:
     - source support

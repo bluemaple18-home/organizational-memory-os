@@ -1,0 +1,611 @@
+{
+  "contract": "evidence_package_revision",
+  "cases": [
+    {
+      "case_id": "PKGREV_NEG_CANDIDATE_REF_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_CANDIDATE_REF_NOT_URN",
+      "covers_negative_fixture": "a candidate_ref that is not an omos URN",
+      "run": {
+        "candidate_ref": "cand-1",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_SUBMISSIONS_EMPTY",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_SUBMISSIONS_NOT_ARRAY",
+      "covers_negative_fixture": "submissions that is not a non-empty array",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": []
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_SUBMISSION_NOT_MAP",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_SUBMISSION_NOT_MAP",
+      "covers_negative_fixture": "a submission that is not a map",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          "oops"
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_SUBMISSION_UNKNOWN_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_SUBMISSION_UNKNOWN_FIELD",
+      "covers_negative_fixture": "a submission carrying a field outside the allowlist",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            },
+            "private_blob": "FULL_STORE"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_SUBMISSION_ID_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_SUBMISSION_ID_NOT_URN",
+      "covers_negative_fixture": "a submission_id that is not an omos URN",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "sub-1",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_PACKAGE_NOT_MAP",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_PACKAGE_NOT_MAP",
+      "covers_negative_fixture": "a package that is not a map",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": "whole-store"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_PACKAGE_ID_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_PACKAGE_ID_NOT_URN",
+      "covers_negative_fixture": "a package_id that is not an omos URN",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "pkg-1",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_CONTENT_HASH_NOT_SHA256",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_CONTENT_HASH_NOT_SHA256",
+      "covers_negative_fixture": "a content_hash that is not a sha256 serialization",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "not-a-hash"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_PACKAGE_CANDIDATE_REF_MISMATCH",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_PACKAGE_CANDIDATE_REF_MISMATCH",
+      "covers_negative_fixture": "a package whose candidate_ref disagrees with the chain",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def0123456ff",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_UNKNOWN_CATEGORY",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_UNKNOWN_CATEGORY",
+      "covers_negative_fixture": "a comparison_category not declared in historical_comparison.categories",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "PROBABLY_FINE",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_DISPOSITION_NOT_DECLARED",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_DISPOSITION_NOT_DECLARED_FOR_CATEGORY",
+      "covers_negative_fixture": "a disposition that is not the one upstream declares for the category",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_RESEND_UNCHANGED",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_RESEND_DESPITE_NON_TRANSMITTABLE",
+      "covers_negative_fixture": "a submission whose disposition authorizes no transmission",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "UNCHANGED",
+            "disposition": "NO_RESEND",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_RESEND_LOCAL_RECURRENCE",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_RESEND_DESPITE_NON_TRANSMITTABLE",
+      "covers_negative_fixture": "a submission whose disposition authorizes no transmission",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "NEW_EVIDENCE",
+            "disposition": "LOCAL_RECURRENCE_ONLY",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_FIRST_SUPERSEDES",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_FIRST_SUBMISSION_SUPERSEDES",
+      "covers_negative_fixture": "a first submission that supersedes something",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345609",
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_FIRST_NOT_INITIAL",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_FIRST_SUBMISSION_NOT_INITIAL",
+      "covers_negative_fixture": "a first submission that is not the UNSEEN/INITIAL_SUBMISSION case",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "NEW_EVIDENCE",
+            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_LATER_WITHOUT_PREDECESSOR",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_LATER_SUBMISSION_WITHOUT_PREDECESSOR",
+      "covers_negative_fixture": "a later submission that supersedes nothing",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": null,
+            "comparison_category": "NEW_EVIDENCE",
+            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_PREDECESSOR_NOT_IN_CHAIN",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_PREDECESSOR_NOT_IN_CHAIN",
+      "covers_negative_fixture": "a predecessor that does not appear earlier in the chain",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345609",
+            "comparison_category": "NEW_EVIDENCE",
+            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_DUPLICATE_PACKAGE_ID",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_DUPLICATE_PACKAGE_ID",
+      "covers_negative_fixture": "a duplicate package_id within the chain",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "NEW_EVIDENCE",
+            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_CHAIN_FORK",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_CHAIN_FORK",
+      "covers_negative_fixture": "two submissions naming the same predecessor",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "NEW_EVIDENCE",
+            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345703",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "NEW_EVIDENCE",
+            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345603",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:24468b32c01f888cc2d1c0dbc3531a7b871a5442404762c1ad4ca33ac35ba75e"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_CONTENT_HASH_UNCHANGED",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_CONTENT_HASH_UNCHANGED",
+      "covers_negative_fixture": "a revision whose content_hash is unchanged from its predecessor",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "NEW_EVIDENCE",
+            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_CORRECTION_REF_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_CORRECTION_REF_MISSING",
+      "covers_negative_fixture": "a correction disposition with no correction_proposal_ref",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "MATERIALLY_CHANGED",
+            "disposition": "CORRECTION_SUPERSESSION_PROPOSAL",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_UNKNOWN_CORRECTION_KIND",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_UNKNOWN_CORRECTION_KIND",
+      "covers_negative_fixture": "a correction_kind not declared in correction_flow",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "MATERIALLY_CHANGED",
+            "disposition": "CORRECTION_SUPERSESSION_PROPOSAL",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+            },
+            "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
+            "correction_kind": "REWRITE"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_CORRECTION_FIELDS_NOT_APPLICABLE",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_CORRECTION_FIELDS_NOT_APPLICABLE",
+      "covers_negative_fixture": "a non-correction disposition carrying correction fields",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "NEW_EVIDENCE",
+            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+            },
+            "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
+            "correction_kind": "AMEND"
+          }
+        ]
+      }
+    }
+  ]
+}
