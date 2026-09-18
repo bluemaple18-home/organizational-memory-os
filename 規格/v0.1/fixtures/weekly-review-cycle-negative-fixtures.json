@@ -303,6 +303,136 @@
       }
     },
     {
+      "case_id": "WRC_NEG_RECORD_REF_HASH_PAYLOAD",
+      "expected": "deny",
+      "expected_failure_code": "WRC_RECORD_REF_NOT_RECORD",
+      "covers_negative_fixture": "a record_ref that is not a PersonalMemoryRecord identity string",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-025:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-025:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "UNCHANGED",
+                "record_ref": {
+                  "candidate_status": "ACCEPTED_FOR_RECORD",
+                  "weekly_work_summary": "secret"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_RECORD_REF_NOT_URN_STRING",
+      "expected": "deny",
+      "expected_failure_code": "WRC_RECORD_REF_NOT_RECORD",
+      "covers_negative_fixture": "a record_ref that is not a PersonalMemoryRecord identity string",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-026:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-026:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "UNCHANGED",
+                "record_ref": "not-a-record-ref"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_PROMOTION_REF_HASH_PAYLOAD",
+      "expected": "deny",
+      "expected_failure_code": "WRC_PROMOTION_REF_NOT_URN",
+      "covers_negative_fixture": "a promotion_ref that is not an omos URN",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-027:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-027:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T13:20:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "FAILED",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": { "weekly_work_summary": "secret" },
+                "promotion_idempotency_key": "key-A"
+              }
+            }
+          },
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-027:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T14:00:00Z",
+            "attempt_kind": "RETRY",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": { "weekly_work_summary": "secret" },
+                "promotion_idempotency_key": "key-A"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "WRC_NEG_PROMOTION_IDEMPOTENCY_KEY_HASH_PAYLOAD",
+      "expected": "deny",
+      "expected_failure_code": "WRC_PROMOTION_IDEMPOTENCY_KEY_NOT_STRING",
+      "covers_negative_fixture": "a promotion_idempotency_key that is present but not a non-blank string",
+      "run": {
+        "review_period_id": "urn:omos:personal-memory:review-period:acme:e-028:2026-W38",
+        "closeouts": [
+          {
+            "review_period_id": "urn:omos:personal-memory:review-period:acme:e-028:2026-W38",
+            "scheduled_review_period_start": "2026-09-18",
+            "scheduled_anchor_at": "2026-09-18T13:00:00Z",
+            "actual_closeout_at": "2026-09-18T15:00:00Z",
+            "attempt_kind": "SCHEDULED",
+            "final_status": "COMPLETE",
+            "catch_up_deadline_passed": false,
+            "selected_item_refs": ["urn:omos:personal-memory:candidate:1"],
+            "item_dispositions": {
+              "urn:omos:personal-memory:candidate:1": {
+                "category": "NEW_EVIDENCE",
+                "promotion_ref": "urn:omos:personal-memory:promotion:p-1",
+                "promotion_idempotency_key": { "weekly_work_summary": "secret" }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
       "case_id": "WRC_NEG_PROMOTION_REF_WITHOUT_KEY",
       "expected": "deny",
       "expected_failure_code": "WRC_PROMOTION_REF_WITHOUT_IDEMPOTENCY_KEY",

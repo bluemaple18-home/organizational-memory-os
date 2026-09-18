@@ -55,6 +55,9 @@ EXPECTED_NEGATIVE_LABELS = [
   "an item_dispositions entry that is not a map",
   "an item_dispositions entry carrying a field outside the allowlist",
   "an item_dispositions entry naming an unrecognised category",
+  "a record_ref that is not a PersonalMemoryRecord identity string",
+  "a promotion_ref that is not an omos URN",
+  "a promotion_idempotency_key that is present but not a non-blank string",
   "a NEEDS_ORG_FOLLOWUP entry carrying record_ref or promotion_ref",
   "a promotion_ref present without a promotion_idempotency_key",
   "more than one terminal-status closeout in the history",
@@ -87,7 +90,7 @@ end
 
 # --- 結構驗證（fail-closed）------------------------------------------------
 
-def weekly_review_cycle_failure(run, categories, candidate_ref_prefix)
+def weekly_review_cycle_failure(run, categories, candidate_ref_prefix, record_ref_prefix)
   review_period_id = run["review_period_id"]
   return "WRC_REVIEW_PERIOD_ID_NOT_URN" unless urn?(review_period_id)
 
@@ -150,6 +153,18 @@ def weekly_review_cycle_failure(run, categories, candidate_ref_prefix)
       promotion_ref = disposition["promotion_ref"]
       promotion_key = disposition["promotion_idempotency_key"]
 
+      # repair-02：allowlist 只鎖住了 disposition 的欄位「名稱」，沒有鎖
+      # 這些欄位的「值形狀」——reviewer 證明 record_ref／promotion_ref 可以
+      # 塞一整個 Hash（例如再夾帶一次 weekly_work_summary），繞過上一輪
+      # 才剛關掉的同一種 bypass。record_ref 綁既有 PersonalMemoryRecord
+      # 的 id_template（跟 F-01 綁 Candidate 同樣的做法）；promotion_ref
+      # 沒有對應的上游 id_template 可綁，退而求其次要求它至少是合法的
+      # omos URN；promotion_idempotency_key 沒有格式約定，至少要求非空
+      # 字串——三者都不接受 Hash／Array 等任意 payload。
+      return "WRC_RECORD_REF_NOT_RECORD" if record_ref && !(record_ref.is_a?(String) && record_ref.start_with?(record_ref_prefix))
+      return "WRC_PROMOTION_REF_NOT_URN" if promotion_ref && !urn?(promotion_ref)
+      return "WRC_PROMOTION_IDEMPOTENCY_KEY_NOT_STRING" if promotion_key && blank?(promotion_key)
+
       return "WRC_NEEDS_FOLLOWUP_WITH_RECORD_OR_PROMOTION_REF" if category == "NEEDS_ORG_FOLLOWUP" && (record_ref || promotion_ref)
 
       # repair-01 F-02：promotion_ref 出現時，promotion_idempotency_key
@@ -210,6 +225,13 @@ assert(candidate_id_template.is_a?(String) && candidate_id_template.include?("{"
        "personal_memory_resource_contracts...id_templates.PersonalMemoryCandidate 必須存在（本片綁定它，不重述）", failures)
 candidate_ref_prefix = candidate_id_template.to_s.split("{").first
 
+# repair-02：record_ref 同樣綁既有 id_template，不自建規則。
+record_id_template = spec.dig("personal_memory_resource_contracts", "shared_constraints", "id_templates",
+                               "PersonalMemoryRecord")
+assert(record_id_template.is_a?(String) && record_id_template.include?("{"),
+       "personal_memory_resource_contracts...id_templates.PersonalMemoryRecord 必須存在（本片綁定它，不重述）", failures)
+record_ref_prefix = record_id_template.to_s.split("{").first
+
 # --- fixtures -------------------------------------------------------------
 
 positive_fixtures = read_json(POSITIVE_FIXTURE_PATH)
@@ -220,7 +242,7 @@ positive_fixtures.fetch("cases").each do |test_case|
   run = test_case.fetch("run")
   assert(test_case.fetch("expected") == "allow", "#{case_id} 正例必須預期 allow", failures)
 
-  actual_failure = weekly_review_cycle_failure(run, disposition_categories, candidate_ref_prefix)
+  actual_failure = weekly_review_cycle_failure(run, disposition_categories, candidate_ref_prefix, record_ref_prefix)
   assert(actual_failure.nil?, "#{case_id} 預期 allow，實際被拒：#{actual_failure}", failures)
 end
 
@@ -231,7 +253,7 @@ negative_cases.each do |test_case|
   assert(test_case.fetch("expected") == "deny", "#{case_id} 負例必須預期 deny", failures)
   expected_code = test_case.fetch("expected_failure_code")
 
-  actual = weekly_review_cycle_failure(run, disposition_categories, candidate_ref_prefix)
+  actual = weekly_review_cycle_failure(run, disposition_categories, candidate_ref_prefix, record_ref_prefix)
   assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
   assert(actual == expected_code, "#{case_id} 預期 #{expected_code}，實際 #{actual.inspect}", failures)
 end
@@ -257,6 +279,9 @@ ERROR_CONTRACT = {
   "WRC_ITEM_DISPOSITION_NOT_MAP" => "weekly_review_cycle.error.item_disposition_not_map",
   "WRC_ITEM_DISPOSITION_UNKNOWN_FIELD" => "weekly_review_cycle.error.item_disposition_unknown_field",
   "WRC_UNKNOWN_DISPOSITION_CATEGORY" => "weekly_review_cycle.error.unknown_disposition_category",
+  "WRC_RECORD_REF_NOT_RECORD" => "weekly_review_cycle.error.record_ref_not_record",
+  "WRC_PROMOTION_REF_NOT_URN" => "weekly_review_cycle.error.promotion_ref_not_urn",
+  "WRC_PROMOTION_IDEMPOTENCY_KEY_NOT_STRING" => "weekly_review_cycle.error.promotion_idempotency_key_not_string",
   "WRC_NEEDS_FOLLOWUP_WITH_RECORD_OR_PROMOTION_REF" => "weekly_review_cycle.error.needs_followup_with_record_or_promotion_ref",
   "WRC_PROMOTION_REF_WITHOUT_IDEMPOTENCY_KEY" => "weekly_review_cycle.error.promotion_ref_without_idempotency_key",
   "WRC_PROMOTION_IDENTITY_DRIFT" => "weekly_review_cycle.error.promotion_identity_drift",
