@@ -2,7 +2,8 @@
 
 - 卡片：`.work/CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918.md`
 - 分支：`cc/emem11-local-store-runtime`
-- 交付 SHA：見下方「最終交付」
+- 交付 SHA：`6c257c0ce01957862e8755c8b1df58717b9830ba`
+  （此後若有 commit，僅為本 packet 自身的文字修訂，不動契約／validator／fixtures）
 - 基底：`ee11da5`（main，已含 Owner 裁決的 Design Freeze A～F）
 - worktree：`../知識庫-emem11a`
 
