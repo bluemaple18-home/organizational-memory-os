@@ -4,7 +4,7 @@
 
 ```
 base    9ac5de7
-review  （本次 commit，待 push 後補上）
+review  4b4298c
 branch  cc/ssp324-company-boundary
 ```
 
