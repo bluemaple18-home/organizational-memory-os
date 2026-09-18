@@ -217,6 +217,70 @@
       }
     },
     {
+      "case_id": "CSB_NEG_RETRIEVAL_SELECTED_BARE_STRINGS",
+      "expected": "deny",
+      "expected_failure_code": "CSB_RETRIEVAL_SELECTED_SHAPE_INVALID",
+      "covers_negative_fixture": "a retrieval pack whose selected_memories is not the recall entry shape",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "VERIFICATION_SUPPORT",
+        "retrieval_pack": {
+          "selected_memories": [
+            "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601"
+          ],
+          "source_refs": [
+            "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CSB_NEG_RETRIEVAL_SOURCE_REFS_OBJECTS",
+      "expected": "deny",
+      "expected_failure_code": "CSB_RETRIEVAL_SOURCE_REFS_SHAPE_INVALID",
+      "covers_negative_fixture": "a retrieval pack whose source_refs is not a list of refs",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "VERIFICATION_SUPPORT",
+        "retrieval_pack": {
+          "selected_memories": [
+            {
+              "memory_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "owner_ref": "urn:omos:employee:01922b3c-4d5e-7f01-8abc-def012345901",
+              "freshness": "FRESH"
+            }
+          ],
+          "source_refs": [
+            {
+              "ref": "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "CSB_NEG_RETRIEVAL_SELECTS_PACKAGE_BY_MEMORY_REF",
+      "expected": "deny",
+      "expected_failure_code": "CSB_RETRIEVAL_NAMES_HANDLED_PACKAGE",
+      "covers_negative_fixture": "a retrieval pack selecting the handled package by memory_ref",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "VERIFICATION_SUPPORT",
+        "retrieval_pack": {
+          "selected_memories": [
+            {
+              "memory_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+              "owner_ref": "urn:omos:employee:01922b3c-4d5e-7f01-8abc-def012345901",
+              "freshness": "FRESH"
+            }
+          ],
+          "source_refs": [
+            "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+          ]
+        }
+      }
+    },
+    {
       "case_id": "CSB_NEG_RETRIEVAL_NAMES_HANDLED_PACKAGE",
       "expected": "deny",
       "expected_failure_code": "CSB_RETRIEVAL_NAMES_HANDLED_PACKAGE",
@@ -226,7 +290,11 @@
         "purpose": "VERIFICATION_SUPPORT",
         "retrieval_pack": {
           "selected_memories": [
-            "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601"
+            {
+              "memory_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "owner_ref": "urn:omos:employee:01922b3c-4d5e-7f01-8abc-def012345901",
+              "freshness": "FRESH"
+            }
           ],
           "source_refs": [
             "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa"
@@ -244,9 +312,15 @@
         "purpose": "VERIFICATION_SUPPORT",
         "retrieval_pack": {
           "selected_memories": [
-            "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456bb"
+            {
+              "memory_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456bb",
+              "owner_ref": "urn:omos:employee:01922b3c-4d5e-7f01-8abc-def012345901",
+              "freshness": "FRESH"
+            }
           ],
-          "source_refs": []
+          "source_refs": [
+            "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+          ]
         }
       }
     },
@@ -286,6 +360,39 @@
         "needs_org_followup": {
           "unresolved_question": "x",
           "acceptance_status": "ACCEPTED"
+        }
+      }
+    },
+    {
+      "case_id": "CSB_NEG_FOLLOWUP_RECORD_AND_PROMOTION_REF",
+      "expected": "deny",
+      "expected_failure_code": "CSB_FOLLOWUP_UNKNOWN_FIELD",
+      "covers_negative_fixture": "a needs_org_followup carrying a field outside the allowlist",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "VERIFICATION_SUPPORT",
+        "needs_org_followup": {
+          "unresolved_question": "x",
+          "suggested_expert": null,
+          "record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+          "promotion_ref": "urn:omos:personal-memory:promotion-proposal:01922b3c-4d5e-7f01-8abc-def012345701"
+        }
+      }
+    },
+    {
+      "case_id": "CSB_NEG_FOLLOWUP_QUESTION_IS_OBJECT",
+      "expected": "deny",
+      "expected_failure_code": "CSB_FOLLOWUP_QUESTION_NOT_STRING",
+      "covers_negative_fixture": "a needs_org_followup unresolved_question that is not a non-blank string",
+      "run": {
+        "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
+        "purpose": "VERIFICATION_SUPPORT",
+        "needs_org_followup": {
+          "unresolved_question": {
+            "canonical_record_ref": "urn:omos:knowledge:k-1",
+            "acceptance_status": "ACCEPTED"
+          },
+          "suggested_expert": null
         }
       }
     },

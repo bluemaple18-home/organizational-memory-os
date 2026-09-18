@@ -1434,6 +1434,23 @@ minimal_evidence_package:
       is to be more than a sentence. A request naming a package_ref that
       is not the package actually being transmitted is also rejected, so a
       bounded lookup cannot be used to fetch something else.
+  package_identity:
+    id_template: "urn:omos:personal-memory:evidence-package:{uuidv7}"
+    rule: >-
+      slice C repair-01: package_id was previously accepted as any generic
+      omos URN, while slice C assumed every package could be recognised by
+      a fixed prefix. The two ranges did not match, so a package whose
+      package_id was a legal-but-differently-shaped omos URN passed slice
+      A yet was invisible to slice C's retrieval exclusion. The identity
+      spec now lives here, once, and both the admission check (slice A)
+      and the exclusion check (slice C) read it -- same template, same
+      {uuidv7} identity shape the rest of this contract already uses.
+
+      This deliberately NARROWS what slice A accepts for package_id. It is
+      a listed, limited change to an accepted slice, not a silent one:
+      slice A's and slice B's fixtures were re-verified against it, and a
+      negative case now proves a generic-but-non-template package_id is
+      rejected.
   package_required_fields:
     - package_id
     - tenant_id
@@ -1701,18 +1718,69 @@ company_side_evidence_boundary:
     mechanically: the package supports the review, it does not replace the
     steps. direct_copy_to_shared_canonical stays forbidden upstream and
     this contract adds no exception to it.
+
+    repair-01 boundary, stated plainly: promotion_flow.required_steps is
+    the authority on WHICH steps must exist, not evidence that this
+    particular promotion actually completed them. Comparing the submitted
+    list proves it is complete and in order; it does not prove
+    Verification, Review or the Single Writer ran. This layer cannot
+    observe that, and the correct response is to say so rather than to
+    invent a second ledger to pretend otherwise -- the execution facts
+    belong to those steps' own contracts and, ultimately, to SSP-295's
+    real-person pilot.
   retrieval_exclusion:
-    evidence_package_ref_prefix: "urn:omos:personal-memory:evidence-package:"
+    reads_pack_fields:
+      - selected_memories
+      - source_refs
+    selected_memory_entry_ref_field: memory_ref
     rule: >-
-      A formal retrieval pack must not reach an Evidence Package. The
-      evaluator checks the retrieval pack's selected_memories and
-      source_refs (field names read from
-      recall_context_pack.contract.pack_required_fields, not invented
-      here) contain neither the handled package_ref itself nor anything
-      carrying the evidence-package prefix. The prefix is declared here
-      because no upstream id_template defines it; it is bound instead by
-      asserting the handled package_ref itself matches it, so the
-      declaration cannot drift away from the packages actually in use.
+      A formal retrieval pack must not reach an Evidence Package.
+
+      repair-01: the first version read the right FIELD NAMES but the
+      wrong DATA SHAPE. recall_context_pack's evaluator reads
+      selected_memories as objects -- selected.map { |m| m["memory_ref"] }
+      -- while source_refs is a list of bare refs. This contract had
+      flattened both and compared elements directly, so a retrieval pack
+      in the real shape, selecting the handled package by memory_ref,
+      passed both recall's evaluator and this one. Matching a field name
+      is not integration; the container and element shape have to match
+      too.
+
+      The evaluator therefore locks the shape of what it consumes before
+      comparing: selected_memories must be a list of maps each carrying a
+      string memory_ref (that entry field name is read from
+      recall_context_pack.contract.permission_intersection_entry_fields,
+      the same vocabulary recall itself uses), and source_refs must be a
+      list of strings. Only then are the referenced identities compared.
+    scope_note: >-
+      Only these two fields are checked, deliberately.
+      permission_decision_covered_memory_refs is authorisation coverage,
+      not selected output -- sweeping every *_ref field together would
+      conflate "what was actually returned" with "what could have been
+      authorised". Those are different obligations and are not merged
+      here.
+    identity_source: >-
+      Which identities count as an Evidence Package is NOT decided here:
+      it is read from minimal_evidence_package.package_identity, the same
+      template slice A admits packages by. repair-01 removed the local
+      prefix this block used to declare, because A accepting a wider range
+      than C could recognise was exactly the gap.
+  followup_allowed_fields:
+    - unresolved_question
+    - suggested_expert
+  followup_shape_rule: >-
+    repair-01: the follow-up object was an open shape -- only three named
+    things were rejected on its top level. Two inputs got through: one
+    carrying a legal record_ref plus promotion_ref (which
+    weekly_review_cycle already forbids for NEEDS_ORG_FOLLOWUP, so this
+    contract was contradicting an accepted one), and one hiding a whole
+    canonical object inside unresolved_question, which was never
+    value-shape checked. Adding more banned names only waits for the next
+    rename or the next nesting, so the envelope is now a closed allowlist
+    with value shapes: unresolved_question must be a non-blank string and
+    suggested_expert a string or null. The explicit canonical and
+    lifecycle checks are kept ahead of the allowlist so those names still
+    fail with their own loud code.
   needs_org_followup_boundary: >-
     A follow-up carried into the Organizational Layer may name a
     suggested_expert or leave it null -- both legal, and null must not

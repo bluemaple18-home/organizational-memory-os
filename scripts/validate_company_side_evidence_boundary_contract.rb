@@ -53,16 +53,22 @@ EXPECTED_NEGATIVE_LABELS = [
   "a retrieval pack naming the handled package_ref",
   "a retrieval pack naming another evidence package",
   "a retrieval pack that is not a map",
+  "a retrieval pack whose selected_memories is not the recall entry shape",
+  "a retrieval pack whose source_refs is not a list of refs",
+  "a retrieval pack selecting the handled package by memory_ref",
   "a needs_org_followup that is not a map",
   "a needs_org_followup carrying canonical identity",
   "a needs_org_followup carrying a forbidden lifecycle field",
+  "a needs_org_followup carrying a field outside the allowlist",
+  "a needs_org_followup unresolved_question that is not a non-blank string",
   "a needs_org_followup suggested_expert that is present but not a string"
 ].freeze
 
 # --- 結構驗證（fail-closed）------------------------------------------------
 
 def company_handling_failure(run, allowed_purposes, forbidden_output_fields, required_promotion_steps,
-                             retrieval_ref_fields, package_prefix)
+                             retrieval_ref_fields, package_id_pattern, memory_ref_field,
+                             followup_allowed_fields)
   return "CSB_HANDLING_NOT_MAP" unless run.is_a?(Hash)
   # 禁用清單放在 allowlist 之前：那幾個名字要以自己的明確錯誤碼失敗，而不是
   # 被歸進泛用的 unknown field（切片 A 也是這個順序）。
@@ -70,8 +76,10 @@ def company_handling_failure(run, allowed_purposes, forbidden_output_fields, req
   return "CSB_HANDLING_UNKNOWN_FIELD" unless (run.keys - HANDLING_ALLOWED_FIELDS).empty?
 
   package_ref = run["package_ref"]
-  return "CSB_PACKAGE_REF_NOT_EVIDENCE_PACKAGE" unless MEPShape.urn?(package_ref) &&
-                                                       package_ref.start_with?(package_prefix)
+  # repair-01：封包身分讀 minimal_evidence_package.package_identity（切片 A
+  # 的准入用的是同一個 pattern），不再用本片自己宣告的前綴。
+  return "CSB_PACKAGE_REF_NOT_EVIDENCE_PACKAGE" unless package_ref.is_a?(String) &&
+                                                       package_id_pattern.match?(package_ref)
 
   purpose = run["purpose"]
   return "CSB_PURPOSE_NOT_ALLOWED" unless allowed_purposes.include?(purpose)
@@ -89,10 +97,20 @@ def company_handling_failure(run, allowed_purposes, forbidden_output_fields, req
   unless retrieval_pack.nil?
     return "CSB_RETRIEVAL_PACK_NOT_MAP" unless retrieval_pack.is_a?(Hash)
 
-    # 正式 retrieval 的欄位詞彙讀自 recall_context_pack，不是本片自創。
-    retrieval_refs = retrieval_ref_fields.flat_map { |field| retrieval_pack[field] || [] }
+    # repair-01：先鎖所消費欄位的容器與元素形狀，再比對引用。
+    # selected_memories 在既有 recall evaluator 裡是物件陣列（讀
+    # memory_ref），source_refs 才是裸 ref——之前把兩者拼起來直接比字串，
+    # 真正被選中的封包完全看不見。
+    selected = retrieval_pack["selected_memories"]
+    return "CSB_RETRIEVAL_SELECTED_SHAPE_INVALID" unless selected.is_a?(Array) &&
+                                                          selected.all? { |m| m.is_a?(Hash) && m[memory_ref_field].is_a?(String) }
+    source_refs = retrieval_pack["source_refs"]
+    return "CSB_RETRIEVAL_SOURCE_REFS_SHAPE_INVALID" unless source_refs.is_a?(Array) &&
+                                                             source_refs.all? { |r| r.is_a?(String) }
+
+    retrieval_refs = selected.map { |m| m[memory_ref_field] } + source_refs
     return "CSB_RETRIEVAL_NAMES_HANDLED_PACKAGE" if retrieval_refs.include?(package_ref)
-    return "CSB_RETRIEVAL_NAMES_EVIDENCE_PACKAGE" if retrieval_refs.any? { |r| r.is_a?(String) && r.start_with?(package_prefix) }
+    return "CSB_RETRIEVAL_NAMES_EVIDENCE_PACKAGE" if retrieval_refs.any? { |r| package_id_pattern.match?(r) }
   end
 
   followup = run["needs_org_followup"]
@@ -102,6 +120,12 @@ def company_handling_failure(run, allowed_purposes, forbidden_output_fields, req
     # 欄位——後者直接重用 historical_comparison 已封的禁列。
     return "CSB_FOLLOWUP_CARRIES_CANONICAL" if followup.key?("canonical_record_ref")
     return "CSB_FOLLOWUP_CARRIES_LIFECYCLE_FIELD" if HCD::FORBIDDEN_LIFECYCLE_FIELDS.any? { |f| followup.key?(f) }
+    # repair-01：封閉外殼。再多加幾個禁止名稱只是等下一個改名或巢狀反例——
+    # record_ref／promotion_ref（weekly_review_cycle 已對 NEEDS_ORG_FOLLOWUP
+    # 明文禁止）也由這條一併擋下。
+    return "CSB_FOLLOWUP_UNKNOWN_FIELD" unless (followup.keys - followup_allowed_fields).empty?
+    # 值形狀：欄位名合法、值裡再夾一個物件，是這條線出現過不只一次的手法。
+    return "CSB_FOLLOWUP_QUESTION_NOT_STRING" if MEPShape.blank?(followup["unresolved_question"])
 
     expert = followup["suggested_expert"]
     return "CSB_FOLLOWUP_SUGGESTED_EXPERT_NOT_STRING" unless expert.nil? || expert.is_a?(String)
@@ -152,15 +176,44 @@ retrieval_ref_fields.each do |field|
          "recall_context_pack 的 pack_required_fields 必須含 #{field}（本片檢查它，不自創欄位名）", failures)
 end
 
-package_prefix = csb.dig("retrieval_exclusion", "evidence_package_ref_prefix").to_s
-assert(!package_prefix.empty?, "retrieval_exclusion.evidence_package_ref_prefix 不得為空", failures)
+# repair-01：封包身分不再由本片宣告前綴，改用切片 A 准入時用的同一個
+# pattern（minimal_evidence_package.package_identity）。A 能接受的封包
+# 範圍與 C 能辨識的範圍因此一致。
+vocab = read_yaml(File.join(ROOT, "規格/v0.1/common-vocabulary.yaml"))
+std01 = read_json(File.join(ROOT, "規格/v0.1/raw-evidence-envelope.schema.json"))
+bindings, binding_problems = MEPShape.build_bindings(spec, vocab, std01)
+binding_problems.each { |problem| assert(false, problem, failures) }
+package_id_pattern = bindings[:package_id_pattern]
+assert(csb.dig("retrieval_exclusion", "identity_source").to_s.include?("package_identity"),
+       "retrieval_exclusion.identity_source 必須指回 minimal_evidence_package.package_identity", failures)
+assert(csb.dig("retrieval_exclusion", "evidence_package_ref_prefix").nil?,
+       "retrieval_exclusion 不得再自行宣告封包前綴（已改綁上游 package_identity）", failures)
+
+# repair-01：selected_memories 的元素欄位名讀自 recall 自己的詞彙，不自創。
+entry_fields = spec.dig("recall_context_pack", "contract", "permission_intersection_entry_fields") || []
+memory_ref_field = csb.dig("retrieval_exclusion", "selected_memory_entry_ref_field").to_s
+assert(entry_fields.include?(memory_ref_field),
+       "selected_memory_entry_ref_field 必須是 recall 宣告的 entry 欄位之一（#{entry_fields.inspect}）", failures)
+assert(sorted_set(csb.dig("retrieval_exclusion", "reads_pack_fields") || []) == sorted_set(retrieval_ref_fields),
+       "retrieval_exclusion.reads_pack_fields 必須與 evaluator 實際消費的欄位一致", failures)
+
+followup_allowed_fields = csb.fetch("followup_allowed_fields", [])
+assert(followup_allowed_fields.any?, "followup_allowed_fields 不得為空", failures)
+assert(!followup_allowed_fields.include?("canonical_record_ref") &&
+       (followup_allowed_fields & HCD::FORBIDDEN_LIFECYCLE_FIELDS).empty?,
+       "followup allowlist 不得包含 canonical／lifecycle 欄位", failures)
+%w[record_ref promotion_ref].each do |field|
+  assert(!followup_allowed_fields.include?(field),
+         "followup allowlist 不得包含 #{field}（weekly_review_cycle 對 NEEDS_ORG_FOLLOWUP 已明文禁止）", failures)
+end
 
 # --- fixtures -------------------------------------------------------------
 
 positive_fixtures = read_json(POSITIVE_FIXTURE_PATH)
 negative_fixtures = read_json(NEGATIVE_FIXTURE_PATH)
 EVAL_ARGS = [allowed_purposes, forbidden_output_fields, required_promotion_steps,
-             retrieval_ref_fields, package_prefix].freeze
+             retrieval_ref_fields, package_id_pattern, memory_ref_field,
+             followup_allowed_fields].freeze
 
 positive_fixtures.fetch("cases").each do |test_case|
   case_id = test_case.fetch("case_id")
@@ -169,9 +222,8 @@ positive_fixtures.fetch("cases").each do |test_case|
 
   actual = company_handling_failure(run, *EVAL_ARGS)
   assert(actual.nil?, "#{case_id} 預期 allow，實際被拒：#{actual}", failures)
-  # 宣告的 prefix 不得與實際使用的封包 identity 脫鉤。
-  assert(run["package_ref"].to_s.start_with?(package_prefix),
-         "#{case_id} 的 package_ref 必須符合宣告的 evidence_package_ref_prefix（宣告不得漂移）", failures)
+  # 封包身分與切片 A 同源，這裡不再需要另外一條「宣告不得漂移」的斷言
+  # ——漂移在定義上已不可能發生。
 end
 
 negative_cases = negative_fixtures.fetch("cases")
@@ -209,11 +261,15 @@ ERROR_CONTRACT = {
   "CSB_PROMOTION_REF_NOT_URN" => "company_side_evidence_boundary.error.promotion_ref_not_urn",
   "CSB_PROMOTION_STEPS_INCOMPLETE" => "company_side_evidence_boundary.error.promotion_steps_incomplete",
   "CSB_RETRIEVAL_PACK_NOT_MAP" => "company_side_evidence_boundary.error.retrieval_pack_not_map",
+  "CSB_RETRIEVAL_SELECTED_SHAPE_INVALID" => "company_side_evidence_boundary.error.retrieval_selected_shape_invalid",
+  "CSB_RETRIEVAL_SOURCE_REFS_SHAPE_INVALID" => "company_side_evidence_boundary.error.retrieval_source_refs_shape_invalid",
   "CSB_RETRIEVAL_NAMES_HANDLED_PACKAGE" => "company_side_evidence_boundary.error.retrieval_names_handled_package",
   "CSB_RETRIEVAL_NAMES_EVIDENCE_PACKAGE" => "company_side_evidence_boundary.error.retrieval_names_evidence_package",
   "CSB_FOLLOWUP_NOT_MAP" => "company_side_evidence_boundary.error.followup_not_map",
   "CSB_FOLLOWUP_CARRIES_CANONICAL" => "company_side_evidence_boundary.error.followup_carries_canonical",
   "CSB_FOLLOWUP_CARRIES_LIFECYCLE_FIELD" => "company_side_evidence_boundary.error.followup_carries_lifecycle_field",
+  "CSB_FOLLOWUP_UNKNOWN_FIELD" => "company_side_evidence_boundary.error.followup_unknown_field",
+  "CSB_FOLLOWUP_QUESTION_NOT_STRING" => "company_side_evidence_boundary.error.followup_question_not_string",
   "CSB_FOLLOWUP_SUGGESTED_EXPERT_NOT_STRING" => "company_side_evidence_boundary.error.followup_suggested_expert_not_string"
 }.freeze
 

@@ -61,14 +61,18 @@
       }
     },
     {
-      "case_id": "CSB_POS_RETRIEVAL_PACK_WITHOUT_PACKAGE",
+      "case_id": "CSB_POS_RETRIEVAL_PACK_REAL_SHAPE_WITHOUT_PACKAGE",
       "expected": "allow",
       "run": {
         "package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def0123456aa",
         "purpose": "VERIFICATION_SUPPORT",
         "retrieval_pack": {
           "selected_memories": [
-            "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601"
+            {
+              "memory_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "owner_ref": "urn:omos:employee:01922b3c-4d5e-7f01-8abc-def012345901",
+              "freshness": "FRESH"
+            }
           ],
           "source_refs": [
             "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
