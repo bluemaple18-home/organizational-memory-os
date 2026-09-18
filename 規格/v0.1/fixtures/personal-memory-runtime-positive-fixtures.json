@@ -1,0 +1,251 @@
+{
+  "cases": [
+    {
+      "case_id": "pmr-pos-01",
+      "note": "完整序列：兩段 migration、一次寫入、一次 idempotent replay、一次 revision、一次讀取、FAILED 後 RETRY 收尾、另一期 CATCH_UP 收尾",
+      "expected": "allow",
+      "run": {
+        "store": {
+          "engine": "SQLITE",
+          "journal_mode": "WAL",
+          "schema_version": "0.2.0"
+        },
+        "operations": [
+          {
+            "op_seq": 1,
+            "surface": "LOCAL_CLI",
+            "kind": "SCHEMA_MIGRATION",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "migration": {
+              "migration_id": "m-001",
+              "from_version": "0.0.0",
+              "to_version": "0.1.0",
+              "applied_at": "2026-09-18T09:00:00Z"
+            }
+          },
+          {
+            "op_seq": 2,
+            "surface": "LOCAL_STDIO_MCP",
+            "kind": "SCHEMA_MIGRATION",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "host_session_binding": {
+              "executor_ref": "Codex",
+              "executor_session_ref": "sess-01",
+              "cwd": "/Users/emp/proj",
+              "project_ref": "proj-omos",
+              "effective_scope": "EMPLOYEE_PRIVATE"
+            },
+            "migration": {
+              "migration_id": "m-002",
+              "from_version": "0.1.0",
+              "to_version": "0.2.0",
+              "applied_at": "2026-09-18T09:00:00Z"
+            }
+          },
+          {
+            "op_seq": 3,
+            "surface": "LOCAL_STDIO_MCP",
+            "kind": "STORE_WRITE",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "host_session_binding": {
+              "executor_ref": "Codex",
+              "executor_session_ref": "sess-01",
+              "cwd": "/Users/emp/proj",
+              "project_ref": "proj-omos",
+              "effective_scope": "EMPLOYEE_PRIVATE"
+            },
+            "row": {
+              "kind": "PersonalMemoryRecord",
+              "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+              "idempotency_key": "k-1"
+            }
+          },
+          {
+            "op_seq": 4,
+            "surface": "LOCAL_CLI",
+            "kind": "STORE_WRITE",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "row": {
+              "kind": "PersonalMemoryRecord",
+              "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+              "idempotency_key": "k-1"
+            }
+          },
+          {
+            "op_seq": 5,
+            "surface": "LOCAL_STDIO_MCP",
+            "kind": "STORE_WRITE",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "host_session_binding": {
+              "executor_ref": "Claude Code",
+              "executor_session_ref": "sess-02",
+              "cwd": "/Users/emp/proj",
+              "project_ref": "proj-omos",
+              "effective_scope": "EMPLOYEE_PRIVATE"
+            },
+            "row": {
+              "kind": "PersonalMemoryRecord",
+              "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002",
+              "idempotency_key": "k-2",
+              "supersedes_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001"
+            }
+          },
+          {
+            "op_seq": 6,
+            "surface": "LOCAL_CLI",
+            "kind": "STORE_READ",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "STORE_READ"
+            ]
+          },
+          {
+            "op_seq": 7,
+            "surface": "LOCAL_STDIO_MCP",
+            "kind": "CLOSEOUT_COMMIT",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "host_session_binding": {
+              "executor_ref": "Codex",
+              "executor_session_ref": "sess-01",
+              "cwd": "/Users/emp/proj",
+              "project_ref": "proj-omos",
+              "effective_scope": "EMPLOYEE_PRIVATE"
+            },
+            "closeout": {
+              "review_period_id": "rp-2026-W38",
+              "final_status": "FAILED",
+              "attempt_kind": "SCHEDULED"
+            }
+          },
+          {
+            "op_seq": 8,
+            "surface": "LOCAL_STDIO_MCP",
+            "kind": "CLOSEOUT_COMMIT",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "host_session_binding": {
+              "executor_ref": "Codex",
+              "executor_session_ref": "sess-01",
+              "cwd": "/Users/emp/proj",
+              "project_ref": "proj-omos",
+              "effective_scope": "EMPLOYEE_PRIVATE"
+            },
+            "closeout": {
+              "review_period_id": "rp-2026-W38",
+              "final_status": "COMPLETE",
+              "attempt_kind": "RETRY"
+            }
+          },
+          {
+            "op_seq": 9,
+            "surface": "LOCAL_CLI",
+            "kind": "CLOSEOUT_COMMIT",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "closeout": {
+              "review_period_id": "rp-2026-W37",
+              "final_status": "NO_PROMOTION",
+              "attempt_kind": "CATCH_UP"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "pmr-pos-02",
+      "note": "最小序列：單段 migration 後一次讀取",
+      "expected": "allow",
+      "run": {
+        "store": {
+          "engine": "SQLITE",
+          "journal_mode": "WAL",
+          "schema_version": "0.1.0"
+        },
+        "operations": [
+          {
+            "op_seq": 1,
+            "surface": "LOCAL_CLI",
+            "kind": "SCHEMA_MIGRATION",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "migration": {
+              "migration_id": "m-001",
+              "from_version": "0.0.0",
+              "to_version": "0.1.0",
+              "applied_at": "2026-09-18T09:00:00Z"
+            }
+          },
+          {
+            "op_seq": 2,
+            "surface": "LOCAL_CLI",
+            "kind": "STORE_READ",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "STORE_READ"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

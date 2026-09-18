@@ -2040,6 +2040,144 @@ runtime_policy:
     - minimal_evidence_package
     - weekly_closeout_receipt
 
+personal_memory_runtime:
+  slice_of: EMEM-11 切片 1｜Local Personal Store Runtime
+  purpose: >-
+    The Personal store is a local, embedded SQLite runtime. This block is the
+    machine-checkable contract that runtime must satisfy: what may reach the
+    store (surfaces), who may be recorded as reaching it (host binding), how a
+    write is allowed to land (policy check -> transaction -> store), and which
+    uniqueness/immutability guarantees the schema is obliged to enforce. It is
+    deliberately NOT a second authority: every vocabulary it checks against is
+    read from an existing block at evaluation time.
+  owner_authorization: >-
+    Owner authorization for this capability is bounded to: a local embedded
+    personal store, a deterministic runtime writer, local host binding, and
+    Personal scope only. It grants no Company Canonical authority, no Promotion
+    authority, and no Acceptance authority.
+  invariants:
+    - HOST_BINDING_IS_AN_ADAPTER_NOT_THE_RUNTIME
+    - LOCAL_CLI_AND_HOST_MCP_SHARE_THE_SAME_RUNTIME_AUTHORITY
+    - NO_REMOTE_PERSONAL_STORE_ACCESS_SURFACE
+  binds_to:
+    - runtime_policy.optional_executors（supported_hosts_v1 必須是它的子集；
+      本片不自建 executor 詞彙）
+    - runtime_policy.portable_record_contract.executor_provenance_fields
+      （HostSessionBinding 的身分欄位就是這兩欄，直接讀取，不另造
+      host / host_session_id 這類第二套身分）
+    - weekly_review_cycle.closeout_statuses / .terminal_statuses /
+      .attempt_kinds（closeout 唯一性是「從既有 cycle 契約推導出的
+      enforcement」，SQLite constraint 不是權威）
+    - personal_memory_resource_contracts.shared_constraints.id_templates
+      （落地列的 id 形狀，含 UUIDv7 version/variant nibble）
+    - correction_flow.contract.forbidden（in_place_record_overwrite /
+      history_erasure / receipt_mutation 在 runtime 層的落地）
+    - capability_safety_floor.invariants.permission_before_retrieval
+      （讀路徑的確定性權限檢查 seam）
+  store:
+    engine: SQLITE
+    journal_mode: WAL
+    schema_version_required: true
+    migration_receipt_required: true
+    genesis_version: "0.0.0"
+    schema_version_source: MIGRATION_CHAIN_TAIL
+    schema_version_source_note: >-
+      The store's declared schema_version is not an independent assertion --
+      it must equal the to_version of the last migration receipt in the log.
+      A store that claims a version no migration produced is rejected.
+  access_surfaces:
+    - LOCAL_STDIO_MCP
+    - LOCAL_CLI
+  forbidden_access_surfaces:
+    - HTTP_TUNNEL
+    - REMOTE_QUERY
+    - REMOTE_MOUNT
+    - COMPANY_SIDE_FORWARDING
+  access_surface_rule: >-
+    access_surfaces is a CLOSED enumeration, not a starting set. Both legal
+    surfaces are local and both must reach the store through the same runtime
+    authority; an MCP server is an adapter in front of that runtime, never a
+    second writer. Any surface outside the enumeration -- including anything in
+    forbidden_access_surfaces -- is rejected outright rather than downgraded.
+  supported_hosts_v1:
+    - Codex
+    - Claude Code
+  supported_hosts_rule: >-
+    supported_hosts_v1 must be a subset of runtime_policy.optional_executors.
+    Declaring a host this repository's executor vocabulary does not know is a
+    contract error, not a runtime feature.
+  host_session_binding:
+    executor_identity_fields_ref: runtime_policy.portable_record_contract.executor_provenance_fields
+    additional_fields:
+      - cwd
+      - project_ref
+      - effective_scope
+    forbidden_fields:
+      - host
+      - host_session_id
+      - session_id
+      - client_id
+      - agent_id
+      - remote_endpoint
+    shape_rule: >-
+      A HostSessionBinding is a CLOSED shape: exactly the fields named by
+      executor_identity_fields_ref, plus any of additional_fields. It carries no
+      second identity vocabulary -- binding to a host reuses the executor
+      identity the portable record contract already defines, so switching host
+      needs no identity migration.
+    presence_rule: >-
+      LOCAL_STDIO_MCP operations MUST carry a host_session_binding whose
+      executor_ref names a supported_hosts_v1 host. LOCAL_CLI operations MUST
+      NOT carry one: the CLI is usable without a Host, and a CLI operation that
+      claims a host session is fabricating provenance. Neither surface gets
+      extra authority from that difference.
+  write_path:
+    - RUNTIME_POLICY_CHECK
+    - RUNTIME_TRANSACTION
+    - STORE_WRITE
+  read_path:
+    - RUNTIME_POLICY_CHECK
+    - STORE_READ
+  path_rule: >-
+    Every operation declares the path it actually took, and it must equal the
+    declared path for its kind, in order. direct_sql is forbidden on every
+    surface: the CLI does not get a shortcut around the policy/transaction layer
+    just because no Host is involved. The RUNTIME_POLICY_CHECK step is the
+    deterministic permission seam required by
+    capability_safety_floor.invariants.permission_before_retrieval -- a read
+    that reaches the store before its policy check is rejected even if the check
+    later returns allow.
+  transaction_rule: >-
+    Every store write happens inside a runtime transaction and only a committed
+    transaction may produce a durable row. A write that reports an uncommitted
+    or rolled-back transaction yet still lists durable rows is a torn write.
+  idempotency_rule: >-
+    A replayed write carrying an idempotency_key already seen in this store must
+    resolve to the SAME row id. A second row id under the same key is a
+    duplicate, not a retry.
+  revision_rule: >-
+    Rows are immutable. A correction is a new revision row that names its
+    predecessor via supersedes_ref, and that predecessor must already exist in
+    this store. Writing to an existing row id without a new revision is
+    correction_flow's in_place_record_overwrite; deleting or rewriting a
+    superseded row is its history_erasure. Migration receipts are immutable for
+    the same reason (receipt_mutation): re-emitting a migration_id with
+    different content is rejected.
+  closeout_uniqueness:
+    derived_from: weekly_review_cycle
+    identity_field: review_period_id
+    status_vocabulary_ref: weekly_review_cycle.closeout_statuses
+    terminal_vocabulary_ref: weekly_review_cycle.terminal_statuses
+    attempt_vocabulary_ref: weekly_review_cycle.attempt_kinds
+    rule: >-
+      At most ONE terminal closeout may exist per review_period_id. This is
+      enforcement derived from weekly_review_cycle, not a new authority: the
+      terminal set, the legal status vocabulary and the legal attempt kinds are
+      all read from that block at evaluation time. A runtime that enumerates its
+      own copy of those vocabularies has replaced the cycle contract instead of
+      enforcing it, and retries (which are legal, and keep the same
+      review_period_id) must not be mistaken for a second closeout.
+
 phase_1_pilot:
   target: product_department
   first_sources:
