@@ -58,6 +58,8 @@ EXPECTED_NEGATIVE_LABELS = [
   "a comparison that does not pass the slice 1 historical comparison contract",
   "a comparison current_content_hash not bound to the submission package",
   "a comparison prior hash or prior record not bound to the chain",
+  "a comparison current_evidence_refs not bound to the submission package",
+  "a comparison prior_evidence_refs not bound to the predecessor package",
   "a submission whose disposition authorizes no transmission",
   "a first submission that supersedes something",
   "a first submission that is not the UNSEEN/INITIAL_SUBMISSION case",
@@ -86,6 +88,7 @@ def revision_chain_failure(run, dispositions, material_dimensions, correction_ki
   seen_submission_ids = Set.new
   claimed_predecessors = Set.new
   hash_by_package_id = {}
+  evidence_by_package_id = {}
 
   submissions.each_with_index do |submission, index|
     return "PKGREV_SUBMISSION_NOT_MAP" unless submission.is_a?(Hash)
@@ -114,6 +117,12 @@ def revision_chain_failure(run, dispositions, material_dimensions, correction_ki
 
     # primitives 必須描述這條鏈本身，否則只是把自報往上挪一層。
     return "PKGREV_COMPARISON_HASH_NOT_BOUND_TO_PACKAGE" unless comparison["current_content_hash"] == package["content_hash"]
+    # repair-03：has_new_evidence 是從 evidence_refs 集合差算出來的，所以
+    # 那兩個集合本身必須綁回鏈上的權威對照物，否則 caller 只要在
+    # comparison 裡塞一筆封包根本沒有的 evidence，就能把需要
+    # CORRECTION_SUPERSESSION_PROPOSAL 的路徑偽造成 EVIDENCE_UPDATE_REVISION，
+    # 連 correction metadata 都省掉。集合比對，不綁陣列順序。
+    return "PKGREV_COMPARISON_CURRENT_EVIDENCE_NOT_BOUND_TO_PACKAGE" unless (comparison["current_evidence_refs"] || []).to_set == (package["evidence_refs"] || []).to_set
 
     derived = HCD.classify(comparison, dispositions)
     category = derived[:category]
@@ -144,6 +153,11 @@ def revision_chain_failure(run, dispositions, material_dimensions, correction_ki
       claimed_predecessors << predecessor
     end
 
+    # 第一筆沒有 predecessor，權威的 prior evidence 就是空集合；之後每一筆
+    # 的權威對照物是 supersedes_package_ref 指到的那份封包。
+    authoritative_prior_evidence = index.zero? ? [] : evidence_by_package_id[predecessor]
+    return "PKGREV_COMPARISON_PRIOR_EVIDENCE_NOT_BOUND_TO_CHAIN" unless (comparison["prior_evidence_refs"] || []).to_set == (authoritative_prior_evidence || []).to_set
+
     correction_ref = submission["correction_proposal_ref"]
     correction_kind = submission["correction_kind"]
     if correction_required.include?(disposition)
@@ -161,6 +175,7 @@ def revision_chain_failure(run, dispositions, material_dimensions, correction_ki
     seen_package_ids << package_id
     seen_submission_ids << submission["submission_id"]
     hash_by_package_id[package_id] = package["content_hash"]
+    evidence_by_package_id[package_id] = package["evidence_refs"]
   end
 
   nil
@@ -270,6 +285,8 @@ ERROR_CONTRACT = {
   "PKGREV_COMPARISON_FAILS_SLICE_1_CONTRACT" => "evidence_package_revision.error.comparison_fails_slice_1_contract",
   "PKGREV_COMPARISON_HASH_NOT_BOUND_TO_PACKAGE" => "evidence_package_revision.error.comparison_hash_not_bound_to_package",
   "PKGREV_COMPARISON_PRIOR_NOT_BOUND_TO_CHAIN" => "evidence_package_revision.error.comparison_prior_not_bound_to_chain",
+  "PKGREV_COMPARISON_CURRENT_EVIDENCE_NOT_BOUND_TO_PACKAGE" => "evidence_package_revision.error.comparison_current_evidence_not_bound_to_package",
+  "PKGREV_COMPARISON_PRIOR_EVIDENCE_NOT_BOUND_TO_CHAIN" => "evidence_package_revision.error.comparison_prior_evidence_not_bound_to_chain",
   "PKGREV_RESEND_DESPITE_NON_TRANSMITTABLE" => "evidence_package_revision.error.resend_despite_non_transmittable",
   "PKGREV_FIRST_SUBMISSION_SUPERSEDES" => "evidence_package_revision.error.first_submission_supersedes",
   "PKGREV_FIRST_SUBMISSION_NOT_INITIAL" => "evidence_package_revision.error.first_submission_not_initial",
