@@ -5,7 +5,7 @@
 ```
 base            b1d40d7
 original_review 6fc781a（審的是 b1d40d7..ca3b42e；6fc781a 只是 handoff SHA 補正）
-repair_commit   （本次 commit，待 push 後補上）
+repair_commit   f945486
 ```
 
 ## Reviewer NO_GO（2026-09-18，對 `ca3b42e`）

@@ -5,7 +5,7 @@
 ```
 base             b1d40d7
 original_review  6fc781a（審的是 b1d40d7..ca3b42e）
-repair_commit    （本次 commit，程式碼修法本身，待 push 後補上）
+repair_commit    f945486
 branch           cc/ssp323-weekly-review-cycle
 ```
 
