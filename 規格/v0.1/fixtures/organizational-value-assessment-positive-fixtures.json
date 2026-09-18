@@ -1,0 +1,152 @@
+{
+  "contract": "organizational_value_assessment",
+  "cases": [
+    {
+      "case_id": "OVA_POS_ALL_LOW_NO_FOLLOWUP",
+      "expected": "allow",
+      "expected_needs_org_followup": false,
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["很少見的一次性情況"],
+          "impact_scope": ["只影響單一個人"],
+          "reusability": ["情境太特殊，難以套用到別處"],
+          "cost_of_not_knowing": ["不知道也不會造成實際損失"],
+          "decision_rationale_value": ["決策理由本身已經清楚記錄"],
+          "scarcity": ["很多人都知道這件事"],
+          "stability": ["容易隨時間改變，參考價值低"],
+          "evidence_strength": ["只有片面口述，沒有其他佐證"],
+          "sensitivity_or_permission_constraint": ["沒有敏感性或權限限制"]
+        },
+        "answer_provided": true,
+        "unresolved_question": null,
+        "missing_external_evidence": false,
+        "suggested_expert": null
+      }
+    },
+    {
+      "case_id": "OVA_POS_MIXED_HIGH_SUBSTANTIATED_NO_FOLLOWUP",
+      "expected": "allow",
+      "expected_needs_org_followup": false,
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:2",
+        "dimension_ratings": {
+          "repeatability": "HIGH",
+          "impact_scope": "MEDIUM",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "HIGH",
+          "decision_rationale_value": "LOW",
+          "scarcity": "MEDIUM",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["同一個 workaround 三個月內被四個不同同事各自重做過一次"],
+          "impact_scope": ["影響單一團隊的日常排程"],
+          "reusability": ["流程可以直接複製給其他團隊"],
+          "cost_of_not_knowing": ["上次沒人知道這個，導致一次上線延遲兩天"],
+          "decision_rationale_value": ["理由已在會議紀錄中"],
+          "scarcity": ["少數幾個資深同事才知道"],
+          "stability": ["流程半年沒變過"],
+          "evidence_strength": ["只有口述，未經覆核"],
+          "sensitivity_or_permission_constraint": ["不涉及敏感資料"]
+        },
+        "dimension_evidence_refs": {
+          "repeatability": ["urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"],
+          "cost_of_not_knowing": ["urn:omos:evidence-ref:00000002-1111-2222-3333-444444444444"]
+        },
+        "answer_provided": true,
+        "unresolved_question": null,
+        "missing_external_evidence": false,
+        "suggested_expert": null
+      }
+    },
+    {
+      "case_id": "OVA_POS_NEEDS_FOLLOWUP_UNANSWERED_ONLY",
+      "expected": "allow",
+      "expected_needs_org_followup": true,
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:3",
+        "dimension_ratings": {
+          "repeatability": "HIGH",
+          "impact_scope": "HIGH",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "MEDIUM",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["每次季度盤點都會問同一個問題"],
+          "impact_scope": ["影響三個團隊的排程"],
+          "reusability": ["其他團隊也遇到類似狀況"],
+          "cost_of_not_knowing": ["每次都要重新摸索一次"],
+          "decision_rationale_value": ["原始理由已不可考"],
+          "scarcity": ["目前無人確切知道"],
+          "stability": ["規則本身多年未變"],
+          "evidence_strength": ["缺乏書面紀錄"],
+          "sensitivity_or_permission_constraint": ["不涉及敏感資料"]
+        },
+        "dimension_evidence_refs": {
+          "repeatability": ["urn:omos:evidence-ref:00000003-1111-2222-3333-444444444444"],
+          "impact_scope": ["urn:omos:evidence-ref:00000004-1111-2222-3333-444444444444"]
+        },
+        "answer_provided": false,
+        "unresolved_question": "當初這個排程規則是誰訂的、為什麼要這樣排，本人不知道",
+        "missing_external_evidence": false,
+        "suggested_expert": null
+      }
+    },
+    {
+      "case_id": "OVA_POS_NEEDS_FOLLOWUP_MISSING_EVIDENCE_ONLY",
+      "expected": "allow",
+      "expected_needs_org_followup": true,
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:4",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "HIGH",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["單次事件"],
+          "impact_scope": ["影響範圍小"],
+          "reusability": ["情境特殊"],
+          "cost_of_not_knowing": ["影響有限"],
+          "decision_rationale_value": ["這個決策的原因目前只有離職同事知道片段"],
+          "scarcity": ["多數人不知道"],
+          "stability": ["長期沒變"],
+          "evidence_strength": ["口述為主"],
+          "sensitivity_or_permission_constraint": ["不涉及敏感資料"]
+        },
+        "dimension_evidence_refs": {
+          "decision_rationale_value": ["urn:omos:evidence-ref:00000005-1111-2222-3333-444444444444"]
+        },
+        "answer_provided": true,
+        "unresolved_question": null,
+        "missing_external_evidence": true,
+        "suggested_expert": "urn:omos:employee:former-lead-01"
+      }
+    }
+  ]
+}

@@ -1,0 +1,353 @@
+{
+  "contract": "organizational_value_assessment",
+  "cases": [
+    {
+      "case_id": "OVA_NEG_FORBIDDEN_LIFECYCLE_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "OVA_FORBIDDEN_LIFECYCLE_FIELD",
+      "covers_negative_fixture": "a run carrying a forbidden lifecycle field",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "candidate_status": "PROPOSED",
+        "dimension_ratings": {}
+      }
+    },
+    {
+      "case_id": "OVA_NEG_FORBIDDEN_SCORE_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "OVA_FORBIDDEN_SCORE_FIELD",
+      "covers_negative_fixture": "a run carrying a forbidden aggregate score field",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "overall_score": 87,
+        "dimension_ratings": {}
+      }
+    },
+    {
+      "case_id": "OVA_NEG_SELF_DECLARED_FOLLOWUP",
+      "expected": "deny",
+      "expected_failure_code": "OVA_FORBIDDEN_SELF_DECLARED_FOLLOWUP",
+      "covers_negative_fixture": "a run declaring needs_org_followup itself",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "needs_org_followup": false,
+        "dimension_ratings": {}
+      }
+    },
+    {
+      "case_id": "OVA_NEG_SUBJECT_REF_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "OVA_SUBJECT_REF_NOT_URN",
+      "covers_negative_fixture": "subject_ref that is not an omos URN",
+      "run": {
+        "subject_ref": "not-a-urn",
+        "dimension_ratings": {}
+      }
+    },
+    {
+      "case_id": "OVA_NEG_DIMENSION_RATINGS_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "OVA_DIMENSION_RATINGS_INCOMPLETE",
+      "covers_negative_fixture": "dimension_ratings missing a required dimension",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW"
+        }
+      }
+    },
+    {
+      "case_id": "OVA_NEG_DIMENSION_RATINGS_UNKNOWN",
+      "expected": "deny",
+      "expected_failure_code": "OVA_DIMENSION_RATINGS_INCOMPLETE",
+      "covers_negative_fixture": "dimension_ratings naming an unknown dimension",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW",
+          "vibes": "LOW"
+        }
+      }
+    },
+    {
+      "case_id": "OVA_NEG_DIMENSION_RATING_INVALID",
+      "expected": "deny",
+      "expected_failure_code": "OVA_DIMENSION_RATING_INVALID",
+      "covers_negative_fixture": "a dimension_ratings value outside rating_levels",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "VERY_HIGH"
+        }
+      }
+    },
+    {
+      "case_id": "OVA_NEG_REASONS_MAP_NOT_HASH",
+      "expected": "deny",
+      "expected_failure_code": "OVA_DIMENSION_RATINGS_INCOMPLETE",
+      "covers_negative_fixture": "dimension_reasons or dimension_evidence_refs that is not a map",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": ["重複發生"]
+      }
+    },
+    {
+      "case_id": "OVA_NEG_DIMENSION_REASONS_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "OVA_DIMENSION_REASONS_INCOMPLETE",
+      "covers_negative_fixture": "a dimension with no reasons at all",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "answer_provided": true,
+        "unresolved_question": null,
+        "missing_external_evidence": false,
+        "suggested_expert": null
+      }
+    },
+    {
+      "case_id": "OVA_NEG_LOW_DIMENSION_EVIDENCE_NOT_ARRAY",
+      "expected": "deny",
+      "expected_failure_code": "OVA_EVIDENCE_REF_NOT_URN",
+      "covers_negative_fixture": "a non-HIGH dimension's evidence_refs that is not an array",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["理由"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
+        },
+        "dimension_evidence_refs": {
+          "repeatability": "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        }
+      }
+    },
+    {
+      "case_id": "OVA_NEG_HIGH_RATING_NO_EVIDENCE",
+      "expected": "deny",
+      "expected_failure_code": "OVA_RATING_UNSUBSTANTIATED",
+      "covers_negative_fixture": "a HIGH rating with no evidence_refs",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "HIGH",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["重複發生"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
+        }
+      }
+    },
+    {
+      "case_id": "OVA_NEG_EVIDENCE_REF_NOT_URN",
+      "expected": "deny",
+      "expected_failure_code": "OVA_EVIDENCE_REF_NOT_URN",
+      "covers_negative_fixture": "an evidence_ref that is not an omos URN",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "HIGH",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["重複發生"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
+        },
+        "dimension_evidence_refs": {
+          "repeatability": ["not-a-urn"]
+        }
+      }
+    },
+    {
+      "case_id": "OVA_NEG_ANSWERED_WITH_QUESTION",
+      "expected": "deny",
+      "expected_failure_code": "OVA_ANSWER_INCONSISTENT",
+      "covers_negative_fixture": "answer_provided true together with a non-empty unresolved_question",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["理由"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
+        },
+        "answer_provided": true,
+        "unresolved_question": "但這裡還留了一個問題"
+      }
+    },
+    {
+      "case_id": "OVA_NEG_UNANSWERED_WITHOUT_QUESTION",
+      "expected": "deny",
+      "expected_failure_code": "OVA_ANSWER_INCONSISTENT",
+      "covers_negative_fixture": "answer_provided false together with an empty unresolved_question",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["理由"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
+        },
+        "answer_provided": false,
+        "unresolved_question": null
+      }
+    },
+    {
+      "case_id": "OVA_NEG_SUGGESTED_EXPERT_NOT_STRING",
+      "expected": "deny",
+      "expected_failure_code": "OVA_SUGGESTED_EXPERT_NOT_STRING",
+      "covers_negative_fixture": "suggested_expert present but not a string",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["理由"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
+        },
+        "answer_provided": true,
+        "unresolved_question": null,
+        "missing_external_evidence": false,
+        "suggested_expert": 12345
+      }
+    }
+  ]
+}
