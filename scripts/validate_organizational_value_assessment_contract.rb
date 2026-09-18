@@ -16,9 +16,21 @@
 #   2. 機器可查訊號 vs 判斷型訊號分離：這九個構面本質上都是人的價值判斷，
 #      沒有原始資料可以推導——不像切片 1 有 identity/hash/evidence-set 可
 #      算。所以這裡機器能守住的邊界不是「推導」，而是「完整性 + 佐證」：
-#      九個構面一個都不能少報；HIGH 評分（會驅動 needs_org_followup 的那個
-#      關鍵主張）必須附非空 reasons 與至少一個 URN evidence_ref，不接受
-#      「因為我說是 HIGH」這種純自報。
+#      九個構面一個都不能少報，每個構面都要有非空 reasons；HIGH 評分額外
+#      要求至少一個 URN evidence_ref，不接受「因為我說是 HIGH」這種純自報。
+#
+# repair-01（大 review NO_GO，2026-09-18，三筆 P1）：
+#   F-01 needs_org_followup 原本是 caller 自報的 boolean，evaluator 只驗
+#        它「宣告為 true 時」合不合法——caller 大可在條件全部成立時仍宣告
+#        false，直接通過。這正是切片 1 對 category/disposition 定下的同一
+#        條規則（不能自己宣告分類）這裡漏套用了。改成完全由 needs_org_
+#        followup? 這個函式從原始訊號推導，run 裡禁止出現這個欄位。
+#   F-02 Owner 原文「本人不知道答案 *或* 缺外部 evidence，且組織價值仍
+#        高」——「或」被前一版寫成了「且」，把合法的 follow-up 擋掉。
+#   F-03 上游卡「必須輸出可讀 reasons」原本只在 HIGH 評分才要求，全部
+#        LOW/MEDIUM、完全不寫 reasons 的評估仍會通過——改成九個構面全部
+#        都要非空 reasons；evidence_ref 維持只有 HIGH 才要求（reviewer
+#        明確保留這條）。
 
 require "json"
 require "set"
@@ -44,25 +56,29 @@ FORBIDDEN_LIFECYCLE_FIELDS = %w[
 # 結構性禁止出現在 run 裡。
 FORBIDDEN_SCORE_FIELDS = %w[overall_score value_score total_score score aggregate_score].freeze
 
+# repair-01 F-01：needs_org_followup 不是輸入，是 evaluator 推導出的結果
+# （見 needs_org_followup? ）。run 裡出現這個欄位一律 fail-closed 拒絕，
+# 不留一個「夾帶了但被忽略」的殘留欄位——切片 1 的 review 已經指出過這種
+# 殘留欄位會誤導後續讀者以為有自報路徑。
+FORBIDDEN_SELF_DECLARED_FIELDS = %w[needs_org_followup].freeze
+
 RATING_LEVELS = %w[LOW MEDIUM HIGH].freeze
 
 EXPECTED_NEGATIVE_LABELS = [
   "a run carrying a forbidden lifecycle field",
   "a run carrying a forbidden aggregate score field",
+  "a run declaring needs_org_followup itself",
   "subject_ref that is not an omos URN",
   "dimension_ratings missing a required dimension",
   "dimension_ratings naming an unknown dimension",
   "a dimension_ratings value outside rating_levels",
   "dimension_reasons or dimension_evidence_refs that is not a map",
-  "a HIGH rating with no reasons",
+  "a dimension with no reasons at all",
   "a HIGH rating with no evidence_refs",
   "an evidence_ref that is not an omos URN",
   "a non-HIGH dimension's evidence_refs that is not an array",
   "answer_provided true together with a non-empty unresolved_question",
   "answer_provided false together with an empty unresolved_question",
-  "needs_org_followup true while answer_provided is also true",
-  "needs_org_followup true while missing_external_evidence is false",
-  "needs_org_followup true with no HIGH-rated dimension",
   "suggested_expert present but not a string"
 ].freeze
 
@@ -74,6 +90,10 @@ def blank?(value)
   !value.is_a?(String) || value.strip.empty?
 end
 
+def high_dimensions_of(ratings)
+  ratings.select { |_, level| level == "HIGH" }.keys
+end
+
 # --- 結構驗證（fail-closed）------------------------------------------------
 
 def assessment_failure(run, dimensions)
@@ -82,6 +102,9 @@ def assessment_failure(run, dimensions)
 
   forbidden_score = FORBIDDEN_SCORE_FIELDS.find { |field| run.key?(field) }
   return "OVA_FORBIDDEN_SCORE_FIELD" if forbidden_score
+
+  forbidden_self_declared = FORBIDDEN_SELF_DECLARED_FIELDS.find { |field| run.key?(field) }
+  return "OVA_FORBIDDEN_SELF_DECLARED_FOLLOWUP" if forbidden_self_declared
 
   return "OVA_SUBJECT_REF_NOT_URN" unless urn?(run["subject_ref"])
 
@@ -93,6 +116,13 @@ def assessment_failure(run, dimensions)
   evidence_map = run["dimension_evidence_refs"] || {}
   return "OVA_DIMENSION_RATINGS_INCOMPLETE" unless reasons_map.is_a?(Hash) && evidence_map.is_a?(Hash)
 
+  # repair-01 F-03：九個構面全部都要非空 reasons，不只 HIGH——上游卡明寫
+  # 「必須輸出可讀 reasons」，沒有分級豁免。
+  dimensions.each do |dim|
+    reasons = reasons_map[dim]
+    return "OVA_DIMENSION_REASONS_INCOMPLETE" unless reasons.is_a?(Array) && reasons.any? { |r| !blank?(r) }
+  end
+
   # 形狀先鎖，不分 HIGH／LOW／MEDIUM：出現在 dimension_evidence_refs 裡的
   # 每個值都必須是「全為 URN 的 Array」。一個 scalar 或非 URN 字串不該因為
   # 該構面評分不是 HIGH 就被放行——這裡只有一個 return site 負責 URN 形狀，
@@ -101,11 +131,9 @@ def assessment_failure(run, dimensions)
     return "OVA_EVIDENCE_REF_NOT_URN" unless refs.is_a?(Array) && refs.all? { |r| urn?(r) }
   end
 
-  high_dimensions = ratings.select { |_, level| level == "HIGH" }.keys
-  high_dimensions.each do |dim|
-    reasons = reasons_map[dim]
-    return "OVA_RATING_UNSUBSTANTIATED" unless reasons.is_a?(Array) && reasons.any? { |r| !blank?(r) }
-
+  # evidence_ref 仍然只有 HIGH 才要求非空——reviewer 明確保留這條，問題只
+  # 在 reasons 不該分級，不在 evidence。
+  high_dimensions_of(ratings).each do |dim|
     refs = evidence_map[dim]
     return "OVA_RATING_UNSUBSTANTIATED" unless refs.is_a?(Array) && !refs.empty?
   end
@@ -117,7 +145,7 @@ def assessment_failure(run, dimensions)
   question_present = !blank?(unresolved_question)
   # 內部一致性檢查：已回答卻還留著未解問題，或未回答卻沒有說明留了什麼問題，
   # 兩者都是自我矛盾——這是這裡唯一機器可查的一致性，不是相信 caller 另一個
-  # 自報旗標。
+  # 自報旗標。reviewer 已確認這條「存在性檢查」已足夠，不需要再判內容品質。
   if answer_provided == true && question_present
     return "OVA_ANSWER_INCONSISTENT"
   elsif answer_provided == false && !question_present
@@ -127,25 +155,22 @@ def assessment_failure(run, dimensions)
   missing_external_evidence = run["missing_external_evidence"]
   return "OVA_MISSING_EVIDENCE_NOT_BOOLEAN" unless [true, false].include?(missing_external_evidence)
 
-  needs_org_followup = run["needs_org_followup"]
-  return "OVA_NEEDS_FOLLOWUP_NOT_BOOLEAN" unless [true, false].include?(needs_org_followup)
-
-  if needs_org_followup
-    return "OVA_FOLLOWUP_WHILE_ANSWERED" if answer_provided == true
-    # 這裡不再重複檢查 unresolved_question 是否存在——上面的 OVA_ANSWER_
-    # INCONSISTENT 已經保證 answer_provided == false 時 question_present
-    # 必為 true，走到這裡代表已經滿足。重複檢查會是永遠不可達的 dead code
-    # （跟切片 1 的 total-function 要求相同精神：不留驗不到的宣告）。
-    return "OVA_FOLLOWUP_WITHOUT_MISSING_EVIDENCE" unless missing_external_evidence == true
-    # 前面已經對任何 HIGH 評分做完佐證檢查，走到這裡代表「有的話一定合法」，
-    # 所以只需確認至少一個存在，不必重覆佐證邏輯。
-    return "OVA_FOLLOWUP_WITHOUT_ORG_VALUE" unless high_dimensions.any?
-  end
-
   suggested_expert = run["suggested_expert"]
   return "OVA_SUGGESTED_EXPERT_NOT_STRING" unless suggested_expert.nil? || suggested_expert.is_a?(String)
 
   nil
+end
+
+# --- 分類推導：needs_org_followup 完全由 evaluator 算 ---------------------
+#
+# repair-01 F-01/F-02：跟切片 1 的 classify() 同一個模式——這是推導結果，
+# 不是輸入。只在 assessment_failure 回傳 nil（run 本身合法）之後才有意義
+# 呼叫。Owner 原文「本人不知道答案 *或* 缺外部 evidence，且組織價值仍
+# 高」，「或」不是「且」。
+def needs_org_followup?(run, high_dimensions)
+  answer_provided = run["answer_provided"]
+  missing_external_evidence = run["missing_external_evidence"]
+  (answer_provided == false || missing_external_evidence == true) && high_dimensions.any?
 end
 
 # --- 契約結構斷言 ---------------------------------------------------------
@@ -171,6 +196,14 @@ positive_fixtures.fetch("cases").each do |test_case|
 
   actual_failure = assessment_failure(run, dimensions)
   assert(actual_failure.nil?, "#{case_id} 預期 allow，實際被拒：#{actual_failure}", failures)
+
+  next unless actual_failure.nil?
+
+  actual_followup = needs_org_followup?(run, high_dimensions_of(run.fetch("dimension_ratings")))
+  expected_followup = test_case.fetch("expected_needs_org_followup")
+  assert(actual_followup == expected_followup,
+         "#{case_id} needs_org_followup 推導錯誤：預期 #{expected_followup.inspect}，實際 #{actual_followup.inspect}",
+         failures)
 end
 
 negative_cases = negative_fixtures.fetch("cases")
@@ -193,18 +226,16 @@ assert(missing_labels.empty?, "negative fixtures 未覆蓋：#{missing_labels.to
 ERROR_CONTRACT = {
   "OVA_FORBIDDEN_LIFECYCLE_FIELD" => "organizational_value_assessment.error.forbidden_lifecycle_field",
   "OVA_FORBIDDEN_SCORE_FIELD" => "organizational_value_assessment.error.forbidden_score_field",
+  "OVA_FORBIDDEN_SELF_DECLARED_FOLLOWUP" => "organizational_value_assessment.error.forbidden_self_declared_followup",
   "OVA_SUBJECT_REF_NOT_URN" => "organizational_value_assessment.error.subject_ref_not_urn",
   "OVA_DIMENSION_RATINGS_INCOMPLETE" => "organizational_value_assessment.error.dimension_ratings_incomplete",
   "OVA_DIMENSION_RATING_INVALID" => "organizational_value_assessment.error.dimension_rating_invalid",
+  "OVA_DIMENSION_REASONS_INCOMPLETE" => "organizational_value_assessment.error.dimension_reasons_incomplete",
   "OVA_RATING_UNSUBSTANTIATED" => "organizational_value_assessment.error.rating_unsubstantiated",
   "OVA_EVIDENCE_REF_NOT_URN" => "organizational_value_assessment.error.evidence_ref_not_urn",
   "OVA_ANSWER_PROVIDED_NOT_BOOLEAN" => "organizational_value_assessment.error.answer_provided_not_boolean",
   "OVA_ANSWER_INCONSISTENT" => "organizational_value_assessment.error.answer_inconsistent",
   "OVA_MISSING_EVIDENCE_NOT_BOOLEAN" => "organizational_value_assessment.error.missing_evidence_not_boolean",
-  "OVA_NEEDS_FOLLOWUP_NOT_BOOLEAN" => "organizational_value_assessment.error.needs_followup_not_boolean",
-  "OVA_FOLLOWUP_WHILE_ANSWERED" => "organizational_value_assessment.error.followup_while_answered",
-  "OVA_FOLLOWUP_WITHOUT_MISSING_EVIDENCE" => "organizational_value_assessment.error.followup_without_missing_evidence",
-  "OVA_FOLLOWUP_WITHOUT_ORG_VALUE" => "organizational_value_assessment.error.followup_without_org_value",
   "OVA_SUGGESTED_EXPERT_NOT_STRING" => "organizational_value_assessment.error.suggested_expert_not_string"
 }.freeze
 

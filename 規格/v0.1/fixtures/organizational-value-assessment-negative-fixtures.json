@@ -24,6 +24,17 @@
       }
     },
     {
+      "case_id": "OVA_NEG_SELF_DECLARED_FOLLOWUP",
+      "expected": "deny",
+      "expected_failure_code": "OVA_FORBIDDEN_SELF_DECLARED_FOLLOWUP",
+      "covers_negative_fixture": "a run declaring needs_org_followup itself",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "needs_org_followup": false,
+        "dimension_ratings": {}
+      }
+    },
+    {
       "case_id": "OVA_NEG_SUBJECT_REF_NOT_URN",
       "expected": "deny",
       "expected_failure_code": "OVA_SUBJECT_REF_NOT_URN",
@@ -115,6 +126,30 @@
       }
     },
     {
+      "case_id": "OVA_NEG_DIMENSION_REASONS_MISSING",
+      "expected": "deny",
+      "expected_failure_code": "OVA_DIMENSION_REASONS_INCOMPLETE",
+      "covers_negative_fixture": "a dimension with no reasons at all",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "answer_provided": true,
+        "unresolved_question": null,
+        "missing_external_evidence": false,
+        "suggested_expert": null
+      }
+    },
+    {
       "case_id": "OVA_NEG_LOW_DIMENSION_EVIDENCE_NOT_ARRAY",
       "expected": "deny",
       "expected_failure_code": "OVA_EVIDENCE_REF_NOT_URN",
@@ -132,31 +167,19 @@
           "evidence_strength": "LOW",
           "sensitivity_or_permission_constraint": "LOW"
         },
-        "dimension_evidence_refs": {
-          "repeatability": "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
-        }
-      }
-    },
-    {
-      "case_id": "OVA_NEG_HIGH_RATING_NO_REASONS",
-      "expected": "deny",
-      "expected_failure_code": "OVA_RATING_UNSUBSTANTIATED",
-      "covers_negative_fixture": "a HIGH rating with no reasons",
-      "run": {
-        "subject_ref": "urn:omos:personal-memory:observation:1",
-        "dimension_ratings": {
-          "repeatability": "HIGH",
-          "impact_scope": "LOW",
-          "reusability": "LOW",
-          "cost_of_not_knowing": "LOW",
-          "decision_rationale_value": "LOW",
-          "scarcity": "LOW",
-          "stability": "LOW",
-          "evidence_strength": "LOW",
-          "sensitivity_or_permission_constraint": "LOW"
+        "dimension_reasons": {
+          "repeatability": ["理由"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
         },
         "dimension_evidence_refs": {
-          "repeatability": ["urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"]
+          "repeatability": "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
         }
       }
     },
@@ -179,7 +202,15 @@
           "sensitivity_or_permission_constraint": "LOW"
         },
         "dimension_reasons": {
-          "repeatability": ["重複發生"]
+          "repeatability": ["重複發生"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
         }
       }
     },
@@ -202,7 +233,15 @@
           "sensitivity_or_permission_constraint": "LOW"
         },
         "dimension_reasons": {
-          "repeatability": ["重複發生"]
+          "repeatability": ["重複發生"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
         },
         "dimension_evidence_refs": {
           "repeatability": ["not-a-urn"]
@@ -227,6 +266,17 @@
           "evidence_strength": "LOW",
           "sensitivity_or_permission_constraint": "LOW"
         },
+        "dimension_reasons": {
+          "repeatability": ["理由"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
+        },
         "answer_provided": true,
         "unresolved_question": "但這裡還留了一個問題"
       }
@@ -249,92 +299,19 @@
           "evidence_strength": "LOW",
           "sensitivity_or_permission_constraint": "LOW"
         },
+        "dimension_reasons": {
+          "repeatability": ["理由"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
+        },
         "answer_provided": false,
         "unresolved_question": null
-      }
-    },
-    {
-      "case_id": "OVA_NEG_FOLLOWUP_WHILE_ANSWERED",
-      "expected": "deny",
-      "expected_failure_code": "OVA_FOLLOWUP_WHILE_ANSWERED",
-      "covers_negative_fixture": "needs_org_followup true while answer_provided is also true",
-      "run": {
-        "subject_ref": "urn:omos:personal-memory:observation:1",
-        "dimension_ratings": {
-          "repeatability": "HIGH",
-          "impact_scope": "LOW",
-          "reusability": "LOW",
-          "cost_of_not_knowing": "LOW",
-          "decision_rationale_value": "LOW",
-          "scarcity": "LOW",
-          "stability": "LOW",
-          "evidence_strength": "LOW",
-          "sensitivity_or_permission_constraint": "LOW"
-        },
-        "dimension_reasons": {
-          "repeatability": ["重複發生"]
-        },
-        "dimension_evidence_refs": {
-          "repeatability": ["urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"]
-        },
-        "answer_provided": true,
-        "unresolved_question": null,
-        "missing_external_evidence": true,
-        "needs_org_followup": true
-      }
-    },
-    {
-      "case_id": "OVA_NEG_FOLLOWUP_WITHOUT_MISSING_EVIDENCE",
-      "expected": "deny",
-      "expected_failure_code": "OVA_FOLLOWUP_WITHOUT_MISSING_EVIDENCE",
-      "covers_negative_fixture": "needs_org_followup true while missing_external_evidence is false",
-      "run": {
-        "subject_ref": "urn:omos:personal-memory:observation:1",
-        "dimension_ratings": {
-          "repeatability": "HIGH",
-          "impact_scope": "LOW",
-          "reusability": "LOW",
-          "cost_of_not_knowing": "LOW",
-          "decision_rationale_value": "LOW",
-          "scarcity": "LOW",
-          "stability": "LOW",
-          "evidence_strength": "LOW",
-          "sensitivity_or_permission_constraint": "LOW"
-        },
-        "dimension_reasons": {
-          "repeatability": ["重複發生"]
-        },
-        "dimension_evidence_refs": {
-          "repeatability": ["urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"]
-        },
-        "answer_provided": false,
-        "unresolved_question": "還不知道原因",
-        "missing_external_evidence": false,
-        "needs_org_followup": true
-      }
-    },
-    {
-      "case_id": "OVA_NEG_FOLLOWUP_WITHOUT_ORG_VALUE",
-      "expected": "deny",
-      "expected_failure_code": "OVA_FOLLOWUP_WITHOUT_ORG_VALUE",
-      "covers_negative_fixture": "needs_org_followup true with no HIGH-rated dimension",
-      "run": {
-        "subject_ref": "urn:omos:personal-memory:observation:1",
-        "dimension_ratings": {
-          "repeatability": "LOW",
-          "impact_scope": "LOW",
-          "reusability": "LOW",
-          "cost_of_not_knowing": "LOW",
-          "decision_rationale_value": "LOW",
-          "scarcity": "LOW",
-          "stability": "LOW",
-          "evidence_strength": "LOW",
-          "sensitivity_or_permission_constraint": "LOW"
-        },
-        "answer_provided": false,
-        "unresolved_question": "還不知道原因",
-        "missing_external_evidence": true,
-        "needs_org_followup": true
       }
     },
     {
@@ -355,10 +332,20 @@
           "evidence_strength": "LOW",
           "sensitivity_or_permission_constraint": "LOW"
         },
+        "dimension_reasons": {
+          "repeatability": ["理由"],
+          "impact_scope": ["理由"],
+          "reusability": ["理由"],
+          "cost_of_not_knowing": ["理由"],
+          "decision_rationale_value": ["理由"],
+          "scarcity": ["理由"],
+          "stability": ["理由"],
+          "evidence_strength": ["理由"],
+          "sensitivity_or_permission_constraint": ["理由"]
+        },
         "answer_provided": true,
         "unresolved_question": null,
         "missing_external_evidence": false,
-        "needs_org_followup": false,
         "suggested_expert": 12345
       }
     }

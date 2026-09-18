@@ -1262,32 +1262,38 @@ organizational_value_assessment:
     boundary this evaluator enforces instead is completeness and
     substantiation, not derivation: every dimension in `dimensions` must
     appear in dimension_ratings (an assessment run may not silently omit
-    an unfavourable axis or cherry-pick only favourable ones); and a HIGH
-    rating -- the one consequential claim that can make an item eligible
-    for needs_org_followup -- is the one this evaluator refuses to trust
-    on a bare label: it requires non-empty reasons in dimension_reasons and
-    at least one evidence_ref in dimension_evidence_refs for that
-    dimension. LOW/MEDIUM ratings carry no such requirement.
+    an unfavourable axis or cherry-pick only favourable ones), and every
+    dimension -- regardless of level -- requires non-empty reasons in
+    dimension_reasons: the card requires readable reasons for the
+    assessment as a whole, not only for the consequential HIGH claims.
+    A HIGH rating carries one further requirement on top of that: at least
+    one evidence_ref in dimension_evidence_refs for that dimension, because
+    it is the one claim that can make an item eligible for
+    needs_org_followup and this evaluator refuses to trust it on reasons
+    text alone. LOW/MEDIUM ratings carry no evidence_ref requirement.
   needs_org_followup:
     purpose: >-
-      A caller may submit needs_org_followup=true only when the Personal
-      Harness has already pushed the employee to resolve what they can
-      resolve themselves, the employee genuinely cannot answer or the
-      external evidence to answer is missing, and the matter still carries
-      assessed organizational value.
-    requires:
-      - answer_provided must be false -- a resolved question is not a
-        follow-up, checked as an internal consistency rule against
-        unresolved_question (not a second self-declared flag trusted on
-        its own)
-      - unresolved_question must be a non-empty string naming what remains
-        open
-      - missing_external_evidence must be true
-      - at least one dimension in dimension_ratings must be HIGH with its
-        substantiation (reasons + evidence_ref) present -- this is the
-        "organizational value still high" requirement, reusing the same
-        substantiation rule this evaluator already enforces for any HIGH
-        rating rather than a second, separately-trusted org-value flag
+      needs_org_followup is never caller-declared -- like category and
+      disposition in historical_comparison, it is computed by the
+      evaluator from primitive signals, so a caller cannot silently
+      suppress a follow-up that the submitted signals otherwise warrant by
+      simply asserting a favourable boolean. A run carrying a
+      needs_org_followup field at all is rejected outright.
+    derivation: >-
+      True exactly when (the employee genuinely could not answer, i.e.
+      answer_provided is false) OR (missing_external_evidence is true),
+      AND at least one dimension in dimension_ratings is HIGH with its
+      substantiation (reasons + evidence_ref) present -- reusing the same
+      substantiation rule this evaluator already enforces for any HIGH
+      rating rather than a second, separately-trusted org-value flag. The
+      "or" is load-bearing: the card's wording is "the employee genuinely
+      cannot answer, OR the external evidence is missing" -- either
+      condition alone is sufficient, they are not both required.
+    consistency: >-
+      answer_provided is cross-checked against unresolved_question for
+      internal consistency (answered-with-a-lingering-question and
+      unanswered-with-no-named-question are both self-contradictory and
+      rejected) rather than trusted as an unrelated bare flag.
     suggested_expert: >-
       Optional hint only; null is legal and does not weaken the follow-up.
       Expert routing, taxonomy and cross-person conflict resolution stay
