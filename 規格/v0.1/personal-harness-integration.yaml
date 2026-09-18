@@ -1568,8 +1568,19 @@ evidence_package_revision:
     reopening an accepted closed shape. B still value-shape-locks the three
     package fields it actually reads (package_id / candidate_ref /
     content_hash) instead of trusting them, but it does not re-implement
-    A's validation: both validators run under the same aggregator, so any
-    package that is transmitted has passed A.
+    A's validation.
+
+    repair-01: the first version claimed this layering but did not enforce
+    it -- a B submission carrying a 3-of-20-field package, or one with an
+    extra field, passed, because "both validators run under the same
+    aggregator" is not composition: the aggregator merely runs two fixture
+    sets. B now calls the SAME package evaluator A calls, extracted to
+    scripts/lib/minimal_evidence_package_shape.rb from A with
+    byte-identical behaviour, so a package embedded in a submission is held
+    to the whole slice A contract. Neutralising one guard inside that
+    shared evaluator turns BOTH slices red -- the machine proof that the
+    two are one implementation, not two that happen to agree.
+  package_evaluator_shared_with: scripts/lib/minimal_evidence_package_shape.rb
   submission_allowed_fields:
     - submission_id
     - supersedes_package_ref
@@ -1600,9 +1611,21 @@ evidence_package_revision:
     history stays traceable. package_id must be unique across the chain and
     no two submissions may name the same predecessor: a duplicate id or a
     forked chain is an in-place overwrite wearing a resubmission costume,
-    which correction_flow already forbids as in_place_record_overwrite. A
-    revision must also change content_hash -- identical content is by
-    definition the UNCHANGED case, which is non-transmittable.
+    which correction_flow already forbids as in_place_record_overwrite.
+    submission_id must be unique too, or an immutable submission audit has
+    ambiguous identity. UNSEEN / INITIAL_SUBMISSION is allowed only as the
+    first entry: repair-01 found the original check was one-directional
+    (first must be UNSEEN) and so let a second entry declare itself an
+    initial submission all over again.
+
+    repair-01 also removed an earlier rule that a revision must change
+    content_hash. That rule was wrong: slice A's content_hash covers
+    content_snapshot only, while the parent card explicitly allows new
+    evidence, redaction, policy, applicability and risk changes to produce
+    a revision with the statement text untouched -- it would have rejected
+    exactly those legitimate revisions. Whether something may be sent at
+    all is decided by the upstream disposition, never by whether a hash
+    moved.
 
 personal_memory_governance:
   required_dimensions:

@@ -27,16 +27,19 @@ require "set"
 require "yaml"
 require_relative "lib/omos_contract_helpers"
 require_relative "lib/loop_return_contract"
+require_relative "lib/minimal_evidence_package_shape"
 
 ROOT = File.expand_path("..", __dir__)
 SPEC_PATH = File.join(ROOT, "規格/v0.1/personal-harness-integration.yaml")
 POSITIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/evidence-package-revision-positive-fixtures.json")
 NEGATIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/evidence-package-revision-negative-fixtures.json")
+VOCAB_PATH = File.join(ROOT, "規格/v0.1/common-vocabulary.yaml")
+STD01_SCHEMA_PATH = File.join(ROOT, "規格/v0.1/raw-evidence-envelope.schema.json")
 
-OMOS_URN = /\Aurn:omos:[a-z0-9-]+:.+\z/.freeze
+MEPShape = MinimalEvidencePackageShape
 
 def urn?(value)
-  value.is_a?(String) && OMOS_URN.match?(value)
+  MEPShape.urn?(value)
 end
 
 EXPECTED_NEGATIVE_LABELS = [
@@ -46,8 +49,7 @@ EXPECTED_NEGATIVE_LABELS = [
   "a submission carrying a field outside the allowlist",
   "a submission_id that is not an omos URN",
   "a package that is not a map",
-  "a package_id that is not an omos URN",
-  "a content_hash that is not a sha256 serialization",
+  "a package that does not pass the slice A package contract",
   "a package whose candidate_ref disagrees with the chain",
   "a comparison_category not declared in historical_comparison.categories",
   "a disposition that is not the one upstream declares for the category",
@@ -57,8 +59,9 @@ EXPECTED_NEGATIVE_LABELS = [
   "a later submission that supersedes nothing",
   "a predecessor that does not appear earlier in the chain",
   "a duplicate package_id within the chain",
+  "a duplicate submission_id within the chain",
+  "a later submission repeating the UNSEEN/INITIAL_SUBMISSION case",
   "two submissions naming the same predecessor",
-  "a revision whose content_hash is unchanged from its predecessor",
   "a correction disposition with no correction_proposal_ref",
   "a correction_kind not declared in correction_flow",
   "a non-correction disposition carrying correction fields"
@@ -67,7 +70,7 @@ EXPECTED_NEGATIVE_LABELS = [
 # --- 結構驗證（fail-closed）------------------------------------------------
 
 def revision_chain_failure(run, categories, dispositions, correction_kinds, allowed_fields,
-                           non_transmittable, correction_required)
+                           non_transmittable, correction_required, bindings)
   candidate_ref = run["candidate_ref"]
   return "PKGREV_CANDIDATE_REF_NOT_URN" unless urn?(candidate_ref)
 
@@ -75,8 +78,8 @@ def revision_chain_failure(run, categories, dispositions, correction_kinds, allo
   return "PKGREV_SUBMISSIONS_NOT_ARRAY" unless submissions.is_a?(Array) && !submissions.empty?
 
   seen_package_ids = Set.new
+  seen_submission_ids = Set.new
   claimed_predecessors = Set.new
-  hash_by_package_id = {}
 
   submissions.each_with_index do |submission, index|
     return "PKGREV_SUBMISSION_NOT_MAP" unless submission.is_a?(Hash)
@@ -85,10 +88,13 @@ def revision_chain_failure(run, categories, dispositions, correction_kinds, allo
 
     package = submission["package"]
     return "PKGREV_PACKAGE_NOT_MAP" unless package.is_a?(Hash)
+    # repair-01 F-01：layering 不能只是宣稱。信封裡的封包直接丟進切片 A
+    # 的同一支 evaluator（MEPShape.package_failure），不是在這裡另寫一份
+    # 檢查，也不是靠「同掛 aggregator」。expected_package_ref 傳 nil，因為
+    # 本片沒有 access_request 這個概念。
+    return "PKGREV_PACKAGE_FAILS_SLICE_A_CONTRACT" unless MEPShape.package_failure(package, bindings).nil?
 
     package_id = package["package_id"]
-    return "PKGREV_PACKAGE_ID_NOT_URN" unless urn?(package_id)
-    return "PKGREV_CONTENT_HASH_NOT_SHA256" unless SHA256_LOCKED_PATTERN.match?(package["content_hash"].to_s)
     return "PKGREV_PACKAGE_CANDIDATE_REF_MISMATCH" unless package["candidate_ref"] == candidate_ref
 
     category = submission["comparison_category"]
@@ -108,12 +114,13 @@ def revision_chain_failure(run, categories, dispositions, correction_kinds, allo
       return "PKGREV_FIRST_SUBMISSION_SUPERSEDES" unless predecessor.nil?
       return "PKGREV_FIRST_SUBMISSION_NOT_INITIAL" unless category == "UNSEEN"
     else
+      # repair-01 F-03：原本只要求「第一筆必須 UNSEEN」，沒有反向要求
+      # 「UNSEEN 只能是第一筆」——第二筆再宣稱一次 initial submission 會
+      # 直接通過。單向檢查正是這條線一再被抓到的同一種洞。
+      return "PKGREV_REPEATED_INITIAL_SUBMISSION" if category == "UNSEEN"
       return "PKGREV_LATER_SUBMISSION_WITHOUT_PREDECESSOR" if predecessor.nil?
       return "PKGREV_PREDECESSOR_NOT_IN_CHAIN" unless seen_package_ids.include?(predecessor)
       return "PKGREV_CHAIN_FORK" if claimed_predecessors.include?(predecessor)
-      # revision 必須真的改了內容；內容相同就是 UNCHANGED，而 UNCHANGED 不
-      # 可傳輸（上面那條已擋），所以這裡出現等於繞過 dedup。
-      return "PKGREV_CONTENT_HASH_UNCHANGED" if hash_by_package_id[predecessor] == package["content_hash"]
 
       claimed_predecessors << predecessor
     end
@@ -128,9 +135,12 @@ def revision_chain_failure(run, categories, dispositions, correction_kinds, allo
     end
 
     return "PKGREV_DUPLICATE_PACKAGE_ID" if seen_package_ids.include?(package_id)
+    # repair-01 P2：submission_id 也要唯一，否則 immutable submission audit
+    # 會出現身份歧義。
+    return "PKGREV_DUPLICATE_SUBMISSION_ID" if seen_submission_ids.include?(submission["submission_id"])
 
     seen_package_ids << package_id
-    hash_by_package_id[package_id] = package["content_hash"]
+    seen_submission_ids << submission["submission_id"]
   end
 
   nil
@@ -167,14 +177,17 @@ end
 assert((non_transmittable.to_set & correction_required.to_set).empty?,
        "non_transmittable 與 correction_required 不得重疊", failures)
 
-# 切片 A 的封包是本片信封裡的內容物：確認那份契約存在，且本片讀的三個欄位
-# 確實是它宣告的 required field，不是本片自己想出來的欄位名。
+# repair-01 F-01：切片 A 的封包 evaluator 由本片直接呼叫（共用 helper），
+# 所以綁定也用同一支 build_bindings 建立——兩片不可能各自讀出不同版本的
+# 上游。契約的 required_fields 宣告也必須與共用 helper 的實作一致。
+vocab = read_yaml(VOCAB_PATH)
+std01 = read_json(STD01_SCHEMA_PATH)
+bindings, binding_problems = MEPShape.build_bindings(spec, vocab, std01)
+binding_problems.each { |problem| assert(false, problem, failures) }
+
 mep_required = spec.dig("minimal_evidence_package", "package_required_fields") || []
-assert(mep_required.any?, "minimal_evidence_package.package_required_fields 必須存在（本片包的是它）", failures)
-%w[package_id candidate_ref content_hash].each do |field|
-  assert(mep_required.include?(field),
-         "本片讀的 package.#{field} 必須是切片 A 宣告的 required field", failures)
-end
+assert(sorted_set(mep_required) == sorted_set(MEPShape::PACKAGE_REQUIRED_FIELDS),
+       "minimal_evidence_package.package_required_fields 必須與共用 evaluator 的實作一致", failures)
 
 # --- fixtures -------------------------------------------------------------
 
@@ -187,7 +200,7 @@ positive_fixtures.fetch("cases").each do |test_case|
   assert(test_case.fetch("expected") == "allow", "#{case_id} 正例必須預期 allow", failures)
 
   actual = revision_chain_failure(run, categories, dispositions, correction_kinds, allowed_fields,
-                                  non_transmittable, correction_required)
+                                  non_transmittable, correction_required, bindings)
   assert(actual.nil?, "#{case_id} 預期 allow，實際被拒：#{actual}", failures)
 end
 
@@ -199,7 +212,7 @@ negative_cases.each do |test_case|
   expected_code = test_case.fetch("expected_failure_code")
 
   actual = revision_chain_failure(run, categories, dispositions, correction_kinds, allowed_fields,
-                                  non_transmittable, correction_required)
+                                  non_transmittable, correction_required, bindings)
   assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
   assert(actual == expected_code, "#{case_id} 預期 #{expected_code}，實際 #{actual.inspect}", failures)
 end
@@ -227,8 +240,7 @@ ERROR_CONTRACT = {
   "PKGREV_SUBMISSION_UNKNOWN_FIELD" => "evidence_package_revision.error.submission_unknown_field",
   "PKGREV_SUBMISSION_ID_NOT_URN" => "evidence_package_revision.error.submission_id_not_urn",
   "PKGREV_PACKAGE_NOT_MAP" => "evidence_package_revision.error.package_not_map",
-  "PKGREV_PACKAGE_ID_NOT_URN" => "evidence_package_revision.error.package_id_not_urn",
-  "PKGREV_CONTENT_HASH_NOT_SHA256" => "evidence_package_revision.error.content_hash_not_sha256",
+  "PKGREV_PACKAGE_FAILS_SLICE_A_CONTRACT" => "evidence_package_revision.error.package_fails_slice_a_contract",
   "PKGREV_PACKAGE_CANDIDATE_REF_MISMATCH" => "evidence_package_revision.error.package_candidate_ref_mismatch",
   "PKGREV_UNKNOWN_CATEGORY" => "evidence_package_revision.error.unknown_category",
   "PKGREV_DISPOSITION_NOT_DECLARED_FOR_CATEGORY" => "evidence_package_revision.error.disposition_not_declared_for_category",
@@ -238,8 +250,9 @@ ERROR_CONTRACT = {
   "PKGREV_LATER_SUBMISSION_WITHOUT_PREDECESSOR" => "evidence_package_revision.error.later_submission_without_predecessor",
   "PKGREV_PREDECESSOR_NOT_IN_CHAIN" => "evidence_package_revision.error.predecessor_not_in_chain",
   "PKGREV_CHAIN_FORK" => "evidence_package_revision.error.chain_fork",
-  "PKGREV_CONTENT_HASH_UNCHANGED" => "evidence_package_revision.error.content_hash_unchanged",
   "PKGREV_DUPLICATE_PACKAGE_ID" => "evidence_package_revision.error.duplicate_package_id",
+  "PKGREV_DUPLICATE_SUBMISSION_ID" => "evidence_package_revision.error.duplicate_submission_id",
+  "PKGREV_REPEATED_INITIAL_SUBMISSION" => "evidence_package_revision.error.repeated_initial_submission",
   "PKGREV_CORRECTION_REF_MISSING" => "evidence_package_revision.error.correction_ref_missing",
   "PKGREV_UNKNOWN_CORRECTION_KIND" => "evidence_package_revision.error.unknown_correction_kind",
   "PKGREV_CORRECTION_FIELDS_NOT_APPLICABLE" => "evidence_package_revision.error.correction_fields_not_applicable"

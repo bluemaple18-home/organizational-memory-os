@@ -16,8 +16,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -60,8 +85,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             },
             "private_blob": "FULL_STORE"
           }
@@ -83,8 +133,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -109,32 +184,10 @@
       }
     },
     {
-      "case_id": "PKGREV_NEG_PACKAGE_ID_NOT_URN",
+      "case_id": "PKGREV_NEG_PACKAGE_ONLY_THREE_FIELDS",
       "expected": "deny",
-      "expected_failure_code": "PKGREV_PACKAGE_ID_NOT_URN",
-      "covers_negative_fixture": "a package_id that is not an omos URN",
-      "run": {
-        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-        "submissions": [
-          {
-            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
-            "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
-            "package": {
-              "package_id": "pkg-1",
-              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "case_id": "PKGREV_NEG_CONTENT_HASH_NOT_SHA256",
-      "expected": "deny",
-      "expected_failure_code": "PKGREV_CONTENT_HASH_NOT_SHA256",
-      "covers_negative_fixture": "a content_hash that is not a sha256 serialization",
+      "expected_failure_code": "PKGREV_PACKAGE_FAILS_SLICE_A_CONTRACT",
+      "covers_negative_fixture": "a package that does not pass the slice A package contract",
       "run": {
         "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
         "submissions": [
@@ -146,7 +199,102 @@
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "not-a-hash"
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_PACKAGE_EXTRA_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_PACKAGE_FAILS_SLICE_A_CONTRACT",
+      "covers_negative_fixture": "a package that does not pass the slice A package contract",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z",
+              "extra_secret": "FULL_STORE_CONTENT"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_PACKAGE_BAD_HASH",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_PACKAGE_FAILS_SLICE_A_CONTRACT",
+      "covers_negative_fixture": "a package that does not pass the slice A package contract",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "not-a-hash",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -167,8 +315,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def0123456ff",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -189,8 +362,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -211,8 +409,33 @@
             "disposition": "EVIDENCE_UPDATE_REVISION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -233,8 +456,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           },
           {
@@ -244,8 +492,33 @@
             "disposition": "NO_RESEND",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -266,8 +539,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           },
           {
@@ -277,8 +575,33 @@
             "disposition": "LOCAL_RECURRENCE_ONLY",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -299,8 +622,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -321,8 +669,116 @@
             "disposition": "EVIDENCE_UPDATE_REVISION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_REPEATED_INITIAL_SUBMISSION",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_REPEATED_INITIAL_SUBMISSION",
+      "covers_negative_fixture": "a later submission repeating the UNSEEN/INITIAL_SUBMISSION case",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -343,8 +799,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           },
           {
@@ -354,8 +835,33 @@
             "disposition": "EVIDENCE_UPDATE_REVISION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -376,8 +882,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           },
           {
@@ -387,8 +918,33 @@
             "disposition": "EVIDENCE_UPDATE_REVISION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -409,8 +965,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           },
           {
@@ -420,8 +1001,116 @@
             "disposition": "EVIDENCE_UPDATE_REVISION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_DUPLICATE_SUBMISSION_ID",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_DUPLICATE_SUBMISSION_ID",
+      "covers_negative_fixture": "a duplicate submission_id within the chain",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison_category": "UNSEEN",
+            "disposition": "INITIAL_SUBMISSION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison_category": "NEW_EVIDENCE",
+            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -442,8 +1131,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           },
           {
@@ -453,8 +1167,33 @@
             "disposition": "EVIDENCE_UPDATE_REVISION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           },
           {
@@ -464,41 +1203,33 @@
             "disposition": "EVIDENCE_UPDATE_REVISION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345603",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:24468b32c01f888cc2d1c0dbc3531a7b871a5442404762c1ad4ca33ac35ba75e"
-            }
-          }
-        ]
-      }
-    },
-    {
-      "case_id": "PKGREV_NEG_CONTENT_HASH_UNCHANGED",
-      "expected": "deny",
-      "expected_failure_code": "PKGREV_CONTENT_HASH_UNCHANGED",
-      "covers_negative_fixture": "a revision whose content_hash is unchanged from its predecessor",
-      "run": {
-        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-        "submissions": [
-          {
-            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
-            "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
-            "package": {
-              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
-            }
-          },
-          {
-            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
-            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "NEW_EVIDENCE",
-            "disposition": "EVIDENCE_UPDATE_REVISION",
-            "package": {
-              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
-              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第三版內容：結論被推翻",
+              "content_hash": "sha256:24468b32c01f888cc2d1c0dbc3531a7b871a5442404762c1ad4ca33ac35ba75e",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -519,8 +1250,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           },
           {
@@ -530,8 +1286,33 @@
             "disposition": "CORRECTION_SUPERSESSION_PROPOSAL",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           }
         ]
@@ -552,8 +1333,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           },
           {
@@ -563,8 +1369,33 @@
             "disposition": "CORRECTION_SUPERSESSION_PROPOSAL",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             },
             "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
             "correction_kind": "REWRITE"
@@ -587,8 +1418,33 @@
             "disposition": "INITIAL_SUBMISSION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             }
           },
           {
@@ -598,8 +1454,33 @@
             "disposition": "EVIDENCE_UPDATE_REVISION",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60"
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
             },
             "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
             "correction_kind": "AMEND"
