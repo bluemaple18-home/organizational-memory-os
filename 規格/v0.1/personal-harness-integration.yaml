@@ -1218,6 +1218,81 @@ historical_comparison:
     material_effect or contradicts_prior when no_prior_record is true --
     there is nothing prior to differ from or contradict.
 
+organizational_value_assessment:
+  slice_of: SSP-323（EMEM-09）切片 2
+  purpose: >-
+    Assess how much organizational value an already-surfaced personal
+    observation/pattern might carry, and -- separately -- whether an
+    employee genuinely cannot resolve an open question themselves while it
+    still carries enough value to flag for organizational follow-up.
+    Organizational Value Assessment != Promotion Eligibility: this
+    evaluator never reads or writes candidate_status, record_status,
+    verification_status, acceptance_status or conflict_resolution_status,
+    and a HIGH assessment here does not itself authorize promotion --
+    SSP-294's existing gate, policy matrix and scope ceiling still apply
+    unchanged to whatever eventually gets proposed. NEEDS_ORG_FOLLOWUP !=
+    Company Knowledge: it is a follow-up signal carried through SSP-324's
+    Minimal Evidence Package, not a canonical record, and creates no
+    candidate/record identity by itself.
+  dimensions:
+    - repeatability
+    - impact_scope
+    - reusability
+    - cost_of_not_knowing
+    - decision_rationale_value
+    - scarcity
+    - stability
+    - evidence_strength
+    - sensitivity_or_permission_constraint
+  rating_levels:
+    - LOW
+    - MEDIUM
+    - HIGH
+  no_single_score: >-
+    The card requires readable per-dimension reasons, not a false-precision
+    single score. This evaluator structurally forbids any aggregate numeric
+    field (overall_score, value_score, total_score, score,
+    aggregate_score) on the run -- there is no computed or caller-declared
+    single number anywhere in this contract.
+  rating_derivation_and_substantiation: >-
+    Unlike historical_comparison's identity/hash/evidence-set signals,
+    none of these nine dimensions are computable from raw facts -- they
+    are inherently a human judgment call about value, so there is no
+    machine-derived rating for this evaluator to compute. The machine
+    boundary this evaluator enforces instead is completeness and
+    substantiation, not derivation: every dimension in `dimensions` must
+    appear in dimension_ratings (an assessment run may not silently omit
+    an unfavourable axis or cherry-pick only favourable ones); and a HIGH
+    rating -- the one consequential claim that can make an item eligible
+    for needs_org_followup -- is the one this evaluator refuses to trust
+    on a bare label: it requires non-empty reasons in dimension_reasons and
+    at least one evidence_ref in dimension_evidence_refs for that
+    dimension. LOW/MEDIUM ratings carry no such requirement.
+  needs_org_followup:
+    purpose: >-
+      A caller may submit needs_org_followup=true only when the Personal
+      Harness has already pushed the employee to resolve what they can
+      resolve themselves, the employee genuinely cannot answer or the
+      external evidence to answer is missing, and the matter still carries
+      assessed organizational value.
+    requires:
+      - answer_provided must be false -- a resolved question is not a
+        follow-up, checked as an internal consistency rule against
+        unresolved_question (not a second self-declared flag trusted on
+        its own)
+      - unresolved_question must be a non-empty string naming what remains
+        open
+      - missing_external_evidence must be true
+      - at least one dimension in dimension_ratings must be HIGH with its
+        substantiation (reasons + evidence_ref) present -- this is the
+        "organizational value still high" requirement, reusing the same
+        substantiation rule this evaluator already enforces for any HIGH
+        rating rather than a second, separately-trusted org-value flag
+    suggested_expert: >-
+      Optional hint only; null is legal and does not weaken the follow-up.
+      Expert routing, taxonomy and cross-person conflict resolution stay
+      in the Organizational Layer (SSP-324), not here.
+
 personal_memory_governance:
   required_dimensions:
     - source support

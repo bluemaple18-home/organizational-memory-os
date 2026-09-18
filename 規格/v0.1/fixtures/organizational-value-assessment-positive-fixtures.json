@@ -1,0 +1,119 @@
+{
+  "contract": "organizational_value_assessment",
+  "cases": [
+    {
+      "case_id": "OVA_POS_ALL_LOW_NO_FOLLOWUP",
+      "expected": "allow",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:1",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "answer_provided": true,
+        "unresolved_question": null,
+        "missing_external_evidence": false,
+        "needs_org_followup": false,
+        "suggested_expert": null
+      }
+    },
+    {
+      "case_id": "OVA_POS_MIXED_HIGH_SUBSTANTIATED_NO_FOLLOWUP",
+      "expected": "allow",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:2",
+        "dimension_ratings": {
+          "repeatability": "HIGH",
+          "impact_scope": "MEDIUM",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "HIGH",
+          "decision_rationale_value": "LOW",
+          "scarcity": "MEDIUM",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["同一個 workaround 三個月內被四個不同同事各自重做過一次"],
+          "cost_of_not_knowing": ["上次沒人知道這個，導致一次上線延遲兩天"]
+        },
+        "dimension_evidence_refs": {
+          "repeatability": ["urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"],
+          "cost_of_not_knowing": ["urn:omos:evidence-ref:00000002-1111-2222-3333-444444444444"]
+        },
+        "answer_provided": true,
+        "unresolved_question": null,
+        "missing_external_evidence": false,
+        "needs_org_followup": false,
+        "suggested_expert": null
+      }
+    },
+    {
+      "case_id": "OVA_POS_NEEDS_FOLLOWUP_NO_SUGGESTED_EXPERT",
+      "expected": "allow",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:3",
+        "dimension_ratings": {
+          "repeatability": "HIGH",
+          "impact_scope": "HIGH",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "MEDIUM",
+          "decision_rationale_value": "LOW",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "repeatability": ["每次季度盤點都會問同一個問題"],
+          "impact_scope": ["影響三個團隊的排程"]
+        },
+        "dimension_evidence_refs": {
+          "repeatability": ["urn:omos:evidence-ref:00000003-1111-2222-3333-444444444444"],
+          "impact_scope": ["urn:omos:evidence-ref:00000004-1111-2222-3333-444444444444"]
+        },
+        "answer_provided": false,
+        "unresolved_question": "當初這個排程規則是誰訂的、為什麼要這樣排，本人不知道",
+        "missing_external_evidence": true,
+        "needs_org_followup": true,
+        "suggested_expert": null
+      }
+    },
+    {
+      "case_id": "OVA_POS_NEEDS_FOLLOWUP_WITH_SUGGESTED_EXPERT",
+      "expected": "allow",
+      "run": {
+        "subject_ref": "urn:omos:personal-memory:observation:4",
+        "dimension_ratings": {
+          "repeatability": "LOW",
+          "impact_scope": "LOW",
+          "reusability": "LOW",
+          "cost_of_not_knowing": "LOW",
+          "decision_rationale_value": "HIGH",
+          "scarcity": "LOW",
+          "stability": "LOW",
+          "evidence_strength": "LOW",
+          "sensitivity_or_permission_constraint": "LOW"
+        },
+        "dimension_reasons": {
+          "decision_rationale_value": ["這個決策的原因目前只有離職同事知道"]
+        },
+        "dimension_evidence_refs": {
+          "decision_rationale_value": ["urn:omos:evidence-ref:00000005-1111-2222-3333-444444444444"]
+        },
+        "answer_provided": false,
+        "unresolved_question": "當初為什麼選這個廠商，本人只聽過片段",
+        "missing_external_evidence": true,
+        "needs_org_followup": true,
+        "suggested_expert": "urn:omos:employee:former-lead-01"
+      }
+    }
+  ]
+}
