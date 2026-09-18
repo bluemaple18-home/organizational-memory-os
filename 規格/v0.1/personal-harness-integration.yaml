@@ -1464,6 +1464,61 @@ minimal_evidence_package:
     - verification_status
     - acceptance_status
     - conflict_resolution_status
+  package_closed_shape_rule: >-
+    package_required_fields is also the complete allowlist: a package's key
+    set must be exactly those fields, no more. repair-01 -- the first
+    version only checked "required present" plus a fixed forbidden-name
+    list, so renaming the payload (private_blob, extra_context, anything
+    not on the ban list) carried whole-store material straight through the
+    boundary this slice exists to enforce. A ban list can only ever name
+    yesterday's bypass; the allowlist is the actual boundary. The
+    forbidden list is kept in front of it so those specific names still
+    fail with their own loud code rather than a generic "unknown field".
+  ref_binding:
+    evidence_refs: EVIDENCE_RECORD
+    source_anchor_refs: SOURCE_ANCHOR
+    canonical_ref_source: common-vocabulary.identifiers.omos_generated.ref_template + common-vocabulary.resource_kinds
+    acl_snapshot_pattern_source: 規格/v0.1/raw-evidence-envelope.schema.json#/properties/access/properties/acl_snapshot_ref
+    rule: >-
+      repair-01 -- these were originally checked only as "some urn:omos:*
+      string", so urn:omos:canonical:secret passed as an evidence ref, a
+      source anchor ref and an ACL snapshot ref alike. They are now bound
+      to the upstream shapes that actually define them: evidence_refs and
+      source_anchor_refs must be canonical refs of exactly the pinned
+      resource kind, built from common-vocabulary's own ref_template and
+      resource_kinds vocabulary; source_acl_snapshot_ref binds to the same
+      STD-01 acl_snapshot_ref pattern permission-retention-deletion.yaml
+      already binds to, read from the schema rather than transcribed.
+    known_gap: >-
+      common-vocabulary declares no PROVENANCE resource kind, so
+      provenance_chain_refs can only be bound to "a canonical ref whose
+      kind is one of the declared resource_kinds", not to a pinned kind.
+      package_id, employee_owner_ref, consent_ref and redaction_ref are
+      org-side identifiers (tenant / employee / consent / redaction
+      records), not OMOS canonical resources, so they stay at generic
+      omos-URN shape. Both are stated here rather than left to look like
+      the same strength of binding as the pinned fields.
+  content_bound:
+    basis: UTF8_BYTES
+    max_bytes: 4096
+    rule: >-
+      repair-01 -- content_snapshot was previously only "a non-blank
+      string", so an entire serialized Personal Store was a legal package.
+      The snapshot is a bounded excerpt supporting THIS proposal, so it
+      carries a declared byte ceiling, measured by the evaluator from the
+      value itself rather than from any self-reported size field. The
+      number lives here as policy, not in the evaluator.
+  content_hash_basis:
+    algorithm: SHA256
+    serialization: "sha256:<64 lowercase hex>"
+    input: content_snapshot UTF-8 bytes, verbatim, no normalization
+    rule: >-
+      repair-01 -- content_hash was previously only a non-blank string, so
+      "not-a-hash" passed and content could be altered while the hash
+      stayed put, which is the one thing an integrity field exists to
+      prevent. The evaluator now recomputes the digest from
+      content_snapshot and requires an exact match, so the basis above is
+      normative, not descriptive.
   package_forbidden_fields_note: >-
     The first three are the "whole Personal Store dump" ban; the last five
     are the same FORBIDDEN_LIFECYCLE_FIELDS boundary historical_comparison

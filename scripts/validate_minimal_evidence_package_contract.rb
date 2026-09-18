@@ -35,6 +35,11 @@ ROOT = File.expand_path("..", __dir__)
 SPEC_PATH = File.join(ROOT, "規格/v0.1/personal-harness-integration.yaml")
 POSITIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/minimal-evidence-package-positive-fixtures.json")
 NEGATIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/minimal-evidence-package-negative-fixtures.json")
+VOCAB_PATH = File.join(ROOT, "規格/v0.1/common-vocabulary.yaml")
+STD01_SCHEMA_PATH = File.join(ROOT, "規格/v0.1/raw-evidence-envelope.schema.json")
+
+EVIDENCE_KIND = "EVIDENCE_RECORD"
+SOURCE_ANCHOR_KIND = "SOURCE_ANCHOR"
 
 OMOS_URN = /\Aurn:omos:[a-z0-9-]+:.+\z/.freeze
 
@@ -46,8 +51,23 @@ def blank?(value)
   !value.is_a?(String) || value.strip.empty?
 end
 
-def urn_list?(value)
-  value.is_a?(Array) && !value.empty? && value.all? { |item| urn?(item) }
+# canonical ref = common-vocabulary 的 ref_template + resource_kinds 詞彙。
+# 兩者都在評估當下讀上游，這裡不手抄 URN 結構。
+def kebab(kind)
+  kind.to_s.downcase.tr("_", "-")
+end
+
+def canonical_ref?(value, allowed_kinds)
+  return false unless value.is_a?(String)
+
+  allowed_kinds.any? { |kind| CANONICAL_REF_PATTERNS[kind]&.match?(value) }
+end
+
+def build_canonical_ref_pattern(ref_template, kind)
+  uuid = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+  literal = Regexp.escape(ref_template).sub(Regexp.escape("{resource-kind}"), Regexp.escape(kebab(kind)))
+                                       .sub(Regexp.escape("{uuid}"), uuid)
+  /\A#{literal}\z/
 end
 
 ALLOWED_REQUEST_KINDS = %w[PACKAGE_LOOKUP].freeze
@@ -68,10 +88,11 @@ PACKAGE_FORBIDDEN_FIELDS = %w[
   conflict_resolution_status
 ].freeze
 
-# 必為 URN 的單值欄位。
-URN_FIELDS = %w[package_id employee_owner_ref source_acl_snapshot_ref].freeze
-# 必為「非空且全為 URN 的陣列」的欄位。
-URN_LIST_FIELDS = %w[evidence_refs source_anchor_refs provenance_chain_refs].freeze
+# 只能驗到「generic omos URN」的欄位：org 端 identity（tenant／employee／
+# consent／redaction），不是 OMOS canonical resource，上游沒有對應 kind。
+URN_FIELDS = %w[package_id employee_owner_ref].freeze
+# 必為「非空陣列」的 ref 清單欄位（元素形狀另外依 ref_binding 逐欄驗）。
+REF_LIST_FIELDS = %w[evidence_refs source_anchor_refs provenance_chain_refs].freeze
 # 必為非空字串的欄位。
 TEXT_FIELDS = %w[tenant_id sensitivity content_snapshot content_hash submitted_at].freeze
 # 可為 null，但若有值必須是字串的欄位（形狀鎖，不接受 Hash／Array 夾帶）。
@@ -85,10 +106,18 @@ EXPECTED_NEGATIVE_LABELS = [
   "a package that is not a map",
   "a package missing a required field",
   "a package carrying a forbidden field",
+  "a package carrying a field outside the allowlist",
   "a package_id that does not match the requested package_ref",
   "a single-value ref field that is not an omos URN",
   "a candidate_ref that is not a PersonalMemoryCandidate identity",
-  "a ref list field that is not a non-empty array of omos URNs",
+  "a ref list field that is not a non-empty array",
+  "an evidence_ref that is not a canonical EVIDENCE_RECORD ref",
+  "a source_anchor_ref that is not a canonical SOURCE_ANCHOR ref",
+  "a provenance_chain_ref that is not a canonical omos resource ref",
+  "a source_acl_snapshot_ref that does not match the STD-01 acl_snapshot_ref pattern",
+  "a content_snapshot over the declared byte bound",
+  "a content_hash that is not a sha256 serialization",
+  "a content_hash that does not match the recomputed digest of content_snapshot",
   "a scope_mode not declared in ownership_visibility_contract.mode_definitions",
   "an ownership_mode that disagrees with the upstream mode definition",
   "a visibility_scope that disagrees with the upstream mode definition",
@@ -100,7 +129,8 @@ EXPECTED_NEGATIVE_LABELS = [
 
 # --- 結構驗證（fail-closed）------------------------------------------------
 
-def transmission_failure(run, mode_definitions, candidate_ref_prefix)
+def transmission_failure(run, mode_definitions, candidate_ref_prefix, all_resource_kinds,
+                         acl_snapshot_pattern, max_content_bytes)
   request = run["access_request"]
   return "MEP_ACCESS_REQUEST_NOT_MAP" unless request.is_a?(Hash)
   return "MEP_FORBIDDEN_ACCESS_KIND" unless ALLOWED_REQUEST_KINDS.include?(request["request_kind"])
@@ -111,18 +141,37 @@ def transmission_failure(run, mode_definitions, candidate_ref_prefix)
   return "MEP_PACKAGE_NOT_MAP" unless package.is_a?(Hash)
   return "MEP_REQUIRED_FIELD_MISSING" unless PACKAGE_REQUIRED_FIELDS.all? { |f| package.key?(f) }
   return "MEP_FORBIDDEN_FIELD_PRESENT" if PACKAGE_FORBIDDEN_FIELDS.any? { |f| package.key?(f) }
+  # repair-01：required_fields 同時就是完整 allowlist——禁用清單只擋得住已經
+  # 想到的名字，改個欄位名就能把 whole-store material 帶進來。
+  return "MEP_PACKAGE_UNKNOWN_FIELD" unless (package.keys - PACKAGE_REQUIRED_FIELDS).empty?
   # bounded lookup 不能被拿來換一個別的封包。
   return "MEP_PACKAGE_REF_MISMATCH" unless package["package_id"] == request["package_ref"]
 
   return "MEP_REF_FIELD_NOT_URN" unless URN_FIELDS.all? { |f| urn?(package[f]) }
   return "MEP_CANDIDATE_REF_NOT_CANDIDATE" unless package["candidate_ref"].is_a?(String) &&
                                                   package["candidate_ref"].start_with?(candidate_ref_prefix)
-  return "MEP_REF_LIST_NOT_URN_ARRAY" unless URN_LIST_FIELDS.all? { |f| urn_list?(package[f]) }
+  return "MEP_REF_LIST_NOT_ARRAY" unless REF_LIST_FIELDS.all? { |f| package[f].is_a?(Array) && !package[f].empty? }
+
+  # repair-01：ref 不再只驗「是某種 omos URN」，而是綁上游真正定義它的形狀。
+  return "MEP_EVIDENCE_REF_NOT_CANONICAL" unless package["evidence_refs"].all? { |r| canonical_ref?(r, [EVIDENCE_KIND]) }
+  return "MEP_SOURCE_ANCHOR_REF_NOT_CANONICAL" unless package["source_anchor_refs"].all? { |r| canonical_ref?(r, [SOURCE_ANCHOR_KIND]) }
+  return "MEP_PROVENANCE_REF_NOT_CANONICAL" unless package["provenance_chain_refs"].all? { |r| canonical_ref?(r, all_resource_kinds) }
+  return "MEP_ACL_SNAPSHOT_REF_NOT_CANONICAL" unless package["source_acl_snapshot_ref"].is_a?(String) &&
+                                                     acl_snapshot_pattern.match?(package["source_acl_snapshot_ref"])
+
   return "MEP_TEXT_FIELD_BLANK" if TEXT_FIELDS.any? { |f| blank?(package[f]) }
   return "MEP_NULLABLE_FIELD_NOT_STRING" if NULLABLE_STRING_FIELDS.any? { |f| !package[f].nil? && !package[f].is_a?(String) }
 
   reasons = package["organizational_value_reasons"]
-  return "MEP_VALUE_REASONS_EMPTY" unless reasons.is_a?(Array) && reasons.any? { |r| !blank?(r) }
+  # repair-01：any? 改成 all?——只要有一個非空字串就放行，等於其餘元素可以是
+  # 任意 nested payload。
+  return "MEP_VALUE_REASONS_EMPTY" unless reasons.is_a?(Array) && !reasons.empty? && reasons.all? { |r| !blank?(r) }
+
+  # repair-01：bounded content + 真正可驗的 integrity。
+  content = package["content_snapshot"]
+  return "MEP_CONTENT_SNAPSHOT_OVER_BOUND" if content.bytesize > max_content_bytes
+  return "MEP_CONTENT_HASH_NOT_SHA256" unless SHA256_LOCKED_PATTERN.match?(package["content_hash"].to_s)
+  return "MEP_CONTENT_HASH_MISMATCH" unless package["content_hash"] == "sha256:#{Digest::SHA256.hexdigest(content)}"
 
   scope_mode = package["scope_mode"]
   mode = mode_definitions[scope_mode]
@@ -172,6 +221,39 @@ assert(mode_definitions.any?, "ownership_visibility_contract.mode_definitions �
 assert(mode_definitions.values.any? { |m| m.is_a?(Hash) && m["consent_or_notice_required"] == "CONSENT_REQUIRED" },
        "至少要有一個 mode 宣告 CONSENT_REQUIRED，否則 consent 規則無從綁定", failures)
 
+# --- 上游 ref 形狀綁定（repair-01）----------------------------------------
+vocab = read_yaml(VOCAB_PATH)
+all_resource_kinds = vocab.fetch("resource_kinds", [])
+ref_template = vocab.dig("identifiers", "omos_generated", "ref_template")
+assert(all_resource_kinds.any?, "common-vocabulary.resource_kinds 必須存在（本片綁定它，不重述）", failures)
+assert(ref_template.is_a?(String) && ref_template.include?("{resource-kind}") && ref_template.include?("{uuid}"),
+       "common-vocabulary.identifiers.omos_generated.ref_template 必須存在且含兩個 placeholder", failures)
+[EVIDENCE_KIND, SOURCE_ANCHOR_KIND].each do |kind|
+  assert(all_resource_kinds.include?(kind), "common-vocabulary.resource_kinds 必須含 #{kind}（本片 pin 它）", failures)
+end
+CANONICAL_REF_PATTERNS = all_resource_kinds.each_with_object({}) do |kind, acc|
+  acc[kind] = build_canonical_ref_pattern(ref_template.to_s, kind)
+end.freeze
+
+# acl_snapshot_ref 的 pattern 直接取自 STD-01 schema，不手抄——與
+# validate_permission_retention_deletion_contract.rb 綁的是同一個來源。
+std01 = read_json(STD01_SCHEMA_PATH)
+acl_pattern_source = std01.dig("properties", "access", "properties", "acl_snapshot_ref", "pattern")
+assert(acl_pattern_source.is_a?(String) && !acl_pattern_source.empty?,
+       "STD-01 的 access.acl_snapshot_ref.pattern 必須存在（本片綁定它，不重述）", failures)
+acl_snapshot_pattern = Regexp.new(acl_pattern_source.to_s)
+assert(mep.dig("ref_binding", "acl_snapshot_pattern_source").to_s.include?("raw-evidence-envelope.schema.json"),
+       "ref_binding.acl_snapshot_pattern_source 必須指向 STD-01 schema", failures)
+assert(mep.dig("ref_binding", "evidence_refs") == EVIDENCE_KIND &&
+       mep.dig("ref_binding", "source_anchor_refs") == SOURCE_ANCHOR_KIND,
+       "ref_binding 宣告的 pinned kind 必須與 evaluator 實際 pin 的一致", failures)
+
+max_content_bytes = mep.dig("content_bound", "max_bytes")
+assert(max_content_bytes.is_a?(Integer) && max_content_bytes.positive?,
+       "minimal_evidence_package.content_bound.max_bytes 必須是正整數（policy 住在契約，不在 evaluator）", failures)
+assert(mep.dig("content_hash_basis", "algorithm") == "SHA256",
+       "content_hash_basis.algorithm 必須是 SHA256（evaluator 依此重算）", failures)
+
 candidate_id_template = spec.dig("personal_memory_resource_contracts", "shared_constraints", "id_templates",
                                   "PersonalMemoryCandidate")
 assert(candidate_id_template.is_a?(String) && candidate_id_template.include?("{"),
@@ -188,7 +270,8 @@ positive_fixtures.fetch("cases").each do |test_case|
   run = test_case.fetch("run")
   assert(test_case.fetch("expected") == "allow", "#{case_id} 正例必須預期 allow", failures)
 
-  actual_failure = transmission_failure(run, mode_definitions, candidate_ref_prefix)
+  actual_failure = transmission_failure(run, mode_definitions, candidate_ref_prefix, all_resource_kinds,
+                                       acl_snapshot_pattern, max_content_bytes)
   assert(actual_failure.nil?, "#{case_id} 預期 allow，實際被拒：#{actual_failure}", failures)
 end
 
@@ -199,7 +282,8 @@ negative_cases.each do |test_case|
   assert(test_case.fetch("expected") == "deny", "#{case_id} 負例必須預期 deny", failures)
   expected_code = test_case.fetch("expected_failure_code")
 
-  actual = transmission_failure(run, mode_definitions, candidate_ref_prefix)
+  actual = transmission_failure(run, mode_definitions, candidate_ref_prefix, all_resource_kinds,
+                                       acl_snapshot_pattern, max_content_bytes)
   assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
   assert(actual == expected_code, "#{case_id} 預期 #{expected_code}，實際 #{actual.inspect}", failures)
 end
@@ -229,9 +313,17 @@ ERROR_CONTRACT = {
   "MEP_REQUIRED_FIELD_MISSING" => "minimal_evidence_package.error.required_field_missing",
   "MEP_FORBIDDEN_FIELD_PRESENT" => "minimal_evidence_package.error.forbidden_field_present",
   "MEP_PACKAGE_REF_MISMATCH" => "minimal_evidence_package.error.package_ref_mismatch",
+  "MEP_PACKAGE_UNKNOWN_FIELD" => "minimal_evidence_package.error.package_unknown_field",
   "MEP_REF_FIELD_NOT_URN" => "minimal_evidence_package.error.ref_field_not_urn",
   "MEP_CANDIDATE_REF_NOT_CANDIDATE" => "minimal_evidence_package.error.candidate_ref_not_candidate",
-  "MEP_REF_LIST_NOT_URN_ARRAY" => "minimal_evidence_package.error.ref_list_not_urn_array",
+  "MEP_REF_LIST_NOT_ARRAY" => "minimal_evidence_package.error.ref_list_not_array",
+  "MEP_EVIDENCE_REF_NOT_CANONICAL" => "minimal_evidence_package.error.evidence_ref_not_canonical",
+  "MEP_SOURCE_ANCHOR_REF_NOT_CANONICAL" => "minimal_evidence_package.error.source_anchor_ref_not_canonical",
+  "MEP_PROVENANCE_REF_NOT_CANONICAL" => "minimal_evidence_package.error.provenance_ref_not_canonical",
+  "MEP_ACL_SNAPSHOT_REF_NOT_CANONICAL" => "minimal_evidence_package.error.acl_snapshot_ref_not_canonical",
+  "MEP_CONTENT_SNAPSHOT_OVER_BOUND" => "minimal_evidence_package.error.content_snapshot_over_bound",
+  "MEP_CONTENT_HASH_NOT_SHA256" => "minimal_evidence_package.error.content_hash_not_sha256",
+  "MEP_CONTENT_HASH_MISMATCH" => "minimal_evidence_package.error.content_hash_mismatch",
   "MEP_TEXT_FIELD_BLANK" => "minimal_evidence_package.error.text_field_blank",
   "MEP_NULLABLE_FIELD_NOT_STRING" => "minimal_evidence_package.error.nullable_field_not_string",
   "MEP_VALUE_REASONS_EMPTY" => "minimal_evidence_package.error.value_reasons_empty",

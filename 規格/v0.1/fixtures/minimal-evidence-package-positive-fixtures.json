@@ -20,15 +20,15 @@
           "sensitivity": "LOW",
           "consent_ref": "urn:omos:consent:c-1",
           "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
-          "content_hash": "sha256:aaaa1111bbbb2222",
+          "content_hash": "sha256:35bfbc1e43af9bbff3c3cf4309620d1cc2b0874958ed6f70377658de2a66054d",
           "evidence_refs": [
-            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+            "urn:omos:evidence-record:00000001-1111-2222-3333-444444444444"
           ],
           "source_anchor_refs": [
             "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
           ],
           "provenance_chain_refs": [
-            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+            "urn:omos:receipt:00000002-1111-2222-3333-444444444444"
           ],
           "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
           "redaction_ref": null,
@@ -60,15 +60,15 @@
           "sensitivity": "LOW",
           "consent_ref": null,
           "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
-          "content_hash": "sha256:aaaa1111bbbb2222",
+          "content_hash": "sha256:35bfbc1e43af9bbff3c3cf4309620d1cc2b0874958ed6f70377658de2a66054d",
           "evidence_refs": [
-            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+            "urn:omos:evidence-record:00000001-1111-2222-3333-444444444444"
           ],
           "source_anchor_refs": [
             "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
           ],
           "provenance_chain_refs": [
-            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+            "urn:omos:receipt:00000002-1111-2222-3333-444444444444"
           ],
           "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
           "redaction_ref": null,
@@ -100,15 +100,15 @@
           "sensitivity": "LOW",
           "consent_ref": null,
           "content_snapshot": "排程規則的 workaround：先鎖定既有批次視窗，再申請例外。",
-          "content_hash": "sha256:aaaa1111bbbb2222",
+          "content_hash": "sha256:35bfbc1e43af9bbff3c3cf4309620d1cc2b0874958ed6f70377658de2a66054d",
           "evidence_refs": [
-            "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+            "urn:omos:evidence-record:00000001-1111-2222-3333-444444444444"
           ],
           "source_anchor_refs": [
             "urn:omos:source-anchor:00000001-1111-2222-3333-444444444444"
           ],
           "provenance_chain_refs": [
-            "urn:omos:provenance-step:00000001-1111-2222-3333-444444444444"
+            "urn:omos:receipt:00000002-1111-2222-3333-444444444444"
           ],
           "source_acl_snapshot_ref": "urn:omos:acl-snapshot:00000001-1111-2222-3333-444444444444",
           "redaction_ref": null,
