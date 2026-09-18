@@ -6,7 +6,7 @@
 base            b1d40d7
 repair-01       f945486
 original_review 965c111（審的是 ca3b42e..f945486；965c111 只是 handoff SHA 補正）
-repair_commit   （本次 commit，待 push 後補上）
+repair_commit   f5e5975
 ```
 
 ## Reviewer NO_GO（2026-09-18，對 `f945486`）
