@@ -5,7 +5,7 @@
 ```
 base             72ac78d
 repair-02        5db98e0（delivery fb4bc51）
-repair_commit    （本次 commit，待 push 後補上）
+repair_commit    80d3c17
 branch           cc/ssp324-revision-dedup
 ```
 
