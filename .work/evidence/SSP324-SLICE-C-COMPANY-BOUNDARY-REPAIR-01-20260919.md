@@ -78,8 +78,9 @@ evaluator 依它驗 `package_id`（新錯誤碼
 切片 1 golden：27/27 不變
 ```
 
-也就是**沒有任何原本被接受的輸入改變結果**；改變的是原本「不該被接受卻被
-接受」的那一類：
+精確說法（依 reviewer 指正收準）：**既有 golden 樣本結果未變；`package_id`
+的接受集合是有意收窄的**——不是整個輸入域保持等價。原先一般 OMOS URN 確實
+可以通過，現在不能：
 
 ```
 generic-but-non-template 的 package_id

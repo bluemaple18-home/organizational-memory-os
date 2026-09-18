@@ -59,8 +59,8 @@ evaluator 依它驗 `package_id`（新碼 `MEP_PACKAGE_ID_NOT_EVIDENCE_PACKAGE`�
 切片 1 golden：27/27 不變
 ```
 
-沒有任何原本被接受的輸入改變結果；改變的是原本「不該被接受卻被接受」的
-那一類：
+精確說法：**既有 golden 樣本結果未變；`package_id` 的接受集合是有意收窄**
+——不是整個輸入域等價。原先一般 OMOS URN 可以通過，現在不能：
 
 ```
 generic-but-non-template package_id
