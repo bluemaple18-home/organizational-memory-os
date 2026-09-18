@@ -6,6 +6,7 @@
 base             f38e82c
 original_review  80bce4c
 repair_commit    71124da   （程式碼修法本身）
+delivery         0d2fcc0   （branch HEAD，含本 handoff／evidence 文件；review 應以此為準）
 branch           cc/ssp323-org-value-assessment
 ```
 
