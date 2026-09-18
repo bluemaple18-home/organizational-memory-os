@@ -2,7 +2,7 @@
 
 - 卡片：`.work/CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918.md`
 - 分支：`cc/emem11-local-store-runtime`
-- 交付 SHA：`39534c999f2dde46c6d7eae7f2e25bbaba5b584c`
+- 交付 SHA：見下方「最終交付」
 - 基底：`ee11da5`（main，已含 Owner 裁決的 Design Freeze A～F）
 - worktree：`../知識庫-emem11a`
 
@@ -31,6 +31,36 @@ migration 鏈的尾巴、idempotent replay 必須落回同一列、revision 必�
 | HostSessionBinding 儲存 | `PMR_HOST_BINDING_*`（6 碼）、`PMR_MCP_OPERATION_MISSING_HOST_BINDING`、`PMR_CLI_OPERATION_CLAIMS_HOST_BINDING` |
 | 確定性權限檢查 seam | `PMR_PERMISSION_CHECK_NOT_FIRST` |
 | MCP server base interface | `PMR_SURFACE_FORBIDDEN`、`PMR_SURFACE_NOT_IN_CLOSED_ENUM`、`PMR_PATH_NOT_DECLARED_PATH` |
+
+## 1.5 Minimum Sufficient（why_not_less / why_not_more / do_not_absorb）
+
+這一節原本漏掉，是 Owner 在 review 前抓出來的：`runtime` 是
+`PRODUCT_FIT_TRIGGER` 的字面觸發詞，Owner 裁決 E 給的是**授權**不是**尺寸**，
+兩者不能互相代替。交付量測：手寫 Ruby 538 行、YAML 契約 138 行、
+fixture 1,046 行（改版後；原本 10,143 行，見第 4 節）。
+
+**why_not_less** — 47 個錯誤碼看似多，但卡片切片 1 的 scope 明列十個子系統
+（見上表），平均每個子系統不到 5 個守衛。真正可以更少的只有一處：
+`PMR_*_NOT_MAP` 系列（run / store / operation / migration / row / closeout 各一碼）
+其實是同一個「外殼不是預期形狀」的檢查，合併成 2 碼可以少 4 碼。我選擇不合併，
+理由是負例訊息會從「closeout payload 不是 map」退化成「某處外殼不對」，
+而這片的守衛密度已經高到需要靠錯誤碼定位。**這是可裁的一項**，Owner 若判
+「少 4 碼比較好」我照改。其餘 43 碼各自對應一個獨立 exploit，拿掉任何一個
+都會讓一類攻擊通過——第 4 節的 47/47 sweep 就是這件事的證據。
+
+**why_not_more** — 明確**沒有**做的東西：
+- 沒有寫任何真正的 SQLite 實作、schema DDL、連線池或 MCP server 程式碼。
+  這片只交契約 + validator + fixtures，與 SSP-323／SSP-324 每一片的交付形狀一致。
+- 沒有新造 ledger／registry／FSM／writer（`FORBIDDEN_BY_DEFAULT`）。
+  `personal_memory_runtime` 是一個契約區塊，不是第二個 runtime。
+- 沒有為 Design Freeze A～F 開任何新卡（Owner 已明示禁止）。
+- 沒有碰 EMEM-11 切片 2／3 的範圍（host binding 適配、跨 host conformance）。
+- 第 5 節列的五個邊界，我全部選擇**留給 review 裁決**而不是自行補上。
+
+**do_not_absorb** — 不吸收進這片的：`employee_memory_scope_modes` 的詞彙綁定
+（會動到 scope 區塊接點）、`personal_memory_resource_contracts.required_fields`
+的內容驗證（會與切片 3 的 portability 檢查重疊）、SQLite 交易模式與併發政策
+（屬實作層，不屬契約層）。三者都記在第 5 節，不是遺漏。
 
 ## 2. 對照表（每個檢查：對照物是誰、它長什麼樣、我讀的是不是同一個東西）
 
@@ -86,6 +116,32 @@ migration 鏈的尾巴、idempotent replay 必須落回同一列、revision 必�
   每次都還原並 `diff` 驗證 spec byte-identical。
 - fixtures：2 正例（完整九步序列 / 最小兩步序列）、50 負例涵蓋 47 個錯誤碼
   （`PMR_SURFACE_FORBIDDEN` 有 4 筆，四種遠端面各一）。
+
+### 4.1 負例表示法：base + 明寫 mutation（reviewer 請從這裡看起）
+
+初版每個負例都是九步序列的**全量深拷貝**，負例檔 9,892 行，平均每筆 200 行
+而實際改動通常只有一行——reviewer 得自己 diff 兩份兩百行 JSON 才看得出攻擊點。
+Owner 在 review 前抓到這件事，已改成 base + mutation：
+
+```json
+{ "base": { ...一段合法的九步序列... },
+  "cases": [
+    { "case_id": "pmr-neg-40",
+      "expected_failure_code": "PMR_IN_PLACE_ROW_OVERWRITE",
+      "mutate": { "set": { "operations/3/row/idempotency_key": "k-9" } } } ] }
+```
+
+- 負例檔 **9,892 → 795 行**；fixture 合計 10,143 → 1,046 行。
+- 路徑機制直接沿用 `omos_contract_helpers` 既有的
+  `deep_dup` / `set_path` / `delete_path` / `read_path`（`/` 分段、Array 索引 0 起算），
+  **沒有為此新造第二套路徑工具**。
+- mutation 動詞只有四個：`set` / `delete` / `append` / `replace_run`。
+- validator 新增三條斷言撐住這個表示法：
+  1. `base` 本身必須通過 → 每個負例精確等於「一段會通過的序列 + 這一個 mutation」；
+  2. 每筆必須宣告非空 mutation；
+  3. mutation 後的 run 必須真的不同於 base（`canonical_json` 比對）。
+- `runtime_log_failure` 本體**一行未改**；上述 47/47 sweep 與 8/8 漂移探針
+  都是在改版後重跑的結果。
 
 ## 5. 已知邊界（請 review 針對這些下手）
 

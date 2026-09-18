@@ -439,10 +439,36 @@ positive_fixtures.fetch("cases").each do |test_case|
   assert(actual.nil?, "#{case_id} 預期 allow，實際被拒：#{actual}", failures)
 end
 
+# 負例採 base + 明寫 mutation：每一筆只宣告它對那段合法序列動了什麼，
+# reviewer 不必 diff 兩份兩百行的 JSON 才看得出攻擊點。路徑機制直接沿用
+# omos_contract_helpers 既有的 set_path／delete_path／read_path，不另造一套。
+negative_base = negative_fixtures.fetch("base")
+# 這條斷言是整個表示法的支點：base 自己必須是合法序列，因此每個負例都
+# 精確地等於「一段會通過的序列，再加上下面這一個 mutation」。
+assert(runtime_log_failure(negative_base, BINDINGS).nil?,
+       "負例 base 必須本身通過，否則每個負例都可能是因為別的原因被拒", failures)
+
+def apply_fixture_mutation(base, mutation)
+  return mutation["replace_run"] if mutation.key?("replace_run")
+
+  run = deep_dup(base)
+  (mutation["set"] || {}).each { |path, value| set_path(run, path, value) }
+  (mutation["delete"] || []).each { |path| delete_path(run, path) }
+  (mutation["append"] || {}).each { |path, value| read_path(run, path) << value }
+  run
+end
+
 negative_cases = negative_fixtures.fetch("cases")
+negative_runs = []
 negative_cases.each do |test_case|
   case_id = test_case.fetch("case_id")
-  run = test_case.fetch("run")
+  mutation = test_case.fetch("mutate")
+  assert(mutation.is_a?(Hash) && mutation.any?,
+         "#{case_id} 必須宣告至少一個 mutation（空 mutation 等於重貼 base）", failures)
+  run = apply_fixture_mutation(negative_base, mutation)
+  negative_runs << run
+  assert(canonical_json(run) != canonical_json(negative_base),
+         "#{case_id} 的 mutation 沒有真的改變 base", failures)
   assert(test_case.fetch("expected") == "deny", "#{case_id} 負例必須預期 deny", failures)
   expected_code = test_case.fetch("expected_failure_code")
 
@@ -457,8 +483,7 @@ assert(missing_labels.empty?, "negative fixtures 未覆蓋：#{missing_labels.to
 
 # 每一個宣告為禁止的遠端 surface 都必須有負例實際打過，不能只宣告在 YAML 裡。
 covered_forbidden = sorted_set(
-  negative_cases.map do |c|
-    r = c["run"]
+  negative_runs.map do |r|
     ops = r.is_a?(Hash) ? r["operations"] : nil
     ops.is_a?(Array) ? ops.map { |o| o.is_a?(Hash) ? o["surface"] : nil } : nil
   end.compact.flatten.compact & forbidden_surfaces
