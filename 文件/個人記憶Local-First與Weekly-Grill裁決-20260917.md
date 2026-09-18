@@ -115,6 +115,24 @@ Dynamic Grill
 Disposition
 ```
 
+### Weekly cadence / reminder
+
+Owner 裁決：
+
+```text
+MVP default = 每週五下午
+missed / holiday / leave / work conflict
+→ 下一個工作日補做
+```
+
+這是組織層的 cadence policy，不是核心 Personal Memory lifecycle 常數：
+
+- Tenant / Company 可依工作週調整 weekly anchor，不需要改 Personal Memory contract。
+- 未指定精確鐘點時只要求「下午」回顧窗口，不硬編碼固定時間。
+- 補做仍針對原 review period 收口，避免跨週後把新資料混成同一週重複回顧。
+- 同一 review period 只能有一個有效 closeout；retry / catch-up 必須去重。
+- 週五未完成且仍待下一工作日補做，不等於 `SKIPPED`；`SKIPPED` 必須是明確的最終處置。
+
 ### Knowledge Recovery
 
 從本週與歷史工作中找回已經形成、但尚未正式外化的：
