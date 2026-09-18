@@ -4,7 +4,7 @@
 
 ```
 base    f38e82c
-review  （本次 commit，待 push 後補上）
+review  c52e65e
 branch  cc/ssp323-org-value-assessment
 ```
 
