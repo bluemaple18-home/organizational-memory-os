@@ -1,0 +1,55 @@
+{
+  "contract": "personal_store_portability",
+  "cases": [
+    {
+      "case_id": "PORTABILITY_POS_CLAUDE_CODE_VS_CODEX",
+      "expected": "allow",
+      "projection_a": {
+        "executor_ref": "Claude Code",
+        "executor_session_ref": "urn:omos:executor-session:claude-code:1",
+        "record_id": "urn:omos:personal-memory:candidate:1",
+        "content_digest": "sha256:aaaa1111",
+        "evidence_refs": [
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444",
+          "urn:omos:evidence-ref:00000002-1111-2222-3333-444444444444"
+        ],
+        "created_at": "2026-09-18T09:00:00Z"
+      },
+      "projection_b": {
+        "executor_ref": "Codex",
+        "executor_session_ref": "urn:omos:executor-session:codex:9",
+        "record_id": "urn:omos:personal-memory:candidate:1",
+        "content_digest": "sha256:aaaa1111",
+        "evidence_refs": [
+          "urn:omos:evidence-ref:00000002-1111-2222-3333-444444444444",
+          "urn:omos:evidence-ref:00000001-1111-2222-3333-444444444444"
+        ],
+        "created_at": "2026-09-18T09:00:00Z"
+      }
+    },
+    {
+      "case_id": "PORTABILITY_POS_HERMES_VS_DEEPSEEK",
+      "expected": "allow",
+      "projection_a": {
+        "executor_ref": "Hermes",
+        "executor_session_ref": "urn:omos:executor-session:hermes:2",
+        "record_id": "urn:omos:personal-memory:record:7",
+        "content_digest": "sha256:bbbb2222",
+        "evidence_refs": [
+          "urn:omos:evidence-ref:00000003-1111-2222-3333-444444444444"
+        ],
+        "created_at": "2026-09-10T00:00:00Z"
+      },
+      "projection_b": {
+        "executor_ref": "DeepSeek Harness",
+        "executor_session_ref": "urn:omos:executor-session:deepseek:4",
+        "record_id": "urn:omos:personal-memory:record:7",
+        "content_digest": "sha256:bbbb2222",
+        "evidence_refs": [
+          "urn:omos:evidence-ref:00000003-1111-2222-3333-444444444444"
+        ],
+        "created_at": "2026-09-10T00:00:00Z"
+      }
+    }
+  ]
+}

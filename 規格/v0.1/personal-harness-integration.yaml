@@ -1505,6 +1505,37 @@ runtime_policy:
     - Hermes
     - DeepSeek Harness
   executor_authority_over_memory: false
+  portable_record_contract:
+    slice_of: SSP-323（EMEM-09）切片 3
+    purpose: >-
+      Make "the AI platform is only an executor, never the Personal Memory
+      authority" a machine-checkable claim, not only a sentence. This
+      extends the executor_authority_over_memory / optional_executors
+      declared above (already enforced by
+      ai-work-record-boundary.cross_reference) rather than replacing them
+      with a second vocabulary or a second executor list.
+    portable_fields:
+      - record_id
+      - content_digest
+      - evidence_refs
+      - created_at
+    executor_provenance_fields:
+      - executor_ref
+      - executor_session_ref
+    no_migration_invariant: >-
+      portable_fields must fully determine a Personal Store record's core
+      semantics, equivalently regardless of which optional_executor
+      produced the local projection. executor_provenance_fields are
+      supplementary provenance metadata only: they may legitimately differ
+      when the same record is re-projected by a different executor, must
+      never appear in portable_fields, and must never be read to decide
+      whether two projections represent the same underlying Personal
+      truth -- record_id (itself a portable_field) is the only identity
+      key. Switching executor therefore requires no rewrite of any
+      portable_field and no knowledge migration.
+  local_first_export_surface:
+    - minimal_evidence_package
+    - weekly_closeout_receipt
 
 phase_1_pilot:
   target: product_department

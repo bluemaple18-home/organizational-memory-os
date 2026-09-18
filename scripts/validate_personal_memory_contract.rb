@@ -24,6 +24,7 @@ SLICE_VALIDATORS = %w[
   validate_correction_flow_contract
   validate_historical_comparison_contract
   validate_organizational_value_assessment_contract
+  validate_personal_store_portability_contract
 ].freeze
 
 any_failure = false
