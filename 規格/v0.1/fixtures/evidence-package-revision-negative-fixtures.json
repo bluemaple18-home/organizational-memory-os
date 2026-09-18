@@ -12,8 +12,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -27,7 +32,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -71,18 +76,23 @@
       }
     },
     {
-      "case_id": "PKGREV_NEG_SUBMISSION_UNKNOWN_FIELD",
+      "case_id": "PKGREV_NEG_SELF_DECLARED_CLASSIFICATION",
       "expected": "deny",
-      "expected_failure_code": "PKGREV_SUBMISSION_UNKNOWN_FIELD",
-      "covers_negative_fixture": "a submission carrying a field outside the allowlist",
+      "expected_failure_code": "PKGREV_SELF_DECLARED_CLASSIFICATION",
+      "covers_negative_fixture": "a submission declaring comparison_category or disposition itself",
       "run": {
         "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
         "submissions": [
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -96,7 +106,61 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
+            },
+            "comparison_category": "MATERIALLY_CHANGED",
+            "disposition": "CORRECTION_SUPERSESSION_PROPOSAL"
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_SUBMISSION_UNKNOWN_FIELD",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_SUBMISSION_UNKNOWN_FIELD",
+      "covers_negative_fixture": "a submission carrying a field outside the allowlist",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -129,8 +193,13 @@
           {
             "submission_id": "sub-1",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -144,7 +213,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -176,8 +245,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": "whole-store"
           }
         ]
@@ -194,8 +268,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
@@ -216,8 +295,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -231,7 +315,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -254,53 +338,6 @@
       }
     },
     {
-      "case_id": "PKGREV_NEG_PACKAGE_BAD_HASH",
-      "expected": "deny",
-      "expected_failure_code": "PKGREV_PACKAGE_FAILS_SLICE_A_CONTRACT",
-      "covers_negative_fixture": "a package that does not pass the slice A package contract",
-      "run": {
-        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-        "submissions": [
-          {
-            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
-            "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
-            "package": {
-              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-              "tenant_id": "urn:omos:tenant:acme",
-              "employee_owner_ref": "urn:omos:employee:e-001",
-              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
-              "scope_mode": "EMPLOYEE_PRIVATE",
-              "ownership_mode": "EMPLOYEE_CONTROLLED",
-              "visibility_scope": "SELF_ONLY",
-              "sensitivity": "LOW",
-              "consent_ref": "urn:omos:consent:c-1",
-              "content_snapshot": "第一版內容",
-              "content_hash": "not-a-hash",
-              "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
-              ],
-              "source_anchor_refs": [
-                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
-              ],
-              "provenance_chain_refs": [
-                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
-              ],
-              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
-              "redaction_ref": null,
-              "organizational_value_reasons": [
-                "同一個 workaround 三個月內被四個同事各自重做過"
-              ],
-              "unresolved_question": null,
-              "suggested_expert": null,
-              "submitted_at": "2026-09-18T15:00:00Z"
-            }
-          }
-        ]
-      }
-    },
-    {
       "case_id": "PKGREV_NEG_PACKAGE_CANDIDATE_REF_MISMATCH",
       "expected": "deny",
       "expected_failure_code": "PKGREV_PACKAGE_CANDIDATE_REF_MISMATCH",
@@ -311,8 +348,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -326,7 +368,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -348,18 +390,17 @@
       }
     },
     {
-      "case_id": "PKGREV_NEG_UNKNOWN_CATEGORY",
+      "case_id": "PKGREV_NEG_COMPARISON_NOT_MAP",
       "expected": "deny",
-      "expected_failure_code": "PKGREV_UNKNOWN_CATEGORY",
-      "covers_negative_fixture": "a comparison_category not declared in historical_comparison.categories",
+      "expected_failure_code": "PKGREV_COMPARISON_NOT_MAP",
+      "covers_negative_fixture": "a comparison block that is not a map",
       "run": {
         "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
         "submissions": [
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "PROBABLY_FINE",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": "not-a-map",
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -373,7 +414,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -395,18 +436,23 @@
       }
     },
     {
-      "case_id": "PKGREV_NEG_DISPOSITION_NOT_DECLARED",
+      "case_id": "PKGREV_NEG_COMPARISON_FAILS_SLICE_1",
       "expected": "deny",
-      "expected_failure_code": "PKGREV_DISPOSITION_NOT_DECLARED_FOR_CATEGORY",
-      "covers_negative_fixture": "a disposition that is not the one upstream declares for the category",
+      "expected_failure_code": "PKGREV_COMPARISON_FAILS_SLICE_1_CONTRACT",
+      "covers_negative_fixture": "a comparison that does not pass the slice 1 historical comparison contract",
       "run": {
         "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
         "submissions": [
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "not-a-urn"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -420,7 +466,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -437,6 +483,164 @@
               "suggested_expert": null,
               "submitted_at": "2026-09-18T15:00:00Z"
             }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_COMPARISON_HASH_NOT_BOUND",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_COMPARISON_HASH_NOT_BOUND_TO_PACKAGE",
+      "covers_negative_fixture": "a comparison current_content_hash not bound to the submission package",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:99e61e084f3cf624ae6193aa520eb886d35df0dd648a79afc2db69ff770c26aa",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "case_id": "PKGREV_NEG_PRIOR_HASH_NOT_BOUND",
+      "expected": "deny",
+      "expected_failure_code": "PKGREV_COMPARISON_PRIOR_NOT_BOUND_TO_CHAIN",
+      "covers_negative_fixture": "a comparison prior hash or prior record not bound to the chain",
+      "run": {
+        "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+        "submissions": [
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
+            "supersedes_package_ref": null,
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
+            }
+          },
+          {
+            "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
+            "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:4c277d3c8ccd25dcac76d6b60645339992ed666c3816c2d3c3f11bf5188d30cd",
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "conclusion"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
+            "package": {
+              "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
+              "tenant_id": "urn:omos:tenant:acme",
+              "employee_owner_ref": "urn:omos:employee:e-001",
+              "candidate_ref": "urn:omos:personal-memory:candidate:01922b3c-4d5e-7f01-8abc-def012345601",
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "ownership_mode": "EMPLOYEE_CONTROLLED",
+              "visibility_scope": "SELF_ONLY",
+              "sensitivity": "LOW",
+              "consent_ref": "urn:omos:consent:c-1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "source_anchor_refs": [
+                "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "provenance_chain_refs": [
+                "urn:omos:receipt:01922b3c-4d5e-7f01-8abc-def012345601"
+              ],
+              "source_acl_snapshot_ref": "urn:omos:acl-snapshot:01922b3c-4d5e-7f01-8abc-def012345601",
+              "redaction_ref": null,
+              "organizational_value_reasons": [
+                "同一個 workaround 三個月內被四個同事各自重做過"
+              ],
+              "unresolved_question": null,
+              "suggested_expert": null,
+              "submitted_at": "2026-09-18T15:00:00Z"
+            },
+            "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
+            "correction_kind": "SUPERSEDE"
           }
         ]
       }
@@ -452,8 +656,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -467,7 +676,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -488,8 +697,17 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "UNCHANGED",
-            "disposition": "NO_RESEND",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
               "tenant_id": "urn:omos:tenant:acme",
@@ -500,10 +718,10 @@
               "visibility_scope": "SELF_ONLY",
               "sensitivity": "LOW",
               "consent_ref": "urn:omos:consent:c-1",
-              "content_snapshot": "第二版內容：補了新證據",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -522,7 +740,8 @@
             }
           }
         ]
-      }
+      },
+      "derived_disposition_under_test": "NO_RESEND"
     },
     {
       "case_id": "PKGREV_NEG_RESEND_LOCAL_RECURRENCE",
@@ -535,8 +754,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -550,7 +774,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -571,8 +795,18 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "NEW_EVIDENCE",
-            "disposition": "LOCAL_RECURRENCE_ONLY",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801",
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345802"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
               "tenant_id": "urn:omos:tenant:acme",
@@ -583,10 +817,11 @@
               "visibility_scope": "SELF_ONLY",
               "sensitivity": "LOW",
               "consent_ref": "urn:omos:consent:c-1",
-              "content_snapshot": "第二版內容：補了新證據",
-              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "content_snapshot": "第一版內容",
+              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801",
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345802"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -605,7 +840,8 @@
             }
           }
         ]
-      }
+      },
+      "derived_disposition_under_test": "LOCAL_RECURRENCE_ONLY"
     },
     {
       "case_id": "PKGREV_NEG_FIRST_SUPERSEDES",
@@ -618,8 +854,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345609",
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -633,7 +874,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -665,8 +906,24 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "NEW_EVIDENCE",
-            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "conclusion"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -677,10 +934,10 @@
               "visibility_scope": "SELF_ONLY",
               "sensitivity": "LOW",
               "consent_ref": "urn:omos:consent:c-1",
-              "content_snapshot": "第一版內容",
-              "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "content_snapshot": "第二版內容：補了新證據",
+              "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -696,7 +953,9 @@
               "unresolved_question": null,
               "suggested_expert": null,
               "submitted_at": "2026-09-18T15:00:00Z"
-            }
+            },
+            "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
+            "correction_kind": "SUPERSEDE"
           }
         ]
       }
@@ -712,8 +971,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -727,7 +991,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -748,8 +1012,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
               "tenant_id": "urn:omos:tenant:acme",
@@ -763,7 +1032,7 @@
               "content_snapshot": "第二版內容：補了新證據",
               "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -795,8 +1064,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -810,7 +1084,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -831,8 +1105,24 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
             "supersedes_package_ref": null,
-            "comparison_category": "NEW_EVIDENCE",
-            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "conclusion"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
               "tenant_id": "urn:omos:tenant:acme",
@@ -846,7 +1136,7 @@
               "content_snapshot": "第二版內容：補了新證據",
               "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -862,7 +1152,9 @@
               "unresolved_question": null,
               "suggested_expert": null,
               "submitted_at": "2026-09-18T15:00:00Z"
-            }
+            },
+            "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
+            "correction_kind": "SUPERSEDE"
           }
         ]
       }
@@ -878,8 +1170,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -893,7 +1190,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -914,8 +1211,24 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345609",
-            "comparison_category": "NEW_EVIDENCE",
-            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "conclusion"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
               "tenant_id": "urn:omos:tenant:acme",
@@ -929,7 +1242,7 @@
               "content_snapshot": "第二版內容：補了新證據",
               "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -945,7 +1258,9 @@
               "unresolved_question": null,
               "suggested_expert": null,
               "submitted_at": "2026-09-18T15:00:00Z"
-            }
+            },
+            "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
+            "correction_kind": "SUPERSEDE"
           }
         ]
       }
@@ -961,8 +1276,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -976,7 +1296,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -997,8 +1317,24 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "NEW_EVIDENCE",
-            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "conclusion"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1012,7 +1348,7 @@
               "content_snapshot": "第二版內容：補了新證據",
               "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1028,7 +1364,9 @@
               "unresolved_question": null,
               "suggested_expert": null,
               "submitted_at": "2026-09-18T15:00:00Z"
-            }
+            },
+            "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
+            "correction_kind": "SUPERSEDE"
           }
         ]
       }
@@ -1044,8 +1382,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1059,7 +1402,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1080,8 +1423,24 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "NEW_EVIDENCE",
-            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "conclusion"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1095,7 +1454,7 @@
               "content_snapshot": "第二版內容：補了新證據",
               "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1111,7 +1470,9 @@
               "unresolved_question": null,
               "suggested_expert": null,
               "submitted_at": "2026-09-18T15:00:00Z"
-            }
+            },
+            "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
+            "correction_kind": "SUPERSEDE"
           }
         ]
       }
@@ -1127,8 +1488,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1142,7 +1508,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1163,8 +1529,24 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "NEW_EVIDENCE",
-            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "conclusion"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1178,7 +1560,7 @@
               "content_snapshot": "第二版內容：補了新證據",
               "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1194,13 +1576,31 @@
               "unresolved_question": null,
               "suggested_expert": null,
               "submitted_at": "2026-09-18T15:00:00Z"
-            }
+            },
+            "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
+            "correction_kind": "SUPERSEDE"
           },
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345703",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "NEW_EVIDENCE",
-            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:24468b32c01f888cc2d1c0dbc3531a7b871a5442404762c1ad4ca33ac35ba75e",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "conclusion"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345603",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1214,7 +1614,7 @@
               "content_snapshot": "第三版內容：結論被推翻",
               "content_hash": "sha256:24468b32c01f888cc2d1c0dbc3531a7b871a5442404762c1ad4ca33ac35ba75e",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1230,7 +1630,9 @@
               "unresolved_question": null,
               "suggested_expert": null,
               "submitted_at": "2026-09-18T15:00:00Z"
-            }
+            },
+            "correction_proposal_ref": "urn:omos:personal-memory:correction-proposal:p-1",
+            "correction_kind": "SUPERSEDE"
           }
         ]
       }
@@ -1246,8 +1648,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1261,7 +1668,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1282,8 +1689,24 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "MATERIALLY_CHANGED",
-            "disposition": "CORRECTION_SUPERSESSION_PROPOSAL",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "conclusion"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1297,7 +1720,7 @@
               "content_snapshot": "第二版內容：補了新證據",
               "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1329,8 +1752,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1344,7 +1772,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1365,8 +1793,24 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "MATERIALLY_CHANGED",
-            "disposition": "CORRECTION_SUPERSESSION_PROPOSAL",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "conclusion"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1380,7 +1824,7 @@
               "content_snapshot": "第二版內容：補了新證據",
               "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1414,8 +1858,13 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345701",
             "supersedes_package_ref": null,
-            "comparison_category": "UNSEEN",
-            "disposition": "INITIAL_SUBMISSION",
+            "comparison": {
+              "prior_record_ref": null,
+              "current_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1429,7 +1878,7 @@
               "content_snapshot": "第一版內容",
               "content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"
@@ -1450,8 +1899,25 @@
           {
             "submission_id": "urn:omos:personal-memory:submission:01922b3c-4d5e-7f01-8abc-def012345702",
             "supersedes_package_ref": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345601",
-            "comparison_category": "NEW_EVIDENCE",
-            "disposition": "EVIDENCE_UPDATE_REVISION",
+            "comparison": {
+              "prior_record_ref": "urn:omos:personal-memory:record:01922b3c-4d5e-7f01-8abc-def012345601",
+              "prior_content_hash": "sha256:dbbb725507f3c1f7bab3084d8adf794c47c3c023570a579afd891d179e3819f1",
+              "current_content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
+              "prior_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801"
+              ],
+              "current_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801",
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345802"
+              ],
+              "material_effect": true,
+              "material_effect_reasons": [
+                "applicability"
+              ],
+              "material_effect_evidence_refs": [
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345802"
+              ]
+            },
             "package": {
               "package_id": "urn:omos:personal-memory:evidence-package:01922b3c-4d5e-7f01-8abc-def012345602",
               "tenant_id": "urn:omos:tenant:acme",
@@ -1465,7 +1931,8 @@
               "content_snapshot": "第二版內容：補了新證據",
               "content_hash": "sha256:af749887754856c026524cd4207c639b433babd2ba80cb2ea3f198bf75df6f60",
               "evidence_refs": [
-                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345601"
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345801",
+                "urn:omos:evidence-record:01922b3c-4d5e-7f01-8abc-def012345802"
               ],
               "source_anchor_refs": [
                 "urn:omos:source-anchor:01922b3c-4d5e-7f01-8abc-def012345601"

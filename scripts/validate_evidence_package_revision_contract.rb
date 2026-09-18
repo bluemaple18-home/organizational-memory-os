@@ -28,6 +28,7 @@ require "yaml"
 require_relative "lib/omos_contract_helpers"
 require_relative "lib/loop_return_contract"
 require_relative "lib/minimal_evidence_package_shape"
+require_relative "lib/historical_comparison_derivation"
 
 ROOT = File.expand_path("..", __dir__)
 SPEC_PATH = File.join(ROOT, "規格/v0.1/personal-harness-integration.yaml")
@@ -37,6 +38,7 @@ VOCAB_PATH = File.join(ROOT, "規格/v0.1/common-vocabulary.yaml")
 STD01_SCHEMA_PATH = File.join(ROOT, "規格/v0.1/raw-evidence-envelope.schema.json")
 
 MEPShape = MinimalEvidencePackageShape
+HCD = HistoricalComparisonDerivation
 
 def urn?(value)
   MEPShape.urn?(value)
@@ -51,8 +53,11 @@ EXPECTED_NEGATIVE_LABELS = [
   "a package that is not a map",
   "a package that does not pass the slice A package contract",
   "a package whose candidate_ref disagrees with the chain",
-  "a comparison_category not declared in historical_comparison.categories",
-  "a disposition that is not the one upstream declares for the category",
+  "a submission declaring comparison_category or disposition itself",
+  "a comparison block that is not a map",
+  "a comparison that does not pass the slice 1 historical comparison contract",
+  "a comparison current_content_hash not bound to the submission package",
+  "a comparison prior hash or prior record not bound to the chain",
   "a submission whose disposition authorizes no transmission",
   "a first submission that supersedes something",
   "a first submission that is not the UNSEEN/INITIAL_SUBMISSION case",
@@ -69,8 +74,8 @@ EXPECTED_NEGATIVE_LABELS = [
 
 # --- 結構驗證（fail-closed）------------------------------------------------
 
-def revision_chain_failure(run, categories, dispositions, correction_kinds, allowed_fields,
-                           non_transmittable, correction_required, bindings)
+def revision_chain_failure(run, dispositions, material_dimensions, correction_kinds, allowed_fields,
+                           forbidden_self_declared, non_transmittable, correction_required, bindings)
   candidate_ref = run["candidate_ref"]
   return "PKGREV_CANDIDATE_REF_NOT_URN" unless urn?(candidate_ref)
 
@@ -80,9 +85,13 @@ def revision_chain_failure(run, categories, dispositions, correction_kinds, allo
   seen_package_ids = Set.new
   seen_submission_ids = Set.new
   claimed_predecessors = Set.new
+  hash_by_package_id = {}
 
   submissions.each_with_index do |submission, index|
     return "PKGREV_SUBMISSION_NOT_MAP" unless submission.is_a?(Hash)
+    # repair-02：category／disposition 是推導結果，不是輸入。夾帶即拒絕，
+    # 跟切片 1／切片 2 對自報分類的處理一致。
+    return "PKGREV_SELF_DECLARED_CLASSIFICATION" if forbidden_self_declared.any? { |f| submission.key?(f) }
     return "PKGREV_SUBMISSION_UNKNOWN_FIELD" unless (submission.keys - allowed_fields).empty?
     return "PKGREV_SUBMISSION_ID_NOT_URN" unless urn?(submission["submission_id"])
 
@@ -97,21 +106,28 @@ def revision_chain_failure(run, categories, dispositions, correction_kinds, allo
     package_id = package["package_id"]
     return "PKGREV_PACKAGE_CANDIDATE_REF_MISMATCH" unless package["candidate_ref"] == candidate_ref
 
-    category = submission["comparison_category"]
-    return "PKGREV_UNKNOWN_CATEGORY" unless categories.include?(category)
+    # repair-02：category／disposition 由切片 1 的同一支 evaluator 從
+    # primitive signals 推導，本片不再讀任何自報分類。
+    comparison = submission["comparison"]
+    return "PKGREV_COMPARISON_NOT_MAP" unless comparison.is_a?(Hash)
+    return "PKGREV_COMPARISON_FAILS_SLICE_1_CONTRACT" unless HCD.historical_comparison_failure(comparison, material_dimensions).nil?
 
-    # disposition 必須是上游對該 category 宣告的那一個，不接受自報。
-    # NEW_EVIDENCE 在上游是兩支（有／無 material effect），所以是「屬於
-    # 該 category 的合法集合」而不是單一值。
-    expected = dispositions.select { |key, _| key == category || key.start_with?("#{category}_") }.values
-    return "PKGREV_DISPOSITION_NOT_DECLARED_FOR_CATEGORY" unless expected.include?(submission["disposition"])
-    # UNCHANGED／NEW_EVIDENCE-without-material-effect 授權的是「不要送」，
-    # 所以帶著這種 disposition 出現在提交鏈裡，本身就是矛盾。
-    return "PKGREV_RESEND_DESPITE_NON_TRANSMITTABLE" if non_transmittable.include?(submission["disposition"])
+    # primitives 必須描述這條鏈本身，否則只是把自報往上挪一層。
+    return "PKGREV_COMPARISON_HASH_NOT_BOUND_TO_PACKAGE" unless comparison["current_content_hash"] == package["content_hash"]
+
+    derived = HCD.classify(comparison, dispositions)
+    category = derived[:category]
+    disposition = derived[:disposition]
+    # UNCHANGED／NEW_EVIDENCE-without-material-effect 推導出的是「不要送」，
+    # 所以它出現在提交鏈裡本身就是矛盾。
+    return "PKGREV_RESEND_DESPITE_NON_TRANSMITTABLE" if non_transmittable.include?(disposition)
 
     predecessor = submission["supersedes_package_ref"]
     if index.zero?
       return "PKGREV_FIRST_SUBMISSION_SUPERSEDES" unless predecessor.nil?
+      # 這裡不需要再檢查 comparison["prior_record_ref"] 為 nil：category 為
+      # UNSEEN 的定義就是 no_prior_record，上一行已經保證。多寫一條會是
+      # 永遠不可達的 dead code。
       return "PKGREV_FIRST_SUBMISSION_NOT_INITIAL" unless category == "UNSEEN"
     else
       # repair-01 F-03：原本只要求「第一筆必須 UNSEEN」，沒有反向要求
@@ -121,13 +137,16 @@ def revision_chain_failure(run, categories, dispositions, correction_kinds, allo
       return "PKGREV_LATER_SUBMISSION_WITHOUT_PREDECESSOR" if predecessor.nil?
       return "PKGREV_PREDECESSOR_NOT_IN_CHAIN" unless seen_package_ids.include?(predecessor)
       return "PKGREV_CHAIN_FORK" if claimed_predecessors.include?(predecessor)
+      # 前一份的 hash 必須真的是鏈上那一份的 hash——這是「有沒有 material
+      # effect」這個推導能不能被信任的前提。
+      return "PKGREV_COMPARISON_PRIOR_NOT_BOUND_TO_CHAIN" unless comparison["prior_content_hash"] == hash_by_package_id[predecessor]
 
       claimed_predecessors << predecessor
     end
 
     correction_ref = submission["correction_proposal_ref"]
     correction_kind = submission["correction_kind"]
-    if correction_required.include?(submission["disposition"])
+    if correction_required.include?(disposition)
       return "PKGREV_CORRECTION_REF_MISSING" unless urn?(correction_ref)
       return "PKGREV_UNKNOWN_CORRECTION_KIND" unless correction_kinds.include?(correction_kind)
     else
@@ -141,6 +160,7 @@ def revision_chain_failure(run, categories, dispositions, correction_kinds, allo
 
     seen_package_ids << package_id
     seen_submission_ids << submission["submission_id"]
+    hash_by_package_id[package_id] = package["content_hash"]
   end
 
   nil
@@ -153,10 +173,15 @@ spec = read_yaml(SPEC_PATH)
 rev = spec.fetch("evidence_package_revision")
 
 hc = spec.fetch("historical_comparison")
-categories = hc.fetch("categories", [])
 dispositions = hc.fetch("dispositions", {})
-assert(categories.any? && dispositions.any?,
-       "historical_comparison.categories／dispositions 必須存在（本片綁定它們，不重述）", failures)
+material_dimensions = hc.fetch("material_effect_dimensions", [])
+assert(dispositions.any? && material_dimensions.any?,
+       "historical_comparison.dispositions／material_effect_dimensions 必須存在（本片消費它們的推導，不重述）", failures)
+forbidden_self_declared = rev.fetch("forbidden_self_declared_fields", [])
+assert(sorted_set(forbidden_self_declared) == sorted_set(%w[comparison_category disposition]),
+       "forbidden_self_declared_fields 必須是 comparison_category／disposition（推導結果不得自報）", failures)
+assert((forbidden_self_declared & rev.fetch("submission_allowed_fields", [])).empty?,
+       "被禁止自報的欄位不得同時出現在 submission_allowed_fields", failures)
 
 correction_kinds = spec.dig("correction_flow", "contract", "correction_kinds") || {}
 assert(correction_kinds.any?,
@@ -199,8 +224,8 @@ positive_fixtures.fetch("cases").each do |test_case|
   run = test_case.fetch("run")
   assert(test_case.fetch("expected") == "allow", "#{case_id} 正例必須預期 allow", failures)
 
-  actual = revision_chain_failure(run, categories, dispositions, correction_kinds, allowed_fields,
-                                  non_transmittable, correction_required, bindings)
+  actual = revision_chain_failure(run, dispositions, material_dimensions, correction_kinds, allowed_fields,
+                                  forbidden_self_declared, non_transmittable, correction_required, bindings)
   assert(actual.nil?, "#{case_id} 預期 allow，實際被拒：#{actual}", failures)
 end
 
@@ -211,8 +236,8 @@ negative_cases.each do |test_case|
   assert(test_case.fetch("expected") == "deny", "#{case_id} 負例必須預期 deny", failures)
   expected_code = test_case.fetch("expected_failure_code")
 
-  actual = revision_chain_failure(run, categories, dispositions, correction_kinds, allowed_fields,
-                                  non_transmittable, correction_required, bindings)
+  actual = revision_chain_failure(run, dispositions, material_dimensions, correction_kinds, allowed_fields,
+                                  forbidden_self_declared, non_transmittable, correction_required, bindings)
   assert(!actual.nil?, "#{case_id} 預期 deny，實際通過", failures)
   assert(actual == expected_code, "#{case_id} 預期 #{expected_code}，實際 #{actual.inspect}", failures)
 end
@@ -224,10 +249,8 @@ assert(missing_labels.empty?, "negative fixtures 未覆蓋：#{missing_labels.to
 # 卡片 Acceptance #7：每一個 non-transmittable disposition 都必須有負例
 # 實際打過，不能只宣告在 YAML 裡。
 covered_non_transmittable = sorted_set(
-  negative_cases.flat_map { |c|
-    subs = c.dig("run", "submissions")
-    subs.is_a?(Array) ? subs.map { |s| s.is_a?(Hash) ? s["disposition"] : nil } : []
-  }.compact & non_transmittable
+  negative_cases.select { |c| c.fetch("expected_failure_code") == "PKGREV_RESEND_DESPITE_NON_TRANSMITTABLE" }
+                .map { |c| c["derived_disposition_under_test"] }.compact & non_transmittable
 )
 missing_nt = sorted_set(non_transmittable) - covered_non_transmittable
 assert(missing_nt.empty?, "non-transmittable disposition 未被負例實際打過：#{missing_nt.to_a.join(', ')}", failures)
@@ -242,8 +265,11 @@ ERROR_CONTRACT = {
   "PKGREV_PACKAGE_NOT_MAP" => "evidence_package_revision.error.package_not_map",
   "PKGREV_PACKAGE_FAILS_SLICE_A_CONTRACT" => "evidence_package_revision.error.package_fails_slice_a_contract",
   "PKGREV_PACKAGE_CANDIDATE_REF_MISMATCH" => "evidence_package_revision.error.package_candidate_ref_mismatch",
-  "PKGREV_UNKNOWN_CATEGORY" => "evidence_package_revision.error.unknown_category",
-  "PKGREV_DISPOSITION_NOT_DECLARED_FOR_CATEGORY" => "evidence_package_revision.error.disposition_not_declared_for_category",
+  "PKGREV_SELF_DECLARED_CLASSIFICATION" => "evidence_package_revision.error.self_declared_classification",
+  "PKGREV_COMPARISON_NOT_MAP" => "evidence_package_revision.error.comparison_not_map",
+  "PKGREV_COMPARISON_FAILS_SLICE_1_CONTRACT" => "evidence_package_revision.error.comparison_fails_slice_1_contract",
+  "PKGREV_COMPARISON_HASH_NOT_BOUND_TO_PACKAGE" => "evidence_package_revision.error.comparison_hash_not_bound_to_package",
+  "PKGREV_COMPARISON_PRIOR_NOT_BOUND_TO_CHAIN" => "evidence_package_revision.error.comparison_prior_not_bound_to_chain",
   "PKGREV_RESEND_DESPITE_NON_TRANSMITTABLE" => "evidence_package_revision.error.resend_despite_non_transmittable",
   "PKGREV_FIRST_SUBMISSION_SUPERSEDES" => "evidence_package_revision.error.first_submission_supersedes",
   "PKGREV_FIRST_SUBMISSION_NOT_INITIAL" => "evidence_package_revision.error.first_submission_not_initial",
@@ -268,7 +294,7 @@ assert((declared_codes - reachable).empty?,
        "error_contract 宣告但 evaluator 不可能回傳：#{(declared_codes - reachable).sort.inspect}", failures)
 
 if failures.empty?
-  puts "PASS evidence package revision contract validation (categories=#{categories.size})"
+  puts "PASS evidence package revision contract validation (dispositions=#{dispositions.size})"
 else
   failures.each { |failure| warn "FAIL #{failure}" }
   exit 1

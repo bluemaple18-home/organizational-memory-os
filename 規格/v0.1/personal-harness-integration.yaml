@@ -1584,11 +1584,39 @@ evidence_package_revision:
   submission_allowed_fields:
     - submission_id
     - supersedes_package_ref
-    - comparison_category
-    - disposition
+    - comparison
     - correction_proposal_ref
     - correction_kind
     - package
+  forbidden_self_declared_fields:
+    - comparison_category
+    - disposition
+  classification_provenance: >-
+    repair-02: the first two versions let the submission DECLARE
+    comparison_category and disposition, and only checked the pair was a
+    legal one. That is vocabulary binding, not result binding -- a caller
+    could keep content_hash, evidence_refs, redaction_ref and sensitivity
+    all identical to the predecessor, self-report MATERIALLY_CHANGED plus
+    a well-formed CORRECTION_SUPERSESSION_PROPOSAL, and send a revision
+    having demonstrated no material effect whatsoever, straight through
+    the parent card's Acceptance #7.
+
+    historical_comparison already states that category and disposition are
+    NEVER caller-declared. So a submission now carries `comparison` -- the
+    primitive signals that contract consumes (prior/current identity,
+    content hashes, evidence_refs sets, and the substantiated
+    material_effect / contradicts_prior judgments) -- and this contract
+    derives category and disposition by calling the SAME evaluator slice 1
+    calls (scripts/lib/historical_comparison_derivation.rb). Declaring
+    comparison_category or disposition on a submission is rejected
+    outright.
+  comparison_chain_binding: >-
+    The primitives must describe the actual chain, or they would simply be
+    fabricable one level up: comparison.current_content_hash must equal the
+    submission's own package content_hash, and for any later submission
+    comparison.prior_content_hash must equal the predecessor package's
+    content_hash. The first submission must have no prior record and later
+    ones must have one, matching the chain's own shape.
   non_transmittable_dispositions:
     - NO_RESEND
     - LOCAL_RECURRENCE_ONLY
