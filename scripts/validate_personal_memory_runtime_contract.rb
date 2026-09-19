@@ -37,6 +37,7 @@ require_relative "lib/omos_contract_helpers"
 require_relative "lib/loop_return_contract"
 require_relative "lib/minimal_evidence_package_shape"
 require_relative "lib/weekly_closeout_history"
+require_relative "lib/personal_memory_resource_evaluator"
 
 ROOT = File.expand_path("..", __dir__)
 SPEC_PATH = File.join(ROOT, "規格/v0.1/personal-harness-integration.yaml")
@@ -47,6 +48,9 @@ MEPShape = MinimalEvidencePackageShape
 # closeout 歷程直接交給切片 4 已在用的同一支 evaluator，不留第二份。
 WCH = WeeklyCloseoutHistory
 HISTORY_PATH = File.join(__dir__, "lib/weekly_closeout_history.rb")
+# row 的本體直接交給既有 Personal Memory resource evaluator，不在本片重寫。
+PMRE = PersonalMemoryResourceEvaluator
+RESOURCE_PATH = File.join(__dir__, "lib/personal_memory_resource_evaluator.rb")
 
 RUN_ALLOWED_FIELDS = %w[store operations].freeze
 STORE_ALLOWED_FIELDS = %w[engine journal_mode schema_version].freeze
@@ -62,61 +66,68 @@ WRITE_KINDS = %w[SCHEMA_MIGRATION STORE_WRITE CLOSEOUT_COMMIT].freeze
 PATH_STEPS = %w[RUNTIME_POLICY_CHECK RUNTIME_TRANSACTION STORE_WRITE STORE_READ].freeze
 
 EXPECTED_NEGATIVE_LABELS = [
-  "a run that is not a map",
-  "a run carrying a field outside the allowlist",
-  "a store header that is not a map",
-  "a store engine that is not SQLite",
-  "a store journal mode that is not WAL",
-  "a store schema version that is not a non-blank string",
-  "an operations list that is not a non-empty array",
-  "an operation that is not a map",
-  "an operation carrying a field outside the allowlist",
-  "an operation sequence with a gap or reordering",
-  "an operation kind outside the closed enumeration",
-  "an operation on a forbidden remote surface",
-  "an operation on a surface outside the closed enumeration",
-  "an MCP operation with no host session binding",
   "a CLI operation claiming a host session binding",
-  "a host session binding that is not a map",
-  "a host session binding carrying a shadow identity field",
-  "a host session binding carrying a field outside the closed shape",
-  "a host session binding missing an upstream executor identity field",
+  "a closeout attempt kind outside the upstream vocabulary",
+  "a closeout history whose scheduled period start drifted between attempts",
+  "a closeout payload that is not a map of known fields",
+  "a closeout review period id that is not a non-blank string",
+  "a closeout status outside the upstream vocabulary",
   "a host session binding additional field that is present but not a non-blank string",
+  "a host session binding carrying a field outside the closed shape",
+  "a host session binding carrying a shadow identity field",
+  "a host session binding missing an upstream executor identity field",
   "a host session binding naming an executor that is not a supported host",
-  "an operation path that is not an array of known steps",
-  "an operation path whose store access precedes its permission check",
-  "an operation path that does not match the declared path for its kind",
-  "an operation whose payload does not match its kind",
-  "a store write outside a runtime transaction",
-  "an uncommitted transaction that still produced a durable row",
+  "a host session binding that is not a map",
+  "a migration id re-emitted with different content",
   "a migration payload that is not a map of known fields",
   "a migration receipt missing a required field",
   "a migration whose from_version does not continue the chain",
-  "a migration id re-emitted with different content",
-  "a row payload that is not a map of known fields",
-  "a row carrying no Personal Memory resource body",
-  "a row resource missing a required field its kind declares upstream",
-  "a row resource carrying a field its kind forbids upstream",
-  "a row id that does not match its resource body identity",
-  "a row kind outside the upstream id templates",
-  "a row id that does not match its upstream id template",
-  "an idempotency key that is not a non-blank string",
-  "an idempotent replay that produced a second row id",
-  "a write to an existing row id that is not an idempotent replay",
-  "a same-id same-key write that alters supersedes_ref",
-  "a revision superseding a row this store never wrote",
+  "a promotion_ref carried without a promotion idempotency key",
+  "a retry whose promotion identity drifted for the same item",
   "a revision superseding a row of a different kind",
   "a revision superseding a row that was already superseded",
+  "a revision superseding a row this store never wrote",
+  "a row carrying no Personal Memory resource body",
   "a row deletion erasing history",
-  "a closeout payload that is not a map of known fields",
-  "a closeout review period id that is not a non-blank string",
-  "a retry whose promotion identity drifted for the same item",
-  "a closeout status outside the upstream vocabulary",
-  "a closeout attempt kind outside the upstream vocabulary",
+  "a row id that does not match its resource body identity",
+  "a row id that does not match its upstream id template",
+  "a row kind outside the upstream id templates",
+  "a row payload that is not a map of known fields",
+  "a row resource missing a required field its kind declares upstream",
+  "a row resource that was never personally accepted",
+  "a row resource that was never verified",
+  "a row resource whose candidate snapshot never reached ACCEPTED_FOR_RECORD",
+  "a row resource whose memory kind is not long-lived by default",
+  "a row resource with no support link at all",
+  "a row whose support_link_ref does not resolve inside this store",
+  "a run carrying a field outside the allowlist",
+  "a run that is not a map",
+  "a same-id same-key write that alters supersedes_ref",
   "a second terminal closeout for the same review period",
-  "a closeout history whose scheduled period start drifted between attempts",
-  "a promotion_ref carried without a promotion idempotency key",
-  "a store schema version that no migration in the chain produced"
+  "a store engine that is not SQLite",
+  "a store header that is not a map",
+  "a store journal mode that is not WAL",
+  "a store schema version that is not a non-blank string",
+  "a store schema version that no migration in the chain produced",
+  "a store write outside a runtime transaction",
+  "a support link row whose anchor resolution is not usable as support",
+  "a support link that does not point back at the row it supports",
+  "a write to an existing row id that is not an idempotent replay",
+  "an MCP operation with no host session binding",
+  "an idempotency key that is not a non-blank string",
+  "an idempotent replay that produced a second row id",
+  "an operation carrying a field outside the allowlist",
+  "an operation kind outside the closed enumeration",
+  "an operation on a forbidden remote surface",
+  "an operation on a surface outside the closed enumeration",
+  "an operation path that does not match the declared path for its kind",
+  "an operation path that is not an array of known steps",
+  "an operation path whose store access precedes its permission check",
+  "an operation sequence with a gap or reordering",
+  "an operation that is not a map",
+  "an operation whose payload does not match its kind",
+  "an operations list that is not a non-empty array",
+  "an uncommitted transaction that still produced a durable row"
 ].freeze
 
 # --- 結構驗證（fail-closed）------------------------------------------------
@@ -233,13 +244,22 @@ def runtime_log_failure(run, b)
       # contracts.resources.<kind>，本片不維護第二份欄位清單。
       resource = row["resource"]
       return "PMR_ROW_RESOURCE_NOT_MAP" unless resource.is_a?(Hash)
-      resource_def = b[:resource_defs][row_kind]
-      return "PMR_ROW_RESOURCE_FORBIDDEN_FIELD_PRESENT" if (resource_def["forbidden"] || [])
-        .any? { |f| dotted_key_present?(resource, f) }
-      return "PMR_ROW_RESOURCE_REQUIRED_FIELD_MISSING" unless (resource_def["required_fields"] || [])
-        .all? { |f| dotted_key_present?(resource, f) }
       # 合法 id 配上別人的本體，等於 id 沒有真的指向任何東西。
       return "PMR_ROW_ID_NOT_BOUND_TO_RESOURCE_IDENTITY" unless resource[b[:row_identity_fields][row_kind]] == row_id
+
+      # repair-02 P1-3：不是「required_fields 路徑存在」而已——整份本體交給
+      # 既有 Personal Memory resource evaluator：support、memory kind、
+      # verification／acceptance、lifecycle、Record creation gate 全部由那一份
+      # 實作判定。indexes 用的是**這個 store 目前已寫入的列**，所以
+      # support_link_refs 必須解析到同一個 store 裡真的存在、且 target_ref
+      # 指回本列的 MemorySupportLink——這是組合，不是形式呼叫。
+      store_cases = rows.map { |rid, rec| { "resource_type" => rec[:kind], "resource" => rec[:resource], "case_id" => rid } }
+      store_cases << { "resource_type" => row_kind, "resource" => resource, "case_id" => row_id }
+      resource_problems = PMRE.resource_failures(
+        b[:spec], b[:common_vocab], PMRE.build_indexes(store_cases),
+        { "resource_type" => row_kind, "resource" => resource }
+      )
+      return "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT" unless resource_problems.empty?
 
       key = row["idempotency_key"]
       seen_row_for_key = key_to_row[key]
@@ -268,7 +288,7 @@ def runtime_log_failure(run, b)
         superseded << supersedes_ref
       end
 
-      rows[row_id] = { kind: row_kind, canonical: canonical_row }
+      rows[row_id] = { kind: row_kind, canonical: canonical_row, resource: resource }
       key_to_row[key] = row_id
     end
 
@@ -501,7 +521,8 @@ BINDINGS = {
   write_path: write_path,
   read_path: read_path,
   id_patterns: id_patterns,
-  resource_defs: resources,
+  spec: spec,
+  common_vocab: vocab,
   row_identity_fields: row_identity_fields,
   disposition_categories: disposition_categories,
   candidate_ref_prefix: candidate_ref_prefix,
@@ -612,8 +633,7 @@ ERROR_CONTRACT = {
   "PMR_MIGRATION_RECEIPT_MUTATED" => "personal_memory_runtime.error.migration_receipt_mutated",
   "PMR_ROW_NOT_MAP" => "personal_memory_runtime.error.row_not_map",
   "PMR_ROW_RESOURCE_NOT_MAP" => "personal_memory_runtime.error.row_resource_not_map",
-  "PMR_ROW_RESOURCE_REQUIRED_FIELD_MISSING" => "personal_memory_runtime.error.row_resource_required_field_missing",
-  "PMR_ROW_RESOURCE_FORBIDDEN_FIELD_PRESENT" => "personal_memory_runtime.error.row_resource_forbidden_field_present",
+  "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT" => "personal_memory_runtime.error.row_resource_fails_resource_contract",
   "PMR_ROW_ID_NOT_BOUND_TO_RESOURCE_IDENTITY" => "personal_memory_runtime.error.row_id_not_bound_to_resource_identity",
   "PMR_HISTORY_ERASURE" => "personal_memory_runtime.error.history_erasure",
   "PMR_ROW_KIND_UNKNOWN" => "personal_memory_runtime.error.row_kind_unknown",
