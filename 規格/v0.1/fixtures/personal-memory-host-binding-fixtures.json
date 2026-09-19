@@ -204,6 +204,13 @@
     {"case_id": "HBV1_NEG_EFFECTIVE_SCOPE_SELF_DECLARED", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/effective_scope": "EMPLOYEE_AND_POLICY_SYSTEM"}}, "expected_failure_code": "HBV1_EFFECTIVE_SCOPE_NOT_DERIVED"},
     {"case_id": "HBV1_NEG_BINDING_UNKNOWN_FIELD", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/extra": "x"}}, "expected_failure_code": "HBV1_PRODUCED_BINDING_UNKNOWN_FIELD"},
     {"case_id": "HBV1_NEG_BINDING_SHADOW_IDENTITY", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/host": "Codex"}}, "expected_failure_code": "HBV1_PRODUCED_BINDING_SHADOW_IDENTITY_FIELD"},
-    {"case_id": "HBV1_NEG_BINDING_INCOMPLETE", "base_ref": "CLAUDE", "mutate": {"delete": ["bootstrap/produced_binding/effective_scope"]}, "expected_failure_code": "HBV1_PRODUCED_BINDING_INCOMPLETE"}
+    {"case_id": "HBV1_NEG_BINDING_INCOMPLETE", "base_ref": "CLAUDE", "mutate": {"delete": ["bootstrap/produced_binding/effective_scope"]}, "expected_failure_code": "HBV1_PRODUCED_BINDING_INCOMPLETE"},
+    {"case_id": "HBV1_NEG_NATIVE_SESSION_ID_FALSE", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/native_session_id": false}}, "expected_failure_code": "HBV1_NATIVE_SESSION_ID_MISSING"},
+    {"case_id": "HBV1_NEG_CWD_FALSE", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/cwd": false}}, "expected_failure_code": "HBV1_CWD_MISSING"},
+    {"case_id": "HBV1_NEG_PROJECT_REF_NUMERIC", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/project_ref": 1}}, "expected_failure_code": "HBV1_PROJECT_REF_MISSING"},
+    {"case_id": "HBV1_NEG_PRODUCED_BINDING_REJECTED_BY_RUNTIME", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/cwd": false}}, "expected_failure_code": "HBV1_PRODUCED_BINDING_REJECTED_BY_RUNTIME"},
+    {"case_id": "HBV1_NEG_PRODUCED_EFFECTIVE_SCOPE_IS_OWNERSHIP_MODE", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/effective_scope": "EMPLOYEE_PRIVATE"}}, "expected_failure_code": "HBV1_PRODUCED_BINDING_REJECTED_BY_RUNTIME"},
+    {"case_id": "HBV1_NEG_CODEX_MCP_SHADOWED_SAME_PAYLOAD", "base_ref": "CODEX", "mutate": {"set": {"higher_precedence/PROJECT/mcp_entries/omos.personal-memory": {"transport": "STDIO", "command_ref": "OMOS_PERSONAL_MEMORY_MCP"}}}, "expected_failure_code": "HBV1_MCP_SHADOWED"},
+    {"case_id": "HBV1_NEG_CLAUDE_HOOK_CONFLICT_SAME_PAYLOAD", "base_ref": "CLAUDE", "mutate": {"set": {"higher_precedence/LOCAL/session_start_hooks": [{"id": "omos.personal-memory.session-start", "event": "SessionStart", "command_ref": "OMOS_PERSONAL_MEMORY_SESSION_START"}]}}, "expected_failure_code": "HBV1_SESSION_START_HOOK_CONFLICT"}
   ]
 }

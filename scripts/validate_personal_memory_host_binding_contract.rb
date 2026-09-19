@@ -11,6 +11,7 @@ require "json"
 require "set"
 require "yaml"
 require_relative "lib/omos_contract_helpers"
+require_relative "lib/loop_return_contract"
 require_relative "lib/personal_memory_host_binding"
 
 ROOT = File.expand_path("..", __dir__)
@@ -19,6 +20,7 @@ FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/personal-memory-host-bindin
 HELPER_PATH = File.join(__dir__, "lib/personal_memory_host_binding.rb")
 
 HB = PersonalMemoryHostBinding
+HB_PATH = File.join(__dir__, "lib/personal_memory_host_binding.rb")
 EXPECTED_V1_HOSTS = ["Codex", "Claude Code"].freeze
 EXPECTED_INVARIANTS = %w[
   GLOBAL_HARNESS_NE_GLOBAL_MEMORY_VISIBILITY
@@ -175,7 +177,16 @@ BINDINGS = {
   mode_definitions: spec.dig("ownership_visibility_contract", "mode_definitions") || {},
   visibility_scopes: spec.dig("ownership_visibility_contract", "visibility_scopes") || {},
   binding_allowed_fields: identity_fields + binding_additional,
-  binding_forbidden_fields: binding_forbidden
+  binding_forbidden_fields: binding_forbidden,
+  # repair-01 P1-1：切片 1 runtime 判定 binding 用的同一組參數。
+  runtime_binding_shape: {
+    identity_fields: identity_fields,
+    additional_fields: binding_additional,
+    allowed_fields: identity_fields + binding_additional,
+    forbidden_fields: binding_forbidden,
+    supported_hosts: runtime_hosts,
+    visibility_scopes: (spec.dig("ownership_visibility_contract", "visibility_scopes") || {}).keys
+  }
 }.freeze
 
 assert(sorted_set(binding_additional) == sorted_set(%w[cwd project_ref effective_scope]),
@@ -255,6 +266,73 @@ binding_drift[:host_profiles]["Codex"]["mcp_registration"]["command_ref"] = "DRI
 code = HB.scenario_failure(bases.fetch("CODEX"), binding_drift)
 assert(code == "HBV1_INSTALL_NOT_SAFE_MERGE",
        "Codex MCP profile 漂移必須先由 safe-merge guard 擋下", failures)
+
+# --- error contract（repair-01 P2-1）--------------------------------------
+#
+# 原本本片沒有 ERROR_CONTRACT，而且 merge_problem 的三個出口是字串插值，
+# LoopReturnContract 的可達碼掃描對它們回傳 0——等於錯誤碼與 evaluator
+# 之間沒有任何機器綁定。現在出口全部可靜態列舉，這裡做雙向斷言。
+
+ERROR_CONTRACT = {
+  "HBV1_BOOTSTRAP_NOT_MAP" => "personal_memory_host_binding_v1.error.bootstrap_not_map",
+  "HBV1_BOOTSTRAP_UNKNOWN_FIELD" => "personal_memory_host_binding_v1.error.bootstrap_unknown_field",
+  "HBV1_CONFIG_NOT_MAP" => "personal_memory_host_binding_v1.error.config_not_map",
+  "HBV1_CONFIG_UNKNOWN_FIELD" => "personal_memory_host_binding_v1.error.config_unknown_field",
+  "HBV1_CWD_MISSING" => "personal_memory_host_binding_v1.error.cwd_missing",
+  "HBV1_CWD_NOT_BOUND" => "personal_memory_host_binding_v1.error.cwd_not_bound",
+  "HBV1_EFFECTIVE_HOOK_MISSING_OR_DRIFTED" => "personal_memory_host_binding_v1.error.effective_hook_missing_or_drifted",
+  "HBV1_EFFECTIVE_MCP_MISSING_OR_DRIFTED" => "personal_memory_host_binding_v1.error.effective_mcp_missing_or_drifted",
+  "HBV1_EFFECTIVE_SCOPE_NOT_DERIVED" => "personal_memory_host_binding_v1.error.effective_scope_not_derived",
+  "HBV1_EFFECTIVE_USER_CONFIG_NOT_INSTALL_RESULT" => "personal_memory_host_binding_v1.error.effective_user_config_not_install_result",
+  "HBV1_EXECUTOR_REF_NOT_HOST" => "personal_memory_host_binding_v1.error.executor_ref_not_host",
+  "HBV1_EXECUTOR_SESSION_REF_NOT_NATIVE_SESSION" => "personal_memory_host_binding_v1.error.executor_session_ref_not_native_session",
+  "HBV1_HIGHER_PRECEDENCE_NOT_MAP" => "personal_memory_host_binding_v1.error.higher_precedence_not_map",
+  "HBV1_HIGHER_PRECEDENCE_SCOPE_MISSING" => "personal_memory_host_binding_v1.error.higher_precedence_scope_missing",
+  "HBV1_HIGHER_PRECEDENCE_SCOPE_UNKNOWN" => "personal_memory_host_binding_v1.error.higher_precedence_scope_unknown",
+  "HBV1_HOST_HEALTH_FIELD_MISSING" => "personal_memory_host_binding_v1.error.host_health_field_missing",
+  "HBV1_HOST_HEALTH_NOT_MAP" => "personal_memory_host_binding_v1.error.host_health_not_map",
+  "HBV1_HOST_HEALTH_UNKNOWN_FIELD" => "personal_memory_host_binding_v1.error.host_health_unknown_field",
+  "HBV1_HOST_NOT_SUPPORTED" => "personal_memory_host_binding_v1.error.host_not_supported",
+  "HBV1_HOST_PROFILE_MISSING" => "personal_memory_host_binding_v1.error.host_profile_missing",
+  "HBV1_INSTALL_NOT_MAP" => "personal_memory_host_binding_v1.error.install_not_map",
+  "HBV1_INSTALL_NOT_SAFE_MERGE" => "personal_memory_host_binding_v1.error.install_not_safe_merge",
+  "HBV1_INSTALL_UNKNOWN_FIELD" => "personal_memory_host_binding_v1.error.install_unknown_field",
+  "HBV1_MCP_ENTRIES_NOT_MAP" => "personal_memory_host_binding_v1.error.mcp_entries_not_map",
+  "HBV1_MCP_SHADOWED" => "personal_memory_host_binding_v1.error.mcp_shadowed",
+  "HBV1_NATIVE_SESSION_ID_MISSING" => "personal_memory_host_binding_v1.error.native_session_id_missing",
+  "HBV1_PRODUCED_BINDING_INCOMPLETE" => "personal_memory_host_binding_v1.error.produced_binding_incomplete",
+  "HBV1_PRODUCED_BINDING_NOT_MAP" => "personal_memory_host_binding_v1.error.produced_binding_not_map",
+  "HBV1_PRODUCED_BINDING_REJECTED_BY_RUNTIME" => "personal_memory_host_binding_v1.error.produced_binding_rejected_by_runtime",
+  "HBV1_PRODUCED_BINDING_SHADOW_IDENTITY_FIELD" => "personal_memory_host_binding_v1.error.produced_binding_shadow_identity_field",
+  "HBV1_PRODUCED_BINDING_UNKNOWN_FIELD" => "personal_memory_host_binding_v1.error.produced_binding_unknown_field",
+  "HBV1_PROJECT_REF_MISSING" => "personal_memory_host_binding_v1.error.project_ref_missing",
+  "HBV1_PROJECT_REF_NOT_BOUND" => "personal_memory_host_binding_v1.error.project_ref_not_bound",
+  "HBV1_RUN_NOT_MAP" => "personal_memory_host_binding_v1.error.run_not_map",
+  "HBV1_RUN_UNKNOWN_FIELD" => "personal_memory_host_binding_v1.error.run_unknown_field",
+  "HBV1_SESSION_START_HOOKS_NOT_ARRAY" => "personal_memory_host_binding_v1.error.session_start_hooks_not_array",
+  "HBV1_SESSION_START_HOOK_CONFLICT" => "personal_memory_host_binding_v1.error.session_start_hook_conflict",
+  "HBV1_SESSION_START_HOOK_ID_INVALID" => "personal_memory_host_binding_v1.error.session_start_hook_id_invalid",
+  "HBV1_SESSION_START_HOOK_NOT_MAP" => "personal_memory_host_binding_v1.error.session_start_hook_not_map",
+  "HBV1_UNINSTALL_INPUT_NOT_INSTALL_RESULT" => "personal_memory_host_binding_v1.error.uninstall_input_not_install_result",
+  "HBV1_UNINSTALL_NOT_MAP" => "personal_memory_host_binding_v1.error.uninstall_not_map",
+  "HBV1_UNINSTALL_NOT_SAFE_MERGE" => "personal_memory_host_binding_v1.error.uninstall_not_safe_merge",
+  "HBV1_UNINSTALL_UNKNOWN_FIELD" => "personal_memory_host_binding_v1.error.uninstall_unknown_field"
+}.freeze
+
+EVALUATOR_DEFS = File.readlines(HB_PATH).grep(/^  def /).map { |line| line[/def ([a-z_0-9?]+)/, 1] }
+reachable_codes = EVALUATOR_DEFS.flat_map { |fn| LoopReturnContract.reachable_codes(HB_PATH, fn) }.uniq
+assert((reachable_codes - ERROR_CONTRACT.keys).empty?,
+       "evaluator 會回傳但 error_contract 未宣告：#{(reachable_codes - ERROR_CONTRACT.keys).sort.inspect}", failures)
+assert((ERROR_CONTRACT.keys - reachable_codes).empty?,
+       "error_contract 宣告但 evaluator 不可能回傳：#{(ERROR_CONTRACT.keys - reachable_codes).sort.inspect}", failures)
+
+# 防回歸：出口不得再出現字串插值，否則上面的掃描會再次靜默失效。
+interpolated = File.readlines(HB_PATH).each_with_index
+                   .reject { |line, _| line.strip.start_with?("#") }
+                   .select { |line, _| line =~ /return "[^"]*\#\{/ }
+                   .map { |_, i| i + 1 }
+assert(interpolated.empty?,
+       "evaluator 出口不得使用字串插值（可達碼掃描會看不見）：行 #{interpolated.inspect}", failures)
 
 if failures.empty?
   puts "PASS personal memory host binding contract validation"

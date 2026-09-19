@@ -42,7 +42,7 @@
           "executor_session_ref": "sess-01",
           "cwd": "/Users/emp/proj",
           "project_ref": "proj-omos",
-          "effective_scope": "EMPLOYEE_PRIVATE"
+          "effective_scope": "SELF_ONLY"
         },
         "migration": {
           "migration_id": "m-002",
@@ -253,7 +253,7 @@
           "executor_session_ref": "sess-01",
           "cwd": "/Users/emp/proj",
           "project_ref": "proj-omos",
-          "effective_scope": "EMPLOYEE_PRIVATE"
+          "effective_scope": "SELF_ONLY"
         },
         "op_seq": 7
       },
@@ -393,7 +393,7 @@
           "executor_session_ref": "sess-02",
           "cwd": "/Users/emp/proj",
           "project_ref": "proj-omos",
-          "effective_scope": "EMPLOYEE_PRIVATE"
+          "effective_scope": "SELF_ONLY"
         },
         "op_seq": 9
       },
@@ -422,7 +422,7 @@
           "executor_session_ref": "sess-01",
           "cwd": "/Users/emp/proj",
           "project_ref": "proj-omos",
-          "effective_scope": "EMPLOYEE_PRIVATE"
+          "effective_scope": "SELF_ONLY"
         },
         "closeout": {
           "review_period_id": "urn:omos:personal-memory:review-period:2026-W38",
@@ -461,7 +461,7 @@
           "executor_session_ref": "sess-01",
           "cwd": "/Users/emp/proj",
           "project_ref": "proj-omos",
-          "effective_scope": "EMPLOYEE_PRIVATE"
+          "effective_scope": "SELF_ONLY"
         },
         "closeout": {
           "review_period_id": "urn:omos:personal-memory:review-period:2026-W38",
@@ -783,7 +783,7 @@
             "executor_session_ref": "sess-01",
             "cwd": "/Users/emp/proj",
             "project_ref": "proj-omos",
-            "effective_scope": "EMPLOYEE_PRIVATE"
+            "effective_scope": "SELF_ONLY"
           }
         }
       }
@@ -847,6 +847,17 @@
     },
     {
       "case_id": "pmr-neg-24",
+      "covers_negative_fixture": "a host session binding whose effective_scope is an ownership mode, not a visibility scope",
+      "expected": "deny",
+      "expected_failure_code": "PMR_HOST_BINDING_EFFECTIVE_SCOPE_NOT_VISIBILITY_SCOPE",
+      "mutate": {
+        "set": {
+          "operations/6/host_session_binding/effective_scope": "EMPLOYEE_PRIVATE"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-25",
       "covers_negative_fixture": "a host session binding naming an executor that is not a supported host",
       "expected": "deny",
       "expected_failure_code": "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST",
@@ -857,7 +868,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-25",
+      "case_id": "pmr-neg-26",
       "covers_negative_fixture": "an operation path that is not an array of known steps",
       "expected": "deny",
       "expected_failure_code": "PMR_PATH_NOT_ARRAY",
@@ -868,7 +879,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-26",
+      "case_id": "pmr-neg-27",
       "covers_negative_fixture": "an operation path whose store access precedes its permission check",
       "expected": "deny",
       "expected_failure_code": "PMR_PERMISSION_CHECK_NOT_FIRST",
@@ -882,7 +893,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-27",
+      "case_id": "pmr-neg-28",
       "covers_negative_fixture": "an operation path that does not match the declared path for its kind",
       "expected": "deny",
       "expected_failure_code": "PMR_PATH_NOT_DECLARED_PATH",
@@ -896,7 +907,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-28",
+      "case_id": "pmr-neg-29",
       "covers_negative_fixture": "an operation whose payload does not match its kind",
       "expected": "deny",
       "expected_failure_code": "PMR_OPERATION_PAYLOAD_MISMATCH",
@@ -959,7 +970,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-29",
+      "case_id": "pmr-neg-30",
       "covers_negative_fixture": "a store write outside a runtime transaction",
       "expected": "deny",
       "expected_failure_code": "PMR_WRITE_OUTSIDE_TRANSACTION",
@@ -970,7 +981,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-30",
+      "case_id": "pmr-neg-31",
       "covers_negative_fixture": "an uncommitted transaction that still produced a durable row",
       "expected": "deny",
       "expected_failure_code": "PMR_UNCOMMITTED_WRITE_DURABLE",
@@ -981,7 +992,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-31",
+      "case_id": "pmr-neg-32",
       "covers_negative_fixture": "a migration payload that is not a map of known fields",
       "expected": "deny",
       "expected_failure_code": "PMR_MIGRATION_NOT_MAP",
@@ -992,7 +1003,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-32",
+      "case_id": "pmr-neg-33",
       "covers_negative_fixture": "a migration receipt missing a required field",
       "expected": "deny",
       "expected_failure_code": "PMR_MIGRATION_RECEIPT_INCOMPLETE",
@@ -1003,7 +1014,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-33",
+      "case_id": "pmr-neg-34",
       "covers_negative_fixture": "a migration whose from_version does not continue the chain",
       "expected": "deny",
       "expected_failure_code": "PMR_MIGRATION_CHAIN_BROKEN",
@@ -1014,7 +1025,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-34",
+      "case_id": "pmr-neg-35",
       "covers_negative_fixture": "a migration id re-emitted with different content",
       "expected": "deny",
       "expected_failure_code": "PMR_MIGRATION_RECEIPT_MUTATED",
@@ -1025,7 +1036,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-35",
+      "case_id": "pmr-neg-36",
       "covers_negative_fixture": "a row payload that is not a map of known fields",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_NOT_MAP",
@@ -1036,7 +1047,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-36",
+      "case_id": "pmr-neg-37",
       "covers_negative_fixture": "a row carrying no Personal Memory resource body",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_RESOURCE_NOT_MAP",
@@ -1047,7 +1058,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-37",
+      "case_id": "pmr-neg-38",
       "covers_negative_fixture": "a row id that does not match its resource body identity",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_ID_NOT_BOUND_TO_RESOURCE_IDENTITY",
@@ -1058,7 +1069,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-38",
+      "case_id": "pmr-neg-39",
       "covers_negative_fixture": "a row resource with no support link at all",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
@@ -1069,7 +1080,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-39",
+      "case_id": "pmr-neg-40",
       "covers_negative_fixture": "a row whose support_link_ref does not resolve inside this store",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
@@ -1082,7 +1093,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-40",
+      "case_id": "pmr-neg-41",
       "covers_negative_fixture": "a row resource that was never personally accepted",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
@@ -1093,7 +1104,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-41",
+      "case_id": "pmr-neg-42",
       "covers_negative_fixture": "a support link that does not point back at the row it supports",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
@@ -1104,7 +1115,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-42",
+      "case_id": "pmr-neg-43",
       "covers_negative_fixture": "a row resource that was never verified",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
@@ -1115,7 +1126,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-43",
+      "case_id": "pmr-neg-44",
       "covers_negative_fixture": "a row resource whose memory kind is not long-lived by default",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
@@ -1126,7 +1137,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-44",
+      "case_id": "pmr-neg-45",
       "covers_negative_fixture": "a row resource whose candidate snapshot never reached ACCEPTED_FOR_RECORD",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
@@ -1137,7 +1148,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-45",
+      "case_id": "pmr-neg-46",
       "covers_negative_fixture": "a row resource missing a required field its kind declares upstream",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
@@ -1148,7 +1159,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-46",
+      "case_id": "pmr-neg-47",
       "covers_negative_fixture": "a support link row whose anchor resolution is not usable as support",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
@@ -1159,7 +1170,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-47",
+      "case_id": "pmr-neg-48",
       "covers_negative_fixture": "a row kind outside the upstream id templates",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_KIND_UNKNOWN",
@@ -1170,7 +1181,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-48",
+      "case_id": "pmr-neg-49",
       "covers_negative_fixture": "a row id that does not match its upstream id template",
       "expected": "deny",
       "expected_failure_code": "PMR_ROW_ID_NOT_MATCHING_ID_TEMPLATE",
@@ -1181,7 +1192,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-49",
+      "case_id": "pmr-neg-50",
       "covers_negative_fixture": "an idempotency key that is not a non-blank string",
       "expected": "deny",
       "expected_failure_code": "PMR_IDEMPOTENCY_KEY_INVALID",
@@ -1194,7 +1205,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-50",
+      "case_id": "pmr-neg-51",
       "covers_negative_fixture": "a row deletion erasing history",
       "expected": "deny",
       "expected_failure_code": "PMR_HISTORY_ERASURE",
@@ -1205,7 +1216,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-51",
+      "case_id": "pmr-neg-52",
       "covers_negative_fixture": "an idempotent replay that produced a second row id",
       "expected": "deny",
       "expected_failure_code": "PMR_IDEMPOTENT_REPLAY_CREATED_SECOND_ROW",
@@ -1220,7 +1231,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-52",
+      "case_id": "pmr-neg-53",
       "covers_negative_fixture": "a write to an existing row id that is not an idempotent replay",
       "expected": "deny",
       "expected_failure_code": "PMR_IN_PLACE_ROW_OVERWRITE",
@@ -1231,7 +1242,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-53",
+      "case_id": "pmr-neg-54",
       "covers_negative_fixture": "a same-id same-key write that alters supersedes_ref",
       "expected": "deny",
       "expected_failure_code": "PMR_IN_PLACE_ROW_OVERWRITE",
@@ -1242,7 +1253,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-54",
+      "case_id": "pmr-neg-55",
       "covers_negative_fixture": "a revision superseding a row this store never wrote",
       "expected": "deny",
       "expected_failure_code": "PMR_SUPERSEDES_TARGET_UNKNOWN",
@@ -1253,7 +1264,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-55",
+      "case_id": "pmr-neg-56",
       "covers_negative_fixture": "a revision superseding a row of a different kind",
       "expected": "deny",
       "expected_failure_code": "PMR_SUPERSEDES_TARGET_KIND_MISMATCH",
@@ -1310,7 +1321,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-56",
+      "case_id": "pmr-neg-57",
       "covers_negative_fixture": "a revision superseding a row that was already superseded",
       "expected": "deny",
       "expected_failure_code": "PMR_SUPERSEDES_TARGET_ALREADY_SUPERSEDED",
@@ -1387,7 +1398,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-57",
+      "case_id": "pmr-neg-58",
       "covers_negative_fixture": "a closeout payload that is not a map of known fields",
       "expected": "deny",
       "expected_failure_code": "PMR_CLOSEOUT_NOT_MAP",
@@ -1398,7 +1409,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-58",
+      "case_id": "pmr-neg-59",
       "covers_negative_fixture": "a closeout review period id that is not a non-blank string",
       "expected": "deny",
       "expected_failure_code": "PMR_CLOSEOUT_REVIEW_PERIOD_ID_INVALID",
@@ -1409,7 +1420,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-59",
+      "case_id": "pmr-neg-60",
       "covers_negative_fixture": "a retry whose promotion identity drifted for the same item",
       "expected": "deny",
       "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
@@ -1420,7 +1431,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-60",
+      "case_id": "pmr-neg-61",
       "covers_negative_fixture": "a closeout status outside the upstream vocabulary",
       "expected": "deny",
       "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
@@ -1431,7 +1442,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-61",
+      "case_id": "pmr-neg-62",
       "covers_negative_fixture": "a closeout attempt kind outside the upstream vocabulary",
       "expected": "deny",
       "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
@@ -1442,7 +1453,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-62",
+      "case_id": "pmr-neg-63",
       "covers_negative_fixture": "a second terminal closeout for the same review period",
       "expected": "deny",
       "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
@@ -1454,7 +1465,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-63",
+      "case_id": "pmr-neg-64",
       "covers_negative_fixture": "a closeout history whose scheduled period start drifted between attempts",
       "expected": "deny",
       "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
@@ -1465,7 +1476,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-64",
+      "case_id": "pmr-neg-65",
       "covers_negative_fixture": "a promotion_ref carried without a promotion idempotency key",
       "expected": "deny",
       "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
@@ -1476,7 +1487,7 @@
       }
     },
     {
-      "case_id": "pmr-neg-65",
+      "case_id": "pmr-neg-66",
       "covers_negative_fixture": "a store schema version that no migration in the chain produced",
       "expected": "deny",
       "expected_failure_code": "PMR_STORE_SCHEMA_VERSION_NOT_MIGRATION_CHAIN_TAIL",
