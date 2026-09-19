@@ -1,7 +1,7 @@
 # EMEM-11 切片 1 repair-01 — 再 review Handoff Packet
 
 - 原交付：`6c257c0`（NO_GO，P1×3 / P2×3）
-- repair-01 交付：見下方「交付 SHA」
+- repair-01 交付 SHA：`e61718454b81b88fdc78ca4ee43176fff411adf8`
 - 分支：`cc/emem11-local-store-runtime`
 - 收治範圍：**只收三筆 P1**。三筆 P2 依裁決留在 backlog，未動。
 
