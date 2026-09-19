@@ -1,0 +1,216 @@
+{
+  "base_note": "兩個 base 各是一個完整合法 Host Binding scenario；所有負例從其中一個 base 深複製後只套用明寫 mutation。",
+  "bases": {
+    "CODEX": {
+      "host": "Codex",
+      "install": {
+        "before": {
+          "mcp_entries": {"foreign.search": {"transport": "STDIO", "command_ref": "FOREIGN_SEARCH"}},
+          "session_start_hooks": [{"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"}]
+        },
+        "after": {
+          "mcp_entries": {
+            "foreign.search": {"transport": "STDIO", "command_ref": "FOREIGN_SEARCH"},
+            "omos.personal-memory": {"transport": "STDIO", "command_ref": "OMOS_PERSONAL_MEMORY_MCP"}
+          },
+          "session_start_hooks": [
+            {"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"},
+            {"id": "omos.personal-memory.session-start", "event": "SessionStart", "command_ref": "OMOS_PERSONAL_MEMORY_SESSION_START"}
+          ]
+        }
+      },
+      "uninstall": {
+        "before": {
+          "mcp_entries": {
+            "foreign.search": {"transport": "STDIO", "command_ref": "FOREIGN_SEARCH"},
+            "omos.personal-memory": {"transport": "STDIO", "command_ref": "OMOS_PERSONAL_MEMORY_MCP"}
+          },
+          "session_start_hooks": [
+            {"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"},
+            {"id": "omos.personal-memory.session-start", "event": "SessionStart", "command_ref": "OMOS_PERSONAL_MEMORY_SESSION_START"}
+          ]
+        },
+        "after": {
+          "mcp_entries": {"foreign.search": {"transport": "STDIO", "command_ref": "FOREIGN_SEARCH"}},
+          "session_start_hooks": [{"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"}]
+        }
+      },
+      "effective_user_config": {
+        "mcp_entries": {
+          "foreign.search": {"transport": "STDIO", "command_ref": "FOREIGN_SEARCH"},
+          "omos.personal-memory": {"transport": "STDIO", "command_ref": "OMOS_PERSONAL_MEMORY_MCP"}
+        },
+        "session_start_hooks": [
+          {"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"},
+          {"id": "omos.personal-memory.session-start", "event": "SessionStart", "command_ref": "OMOS_PERSONAL_MEMORY_SESSION_START"}
+        ]
+      },
+      "higher_precedence": {
+        "PROJECT": {"mcp_entries": {}, "session_start_hooks": []}
+      },
+      "host_health": {"project_trusted": true, "mcp_visible": true, "session_start_hook_active": true, "runtime_compatible": true},
+      "bootstrap": {
+        "native_session_id": "codex-session-001",
+        "cwd": "/workspace/project-a",
+        "project_ref": "urn:omos:project:project-a",
+        "runtime_scope_mode": "SHARED_WORK_CONTEXT",
+        "project_visibility_scope": "SELF_ONLY",
+        "produced_binding": {
+          "executor_ref": "Codex",
+          "executor_session_ref": "codex-session-001",
+          "cwd": "/workspace/project-a",
+          "project_ref": "urn:omos:project:project-a",
+          "effective_scope": "SELF_ONLY"
+        }
+      }
+    },
+    "CLAUDE": {
+      "host": "Claude Code",
+      "install": {
+        "before": {
+          "mcp_entries": {"foreign.search": {"transport": "STDIO", "command_ref": "FOREIGN_SEARCH"}},
+          "session_start_hooks": [{"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"}]
+        },
+        "after": {
+          "mcp_entries": {
+            "foreign.search": {"transport": "STDIO", "command_ref": "FOREIGN_SEARCH"},
+            "omos.personal-memory": {"transport": "STDIO", "command_ref": "OMOS_PERSONAL_MEMORY_MCP"}
+          },
+          "session_start_hooks": [
+            {"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"},
+            {"id": "omos.personal-memory.session-start", "event": "SessionStart", "command_ref": "OMOS_PERSONAL_MEMORY_SESSION_START"}
+          ]
+        }
+      },
+      "uninstall": {
+        "before": {
+          "mcp_entries": {
+            "foreign.search": {"transport": "STDIO", "command_ref": "FOREIGN_SEARCH"},
+            "omos.personal-memory": {"transport": "STDIO", "command_ref": "OMOS_PERSONAL_MEMORY_MCP"}
+          },
+          "session_start_hooks": [
+            {"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"},
+            {"id": "omos.personal-memory.session-start", "event": "SessionStart", "command_ref": "OMOS_PERSONAL_MEMORY_SESSION_START"}
+          ]
+        },
+        "after": {
+          "mcp_entries": {"foreign.search": {"transport": "STDIO", "command_ref": "FOREIGN_SEARCH"}},
+          "session_start_hooks": [{"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"}]
+        }
+      },
+      "effective_user_config": {
+        "mcp_entries": {
+          "foreign.search": {"transport": "STDIO", "command_ref": "FOREIGN_SEARCH"},
+          "omos.personal-memory": {"transport": "STDIO", "command_ref": "OMOS_PERSONAL_MEMORY_MCP"}
+        },
+        "session_start_hooks": [
+          {"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"},
+          {"id": "omos.personal-memory.session-start", "event": "SessionStart", "command_ref": "OMOS_PERSONAL_MEMORY_SESSION_START"}
+        ]
+      },
+      "higher_precedence": {
+        "PROJECT": {"mcp_entries": {}, "session_start_hooks": []},
+        "LOCAL": {"mcp_entries": {}, "session_start_hooks": []}
+      },
+      "host_health": {"mcp_visible": true, "session_start_hook_active": true, "runtime_compatible": true},
+      "bootstrap": {
+        "native_session_id": "claude-session-001",
+        "cwd": "/workspace/project-b",
+        "project_ref": "urn:omos:project:project-b",
+        "runtime_scope_mode": "COMPANY_MANAGED_PERSONAL",
+        "project_visibility_scope": "SELF_ONLY",
+        "produced_binding": {
+          "executor_ref": "Claude Code",
+          "executor_session_ref": "claude-session-001",
+          "cwd": "/workspace/project-b",
+          "project_ref": "urn:omos:project:project-b",
+          "effective_scope": "SELF_ONLY"
+        }
+      }
+    }
+  },
+  "positive_cases": [
+    {"case_id": "HBV1_POS_CODEX_NARROWING", "base_ref": "CODEX"},
+    {"case_id": "HBV1_POS_CLAUDE_NARROWING", "base_ref": "CLAUDE"},
+    {
+      "case_id": "HBV1_POS_CLAUDE_NO_PROJECT_OVERRIDE",
+      "base_ref": "CLAUDE",
+      "mutate": {
+        "delete": ["bootstrap/project_visibility_scope"],
+        "set": {"bootstrap/produced_binding/effective_scope": "EMPLOYEE_AND_POLICY_SYSTEM"}
+      }
+    },
+    {
+      "case_id": "HBV1_POS_CODEX_EQUAL_SCOPE",
+      "base_ref": "CODEX",
+      "mutate": {
+        "set": {
+          "bootstrap/project_visibility_scope": "WORK_CONTEXT_PARTICIPANTS",
+          "bootstrap/produced_binding/effective_scope": "WORK_CONTEXT_PARTICIPANTS"
+        }
+      }
+    }
+  ],
+  "negative_cases": [
+    {"case_id": "HBV1_NEG_RUN_NOT_MAP", "base_ref": "CODEX", "replace_run": [], "expected_failure_code": "HBV1_RUN_NOT_MAP"},
+    {"case_id": "HBV1_NEG_RUN_UNKNOWN_FIELD", "base_ref": "CODEX", "mutate": {"set": {"rogue": true}}, "expected_failure_code": "HBV1_RUN_UNKNOWN_FIELD"},
+    {"case_id": "HBV1_NEG_HOST_NOT_SUPPORTED", "base_ref": "CODEX", "mutate": {"set": {"host": "DeepSeek Harness"}}, "expected_failure_code": "HBV1_HOST_NOT_SUPPORTED"},
+    {"case_id": "HBV1_NEG_INSTALL_NOT_MAP", "base_ref": "CODEX", "mutate": {"set": {"install": []}}, "expected_failure_code": "HBV1_INSTALL_NOT_MAP"},
+    {"case_id": "HBV1_NEG_INSTALL_UNKNOWN_FIELD", "base_ref": "CODEX", "mutate": {"set": {"install/rogue": true}}, "expected_failure_code": "HBV1_INSTALL_UNKNOWN_FIELD"},
+    {"case_id": "HBV1_NEG_CONFIG_NOT_MAP", "base_ref": "CODEX", "mutate": {"set": {"install/before": []}}, "expected_failure_code": "HBV1_CONFIG_NOT_MAP"},
+    {"case_id": "HBV1_NEG_CONFIG_UNKNOWN_FIELD", "base_ref": "CODEX", "mutate": {"set": {"install/before/rogue": true}}, "expected_failure_code": "HBV1_CONFIG_UNKNOWN_FIELD"},
+    {"case_id": "HBV1_NEG_MCP_ENTRIES_NOT_MAP", "base_ref": "CODEX", "mutate": {"set": {"install/before/mcp_entries": []}}, "expected_failure_code": "HBV1_MCP_ENTRIES_NOT_MAP"},
+    {"case_id": "HBV1_NEG_HOOKS_NOT_ARRAY", "base_ref": "CODEX", "mutate": {"set": {"install/before/session_start_hooks": {}}}, "expected_failure_code": "HBV1_SESSION_START_HOOKS_NOT_ARRAY"},
+    {"case_id": "HBV1_NEG_HOOK_NOT_MAP", "base_ref": "CODEX", "mutate": {"set": {"install/before/session_start_hooks": [1]}}, "expected_failure_code": "HBV1_SESSION_START_HOOK_NOT_MAP"},
+    {"case_id": "HBV1_NEG_HOOK_ID_INVALID", "base_ref": "CODEX", "mutate": {"set": {"install/before/session_start_hooks": [{"id": "", "event": "SessionStart", "command_ref": "X"}]}}, "expected_failure_code": "HBV1_SESSION_START_HOOK_ID_INVALID"},
+    {"case_id": "HBV1_NEG_INSTALL_AFTER_CONFIG_MALFORMED", "base_ref": "CODEX", "mutate": {"set": {"install/after/session_start_hooks": {}}}, "expected_failure_code": "HBV1_SESSION_START_HOOKS_NOT_ARRAY"},
+    {"case_id": "HBV1_NEG_INSTALL_FOREIGN_MCP_CHANGED", "base_ref": "CODEX", "mutate": {"set": {"install/after/mcp_entries/foreign.search/command_ref": "CHANGED"}}, "expected_failure_code": "HBV1_INSTALL_NOT_SAFE_MERGE"},
+    {"case_id": "HBV1_NEG_INSTALL_FOREIGN_HOOK_REORDERED", "base_ref": "CODEX", "mutate": {"set": {"install/after/session_start_hooks": [{"id": "omos.personal-memory.session-start", "event": "SessionStart", "command_ref": "OMOS_PERSONAL_MEMORY_SESSION_START"}, {"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"}]}}, "expected_failure_code": "HBV1_INSTALL_NOT_SAFE_MERGE"},
+    {"case_id": "HBV1_NEG_EFFECTIVE_CONFIG_NOT_INSTALL_RESULT", "base_ref": "CODEX", "mutate": {"set": {"effective_user_config/mcp_entries/foreign.search/command_ref": "DIFFERENT"}}, "expected_failure_code": "HBV1_EFFECTIVE_USER_CONFIG_NOT_INSTALL_RESULT"},
+    {"case_id": "HBV1_NEG_UNINSTALL_INPUT_NOT_INSTALL_RESULT", "base_ref": "CLAUDE", "mutate": {"set": {"uninstall/before/mcp_entries/foreign.search/command_ref": "DIFFERENT", "uninstall/after/mcp_entries/foreign.search/command_ref": "DIFFERENT"}}, "expected_failure_code": "HBV1_UNINSTALL_INPUT_NOT_INSTALL_RESULT"},
+    {"case_id": "HBV1_NEG_UNINSTALL_NOT_MAP", "base_ref": "CLAUDE", "mutate": {"set": {"uninstall": []}}, "expected_failure_code": "HBV1_UNINSTALL_NOT_MAP"},
+    {"case_id": "HBV1_NEG_UNINSTALL_UNKNOWN_FIELD", "base_ref": "CLAUDE", "mutate": {"set": {"uninstall/rogue": true}}, "expected_failure_code": "HBV1_UNINSTALL_UNKNOWN_FIELD"},
+    {"case_id": "HBV1_NEG_UNINSTALL_OWN_MCP_REMAINS", "base_ref": "CLAUDE", "mutate": {"set": {"uninstall/after/mcp_entries/omos.personal-memory": {"transport": "STDIO", "command_ref": "OMOS_PERSONAL_MEMORY_MCP"}}}, "expected_failure_code": "HBV1_UNINSTALL_NOT_SAFE_MERGE"},
+    {"case_id": "HBV1_NEG_UNINSTALL_FOREIGN_HOOK_LOST", "base_ref": "CLAUDE", "mutate": {"set": {"uninstall/after/session_start_hooks": []}}, "expected_failure_code": "HBV1_UNINSTALL_NOT_SAFE_MERGE"},
+    {"case_id": "HBV1_NEG_EFFECTIVE_MCP_MISSING", "base_ref": "CODEX", "mutate": {"delete": ["effective_user_config/mcp_entries/omos.personal-memory"]}, "expected_failure_code": "HBV1_EFFECTIVE_MCP_MISSING_OR_DRIFTED"},
+    {"case_id": "HBV1_NEG_EFFECTIVE_CONFIG_MALFORMED", "base_ref": "CODEX", "mutate": {"set": {"effective_user_config/session_start_hooks": {}}}, "expected_failure_code": "HBV1_SESSION_START_HOOKS_NOT_ARRAY"},
+    {"case_id": "HBV1_NEG_EFFECTIVE_HOOK_DRIFTED", "base_ref": "CODEX", "mutate": {"set": {"effective_user_config/session_start_hooks": [{"id": "foreign.bootstrap", "event": "SessionStart", "command_ref": "FOREIGN_BOOTSTRAP"}]}}, "expected_failure_code": "HBV1_EFFECTIVE_HOOK_MISSING_OR_DRIFTED"},
+    {"case_id": "HBV1_NEG_HIGHER_SCOPE_UNKNOWN", "base_ref": "CODEX", "mutate": {"set": {"higher_precedence/LOCAL": {"mcp_entries": {}, "session_start_hooks": []}}}, "expected_failure_code": "HBV1_HIGHER_PRECEDENCE_SCOPE_UNKNOWN"},
+    {"case_id": "HBV1_NEG_HIGHER_SCOPE_MISSING", "base_ref": "CLAUDE", "mutate": {"delete": ["higher_precedence/LOCAL"]}, "expected_failure_code": "HBV1_HIGHER_PRECEDENCE_SCOPE_MISSING"},
+    {"case_id": "HBV1_NEG_HIGHER_PRECEDENCE_NOT_MAP", "base_ref": "CODEX", "mutate": {"set": {"higher_precedence": []}}, "expected_failure_code": "HBV1_HIGHER_PRECEDENCE_NOT_MAP"},
+    {"case_id": "HBV1_NEG_HIGHER_PRECEDENCE_CONFIG_MALFORMED", "base_ref": "CODEX", "mutate": {"set": {"higher_precedence/PROJECT/mcp_entries": []}}, "expected_failure_code": "HBV1_MCP_ENTRIES_NOT_MAP"},
+    {"case_id": "HBV1_NEG_CODEX_MCP_SHADOWED", "base_ref": "CODEX", "mutate": {"set": {"higher_precedence/PROJECT/mcp_entries/omos.personal-memory": {"transport": "STDIO", "command_ref": "OTHER"}}}, "expected_failure_code": "HBV1_MCP_SHADOWED"},
+    {"case_id": "HBV1_NEG_CLAUDE_LOCAL_HOOK_CONFLICT", "base_ref": "CLAUDE", "mutate": {"set": {"higher_precedence/LOCAL/session_start_hooks": [{"id": "omos.personal-memory.session-start", "event": "SessionStart", "command_ref": "OTHER"}]}}, "expected_failure_code": "HBV1_SESSION_START_HOOK_CONFLICT"},
+    {"case_id": "HBV1_NEG_HOST_HEALTH_NOT_MAP", "base_ref": "CLAUDE", "mutate": {"set": {"host_health": []}}, "expected_failure_code": "HBV1_HOST_HEALTH_NOT_MAP"},
+    {"case_id": "HBV1_NEG_HOST_HEALTH_UNKNOWN_FIELD", "base_ref": "CLAUDE", "mutate": {"set": {"host_health/rogue": true}}, "expected_failure_code": "HBV1_HOST_HEALTH_UNKNOWN_FIELD"},
+    {"case_id": "HBV1_NEG_HOST_HEALTH_FIELD_MISSING", "base_ref": "CLAUDE", "mutate": {"delete": ["host_health/runtime_compatible"]}, "expected_failure_code": "HBV1_HOST_HEALTH_FIELD_MISSING"},
+    {"case_id": "HBV1_NEG_CODEX_UNTRUSTED", "base_ref": "CODEX", "mutate": {"set": {"host_health/project_trusted": false}}, "expected_failure_code": "HBV1_PROJECT_UNTRUSTED"},
+    {"case_id": "HBV1_NEG_MCP_NOT_VISIBLE", "base_ref": "CLAUDE", "mutate": {"set": {"host_health/mcp_visible": false}}, "expected_failure_code": "HBV1_MCP_NOT_VISIBLE"},
+    {"case_id": "HBV1_NEG_HOOK_INACTIVE", "base_ref": "CLAUDE", "mutate": {"set": {"host_health/session_start_hook_active": false}}, "expected_failure_code": "HBV1_SESSION_START_HOOK_INACTIVE"},
+    {"case_id": "HBV1_NEG_RUNTIME_INCOMPATIBLE", "base_ref": "CODEX", "mutate": {"set": {"host_health/runtime_compatible": false}}, "expected_failure_code": "HBV1_RUNTIME_INCOMPATIBLE"},
+    {"case_id": "HBV1_NEG_BOOTSTRAP_NOT_MAP", "base_ref": "CODEX", "mutate": {"set": {"bootstrap": []}}, "expected_failure_code": "HBV1_BOOTSTRAP_NOT_MAP"},
+    {"case_id": "HBV1_NEG_BOOTSTRAP_UNKNOWN_FIELD", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/rogue": true}}, "expected_failure_code": "HBV1_BOOTSTRAP_UNKNOWN_FIELD"},
+    {"case_id": "HBV1_NEG_NATIVE_SESSION_MISSING", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/native_session_id": ""}}, "expected_failure_code": "HBV1_NATIVE_SESSION_ID_MISSING"},
+    {"case_id": "HBV1_NEG_CWD_MISSING", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/cwd": ""}}, "expected_failure_code": "HBV1_CWD_MISSING"},
+    {"case_id": "HBV1_NEG_PROJECT_REF_MISSING", "base_ref": "CLAUDE", "mutate": {"set": {"bootstrap/project_ref": ""}}, "expected_failure_code": "HBV1_PROJECT_REF_MISSING"},
+    {"case_id": "HBV1_NEG_RUNTIME_SCOPE_UNKNOWN", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/runtime_scope_mode": "UNKNOWN"}}, "expected_failure_code": "HBV1_RUNTIME_SCOPE_MODE_UNKNOWN"},
+    {"case_id": "HBV1_NEG_PROJECT_VISIBILITY_UNKNOWN", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/project_visibility_scope": "UNKNOWN"}}, "expected_failure_code": "HBV1_PROJECT_VISIBILITY_SCOPE_UNKNOWN"},
+    {"case_id": "HBV1_NEG_PROJECT_SCOPE_INCOMPARABLE", "base_ref": "CLAUDE", "mutate": {"set": {"bootstrap/project_visibility_scope": "WORK_CONTEXT_PARTICIPANTS"}}, "expected_failure_code": "HBV1_PROJECT_SCOPE_WIDENS_BASELINE"},
+    {"case_id": "HBV1_NEG_PRODUCED_BINDING_NOT_MAP", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding": []}}, "expected_failure_code": "HBV1_PRODUCED_BINDING_NOT_MAP"},
+    {"case_id": "HBV1_NEG_EXECUTOR_REF_NOT_HOST", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/executor_ref": "Claude Code"}}, "expected_failure_code": "HBV1_EXECUTOR_REF_NOT_HOST"},
+    {"case_id": "HBV1_NEG_SESSION_REF_DRIFT", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/executor_session_ref": "other"}}, "expected_failure_code": "HBV1_EXECUTOR_SESSION_REF_NOT_NATIVE_SESSION"},
+    {"case_id": "HBV1_NEG_CWD_DRIFT", "base_ref": "CLAUDE", "mutate": {"set": {"bootstrap/produced_binding/cwd": "/other"}}, "expected_failure_code": "HBV1_CWD_NOT_BOUND"},
+    {"case_id": "HBV1_NEG_PROJECT_REF_DRIFT", "base_ref": "CLAUDE", "mutate": {"set": {"bootstrap/produced_binding/project_ref": "urn:omos:project:other"}}, "expected_failure_code": "HBV1_PROJECT_REF_NOT_BOUND"},
+    {"case_id": "HBV1_NEG_EFFECTIVE_SCOPE_SELF_DECLARED", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/effective_scope": "EMPLOYEE_AND_POLICY_SYSTEM"}}, "expected_failure_code": "HBV1_EFFECTIVE_SCOPE_NOT_DERIVED"},
+    {"case_id": "HBV1_NEG_BINDING_UNKNOWN_FIELD", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/extra": "x"}}, "expected_failure_code": "HBV1_PRODUCED_BINDING_UNKNOWN_FIELD"},
+    {"case_id": "HBV1_NEG_BINDING_SHADOW_IDENTITY", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/host": "Codex"}}, "expected_failure_code": "HBV1_PRODUCED_BINDING_SHADOW_IDENTITY_FIELD"},
+    {"case_id": "HBV1_NEG_BINDING_INCOMPLETE", "base_ref": "CLAUDE", "mutate": {"delete": ["bootstrap/produced_binding/effective_scope"]}, "expected_failure_code": "HBV1_PRODUCED_BINDING_INCOMPLETE"},
+    {"case_id": "HBV1_NEG_NATIVE_SESSION_ID_FALSE", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/native_session_id": false}}, "expected_failure_code": "HBV1_NATIVE_SESSION_ID_MISSING"},
+    {"case_id": "HBV1_NEG_CWD_FALSE", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/cwd": false}}, "expected_failure_code": "HBV1_CWD_MISSING"},
+    {"case_id": "HBV1_NEG_PROJECT_REF_NUMERIC", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/project_ref": 1}}, "expected_failure_code": "HBV1_PROJECT_REF_MISSING"},
+    {"case_id": "HBV1_NEG_PRODUCED_BINDING_REJECTED_BY_RUNTIME", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/cwd": false}}, "expected_failure_code": "HBV1_PRODUCED_BINDING_REJECTED_BY_RUNTIME"},
+    {"case_id": "HBV1_NEG_PRODUCED_EFFECTIVE_SCOPE_IS_OWNERSHIP_MODE", "base_ref": "CODEX", "mutate": {"set": {"bootstrap/produced_binding/effective_scope": "EMPLOYEE_PRIVATE"}}, "expected_failure_code": "HBV1_PRODUCED_BINDING_REJECTED_BY_RUNTIME"},
+    {"case_id": "HBV1_NEG_CODEX_MCP_SHADOWED_SAME_PAYLOAD", "base_ref": "CODEX", "mutate": {"set": {"higher_precedence/PROJECT/mcp_entries/omos.personal-memory": {"transport": "STDIO", "command_ref": "OMOS_PERSONAL_MEMORY_MCP"}}}, "expected_failure_code": "HBV1_MCP_SHADOWED"},
+    {"case_id": "HBV1_NEG_CLAUDE_HOOK_CONFLICT_SAME_PAYLOAD", "base_ref": "CLAUDE", "mutate": {"set": {"higher_precedence/LOCAL/session_start_hooks": [{"id": "omos.personal-memory.session-start", "event": "SessionStart", "command_ref": "OMOS_PERSONAL_MEMORY_SESSION_START"}]}}, "expected_failure_code": "HBV1_SESSION_START_HOOK_CONFLICT"}
+  ]
+}

@@ -38,6 +38,7 @@ require_relative "lib/loop_return_contract"
 require_relative "lib/minimal_evidence_package_shape"
 require_relative "lib/weekly_closeout_history"
 require_relative "lib/personal_memory_resource_evaluator"
+require_relative "lib/host_session_binding_shape"
 
 ROOT = File.expand_path("..", __dir__)
 SPEC_PATH = File.join(ROOT, "規格/v0.1/personal-harness-integration.yaml")
@@ -51,6 +52,9 @@ HISTORY_PATH = File.join(__dir__, "lib/weekly_closeout_history.rb")
 # row 的本體直接交給既有 Personal Memory resource evaluator，不在本片重寫。
 PMRE = PersonalMemoryResourceEvaluator
 RESOURCE_PATH = File.join(__dir__, "lib/personal_memory_resource_evaluator.rb")
+# HostSessionBinding 的形狀檢查與切片 2 共用同一份實作。
+HBShape = HostSessionBindingShape
+BINDING_PATH = File.join(__dir__, "lib/host_session_binding_shape.rb")
 
 RUN_ALLOWED_FIELDS = %w[store operations].freeze
 STORE_ALLOWED_FIELDS = %w[engine journal_mode schema_version].freeze
@@ -77,6 +81,7 @@ EXPECTED_NEGATIVE_LABELS = [
   "a host session binding carrying a shadow identity field",
   "a host session binding missing an upstream executor identity field",
   "a host session binding naming an executor that is not a supported host",
+  "a host session binding whose effective_scope is an ownership mode, not a visibility scope",
   "a host session binding that is not a map",
   "a migration id re-emitted with different content",
   "a migration payload that is not a map of known fields",
@@ -176,16 +181,18 @@ def runtime_log_failure(run, b)
     end
 
     unless binding.nil?
-      return "PMR_HOST_BINDING_NOT_MAP" unless binding.is_a?(Hash)
-      return "PMR_HOST_BINDING_SHADOW_IDENTITY_FIELD" if b[:binding_forbidden_fields].any? { |f| binding.key?(f) }
-      return "PMR_HOST_BINDING_UNKNOWN_FIELD" unless (binding.keys - b[:binding_allowed_fields]).empty?
-      # 身分欄位名讀上游 executor_provenance_fields，值本身也要鎖形狀。
-      return "PMR_HOST_BINDING_IDENTITY_FIELD_MISSING" unless b[:identity_fields].all? { |f| !MEPShape.blank?(binding[f]) }
-      # 欄位名合法不等於值合法：cwd／project_ref／effective_scope 出現時
-      # 必須是非空字串，否則一個巢狀物件就能穿過整張 allowlist。
-      return "PMR_HOST_BINDING_ADDITIONAL_FIELD_NOT_STRING" unless b[:binding_additional_fields]
-        .all? { |f| !binding.key?(f) || !MEPShape.blank?(binding[f]) }
-      return "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST" unless b[:supported_hosts].include?(binding["executor_ref"])
+      # repair-01（切片 2 P1-1／P1-2）：形狀判定搬到共用 evaluator，切片 2 的
+      # Host 適配器與本片 runtime 因此不可能對同一個 binding 有不同結論。
+      # 這裡逐碼轉發而不是 `return problem`，是因為 LoopReturnContract 要求
+      # 出口只能是字面碼；六個碼的診斷粒度依 Owner §1.5 裁決保留。
+      problem = HBShape.binding_problem(binding, b[:binding_shape])
+      return "PMR_HOST_BINDING_NOT_MAP" if problem == "PMR_HOST_BINDING_NOT_MAP"
+      return "PMR_HOST_BINDING_SHADOW_IDENTITY_FIELD" if problem == "PMR_HOST_BINDING_SHADOW_IDENTITY_FIELD"
+      return "PMR_HOST_BINDING_UNKNOWN_FIELD" if problem == "PMR_HOST_BINDING_UNKNOWN_FIELD"
+      return "PMR_HOST_BINDING_IDENTITY_FIELD_MISSING" if problem == "PMR_HOST_BINDING_IDENTITY_FIELD_MISSING"
+      return "PMR_HOST_BINDING_ADDITIONAL_FIELD_NOT_STRING" if problem == "PMR_HOST_BINDING_ADDITIONAL_FIELD_NOT_STRING"
+      return "PMR_HOST_BINDING_EFFECTIVE_SCOPE_NOT_VISIBILITY_SCOPE" if problem == "PMR_HOST_BINDING_EFFECTIVE_SCOPE_NOT_VISIBILITY_SCOPE"
+      return "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST" if problem == "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST"
     end
 
     path = op["path"]
@@ -504,6 +511,16 @@ disposition_categories = (hc_categories + ["NEEDS_ORG_FOLLOWUP"]).to_set
 candidate_ref_prefix = id_templates["PersonalMemoryCandidate"].to_s.split("{").first
 record_ref_prefix = id_templates["PersonalMemoryRecord"].to_s.split("{").first
 
+# repair-01 P1-2：effective_scope 的詞彙來源。切片 2 的契約也指向同一處，
+# 兩片因此不可能對這個欄位各自解讀。
+visibility_scopes = spec.dig("ownership_visibility_contract", "visibility_scopes") || {}
+assert(visibility_scopes.any?,
+       "ownership_visibility_contract.visibility_scopes 必須存在（effective_scope 綁定它）", failures)
+visibility_scope_names = visibility_scopes.keys
+mode_names = (spec.dig("ownership_visibility_contract", "mode_definitions") || {}).keys
+assert((visibility_scope_names & mode_names).empty?,
+       "visibility scope 與 ownership mode 的詞彙不得相交，否則 effective_scope 又會兩義", failures)
+
 genesis_version = store_spec["genesis_version"]
 assert(!MEPShape.blank?(genesis_version),
        "store.genesis_version 必須宣告（migration 鏈的起點，第一筆 from_version 比對它）", failures)
@@ -515,9 +532,14 @@ BINDINGS = {
   forbidden_surfaces: forbidden_surfaces,
   supported_hosts: supported_hosts,
   identity_fields: identity_fields,
-  binding_allowed_fields: identity_fields + binding_additional,
-  binding_additional_fields: binding_additional,
-  binding_forbidden_fields: binding_forbidden,
+  binding_shape: {
+    identity_fields: identity_fields,
+    additional_fields: binding_additional,
+    allowed_fields: identity_fields + binding_additional,
+    forbidden_fields: binding_forbidden,
+    supported_hosts: supported_hosts,
+    visibility_scopes: visibility_scope_names
+  },
   write_path: write_path,
   read_path: read_path,
   id_patterns: id_patterns,
@@ -620,6 +642,7 @@ ERROR_CONTRACT = {
   "PMR_HOST_BINDING_UNKNOWN_FIELD" => "personal_memory_runtime.error.host_binding_unknown_field",
   "PMR_HOST_BINDING_IDENTITY_FIELD_MISSING" => "personal_memory_runtime.error.host_binding_identity_field_missing",
   "PMR_HOST_BINDING_ADDITIONAL_FIELD_NOT_STRING" => "personal_memory_runtime.error.host_binding_additional_field_not_string",
+  "PMR_HOST_BINDING_EFFECTIVE_SCOPE_NOT_VISIBILITY_SCOPE" => "personal_memory_runtime.error.host_binding_effective_scope_not_visibility_scope",
   "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST" => "personal_memory_runtime.error.host_binding_executor_not_supported_host",
   "PMR_PATH_NOT_ARRAY" => "personal_memory_runtime.error.path_not_array",
   "PMR_PERMISSION_CHECK_NOT_FIRST" => "personal_memory_runtime.error.permission_check_not_first",
@@ -654,6 +677,12 @@ declared_codes = ERROR_CONTRACT.keys
 history_violations = LoopReturnContract.exit_shape_violations(HISTORY_PATH, "weekly_review_cycle_failure")
 assert(history_violations.empty?,
        "共用的 weekly closeout evaluator 有不合契約的 return 形式：#{history_violations.inspect}", failures)
+binding_violations = LoopReturnContract.exit_shape_violations(BINDING_PATH, "binding_problem")
+assert(binding_violations.empty?,
+       "共用的 HostSessionBinding evaluator 有不合契約的 return 形式：#{binding_violations.inspect}", failures)
+binding_codes = LoopReturnContract.reachable_codes(BINDING_PATH, "binding_problem")
+assert((binding_codes - ERROR_CONTRACT.keys).empty?,
+       "共用 binding evaluator 會回傳但本片 error_contract 未宣告：#{(binding_codes - ERROR_CONTRACT.keys).sort.inspect}", failures)
 violations = LoopReturnContract.exit_shape_violations(__FILE__, "runtime_log_failure")
 assert(violations.empty?, "runtime_log_failure 有不合契約的 return 形式：#{violations.inspect}", failures)
 reachable = LoopReturnContract.reachable_codes(__FILE__, "runtime_log_failure")

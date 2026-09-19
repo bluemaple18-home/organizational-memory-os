@@ -30,6 +30,7 @@ SLICE_VALIDATORS = %w[
   validate_evidence_package_revision_contract
   validate_company_side_evidence_boundary_contract
   validate_personal_memory_runtime_contract
+  validate_personal_memory_host_binding_contract
 ].freeze
 
 any_failure = false
