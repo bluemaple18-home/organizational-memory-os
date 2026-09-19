@@ -2,4 +2,4 @@
 # 由 Host／使用者直接呼叫的入口。版本解析在 Ruby 之外完成——見 bin/pinned-ruby.sh。
 set -e
 . "$(CDPATH= cd -- "$(dirname -- "$0")/../bin" && pwd)/pinned-ruby.sh"
-exec "$OMOS_RUBY" "$OMOS_ROOT/lib/omos/entry/cli.rb" "$@"
+exec "$OMOS_RUBY" "$OMOS_ROOT/lib/omos/entry/mcp.rb" "$@"

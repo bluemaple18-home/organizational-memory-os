@@ -8,6 +8,10 @@
 # 必須由「產品實際開啟的那條連線」回報版本，不能看系統 sqlite3 指令，
 # 也不能只看 gem 版本號。這一項之後要放進 installer／doctor。
 
+$LOAD_PATH.unshift(File.expand_path("lib", __dir__))
+require "omos/version_guard"
+OMOS::VersionGuard.assert!
+
 require "sqlite3"
 require "mcp"
 require "tmpdir"

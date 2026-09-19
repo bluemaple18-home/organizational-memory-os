@@ -2250,6 +2250,17 @@ personal_memory_host_binding_v1:
         id: omos.personal-memory.session-start
         event: SessionStart
         command_ref: OMOS_PERSONAL_MEMORY_SESSION_START
+      # 切片 3b：把切片 2 的 normalized 快照綁到**實際檔案**。
+      # 以下路徑與結構皆為本機實測（~/.codex/config.toml 內確有
+      # [mcp_servers.<id>] 與 [[hooks.<Event>]] array-of-tables）。
+      config_discovery:
+        mcp_config_file: "~/.codex/config.toml"
+        mcp_config_format: TOML
+        mcp_entries_path: mcp_servers
+        session_start_config_file: "~/.codex/config.toml"
+        session_start_config_format: TOML
+        session_start_hooks_path: hooks.SessionStart
+        session_start_hooks_shape: ARRAY_OF_TABLES
       higher_precedence_conflict_scopes:
         - PROJECT
       required_health:
@@ -2268,6 +2279,17 @@ personal_memory_host_binding_v1:
         id: omos.personal-memory.session-start
         event: SessionStart
         command_ref: OMOS_PERSONAL_MEMORY_SESSION_START
+      # 切片 3b：本機實測——MCP 註冊在 ~/.claude.json 的 mcpServers，
+      # SessionStart hook 在 ~/.claude/settings.json 的 hooks.SessionStart。
+      # 兩者是不同檔案，因此探索與 doctor 必須分開查。
+      config_discovery:
+        mcp_config_file: "~/.claude.json"
+        mcp_config_format: JSON
+        mcp_entries_path: mcpServers
+        session_start_config_file: "~/.claude/settings.json"
+        session_start_config_format: JSON
+        session_start_hooks_path: hooks.SessionStart
+        session_start_hooks_shape: ARRAY
       higher_precedence_conflict_scopes:
         - PROJECT
         - LOCAL

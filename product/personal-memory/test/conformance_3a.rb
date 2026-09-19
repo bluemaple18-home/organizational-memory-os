@@ -16,6 +16,8 @@ require "tmpdir"
 require "json"
 require "set"
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
+require "omos/version_guard"
+OMOS::VersionGuard.assert!
 require "omos/runtime"
 
 RESULTS = []

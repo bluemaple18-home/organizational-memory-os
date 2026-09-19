@@ -9,6 +9,8 @@ ruby "3.4.10"
 
 gem "mcp"
 gem "sqlite3"
+# Codex 的使用者設定是 TOML（~/.codex/config.toml）
+gem "toml-rb"
 
 group :development do
   gem "minitest"

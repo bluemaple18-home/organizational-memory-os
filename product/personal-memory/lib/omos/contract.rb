@@ -28,6 +28,7 @@ module OMOS
     require File.join(SHARED_LIB, "weekly_closeout_history")
     require File.join(SHARED_LIB, "minimal_evidence_package_shape")
     require File.join(SHARED_LIB, "runtime_log_oracle")
+    require File.join(SHARED_LIB, "personal_memory_host_binding")
 
     ResourceEvaluator = PersonalMemoryResourceEvaluator
     BindingShape = HostSessionBindingShape
@@ -36,6 +37,9 @@ module OMOS
     # 事後 conformance oracle。**不得用於寫入治理路徑**——寫入保護是
     # OMOS::Runtime 的 pre-write 判定加上 SQLite constraint/trigger。
     LogOracle = RuntimeLogOracle
+    # 切片 2 的 Host 適配 evaluator：安裝 safe-merge、shadow、health、
+    # bootstrap 與 effective_scope 推導全部委派它。
+    HostBinding = PersonalMemoryHostBinding
 
     module_function
 
