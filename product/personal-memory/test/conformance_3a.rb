@@ -220,9 +220,22 @@ Dir.mktmpdir("omos-3a") do |dir|
   end
   check("retry 換掉 promotion identity 被拒", drift_rejected, drift_rejected)
 
-  # --- 證據（附加，不是保護）：journal 過切片 1 validator ---
+  # --- 證據（附加，不是保護）：journal 過切片 1 的共用 oracle ---
+  #
+  # 這一段是事後 conformance。真正的保護是上面那些：pre-write 治理判定、
+  # SQLite constraint/trigger、rollback 與重啟持久化。
   log = rt.operation_log
   File.write(File.join(dir, "journal.json"), JSON.pretty_generate(log))
+  problem = OMOS::Contract.runtime_log_problem(log)
+  check("真實 journal 通過切片 1 共用 oracle", problem.inspect, problem.nil?)
+
+  # 邊界（Owner 明示）：oracle 不得進入寫入治理路徑。這裡做成機器檢查，
+  # 而不是只寫在註解裡——runtime.rb 一旦引用 oracle，這條就會紅。
+  runtime_src = File.read(File.expand_path("../lib/omos/runtime.rb", __dir__))
+  check("寫入路徑未引用 journal oracle",
+        runtime_src.include?("LogOracle") || runtime_src.include?("RuntimeLogOracle") ? "有引用" : "無引用",
+        !runtime_src.include?("LogOracle") && !runtime_src.include?("RuntimeLogOracle"))
+
   store.close
 
   # --- 重啟持久化：全新連線重新開啟，讀得回 ---

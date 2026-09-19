@@ -27,11 +27,15 @@ module OMOS
     require File.join(SHARED_LIB, "personal_memory_resource_evaluator")
     require File.join(SHARED_LIB, "weekly_closeout_history")
     require File.join(SHARED_LIB, "minimal_evidence_package_shape")
+    require File.join(SHARED_LIB, "runtime_log_oracle")
 
     ResourceEvaluator = PersonalMemoryResourceEvaluator
     BindingShape = HostSessionBindingShape
     CloseoutHistory = WeeklyCloseoutHistory
     Shape = MinimalEvidencePackageShape
+    # 事後 conformance oracle。**不得用於寫入治理路徑**——寫入保護是
+    # OMOS::Runtime 的 pre-write 判定加上 SQLite constraint/trigger。
+    LogOracle = RuntimeLogOracle
 
     module_function
 
@@ -117,6 +121,34 @@ module OMOS
 
     def binding_problem(binding)
       BindingShape.binding_problem(binding, binding_shape_bindings)
+    end
+
+    # 事後 conformance 用：把 operation journal 交給切片 1 的 oracle 判定。
+    # 這是證據，不是保護——呼叫點只會出現在 test/，不會出現在 runtime.rb。
+    def runtime_log_bindings
+      tmpl = id_templates
+      {
+        engine: store_engine, journal_mode: journal_mode,
+        surfaces: access_surfaces, forbidden_surfaces: forbidden_surfaces,
+        supported_hosts: supported_hosts,
+        identity_fields: spec.dig("runtime_policy", "portable_record_contract", "executor_provenance_fields"),
+        binding_shape: binding_shape_bindings,
+        write_path: write_path, read_path: read_path,
+        id_patterns: tmpl.keys.each_with_object({}) { |k, h| h[k] = id_pattern(k) },
+        spec: spec, common_vocab: vocab,
+        row_identity_fields: runtime.dig("row_contract", "identity_fields"),
+        disposition_categories: disposition_categories,
+        candidate_ref_prefix: candidate_ref_prefix, record_ref_prefix: record_ref_prefix,
+        genesis_version: genesis_version
+      }
+    end
+
+    def runtime_log_problem(log)
+      b = runtime_log_bindings
+      missing = LogOracle.missing_binding_keys(b)
+      raise "oracle bindings 缺少 #{missing.inspect}" unless missing.empty?
+
+      LogOracle.runtime_log_failure(log, b)
     end
 
     # closeout 歷程判定：entries 是同一個 review_period_id 依序的 closeout。

@@ -82,7 +82,7 @@ module OMOS
         # 逐欄相同的重放是合法 no-op；其餘任何差異都是就地改寫。
         raise Rejected, "PMR_IN_PLACE_ROW_OVERWRITE" unless existing[:canonical] == canonical
 
-        journal(surface, "STORE_WRITE", Contract.write_path, binding, { "replay_of" => row_id })
+        journal(surface, "STORE_WRITE", Contract.write_path, binding, candidate)
         return { row_id: row_id, replayed: true }
       end
 
@@ -114,7 +114,7 @@ module OMOS
           [row_id, kind, idempotency_key, supersedes_ref, canonical, JSON.generate(resource), now]
         )
       end
-      journal(surface, "STORE_WRITE", Contract.write_path, binding, { "row_id" => row_id })
+      journal(surface, "STORE_WRITE", Contract.write_path, binding, candidate)
       { row_id: row_id, replayed: false }
     end
 
@@ -156,27 +156,27 @@ module OMOS
     # 重啟持久化確認，不只驗這份 journal。
 
     def operation_log
-      operations = store.journal.each_with_index.map do |(_, surface, kind, path_json, binding_json, payload_json), i|
-        op = { "op_seq" => i + 1, "surface" => surface, "kind" => kind, "path" => JSON.parse(path_json) }
+      migrations = store.migration_receipts.map do |receipt|
+        { "surface" => "LOCAL_CLI", "kind" => "SCHEMA_MIGRATION", "path" => Contract.write_path,
+          "transaction" => { "committed" => true }, "migration" => receipt }
+      end
+      recorded = store.journal.map do |(_, surface, kind, path_json, binding_json, payload_json)|
+        op = { "surface" => surface, "kind" => kind, "path" => JSON.parse(path_json) }
         op["host_session_binding"] = JSON.parse(binding_json) if binding_json
         op["transaction"] = { "committed" => true } unless kind == "STORE_READ"
         payload = payload_json && JSON.parse(payload_json)
         case kind
-        when "SCHEMA_MIGRATION" then op["migration"] = payload
+        when "STORE_WRITE" then op["row"] = payload
         when "CLOSEOUT_COMMIT" then op["closeout"] = payload
         end
         op
       end
-      migrations = store.migration_receipts.each_with_index.map do |receipt, i|
-        { "op_seq" => i + 1, "surface" => "LOCAL_CLI", "kind" => "SCHEMA_MIGRATION",
-          "path" => Contract.write_path, "transaction" => { "committed" => true }, "migration" => receipt }
-      end
-      combined = migrations + operations.reject { |op| op["kind"] == "STORE_WRITE" && op["migration"] }
-      combined.each_with_index { |op, i| op["op_seq"] = i + 1 }
+      operations = (migrations + recorded).each_with_index.map { |op, i| op.merge("op_seq" => i + 1) }
       {
-        "store" => { "engine" => Contract.store_engine, "journal_mode" => store.journal_mode.to_s.upcase,
+        "store" => { "engine" => Contract.store_engine,
+                     "journal_mode" => store.journal_mode.to_s.upcase,
                      "schema_version" => store.schema_version },
-        "operations" => combined
+        "operations" => operations
       }
     end
 
