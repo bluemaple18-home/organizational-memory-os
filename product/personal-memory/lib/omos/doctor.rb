@@ -30,9 +30,11 @@ module OMOS
 
     HANDSHAKE_TIMEOUT = 15
 
-    def initialize(home: Dir.home, product_root: File.expand_path("../..", __dir__), store_path: nil)
+    def initialize(home: Dir.home, product_root: File.expand_path("../..", __dir__),
+                   store_path: nil, cwd: Dir.pwd)
       @installer = Installer.new(home: home, product_root: product_root, store_path: store_path)
       @home = home
+      @cwd = cwd
     end
 
     def run
@@ -46,7 +48,12 @@ module OMOS
       checks
     end
 
-    def healthy?(results = run) = results.all?(&:ok?)
+    # WARN 是誠實的第三種狀態：「這一項在這台機器上無法觀測」。
+    # 它不該被當成健康，也不該被當成失敗——healthy? 以「沒有 FAIL」為準，
+    # WARN 由呼叫端另外列出。
+    def failures(results = run) = results.select { |r| r.status == "FAIL" }
+    def warnings(results = run) = results.select { |r| r.status == "WARN" }
+    def healthy?(results = run) = failures(results).empty?
 
     private
 
@@ -153,15 +160,29 @@ module OMOS
 
     # 更高優先序的同名註冊＝遮蔽。判定用切片 2 的 precedence_problem，
     # 即使 payload 與本產品完全相同也必須報（看的是 id 與優先序，不是內容）。
+    #
+    # 讀的是**實際的專案層設定檔**。3c-2 初版這裡餵的是空快照，等於永遠回 OK、
+    # 偵測不到任何真實遮蔽；那是自報健康，已修。
     def shadow_check(host, profile, config)
-      scopes = profile.fetch("higher_precedence_conflict_scopes", [])
-      higher = scopes.each_with_object({}) { |scope, acc| acc[scope] = HostConfig::EMPTY.dup }
-      problem = Contract::HostBinding.precedence_problem(higher, profile)
-      return bad("#{tag(host)}_no_shadow", problem) unless problem.nil?
+      observed = config.higher_precedence(@cwd)
+      unobservable = observed.select { |_scope, snap| snap == :not_observable }.keys
+      scannable = observed.reject { |_scope, snap| snap == :not_observable }
 
-      ok("#{tag(host)}_no_shadow", "無更高優先序遮蔽（掃描 #{scopes.join(", ")}）")
-    rescue StandardError => e
-      warn_("#{tag(host)}_no_shadow", "#{e.class}: #{e.message[0, 60]}")
+      if scannable.empty?
+        # Codex 實測：專案層設定只帶 trust_level，沒有 MCP 覆寫可掃。
+        # 照實說「這個 scope 無法觀測」，不假裝掃過了。
+        return warn_("#{tag(host)}_no_shadow",
+                     "#{unobservable.join(", ")} scope 無可觀測的 MCP 覆寫來源；遮蔽無法在此偵測")
+      end
+
+      problem = Contract::HostBinding.precedence_problem(scannable, profile)
+      detail = "掃描 #{scannable.keys.join(", ")}"
+      detail += "（#{unobservable.join(", ")} 無法觀測）" unless unobservable.empty?
+      return bad("#{tag(host)}_no_shadow", "#{problem}｜#{detail}") unless problem.nil?
+
+      ok("#{tag(host)}_no_shadow", "無遮蔽（#{detail}）")
+    rescue HostConfig::DiscoveryError => e
+      bad("#{tag(host)}_no_shadow", e.message[0, 120])
     end
 
     # --- binding / scope / cycle ----------------------------------------

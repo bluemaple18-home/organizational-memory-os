@@ -2261,6 +2261,19 @@ personal_memory_host_binding_v1:
         session_start_config_format: TOML
         session_start_hooks_path: hooks.SessionStart
         session_start_hooks_shape: ARRAY_OF_TABLES
+        # 切片 3c 實測：~/.codex/config.toml 的 36 個 [projects."<path>"]
+        # section 只帶 trust_level，**沒有任何專案層 MCP 覆寫**。因此 Codex 的
+        # PROJECT scope 不是 MCP 遮蔽來源；它對應的是 required_health 裡的
+        # project_trusted。doctor 必須照實回報，不得因為「掃不到遮蔽」就回 OK。
+        higher_precedence_sources:
+          PROJECT:
+            file: "~/.codex/config.toml"
+            format: TOML
+            project_table_path: projects
+            mcp_entries_path: null
+            session_start_hooks_path: null
+            observable_keys:
+              - trust_level
       higher_precedence_conflict_scopes:
         - PROJECT
       required_health:
@@ -2290,6 +2303,20 @@ personal_memory_host_binding_v1:
         session_start_config_format: JSON
         session_start_hooks_path: hooks.SessionStart
         session_start_hooks_shape: ARRAY
+        # 切片 3c 實測：Claude Code 的專案層設定確實存在於工作目錄下
+        # （本機找到 3 處 .mcp.json 與 3 處 .claude/settings.json），
+        # 兩者都可能以更高優先序遮蔽 user scope 的同名註冊。
+        higher_precedence_sources:
+          PROJECT:
+            file: "{cwd}/.mcp.json"
+            format: JSON
+            mcp_entries_path: mcpServers
+            session_start_hooks_path: null
+          LOCAL:
+            file: "{cwd}/.claude/settings.local.json"
+            format: JSON
+            mcp_entries_path: mcpServers
+            session_start_hooks_path: hooks.SessionStart
       higher_precedence_conflict_scopes:
         - PROJECT
         - LOCAL

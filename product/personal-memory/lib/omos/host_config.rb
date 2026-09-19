@@ -54,6 +54,32 @@ module OMOS
       { "mcp_entries" => read_mcp_entries, "session_start_hooks" => read_session_start_hooks }
     end
 
+    # 更高優先序 scope 的實際快照（遮蔽偵測用）。
+    #
+    # 兩個 Host 的情況本質不同，實測為憑：
+    #   Codex       ~/.codex/config.toml 的 [projects."<path>"] 只帶
+    #               trust_level，沒有專案層 MCP 覆寫 → 這個 scope 不是
+    #               遮蔽來源，回傳 :not_observable，讓 doctor 照實說。
+    #   Claude Code <cwd>/.mcp.json 與 <cwd>/.claude/settings.local.json
+    #               都可能以更高優先序蓋掉 user scope 的同名註冊。
+    def higher_precedence(cwd)
+      sources = @discovery["higher_precedence_sources"] || {}
+      sources.each_with_object({}) do |(scope, conf), acc|
+        if conf["mcp_entries_path"].nil? && conf["session_start_hooks_path"].nil?
+          acc[scope] = :not_observable
+          next
+        end
+        path = conf.fetch("file").sub("{cwd}", cwd.to_s)
+        doc = load_file(expand(path), conf.fetch("format")) || {}
+        entries = conf["mcp_entries_path"] ? dig_path(doc, conf["mcp_entries_path"]) : nil
+        hooks = conf["session_start_hooks_path"] ? dig_path(doc, conf["session_start_hooks_path"]) : nil
+        acc[scope] = {
+          "mcp_entries" => normalize_entries(entries),
+          "session_start_hooks" => normalize_hooks(hooks)
+        }
+      end
+    end
+
     # 本產品自己的註冊是否已存在且未漂移——判定委派既有 evaluator。
     def own_registration_problem
       Contract::HostBinding.own_registration_problem(snapshot, @profile)
@@ -91,11 +117,14 @@ module OMOS
       doc = load_file(mcp_config_path, @discovery.fetch("mcp_config_format"))
       return {} if doc.nil?
 
-      entries = dig_path(doc, @discovery.fetch("mcp_entries_path"))
+      normalize_entries(dig_path(doc, @discovery.fetch("mcp_entries_path")))
+    end
+
+    # 正規化成切片 2 的 mcp entry 形狀：只保留契約關心的欄位，
+    # 其餘 Host 專屬設定不進快照（快照是判定用，不是備份）。
+    def normalize_entries(entries)
       return {} unless entries.is_a?(Hash)
 
-      # 正規化成切片 2 的 mcp entry 形狀：只保留契約關心的欄位，
-      # 其餘 Host 專屬設定不進快照（快照是判定用，不是備份）。
       entries.each_with_object({}) do |(id, cfg), acc|
         next unless cfg.is_a?(Hash)
 
@@ -107,7 +136,10 @@ module OMOS
       doc = load_file(hook_config_path, @discovery.fetch("session_start_config_format"))
       return [] if doc.nil?
 
-      hooks = dig_path(doc, @discovery.fetch("session_start_hooks_path"))
+      normalize_hooks(dig_path(doc, @discovery.fetch("session_start_hooks_path")))
+    end
+
+    def normalize_hooks(hooks)
       return [] if hooks.nil?
 
       list = hooks.is_a?(Array) ? hooks : [hooks]

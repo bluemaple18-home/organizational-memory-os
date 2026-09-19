@@ -200,9 +200,11 @@ module OMOS
       results = Doctor.new(home: home, store_path: opts[:store]).run
       width = results.map { |r| r.id.length }.max
       results.each { |r| out.puts format("%-4s %-#{width}s  %s", r.status, r.id, r.detail) }
-      failed = results.reject(&:ok?)
+      failed = results.select { |r| r.status == "FAIL" }
+      warned = results.select { |r| r.status == "WARN" }
       out.puts
-      out.puts "doctor: #{results.size - failed.size}/#{results.size} OK"
+      out.puts "doctor: #{results.count(&:ok?)} OK / #{warned.size} WARN / #{failed.size} FAIL"
+      out.puts "  WARN = 這一項在這台機器上無法觀測，不等於健康也不等於失敗。" unless warned.empty?
       failed.empty? ? 0 : 1
     end
 
