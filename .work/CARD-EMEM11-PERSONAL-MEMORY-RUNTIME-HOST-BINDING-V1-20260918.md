@@ -461,9 +461,19 @@ omos-personal-memory doctor
 | `scripts/lib/personal_memory_host_binding.rb` | **installer oracle**：實際安裝前後的設定快照丟進 `scenario_failure` 判定 safe-merge、shadow、health |
 | `personal_memory_host_binding_v1.host_profiles` | 安裝目標、registration id、`required_health` 詞彙 |
 
-換句話說：**installer 不自己宣稱「安裝成功」**，它產出 before/after 快照，由切片 2
-的 evaluator 判定；**store 不自己宣稱「交易正確」**，它產出 operation journal，
-由切片 1 的 evaluator 判定。
+**Owner 更正（2026-09-20）：治理必須發生在落地之前，operation journal 是證據、
+不是事後的替代保護。** 我原本的寫法（「產出 journal 交給 evaluator 判定」）會讓
+該拒絕的寫入先落地、事後才被評分，方向是錯的。正確做法是：
+
+- **正式寫入前**，runtime 直接呼叫既有共用治理 evaluator；被拒絕的寫入**不進交易**，
+  或在同一交易內 rollback，資料庫裡不會出現該筆。
+- operation journal 仍然產出，但它的角色是**可重播的證據**，供事後審計與 conformance
+  比對，不是保護機制本身。
+- **驗收不得只驗自己產出的 journal**：必須以**實際資料庫讀回**、**rollback 實測**、
+  **重啟後持久化**三者確認。
+
+installer 同理：safe-merge 判定在寫入使用者設定**之前**完成，失敗就不落地；
+before/after 快照是證據。
 
 ### 3. 三組驗收（不增加新卡，契約測資與實物證據分欄）
 
@@ -484,17 +494,57 @@ omos-personal-memory doctor
   SessionStart 產生 HostSessionBinding；實際讀寫 Codex／Claude Code 設定探索。
 - **3c｜Installer / Doctor / 跨 Host conformance**：三組驗收與證據收集。
 
-### 5. 前置決策：實作語言與 runtime（需 Owner 裁決）
+### 5. 實作語言與 runtime — Owner 已裁決（2026-09-20）
 
-現況：repo 39 支 validator 為 Ruby（系統 `/usr/bin/ruby`，2.6 級），另有 3 支 Python。
-本機可用：`uv`、`node`、`pnpm`、`sqlite3`；Ruby `sqlite3` gem 1.3.13、
-Python stdlib `sqlite3` 3.51。
+**裁決：選 Ruby，但採受維護的 Ruby 3.4 系列 + Bundler 鎖版 + 官方 MCP Ruby SDK
++ 新版 sqlite3 gem；不使用系統 Ruby 2.6／sqlite3 gem 1.3.13。**
 
-| 選項 | 優點 | 代價 |
-|---|---|---|
-| **A. Python + uv（建議）** | stdlib `sqlite3` 免原生編譯；MCP 官方 Python SDK；符合全域規範「Python=uv+.venv」；repo 已有 Python validator | 與 39 支 Ruby validator 不同語言（但 validator 是驗證層，不是產品層） |
-| B. Node + pnpm | MCP 官方 SDK 最成熟 | 需 `better-sqlite3` 原生編譯或 Node 22+ `node:sqlite`；多一層 build |
-| C. Ruby | 與既有 validator 同語言 | **無官方 MCP SDK**，須自寫 JSON-RPC stdio；sqlite3 gem 1.3.13 偏舊 |
+選 Ruby 的主要理由是**直接重用既有共用治理 evaluator**，避免新增 Python 版治理
+邏輯或跨語言橋接。
+
+**更正我先前規劃表中的錯誤**：原表寫「Ruby 無官方 MCP SDK，須自寫 JSON-RPC
+stdio」——**這是錯的**。官方 `mcp` gem 存在，本次已實際安裝並載入（1.5.1），
+`MCP::Server::Transports::StdioTransport` 可用。該錯誤曾是我把選項推向 Python
+的主要理由，特此更正。
+
+#### 鎖定的環境（產品自帶設定與 lockfile，不依賴全域）
+
+| 項目 | 值 |
+|---|---|
+| Ruby | 3.4.10（Homebrew `ruby@3.4`，**keg-only 不連結**，系統 `/usr/bin/ruby` 2.6 未受影響） |
+| Bundler | 4.0.21，`bundle config set --local path vendor/bundle` |
+| MCP SDK | `mcp` 1.5.1（官方） |
+| SQLite driver | `sqlite3` 2.9.6（arm64-darwin 預編譯） |
+| 產品路徑 | `product/personal-memory/`（`Gemfile` / `Gemfile.lock` / `.ruby-version`） |
+
+#### 3a 前置預檢結果（隔離環境，`product/personal-memory/preflight.rb`）
+
+**12/12 PASS**：Ruby 版本、sqlite3 gem、mcp gem 載入、SQLite 實際版本、
+`journal_mode=WAL` 生效、`busy_timeout` 可設、`BEGIN IMMEDIATE`+COMMIT 落地、
+ROLLBACK 真的丟棄、UNIQUE 違反會拋出、關閉後重開讀得回、WAL 隨檔案持久、
+MCP stdio transport 類別存在。
+
+**既有 39 支 validator 在 Ruby 3.4.10 下 0 失敗**（對照系統 Ruby 2.6 亦 0 失敗），
+無相容性阻礙。
+
+#### SQLite 版本檢查（Owner 指定項，實測結果值得單獨記錄）
+
+WAL-reset 在多連線同時寫入／checkpoint 的罕見情況下可能造成資料庫損毀，
+修復於 **3.51.3**。同一台機器三個來源：
+
+| 來源 | 版本 |
+|---|---|
+| 系統 `sqlite3` CLI | 3.51.0 ← **低於修復版本** |
+| Python stdlib `sqlite3` | 3.51.0 ← **低於修復版本** |
+| Ruby `sqlite3` gem 2.9.6（產品實際連線） | **3.53.2** |
+
+三者不同，證實「不能只看系統指令或套件名稱」。**必須由產品實際開啟的連線
+查 `SELECT sqlite_version()`**——此項已進 `preflight.rb`，並將納入
+installer 與 doctor 的常設檢查。
+
+**誠實代價**：預編譯 gem 在本機可用，不代表**目標電腦的安裝已驗過**。
+installer 不得假設每位同事都已有合適版本的 Ruby；取得與鎖定 Ruby 3.4 的方式
+本身是 3c installer 的交付項，必須實測。
 
 ### 6. `transaction.mode` 實作前置（不升級既有 P2）
 
