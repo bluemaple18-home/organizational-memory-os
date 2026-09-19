@@ -192,6 +192,16 @@ BINDINGS = {
 assert(sorted_set(binding_additional) == sorted_set(%w[cwd project_ref effective_scope]),
        "Slice 2 bootstrap 依賴的 HostSessionBinding additional_fields 漂移", failures)
 
+# repair-02 附帶：health_problem 用 HEALTH_FAILURES.fetch(field)，上游若為某個
+# profile 新增一個沒有對應碼的 required_health 欄位，會丟 KeyError 當掉，而不是
+# 回一個已宣告的錯誤碼——那等於 error contract 涵蓋不到的出口。這裡在契約層
+# 先擋住。
+profiles.each do |host, profile|
+  unknown_health = (profile["required_health"] || []) - HB::HEALTH_FAILURES.keys
+  assert(unknown_health.empty?,
+         "#{host} 的 required_health 有沒有對應錯誤碼的欄位（會使 evaluator 丟 KeyError）：#{unknown_health.inspect}", failures)
+end
+
 bases = fixtures.fetch("bases", {})
 assert(sorted_set(bases.keys) == sorted_set(%w[CODEX CLAUDE]), "fixtures 必須含兩個 Host base", failures)
 bases.each do |name, run|
@@ -251,11 +261,10 @@ assert(code == "HBV1_VISIBILITY_READERS_NOT_ARRAY", "default_readers drift probe
 # return-site coverage：每個 helper 內的 literal error code，加上 action 動態展開的
 # install/uninstall codes，都必須由 fixture 或上面三個 drift probe 真正回傳過。
 literal_codes = File.read(HELPER_PATH).scan(/HBV1_[A-Z0-9_]+/).to_set
-dynamic_codes = %w[
-  HBV1_INSTALL_NOT_MAP HBV1_INSTALL_UNKNOWN_FIELD HBV1_INSTALL_NOT_SAFE_MERGE
-  HBV1_UNINSTALL_NOT_MAP HBV1_UNINSTALL_UNKNOWN_FIELD HBV1_UNINSTALL_NOT_SAFE_MERGE
-].to_set
-missing_guard_codes = (literal_codes | dynamic_codes) - observed_codes
+# repair-01 把 install/uninstall 的插值出口拆成字面碼之後，原本手列的
+# dynamic_codes 已完全被 literal_codes 涵蓋（實測差集為空）——留著就是第二份
+# 會漂移的清單，故移除。
+missing_guard_codes = literal_codes - observed_codes
 assert(missing_guard_codes.empty?,
        "Host Binding return-site coverage 缺少：#{missing_guard_codes.to_a.sort.join(', ')}", failures)
 
@@ -274,6 +283,15 @@ assert(code == "HBV1_INSTALL_NOT_SAFE_MERGE",
 # 之間沒有任何機器綁定。現在出口全部可靜態列舉，這裡做雙向斷言。
 
 ERROR_CONTRACT = {
+  "HBV1_MCP_NOT_VISIBLE" => "personal_memory_host_binding_v1.error.mcp_not_visible",
+  "HBV1_PROJECT_SCOPE_WIDENS_BASELINE" => "personal_memory_host_binding_v1.error.project_scope_widens_baseline",
+  "HBV1_PROJECT_UNTRUSTED" => "personal_memory_host_binding_v1.error.project_untrusted",
+  "HBV1_PROJECT_VISIBILITY_SCOPE_UNKNOWN" => "personal_memory_host_binding_v1.error.project_visibility_scope_unknown",
+  "HBV1_RUNTIME_INCOMPATIBLE" => "personal_memory_host_binding_v1.error.runtime_incompatible",
+  "HBV1_RUNTIME_SCOPE_MODE_UNBOUND" => "personal_memory_host_binding_v1.error.runtime_scope_mode_unbound",
+  "HBV1_RUNTIME_SCOPE_MODE_UNKNOWN" => "personal_memory_host_binding_v1.error.runtime_scope_mode_unknown",
+  "HBV1_SESSION_START_HOOK_INACTIVE" => "personal_memory_host_binding_v1.error.session_start_hook_inactive",
+  "HBV1_VISIBILITY_READERS_NOT_ARRAY" => "personal_memory_host_binding_v1.error.visibility_readers_not_array",
   "HBV1_BOOTSTRAP_NOT_MAP" => "personal_memory_host_binding_v1.error.bootstrap_not_map",
   "HBV1_BOOTSTRAP_UNKNOWN_FIELD" => "personal_memory_host_binding_v1.error.bootstrap_unknown_field",
   "HBV1_CONFIG_NOT_MAP" => "personal_memory_host_binding_v1.error.config_not_map",
@@ -319,12 +337,25 @@ ERROR_CONTRACT = {
   "HBV1_UNINSTALL_UNKNOWN_FIELD" => "personal_memory_host_binding_v1.error.uninstall_unknown_field"
 }.freeze
 
+# repair-02：斷言基準改成「evaluator 原始碼裡出現的每一個 HBV1_ 字面量」，
+# 不再用 AST 的 reachable_codes 當權威。上一輪 43 = 43 之所以是假一致，正是
+# 因為 reachable_codes 只看 `return "字面量"` 這一種出口形式：
+#   - health_problem 的 `return HEALTH_FAILURES.fetch(field)`（表格查詢）
+#   - derived_effective_scope 的 `[nil, "HBV1_..."]` 再由呼叫端 `return scope_problem` 轉送
+# 兩者 runtime 真的會吐，掃描器卻完全看不見（實測少了 9 碼）。
+# 字面量掃描對「出口用什麼形式回傳」不敏感，因此不會再出現同一類假一致。
+evaluator_source = File.readlines(HB_PATH).reject { |line| line.strip.start_with?("#") }.join
+source_codes = evaluator_source.scan(/HBV1_[A-Z0-9_]+/).uniq
+assert((source_codes - ERROR_CONTRACT.keys).empty?,
+       "evaluator 原始碼有但 error_contract 未宣告：#{(source_codes - ERROR_CONTRACT.keys).sort.inspect}", failures)
+assert((ERROR_CONTRACT.keys - source_codes).empty?,
+       "error_contract 宣告但 evaluator 原始碼沒有：#{(ERROR_CONTRACT.keys - source_codes).sort.inspect}", failures)
+
+# AST 可達碼降級為「子集」斷言：它仍能抓到 return 位置的漂移，但不再是權威。
 EVALUATOR_DEFS = File.readlines(HB_PATH).grep(/^  def /).map { |line| line[/def ([a-z_0-9?]+)/, 1] }
 reachable_codes = EVALUATOR_DEFS.flat_map { |fn| LoopReturnContract.reachable_codes(HB_PATH, fn) }.uniq
 assert((reachable_codes - ERROR_CONTRACT.keys).empty?,
-       "evaluator 會回傳但 error_contract 未宣告：#{(reachable_codes - ERROR_CONTRACT.keys).sort.inspect}", failures)
-assert((ERROR_CONTRACT.keys - reachable_codes).empty?,
-       "error_contract 宣告但 evaluator 不可能回傳：#{(ERROR_CONTRACT.keys - reachable_codes).sort.inspect}", failures)
+       "AST 可達碼未被 error_contract 涵蓋：#{(reachable_codes - ERROR_CONTRACT.keys).sort.inspect}", failures)
 
 # 防回歸：出口不得再出現字串插值，否則上面的掃描會再次靜默失效。
 interpolated = File.readlines(HB_PATH).each_with_index
