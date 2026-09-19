@@ -415,6 +415,134 @@ omos-personal-memory doctor
 
 ---
 
+## Slice 3 開工規劃（2026-09-20）
+
+### 0. 假設與目標確認
+
+- **目標**：把 EMEM-11 從「契約層」推到**可安裝、可診斷、可跨 Codex／Claude Code
+  實際使用的實物**。這一片要交出真的會開啟 SQLite、真的被兩個 Host 以 stdio 呼叫、
+  真的讀寫使用者設定檔的程式。
+- **邊界**：只做 Codex + Claude Code 兩個 Host；不新增 Jira 卡；不推翻切片 1／2 的
+  契約與已接受裁決；不碰同事的正式設定（安裝／卸載測試一律在隔離的 HOME）。
+- **驗收**：契約測資與實際操作證據**分欄計算**，不混算 PASS；三組驗收（安裝與復原／
+  Doctor 與失敗診斷／跨 Host 與跨專案）各自要有實物證據。
+- **前置決策**：產品實作語言與 runtime（見 §5），需 Owner 裁決後才動手。
+
+### 1. 實體交付對照（開工前盤點，2026-09-20 實測）
+
+全庫掃描結果：**無 `bin/`、無 `src/`、無任何套件宣告檔**
+（`package.json` / `pyproject.toml` / `Gemfile` / `Cargo.toml` 皆不存在）。
+`scripts/` 底下 39 支全部是 validator，加一支 `build_aiwr_capture_batch.rb`
+（屬 AI work record 線，與 Personal Store 無關）。
+
+| 必須存在的能力 | 開工前要回答的問題 | 現況 |
+|---|---|---|
+| 本機 Store 與讀寫入口 | 哪個程式真的開啟資料庫、提交交易、重啟後讀回？ | **NOT_IMPLEMENTED**。全庫唯一出現 `sqlite` 的位置是 `scripts/validate_personal_memory_runtime_contract.rb` 裡的契約**字串值** `SQLITE` / `WAL`。沒有任何程式開啟過資料庫，也沒有任何 schema DDL。 |
+| 本機 MCP 與 CLI | 哪個 executable 被兩個 Host 呼叫？CLI 是否走同一套治理與寫入邏輯？ | **NOT_IMPLEMENTED**。`command_ref: OMOS_PERSONAL_MEMORY_MCP` 只是 spec 與 fixture 裡的**符號 token**，repo 內沒有任何地方把它解析成命令列或 binary。卡片指名的 `omos-personal-memory` CLI 不存在。無 MCP／JSON-RPC 實作。 |
+| Host 啟動與設定整合 | 哪些已是可執行程式，哪些仍只是 normalized fixture？ | **全部是 fixture**。切片 2 驗的是一段 normalized 的 install / uninstall / effective config **三段式快照**，由測資直接提供；沒有任何程式讀寫 `~/.codex/` 或 `~/.claude/` 的實際設定檔，也沒有設定探索邏輯。 |
+| Installer／doctor | 實際要安裝、檢查哪些檔案與程序？各自重用哪個既有 evaluator？ | **NOT_IMPLEMENTED**。無安裝腳本、無安裝 receipt 產生器。卡片列的 doctor 13 項檢查目前**對實物的覆蓋率為 0**。 |
+
+**結論**：切片 1／2 交付的是契約、共用 evaluator、fixtures 與常設驗證器，全部成立；
+但 **SQLite、MCP、本機安裝目前一行可執行程式都沒有**。缺口對回主卡原有責任，
+在本卡內排實作順序，不改稱 conformance，也不推給 SSP-295。
+
+### 2. 可重用資產（要接線，不要重寫）
+
+這一片的核心設計原則：**實作產出的東西，要能直接餵進切片 1／2 既有的 evaluator
+受審**，而不是另寫一套「自報成功」的檢查。
+
+| 既有資產 | 在切片 3 的角色 |
+|---|---|
+| `personal_memory_runtime` 契約 | 實作的規格來源（WAL / migration 鏈 / 交易 / id / revision / closeout） |
+| `validate_personal_memory_runtime_contract.rb` 的 `runtime_log_failure` | **runtime oracle**：真實 store 每次操作寫一筆 operation journal，conformance 把整段 journal 丟進去判定 |
+| `scripts/lib/personal_memory_resource_evaluator.rb` | 落地列的本體判定（support／verification／acceptance／lifecycle） |
+| `scripts/lib/weekly_closeout_history.rb` | closeout 唯一性與 promotion idempotency |
+| `scripts/lib/host_session_binding_shape.rb` | SessionStart 產出的 binding 形狀 |
+| `scripts/lib/personal_memory_host_binding.rb` | **installer oracle**：實際安裝前後的設定快照丟進 `scenario_failure` 判定 safe-merge、shadow、health |
+| `personal_memory_host_binding_v1.host_profiles` | 安裝目標、registration id、`required_health` 詞彙 |
+
+換句話說：**installer 不自己宣稱「安裝成功」**，它產出 before/after 快照，由切片 2
+的 evaluator 判定；**store 不自己宣稱「交易正確」**，它產出 operation journal，
+由切片 1 的 evaluator 判定。
+
+### 3. 三組驗收（不增加新卡，契約測資與實物證據分欄）
+
+| 驗收組 | 必須取得的證據 |
+|---|---|
+| **A 安裝與復原** | 在隔離 HOME 實際 install → reinstall → upgrade → uninstall；保留非本產品設定與個人資料；中途失敗必須停止或復原，不得留下半套卻回報成功（以注入失敗點實測）。 |
+| **B Doctor 與失敗診斷** | 讀實際設定檔、解析實際啟動目標、實際執行健康檢查。「設定存在」「程序能啟動」「Store 能使用」必須是三種不同結果；缺 executable／被同名設定遮蔽／hook 未啟用各自要有實測失敗案例，不得靠 caller 自報。 |
+| **C 跨 Host 與跨專案** | Codex 寫入 → Claude Code 從同一 Store 讀回，反向亦然；切換專案不得擴權；retry／重啟不得產生第二筆相同提交或第二次 terminal closeout。記錄實際測試的 Host 版本與使用入口。 |
+
+只驗 Codex + Claude Code。**沒實測過的入口不得因品牌相同一併宣稱支援。**
+
+### 4. 實作順序（同一張卡內分三階段，非三張卡）
+
+- **3a｜Store + Runtime + CLI**：schema DDL、migration receipt、WAL/連線政策、
+  交易邊界、id/idempotency、revision/supersession、closeout 寫入；CLI 走同一套
+  治理層（`no direct DB access path`）。產出 operation journal。
+- **3b｜MCP server + Host 啟動整合**：stdio MCP server 暴露同一 runtime；
+  SessionStart 產生 HostSessionBinding；實際讀寫 Codex／Claude Code 設定探索。
+- **3c｜Installer / Doctor / 跨 Host conformance**：三組驗收與證據收集。
+
+### 5. 前置決策：實作語言與 runtime（需 Owner 裁決）
+
+現況：repo 39 支 validator 為 Ruby（系統 `/usr/bin/ruby`，2.6 級），另有 3 支 Python。
+本機可用：`uv`、`node`、`pnpm`、`sqlite3`；Ruby `sqlite3` gem 1.3.13、
+Python stdlib `sqlite3` 3.51。
+
+| 選項 | 優點 | 代價 |
+|---|---|---|
+| **A. Python + uv（建議）** | stdlib `sqlite3` 免原生編譯；MCP 官方 Python SDK；符合全域規範「Python=uv+.venv」；repo 已有 Python validator | 與 39 支 Ruby validator 不同語言（但 validator 是驗證層，不是產品層） |
+| B. Node + pnpm | MCP 官方 SDK 最成熟 | 需 `better-sqlite3` 原生編譯或 Node 22+ `node:sqlite`；多一層 build |
+| C. Ruby | 與既有 validator 同語言 | **無官方 MCP SDK**，須自寫 JSON-RPC stdio；sqlite3 gem 1.3.13 偏舊 |
+
+### 6. `transaction.mode` 實作前置（不升級既有 P2）
+
+切片 1 的 P2「契約未限制 `transaction.mode`」維持 defer，不重審。但實作層必須明確
+定義競寫／失敗／重試行為，採**既有機制**：
+
+- 寫入一律 `BEGIN IMMEDIATE`（避免 upgrade deadlock）
+- `PRAGMA journal_mode=WAL`、`PRAGMA busy_timeout=<ms>`
+- `SQLITE_BUSY` 時**有上限的重試**，且重試沿用**同一把 idempotency key**——
+  切片 1 既有契約已保證「重放必須落回同一列」，因此不需要、也不會新造交易管理器
+  （`FORBIDDEN_BY_DEFAULT: new ledger/registry/FSM/DB/writer/runtime`）。
+
+### 7. Minimum Sufficient
+
+**why_not_less** — DoD 明文要求 installer / doctor deterministic acceptance、兩個
+Host 真人實測、cross-host same-store 實證。少於「一支三個介面（CLI／MCP／installer）
+共用的 runtime」就交不出這些。
+
+**why_not_more** — 明確不做：常駐 daemon、background reasoning agent、vector DB、
+per-project／per-host store、central Personal DB、新的交易管理器、Codex 與
+Claude Code 以外的 Host、GUI、自動更新。
+
+**do_not_absorb** — 不吸收：SSP-295 真人工作情境驗收、vendor-native memory 自身行為、
+公司端 promotion 路徑、EMEM-10 的 evidence package 產生。
+
+### 8. 逐檔預估行數（分類報，超出既有規範的理由先講）
+
+| 類別 | 檔案 | 預估 |
+|---|---|---|
+| 產品程式 | store（schema/migration/連線/交易） | 350–450 |
+| 產品程式 | runtime 治理層（權限 seam／scope 推導／binding） | 150–200 |
+| 產品程式 | CLI（init/write/read/closeout/doctor/install） | 200–250 |
+| 產品程式 | MCP stdio server | 200–250 |
+| 產品程式 | installer（設定探索／safe merge／rollback／uninstall） | 250–300 |
+| 產品程式 | doctor（13 項對實物的檢查） | 200–250 |
+| conformance | 把實際操作轉成既有 evaluator 吃的形狀 + 三組驗收 | 250–350 |
+| 規格增修 | executable 解析、安裝路徑、doctor 結果詞彙 | 80–150 |
+| 測資 | 隔離 HOME 的設定樣本、失敗注入案例 | 150–250 |
+| 共用程式搬移 | **0**（重用既有四支 lib，不搬移） | 0 |
+| **合計** | | **2,030–2,550** |
+
+**超出既有規範的說明（依指示先講，不完工才補）**：切片 1 約 913 行手寫、切片 2 約
+775 行，兩片都是**只交契約不交程式**才那麼小。切片 3 是 EMEM-11 第一片要交出可執行
+產品的切片，主卡本來就要求 installer、doctor、MCP executable 與跨 Host 實測，
+這些責任在原卡、不是新增需求。切片 1「不按 store／surface 人工二分、只按真正共用接點
+抽取」的裁決保留——因此**不會**為了行數把這片拆成人工邊界，而是按 §4 的
+3a／3b／3c 實作順序推進，每階段可獨立回報與檢查。
+
 ## 與其他 MVP 卡的關係
 
 ```text
