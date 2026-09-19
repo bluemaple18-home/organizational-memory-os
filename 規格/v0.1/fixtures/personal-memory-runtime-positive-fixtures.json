@@ -1,0 +1,47 @@
+{
+  "note": "base（完整合法序列）住在負例檔，validator 已斷言它本身通過——因此這裡不再重貼一份，只留 base 涵蓋不到的最小序列。",
+  "cases": [
+    {
+      "case_id": "pmr-pos-02",
+      "note": "最小序列：單段 migration 後一次讀取",
+      "expected": "allow",
+      "run": {
+        "store": {
+          "engine": "SQLITE",
+          "journal_mode": "WAL",
+          "schema_version": "0.1.0"
+        },
+        "operations": [
+          {
+            "op_seq": 1,
+            "surface": "LOCAL_CLI",
+            "kind": "SCHEMA_MIGRATION",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "migration": {
+              "migration_id": "m-001",
+              "from_version": "0.0.0",
+              "to_version": "0.1.0",
+              "applied_at": "2026-09-18T09:00:00Z"
+            }
+          },
+          {
+            "op_seq": 2,
+            "surface": "LOCAL_CLI",
+            "kind": "STORE_READ",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "STORE_READ"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -133,6 +133,28 @@ def set_path(root, path, value)
   end
 end
 
+# EMEM-11 切片 1 repair-01：原本只有 validate_personal_store_portability_contract
+# 自己有一份，runtime 要驗 row 的 resource 本體時需要同一組語意——搬到這裡
+# 共用，兩邊讀同一份實作，不留第二份。
+# "a.b.c" 路徑逐段導航。dig_dotted 回傳值（可能是 nil，那本身就是一個合法
+# 值，兩邊都 nil 仍算相等）；dotted_key_present? 只問「這個路徑上每一段的
+# key 是否真的存在」，不管值是不是 nil——required_fields 是「這個 key
+# 必須存在」，不是「值不得為 null」（governance.supersedes 這種欄位對一筆
+# 全新 record 合法為 null）。
+def dig_dotted(hash, path)
+  path.split(".").inject(hash) { |acc, seg| acc.is_a?(Hash) ? acc[seg] : nil }
+end
+
+def dotted_key_present?(hash, path)
+  node = hash
+  path.split(".").each do |seg|
+    return false unless node.is_a?(Hash) && node.key?(seg)
+
+    node = node[seg]
+  end
+  true
+end
+
 def canonical_json(obj)
   case obj
   when Hash then "{#{obj.keys.sort.map { |key| "#{key.to_json}:#{canonical_json(obj[key])}" }.join(",")}}"

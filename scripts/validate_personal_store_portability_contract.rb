@@ -51,24 +51,8 @@ EXPECTED_NEGATIVE_LABELS = [
   "governance ownership_mode that differs between the two projections' resource"
 ].freeze
 
-# "a.b.c" 路徑逐段導航。dig_dotted 回傳值（可能是 nil，那本身就是一個合法
-# 值，兩邊都 nil 仍算相等）；dotted_key_present? 只問「這個路徑上每一段的
-# key 是否真的存在」，不管值是不是 nil——required_fields 是「這個 key
-# 必須存在」，不是「值不得為 null」（governance.supersedes 這種欄位對一筆
-# 全新 record 合法為 null）。
-def dig_dotted(hash, path)
-  path.split(".").inject(hash) { |acc, seg| acc.is_a?(Hash) ? acc[seg] : nil }
-end
-
-def dotted_key_present?(hash, path)
-  node = hash
-  path.split(".").each do |seg|
-    return false unless node.is_a?(Hash) && node.key?(seg)
-
-    node = node[seg]
-  end
-  true
-end
+# dig_dotted / dotted_key_present? 已移入 lib/omos_contract_helpers，
+# 與 EMEM-11 切片 1 的 runtime row 檢查共用同一份實作。
 
 # 只挑 forbidden 清單裡「真的是某個 resource kind 的欄位名」的條目
 # （例如 record_id）；`resource_kind=PERSONAL_MEMORY_RECORD` 或

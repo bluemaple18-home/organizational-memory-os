@@ -1,0 +1,1490 @@
+{
+  "base_note": "base 是一段完整的合法序列（migration 鏈、support link、寫入、idempotent replay、revision、revision 重放、讀取、三筆 closeout）。validator 先斷言 base 本身通過，因此每個負例都恰好是「一段會通過的序列 + 下列這一個 mutation」。路徑沿用 omos_contract_helpers 的 \"/\" 分段，Array 索引 0 起算。",
+  "base": {
+    "store": {
+      "engine": "SQLITE",
+      "journal_mode": "WAL",
+      "schema_version": "0.2.0"
+    },
+    "operations": [
+      {
+        "surface": "LOCAL_CLI",
+        "kind": "SCHEMA_MIGRATION",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "migration": {
+          "migration_id": "m-001",
+          "from_version": "0.0.0",
+          "to_version": "0.1.0",
+          "applied_at": "2026-09-18T09:00:00Z"
+        },
+        "op_seq": 1
+      },
+      {
+        "surface": "LOCAL_STDIO_MCP",
+        "kind": "SCHEMA_MIGRATION",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "host_session_binding": {
+          "executor_ref": "Codex",
+          "executor_session_ref": "sess-01",
+          "cwd": "/Users/emp/proj",
+          "project_ref": "proj-omos",
+          "effective_scope": "EMPLOYEE_PRIVATE"
+        },
+        "migration": {
+          "migration_id": "m-002",
+          "from_version": "0.1.0",
+          "to_version": "0.2.0",
+          "applied_at": "2026-09-18T09:00:00Z"
+        },
+        "op_seq": 2
+      },
+      {
+        "surface": "LOCAL_CLI",
+        "kind": "STORE_WRITE",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "row": {
+          "kind": "MemorySupportLink",
+          "row_id": "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b1",
+          "idempotency_key": "k-l1",
+          "resource": {
+            "link_id": "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b1",
+            "tenant_id": "t-acme",
+            "employee_owner_ref": "urn:omos:employee:emp-001",
+            "target_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+            "evidence_ref": "urn:omos:evidence:ev-001",
+            "source_anchor_ref": "urn:omos:source-anchor:sa-001",
+            "source_anchor_profile": "MARKDOWN_TEXT_V1",
+            "relation": "SUPPORTS",
+            "anchor_resolution": "EXACT_MATCH",
+            "provenance": {
+              "created_by": "urn:omos:employee:emp-001",
+              "created_at": "2026-09-18T09:00:00Z"
+            }
+          }
+        },
+        "op_seq": 3
+      },
+      {
+        "surface": "LOCAL_CLI",
+        "kind": "STORE_WRITE",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "row": {
+          "kind": "MemorySupportLink",
+          "row_id": "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b2",
+          "idempotency_key": "k-l2",
+          "resource": {
+            "link_id": "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b2",
+            "tenant_id": "t-acme",
+            "employee_owner_ref": "urn:omos:employee:emp-001",
+            "target_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002",
+            "evidence_ref": "urn:omos:evidence:ev-001",
+            "source_anchor_ref": "urn:omos:source-anchor:sa-001",
+            "source_anchor_profile": "MARKDOWN_TEXT_V1",
+            "relation": "SUPPORTS",
+            "anchor_resolution": "EXACT_MATCH",
+            "provenance": {
+              "created_by": "urn:omos:employee:emp-001",
+              "created_at": "2026-09-18T09:00:00Z"
+            }
+          }
+        },
+        "op_seq": 4
+      },
+      {
+        "surface": "LOCAL_CLI",
+        "kind": "STORE_WRITE",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "row": {
+          "kind": "MemorySupportLink",
+          "row_id": "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b3",
+          "idempotency_key": "k-l3",
+          "resource": {
+            "link_id": "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b3",
+            "tenant_id": "t-acme",
+            "employee_owner_ref": "urn:omos:employee:emp-001",
+            "target_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000003",
+            "evidence_ref": "urn:omos:evidence:ev-001",
+            "source_anchor_ref": "urn:omos:source-anchor:sa-001",
+            "source_anchor_profile": "MARKDOWN_TEXT_V1",
+            "relation": "SUPPORTS",
+            "anchor_resolution": "EXACT_MATCH",
+            "provenance": {
+              "created_by": "urn:omos:employee:emp-001",
+              "created_at": "2026-09-18T09:00:00Z"
+            }
+          }
+        },
+        "op_seq": 5
+      },
+      {
+        "surface": "LOCAL_CLI",
+        "kind": "STORE_WRITE",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "row": {
+          "kind": "MemorySupportLink",
+          "row_id": "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b4",
+          "idempotency_key": "k-l4",
+          "resource": {
+            "link_id": "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b4",
+            "tenant_id": "t-acme",
+            "employee_owner_ref": "urn:omos:employee:emp-001",
+            "target_ref": "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000c1",
+            "evidence_ref": "urn:omos:evidence:ev-001",
+            "source_anchor_ref": "urn:omos:source-anchor:sa-001",
+            "source_anchor_profile": "MARKDOWN_TEXT_V1",
+            "relation": "SUPPORTS",
+            "anchor_resolution": "EXACT_MATCH",
+            "provenance": {
+              "created_by": "urn:omos:employee:emp-001",
+              "created_at": "2026-09-18T09:00:00Z"
+            }
+          }
+        },
+        "op_seq": 6
+      },
+      {
+        "surface": "LOCAL_STDIO_MCP",
+        "kind": "STORE_WRITE",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "row": {
+          "kind": "PersonalMemoryRecord",
+          "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+          "idempotency_key": "k-1",
+          "resource": {
+            "record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+            "tenant_id": "t-acme",
+            "employee_owner_ref": "urn:omos:employee:emp-001",
+            "memory_kind": "DECISION",
+            "content": {
+              "statement_or_structured_content": "改用 WAL 模式以支援並行讀取"
+            },
+            "applicability": {
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "applies_to_refs": [
+                "urn:omos:project:omos"
+              ]
+            },
+            "validity_interval": {
+              "effective_from": "2026-09-01T00:00:00Z"
+            },
+            "support_link_refs": [
+              "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b1"
+            ],
+            "chronology": {
+              "created_at": "2026-09-18T09:00:00Z",
+              "effective_from": "2026-09-01T00:00:00Z"
+            },
+            "governance": {
+              "ownership_mode": "EMPLOYEE_OWNED",
+              "visibility_scope": "EMPLOYEE_PRIVATE",
+              "sensitivity": "NORMAL",
+              "acl_ref": "urn:omos:acl:acl-001",
+              "verification_status": "PASS",
+              "acceptance_status": "ACCEPTED",
+              "verification_receipt_ref": "urn:omos:verification-receipt:vr-001",
+              "personal_acceptance_ref": "urn:omos:personal-acceptance:pa-001",
+              "freshness": "CURRENT",
+              "review_due_at": "2026-12-01T00:00:00Z",
+              "conflict_refs": [],
+              "supersedes": [],
+              "superseded_by": [],
+              "retention_state": "RETAINED"
+            },
+            "origin_candidate_ref": "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000c9",
+            "candidate_snapshot": {
+              "candidate_status": "ACCEPTED_FOR_RECORD",
+              "verification_status": "PASS",
+              "acceptance_status": "ACCEPTED"
+            },
+            "record_status": "ACTIVE"
+          }
+        },
+        "host_session_binding": {
+          "executor_ref": "Codex",
+          "executor_session_ref": "sess-01",
+          "cwd": "/Users/emp/proj",
+          "project_ref": "proj-omos",
+          "effective_scope": "EMPLOYEE_PRIVATE"
+        },
+        "op_seq": 7
+      },
+      {
+        "surface": "LOCAL_CLI",
+        "kind": "STORE_WRITE",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "row": {
+          "kind": "PersonalMemoryRecord",
+          "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+          "idempotency_key": "k-1",
+          "resource": {
+            "record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+            "tenant_id": "t-acme",
+            "employee_owner_ref": "urn:omos:employee:emp-001",
+            "memory_kind": "DECISION",
+            "content": {
+              "statement_or_structured_content": "改用 WAL 模式以支援並行讀取"
+            },
+            "applicability": {
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "applies_to_refs": [
+                "urn:omos:project:omos"
+              ]
+            },
+            "validity_interval": {
+              "effective_from": "2026-09-01T00:00:00Z"
+            },
+            "support_link_refs": [
+              "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b1"
+            ],
+            "chronology": {
+              "created_at": "2026-09-18T09:00:00Z",
+              "effective_from": "2026-09-01T00:00:00Z"
+            },
+            "governance": {
+              "ownership_mode": "EMPLOYEE_OWNED",
+              "visibility_scope": "EMPLOYEE_PRIVATE",
+              "sensitivity": "NORMAL",
+              "acl_ref": "urn:omos:acl:acl-001",
+              "verification_status": "PASS",
+              "acceptance_status": "ACCEPTED",
+              "verification_receipt_ref": "urn:omos:verification-receipt:vr-001",
+              "personal_acceptance_ref": "urn:omos:personal-acceptance:pa-001",
+              "freshness": "CURRENT",
+              "review_due_at": "2026-12-01T00:00:00Z",
+              "conflict_refs": [],
+              "supersedes": [],
+              "superseded_by": [],
+              "retention_state": "RETAINED"
+            },
+            "origin_candidate_ref": "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000c9",
+            "candidate_snapshot": {
+              "candidate_status": "ACCEPTED_FOR_RECORD",
+              "verification_status": "PASS",
+              "acceptance_status": "ACCEPTED"
+            },
+            "record_status": "ACTIVE"
+          }
+        },
+        "op_seq": 8
+      },
+      {
+        "surface": "LOCAL_STDIO_MCP",
+        "kind": "STORE_WRITE",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "row": {
+          "kind": "PersonalMemoryRecord",
+          "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002",
+          "idempotency_key": "k-2",
+          "supersedes_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+          "resource": {
+            "record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002",
+            "tenant_id": "t-acme",
+            "employee_owner_ref": "urn:omos:employee:emp-001",
+            "memory_kind": "DECISION",
+            "content": {
+              "statement_or_structured_content": "改用 WAL 模式以支援並行讀取"
+            },
+            "applicability": {
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "applies_to_refs": [
+                "urn:omos:project:omos"
+              ]
+            },
+            "validity_interval": {
+              "effective_from": "2026-09-01T00:00:00Z"
+            },
+            "support_link_refs": [
+              "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b2"
+            ],
+            "chronology": {
+              "created_at": "2026-09-18T09:00:00Z",
+              "effective_from": "2026-09-01T00:00:00Z"
+            },
+            "governance": {
+              "ownership_mode": "EMPLOYEE_OWNED",
+              "visibility_scope": "EMPLOYEE_PRIVATE",
+              "sensitivity": "NORMAL",
+              "acl_ref": "urn:omos:acl:acl-001",
+              "verification_status": "PASS",
+              "acceptance_status": "ACCEPTED",
+              "verification_receipt_ref": "urn:omos:verification-receipt:vr-001",
+              "personal_acceptance_ref": "urn:omos:personal-acceptance:pa-001",
+              "freshness": "CURRENT",
+              "review_due_at": "2026-12-01T00:00:00Z",
+              "conflict_refs": [],
+              "supersedes": [],
+              "superseded_by": [],
+              "retention_state": "RETAINED"
+            },
+            "origin_candidate_ref": "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000c9",
+            "candidate_snapshot": {
+              "candidate_status": "ACCEPTED_FOR_RECORD",
+              "verification_status": "PASS",
+              "acceptance_status": "ACCEPTED"
+            },
+            "record_status": "ACTIVE"
+          }
+        },
+        "host_session_binding": {
+          "executor_ref": "Claude Code",
+          "executor_session_ref": "sess-02",
+          "cwd": "/Users/emp/proj",
+          "project_ref": "proj-omos",
+          "effective_scope": "EMPLOYEE_PRIVATE"
+        },
+        "op_seq": 9
+      },
+      {
+        "surface": "LOCAL_CLI",
+        "kind": "STORE_READ",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "STORE_READ"
+        ],
+        "op_seq": 10
+      },
+      {
+        "surface": "LOCAL_STDIO_MCP",
+        "kind": "CLOSEOUT_COMMIT",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "host_session_binding": {
+          "executor_ref": "Codex",
+          "executor_session_ref": "sess-01",
+          "cwd": "/Users/emp/proj",
+          "project_ref": "proj-omos",
+          "effective_scope": "EMPLOYEE_PRIVATE"
+        },
+        "closeout": {
+          "review_period_id": "urn:omos:personal-memory:review-period:2026-W38",
+          "scheduled_review_period_start": "2026-09-18",
+          "scheduled_anchor_at": "2026-09-18T15:00:00Z",
+          "actual_closeout_at": "2026-09-18T17:30:00Z",
+          "attempt_kind": "SCHEDULED",
+          "final_status": "FAILED",
+          "catch_up_deadline_passed": true,
+          "selected_item_refs": [
+            "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1"
+          ],
+          "item_dispositions": {
+            "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1": {
+              "category": "MATERIALLY_CHANGED",
+              "promotion_ref": "urn:omos:promotion:pr-001",
+              "promotion_idempotency_key": "pk-001"
+            }
+          }
+        },
+        "op_seq": 11
+      },
+      {
+        "surface": "LOCAL_STDIO_MCP",
+        "kind": "CLOSEOUT_COMMIT",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "host_session_binding": {
+          "executor_ref": "Codex",
+          "executor_session_ref": "sess-01",
+          "cwd": "/Users/emp/proj",
+          "project_ref": "proj-omos",
+          "effective_scope": "EMPLOYEE_PRIVATE"
+        },
+        "closeout": {
+          "review_period_id": "urn:omos:personal-memory:review-period:2026-W38",
+          "scheduled_review_period_start": "2026-09-18",
+          "scheduled_anchor_at": "2026-09-18T15:00:00Z",
+          "actual_closeout_at": "2026-09-18T17:30:00Z",
+          "attempt_kind": "RETRY",
+          "final_status": "COMPLETE",
+          "catch_up_deadline_passed": true,
+          "selected_item_refs": [
+            "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1"
+          ],
+          "item_dispositions": {
+            "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1": {
+              "category": "MATERIALLY_CHANGED",
+              "promotion_ref": "urn:omos:promotion:pr-001",
+              "promotion_idempotency_key": "pk-001"
+            }
+          }
+        },
+        "op_seq": 12
+      },
+      {
+        "surface": "LOCAL_CLI",
+        "kind": "CLOSEOUT_COMMIT",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "closeout": {
+          "review_period_id": "urn:omos:personal-memory:review-period:2026-W37",
+          "scheduled_review_period_start": "2026-09-11",
+          "scheduled_anchor_at": "2026-09-11T15:00:00Z",
+          "actual_closeout_at": "2026-09-11T17:30:00Z",
+          "attempt_kind": "CATCH_UP",
+          "final_status": "NO_PROMOTION",
+          "catch_up_deadline_passed": true,
+          "selected_item_refs": [
+            "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1"
+          ],
+          "item_dispositions": {
+            "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1": {
+              "category": "UNCHANGED"
+            }
+          }
+        },
+        "op_seq": 13
+      },
+      {
+        "surface": "LOCAL_CLI",
+        "kind": "STORE_WRITE",
+        "path": [
+          "RUNTIME_POLICY_CHECK",
+          "RUNTIME_TRANSACTION",
+          "STORE_WRITE"
+        ],
+        "transaction": {
+          "committed": true
+        },
+        "row": {
+          "kind": "PersonalMemoryRecord",
+          "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002",
+          "idempotency_key": "k-2",
+          "supersedes_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+          "resource": {
+            "record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002",
+            "tenant_id": "t-acme",
+            "employee_owner_ref": "urn:omos:employee:emp-001",
+            "memory_kind": "DECISION",
+            "content": {
+              "statement_or_structured_content": "改用 WAL 模式以支援並行讀取"
+            },
+            "applicability": {
+              "scope_mode": "EMPLOYEE_PRIVATE",
+              "applies_to_refs": [
+                "urn:omos:project:omos"
+              ]
+            },
+            "validity_interval": {
+              "effective_from": "2026-09-01T00:00:00Z"
+            },
+            "support_link_refs": [
+              "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b2"
+            ],
+            "chronology": {
+              "created_at": "2026-09-18T09:00:00Z",
+              "effective_from": "2026-09-01T00:00:00Z"
+            },
+            "governance": {
+              "ownership_mode": "EMPLOYEE_OWNED",
+              "visibility_scope": "EMPLOYEE_PRIVATE",
+              "sensitivity": "NORMAL",
+              "acl_ref": "urn:omos:acl:acl-001",
+              "verification_status": "PASS",
+              "acceptance_status": "ACCEPTED",
+              "verification_receipt_ref": "urn:omos:verification-receipt:vr-001",
+              "personal_acceptance_ref": "urn:omos:personal-acceptance:pa-001",
+              "freshness": "CURRENT",
+              "review_due_at": "2026-12-01T00:00:00Z",
+              "conflict_refs": [],
+              "supersedes": [],
+              "superseded_by": [],
+              "retention_state": "RETAINED"
+            },
+            "origin_candidate_ref": "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000c9",
+            "candidate_snapshot": {
+              "candidate_status": "ACCEPTED_FOR_RECORD",
+              "verification_status": "PASS",
+              "acceptance_status": "ACCEPTED"
+            },
+            "record_status": "ACTIVE"
+          }
+        },
+        "op_seq": 14
+      }
+    ]
+  },
+  "cases": [
+    {
+      "case_id": "pmr-neg-01",
+      "covers_negative_fixture": "a run that is not a map",
+      "expected": "deny",
+      "expected_failure_code": "PMR_RUN_NOT_MAP",
+      "mutate": {
+        "replace_run": "a runtime log"
+      }
+    },
+    {
+      "case_id": "pmr-neg-02",
+      "covers_negative_fixture": "a run carrying a field outside the allowlist",
+      "expected": "deny",
+      "expected_failure_code": "PMR_RUN_UNKNOWN_FIELD",
+      "mutate": {
+        "set": {
+          "raw_sqlite_path": "/tmp/personal.db"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-03",
+      "covers_negative_fixture": "a store header that is not a map",
+      "expected": "deny",
+      "expected_failure_code": "PMR_STORE_NOT_MAP",
+      "mutate": {
+        "set": {
+          "store": "SQLITE/WAL"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-04",
+      "covers_negative_fixture": "a store engine that is not SQLite",
+      "expected": "deny",
+      "expected_failure_code": "PMR_STORE_ENGINE_NOT_SQLITE",
+      "mutate": {
+        "set": {
+          "store/engine": "POSTGRES"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-05",
+      "covers_negative_fixture": "a store journal mode that is not WAL",
+      "expected": "deny",
+      "expected_failure_code": "PMR_STORE_JOURNAL_MODE_NOT_WAL",
+      "mutate": {
+        "set": {
+          "store/journal_mode": "DELETE"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-06",
+      "covers_negative_fixture": "a store schema version that is not a non-blank string",
+      "expected": "deny",
+      "expected_failure_code": "PMR_STORE_SCHEMA_VERSION_MISSING",
+      "mutate": {
+        "set": {
+          "store/schema_version": {
+            "major": 0
+          }
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-07",
+      "covers_negative_fixture": "an operations list that is not a non-empty array",
+      "expected": "deny",
+      "expected_failure_code": "PMR_OPERATIONS_NOT_ARRAY",
+      "mutate": {
+        "set": {
+          "operations": []
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-08",
+      "covers_negative_fixture": "an operation that is not a map",
+      "expected": "deny",
+      "expected_failure_code": "PMR_OPERATION_NOT_MAP",
+      "mutate": {
+        "set": {
+          "operations/6": "INSERT INTO records ..."
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-09",
+      "covers_negative_fixture": "an operation carrying a field outside the allowlist",
+      "expected": "deny",
+      "expected_failure_code": "PMR_OPERATION_UNKNOWN_FIELD",
+      "mutate": {
+        "set": {
+          "operations/6/direct_sql": true
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-10",
+      "covers_negative_fixture": "an operation sequence with a gap or reordering",
+      "expected": "deny",
+      "expected_failure_code": "PMR_OPERATION_SEQUENCE_BROKEN",
+      "mutate": {
+        "set": {
+          "operations/6/op_seq": 99
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-11",
+      "covers_negative_fixture": "an operation kind outside the closed enumeration",
+      "expected": "deny",
+      "expected_failure_code": "PMR_OPERATION_KIND_UNKNOWN",
+      "mutate": {
+        "set": {
+          "operations/6/kind": "VACUUM"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-12",
+      "covers_negative_fixture": "an operation on a forbidden remote surface",
+      "expected": "deny",
+      "expected_failure_code": "PMR_SURFACE_FORBIDDEN",
+      "mutate": {
+        "set": {
+          "operations/6/surface": "HTTP_TUNNEL"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-13",
+      "covers_negative_fixture": "an operation on a forbidden remote surface",
+      "expected": "deny",
+      "expected_failure_code": "PMR_SURFACE_FORBIDDEN",
+      "mutate": {
+        "set": {
+          "operations/6/surface": "REMOTE_QUERY"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-14",
+      "covers_negative_fixture": "an operation on a forbidden remote surface",
+      "expected": "deny",
+      "expected_failure_code": "PMR_SURFACE_FORBIDDEN",
+      "mutate": {
+        "set": {
+          "operations/6/surface": "REMOTE_MOUNT"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-15",
+      "covers_negative_fixture": "an operation on a forbidden remote surface",
+      "expected": "deny",
+      "expected_failure_code": "PMR_SURFACE_FORBIDDEN",
+      "mutate": {
+        "set": {
+          "operations/6/surface": "COMPANY_SIDE_FORWARDING"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-16",
+      "covers_negative_fixture": "an operation on a surface outside the closed enumeration",
+      "expected": "deny",
+      "expected_failure_code": "PMR_SURFACE_NOT_IN_CLOSED_ENUM",
+      "mutate": {
+        "set": {
+          "operations/6/surface": "LOCAL_HTTP_LOOPBACK"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-17",
+      "covers_negative_fixture": "an MCP operation with no host session binding",
+      "expected": "deny",
+      "expected_failure_code": "PMR_MCP_OPERATION_MISSING_HOST_BINDING",
+      "mutate": {
+        "delete": [
+          "operations/6/host_session_binding"
+        ]
+      }
+    },
+    {
+      "case_id": "pmr-neg-18",
+      "covers_negative_fixture": "a CLI operation claiming a host session binding",
+      "expected": "deny",
+      "expected_failure_code": "PMR_CLI_OPERATION_CLAIMS_HOST_BINDING",
+      "mutate": {
+        "set": {
+          "operations/9/host_session_binding": {
+            "executor_ref": "Codex",
+            "executor_session_ref": "sess-01",
+            "cwd": "/Users/emp/proj",
+            "project_ref": "proj-omos",
+            "effective_scope": "EMPLOYEE_PRIVATE"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-19",
+      "covers_negative_fixture": "a host session binding that is not a map",
+      "expected": "deny",
+      "expected_failure_code": "PMR_HOST_BINDING_NOT_MAP",
+      "mutate": {
+        "set": {
+          "operations/6/host_session_binding": "Codex"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-20",
+      "covers_negative_fixture": "a host session binding carrying a shadow identity field",
+      "expected": "deny",
+      "expected_failure_code": "PMR_HOST_BINDING_SHADOW_IDENTITY_FIELD",
+      "mutate": {
+        "set": {
+          "operations/6/host_session_binding/host_session_id": "hs-77"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-21",
+      "covers_negative_fixture": "a host session binding carrying a field outside the closed shape",
+      "expected": "deny",
+      "expected_failure_code": "PMR_HOST_BINDING_UNKNOWN_FIELD",
+      "mutate": {
+        "set": {
+          "operations/6/host_session_binding/tenant_id": "t-1"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-22",
+      "covers_negative_fixture": "a host session binding missing an upstream executor identity field",
+      "expected": "deny",
+      "expected_failure_code": "PMR_HOST_BINDING_IDENTITY_FIELD_MISSING",
+      "mutate": {
+        "delete": [
+          "operations/6/host_session_binding/executor_session_ref"
+        ]
+      }
+    },
+    {
+      "case_id": "pmr-neg-23",
+      "covers_negative_fixture": "a host session binding additional field that is present but not a non-blank string",
+      "expected": "deny",
+      "expected_failure_code": "PMR_HOST_BINDING_ADDITIONAL_FIELD_NOT_STRING",
+      "mutate": {
+        "set": {
+          "operations/6/host_session_binding/cwd": {
+            "path": "/x"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-24",
+      "covers_negative_fixture": "a host session binding naming an executor that is not a supported host",
+      "expected": "deny",
+      "expected_failure_code": "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST",
+      "mutate": {
+        "set": {
+          "operations/6/host_session_binding/executor_ref": "Hermes"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-25",
+      "covers_negative_fixture": "an operation path that is not an array of known steps",
+      "expected": "deny",
+      "expected_failure_code": "PMR_PATH_NOT_ARRAY",
+      "mutate": {
+        "set": {
+          "operations/6/path": "RUNTIME_POLICY_CHECK"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-26",
+      "covers_negative_fixture": "an operation path whose store access precedes its permission check",
+      "expected": "deny",
+      "expected_failure_code": "PMR_PERMISSION_CHECK_NOT_FIRST",
+      "mutate": {
+        "set": {
+          "operations/9/path": [
+            "STORE_READ",
+            "RUNTIME_POLICY_CHECK"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-27",
+      "covers_negative_fixture": "an operation path that does not match the declared path for its kind",
+      "expected": "deny",
+      "expected_failure_code": "PMR_PATH_NOT_DECLARED_PATH",
+      "mutate": {
+        "set": {
+          "operations/6/path": [
+            "RUNTIME_POLICY_CHECK",
+            "STORE_WRITE"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-28",
+      "covers_negative_fixture": "an operation whose payload does not match its kind",
+      "expected": "deny",
+      "expected_failure_code": "PMR_OPERATION_PAYLOAD_MISMATCH",
+      "mutate": {
+        "set": {
+          "operations/9/row": {
+            "kind": "PersonalMemoryRecord",
+            "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000003",
+            "idempotency_key": "k-9",
+            "resource": {
+              "record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000003",
+              "tenant_id": "t-acme",
+              "employee_owner_ref": "urn:omos:employee:emp-001",
+              "memory_kind": "DECISION",
+              "content": {
+                "statement_or_structured_content": "改用 WAL 模式以支援並行讀取"
+              },
+              "applicability": {
+                "scope_mode": "EMPLOYEE_PRIVATE",
+                "applies_to_refs": [
+                  "urn:omos:project:omos"
+                ]
+              },
+              "validity_interval": {
+                "effective_from": "2026-09-01T00:00:00Z"
+              },
+              "support_link_refs": [
+                "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b3"
+              ],
+              "chronology": {
+                "created_at": "2026-09-18T09:00:00Z",
+                "effective_from": "2026-09-01T00:00:00Z"
+              },
+              "governance": {
+                "ownership_mode": "EMPLOYEE_OWNED",
+                "visibility_scope": "EMPLOYEE_PRIVATE",
+                "sensitivity": "NORMAL",
+                "acl_ref": "urn:omos:acl:acl-001",
+                "verification_status": "PASS",
+                "acceptance_status": "ACCEPTED",
+                "verification_receipt_ref": "urn:omos:verification-receipt:vr-001",
+                "personal_acceptance_ref": "urn:omos:personal-acceptance:pa-001",
+                "freshness": "CURRENT",
+                "review_due_at": "2026-12-01T00:00:00Z",
+                "conflict_refs": [],
+                "supersedes": [],
+                "superseded_by": [],
+                "retention_state": "RETAINED"
+              },
+              "origin_candidate_ref": "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000c9",
+              "candidate_snapshot": {
+                "candidate_status": "ACCEPTED_FOR_RECORD",
+                "verification_status": "PASS",
+                "acceptance_status": "ACCEPTED"
+              },
+              "record_status": "ACTIVE"
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-29",
+      "covers_negative_fixture": "a store write outside a runtime transaction",
+      "expected": "deny",
+      "expected_failure_code": "PMR_WRITE_OUTSIDE_TRANSACTION",
+      "mutate": {
+        "delete": [
+          "operations/6/transaction"
+        ]
+      }
+    },
+    {
+      "case_id": "pmr-neg-30",
+      "covers_negative_fixture": "an uncommitted transaction that still produced a durable row",
+      "expected": "deny",
+      "expected_failure_code": "PMR_UNCOMMITTED_WRITE_DURABLE",
+      "mutate": {
+        "set": {
+          "operations/6/transaction/committed": false
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-31",
+      "covers_negative_fixture": "a migration payload that is not a map of known fields",
+      "expected": "deny",
+      "expected_failure_code": "PMR_MIGRATION_NOT_MAP",
+      "mutate": {
+        "set": {
+          "operations/0/migration": "0.0.0 -> 0.1.0"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-32",
+      "covers_negative_fixture": "a migration receipt missing a required field",
+      "expected": "deny",
+      "expected_failure_code": "PMR_MIGRATION_RECEIPT_INCOMPLETE",
+      "mutate": {
+        "delete": [
+          "operations/0/migration/applied_at"
+        ]
+      }
+    },
+    {
+      "case_id": "pmr-neg-33",
+      "covers_negative_fixture": "a migration whose from_version does not continue the chain",
+      "expected": "deny",
+      "expected_failure_code": "PMR_MIGRATION_CHAIN_BROKEN",
+      "mutate": {
+        "set": {
+          "operations/1/migration/from_version": "0.9.0"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-34",
+      "covers_negative_fixture": "a migration id re-emitted with different content",
+      "expected": "deny",
+      "expected_failure_code": "PMR_MIGRATION_RECEIPT_MUTATED",
+      "mutate": {
+        "set": {
+          "operations/1/migration/migration_id": "m-001"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-35",
+      "covers_negative_fixture": "a row payload that is not a map of known fields",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_NOT_MAP",
+      "mutate": {
+        "set": {
+          "operations/6/row": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-36",
+      "covers_negative_fixture": "a row carrying no Personal Memory resource body",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_RESOURCE_NOT_MAP",
+      "mutate": {
+        "delete": [
+          "operations/6/row/resource"
+        ]
+      }
+    },
+    {
+      "case_id": "pmr-neg-37",
+      "covers_negative_fixture": "a row id that does not match its resource body identity",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_ID_NOT_BOUND_TO_RESOURCE_IDENTITY",
+      "mutate": {
+        "set": {
+          "operations/6/row/resource/record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000003"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-38",
+      "covers_negative_fixture": "a row resource with no support link at all",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/6/row/resource/support_link_refs": []
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-39",
+      "covers_negative_fixture": "a row whose support_link_ref does not resolve inside this store",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/6/row/resource/support_link_refs": [
+            "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000ff"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-40",
+      "covers_negative_fixture": "a row resource that was never personally accepted",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/6/row/resource/governance/acceptance_status": "PENDING"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-41",
+      "covers_negative_fixture": "a support link that does not point back at the row it supports",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/2/row/resource/target_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-42",
+      "covers_negative_fixture": "a row resource that was never verified",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/6/row/resource/governance/verification_status": "NOT_CHECKED"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-43",
+      "covers_negative_fixture": "a row resource whose memory kind is not long-lived by default",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/6/row/resource/memory_kind": "CURRENT_TASK_STATUS"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-44",
+      "covers_negative_fixture": "a row resource whose candidate snapshot never reached ACCEPTED_FOR_RECORD",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/6/row/resource/candidate_snapshot/candidate_status": "PROPOSED"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-45",
+      "covers_negative_fixture": "a row resource missing a required field its kind declares upstream",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
+      "mutate": {
+        "delete": [
+          "operations/6/row/resource/chronology/created_at"
+        ]
+      }
+    },
+    {
+      "case_id": "pmr-neg-46",
+      "covers_negative_fixture": "a support link row whose anchor resolution is not usable as support",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/2/row/resource/anchor_resolution": "AMBIGUOUS"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-47",
+      "covers_negative_fixture": "a row kind outside the upstream id templates",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_KIND_UNKNOWN",
+      "mutate": {
+        "set": {
+          "operations/6/row/kind": "WorkRecord"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-48",
+      "covers_negative_fixture": "a row id that does not match its upstream id template",
+      "expected": "deny",
+      "expected_failure_code": "PMR_ROW_ID_NOT_MATCHING_ID_TEMPLATE",
+      "mutate": {
+        "set": {
+          "operations/6/row/row_id": "urn:omos:personal-memory:record:01900000-0000-4000-8000-000000000001"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-49",
+      "covers_negative_fixture": "an idempotency key that is not a non-blank string",
+      "expected": "deny",
+      "expected_failure_code": "PMR_IDEMPOTENCY_KEY_INVALID",
+      "mutate": {
+        "set": {
+          "operations/6/row/idempotency_key": {
+            "key": "k-1"
+          }
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-50",
+      "covers_negative_fixture": "a row deletion erasing history",
+      "expected": "deny",
+      "expected_failure_code": "PMR_HISTORY_ERASURE",
+      "mutate": {
+        "set": {
+          "operations/7/row/deleted": true
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-51",
+      "covers_negative_fixture": "an idempotent replay that produced a second row id",
+      "expected": "deny",
+      "expected_failure_code": "PMR_IDEMPOTENT_REPLAY_CREATED_SECOND_ROW",
+      "mutate": {
+        "set": {
+          "operations/7/row/row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000003",
+          "operations/7/row/resource/record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000003",
+          "operations/7/row/resource/support_link_refs": [
+            "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b3"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-52",
+      "covers_negative_fixture": "a write to an existing row id that is not an idempotent replay",
+      "expected": "deny",
+      "expected_failure_code": "PMR_IN_PLACE_ROW_OVERWRITE",
+      "mutate": {
+        "set": {
+          "operations/7/row/idempotency_key": "k-9"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-53",
+      "covers_negative_fixture": "a same-id same-key write that alters supersedes_ref",
+      "expected": "deny",
+      "expected_failure_code": "PMR_IN_PLACE_ROW_OVERWRITE",
+      "mutate": {
+        "delete": [
+          "operations/13/row/supersedes_ref"
+        ]
+      }
+    },
+    {
+      "case_id": "pmr-neg-54",
+      "covers_negative_fixture": "a revision superseding a row this store never wrote",
+      "expected": "deny",
+      "expected_failure_code": "PMR_SUPERSEDES_TARGET_UNKNOWN",
+      "mutate": {
+        "set": {
+          "operations/8/row/supersedes_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000003"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-55",
+      "covers_negative_fixture": "a revision superseding a row of a different kind",
+      "expected": "deny",
+      "expected_failure_code": "PMR_SUPERSEDES_TARGET_KIND_MISMATCH",
+      "mutate": {
+        "set": {
+          "operations/8/row": {
+            "kind": "PersonalMemoryCandidate",
+            "row_id": "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000c1",
+            "idempotency_key": "k-2",
+            "supersedes_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+            "resource": {
+              "candidate_id": "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000c1",
+              "tenant_id": "t-acme",
+              "employee_owner_ref": "urn:omos:employee:emp-001",
+              "memory_kind": "DECISION",
+              "content": {
+                "statement_or_structured_content": "改用 WAL 模式以支援並行讀取"
+              },
+              "applicability": {
+                "scope_mode": "EMPLOYEE_PRIVATE",
+                "applies_to_refs": [
+                  "urn:omos:project:omos"
+                ]
+              },
+              "validity_interval": {
+                "effective_from": "2026-09-01T00:00:00Z"
+              },
+              "support_link_refs": [
+                "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b4"
+              ],
+              "chronology": {
+                "created_at": "2026-09-18T09:00:00Z"
+              },
+              "governance": {
+                "ownership_mode": "EMPLOYEE_OWNED",
+                "visibility_scope": "EMPLOYEE_PRIVATE",
+                "sensitivity": "NORMAL",
+                "acl_ref": "urn:omos:acl:acl-001",
+                "verification_status": "PASS",
+                "acceptance_status": "ACCEPTED",
+                "verification_receipt_ref": "urn:omos:verification-receipt:vr-001",
+                "personal_acceptance_ref": "urn:omos:personal-acceptance:pa-001"
+              },
+              "provenance": {
+                "generated_from_refs": [
+                  "urn:omos:work-record:wr-001"
+                ],
+                "proposed_by": "urn:omos:employee:emp-001"
+              },
+              "candidate_status": "ACCEPTED_FOR_RECORD"
+            }
+          }
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-56",
+      "covers_negative_fixture": "a revision superseding a row that was already superseded",
+      "expected": "deny",
+      "expected_failure_code": "PMR_SUPERSEDES_TARGET_ALREADY_SUPERSEDED",
+      "mutate": {
+        "append": {
+          "operations": {
+            "surface": "LOCAL_CLI",
+            "kind": "STORE_WRITE",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "row": {
+              "kind": "PersonalMemoryRecord",
+              "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000003",
+              "idempotency_key": "k-3",
+              "supersedes_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+              "resource": {
+                "record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000003",
+                "tenant_id": "t-acme",
+                "employee_owner_ref": "urn:omos:employee:emp-001",
+                "memory_kind": "DECISION",
+                "content": {
+                  "statement_or_structured_content": "改用 WAL 模式以支援並行讀取"
+                },
+                "applicability": {
+                  "scope_mode": "EMPLOYEE_PRIVATE",
+                  "applies_to_refs": [
+                    "urn:omos:project:omos"
+                  ]
+                },
+                "validity_interval": {
+                  "effective_from": "2026-09-01T00:00:00Z"
+                },
+                "support_link_refs": [
+                  "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b3"
+                ],
+                "chronology": {
+                  "created_at": "2026-09-18T09:00:00Z",
+                  "effective_from": "2026-09-01T00:00:00Z"
+                },
+                "governance": {
+                  "ownership_mode": "EMPLOYEE_OWNED",
+                  "visibility_scope": "EMPLOYEE_PRIVATE",
+                  "sensitivity": "NORMAL",
+                  "acl_ref": "urn:omos:acl:acl-001",
+                  "verification_status": "PASS",
+                  "acceptance_status": "ACCEPTED",
+                  "verification_receipt_ref": "urn:omos:verification-receipt:vr-001",
+                  "personal_acceptance_ref": "urn:omos:personal-acceptance:pa-001",
+                  "freshness": "CURRENT",
+                  "review_due_at": "2026-12-01T00:00:00Z",
+                  "conflict_refs": [],
+                  "supersedes": [],
+                  "superseded_by": [],
+                  "retention_state": "RETAINED"
+                },
+                "origin_candidate_ref": "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000c9",
+                "candidate_snapshot": {
+                  "candidate_status": "ACCEPTED_FOR_RECORD",
+                  "verification_status": "PASS",
+                  "acceptance_status": "ACCEPTED"
+                },
+                "record_status": "ACTIVE"
+              }
+            },
+            "op_seq": 15
+          }
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-57",
+      "covers_negative_fixture": "a closeout payload that is not a map of known fields",
+      "expected": "deny",
+      "expected_failure_code": "PMR_CLOSEOUT_NOT_MAP",
+      "mutate": {
+        "set": {
+          "operations/10/closeout": "rp-2026-W38"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-58",
+      "covers_negative_fixture": "a closeout review period id that is not a non-blank string",
+      "expected": "deny",
+      "expected_failure_code": "PMR_CLOSEOUT_REVIEW_PERIOD_ID_INVALID",
+      "mutate": {
+        "set": {
+          "operations/10/closeout/review_period_id": "  "
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-59",
+      "covers_negative_fixture": "a retry whose promotion identity drifted for the same item",
+      "expected": "deny",
+      "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/11/closeout/item_dispositions/urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1/promotion_idempotency_key": "pk-999"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-60",
+      "covers_negative_fixture": "a closeout status outside the upstream vocabulary",
+      "expected": "deny",
+      "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/10/closeout/final_status": "DONE"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-61",
+      "covers_negative_fixture": "a closeout attempt kind outside the upstream vocabulary",
+      "expected": "deny",
+      "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/10/closeout/attempt_kind": "MANUAL"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-62",
+      "covers_negative_fixture": "a second terminal closeout for the same review period",
+      "expected": "deny",
+      "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/12/closeout/review_period_id": "urn:omos:personal-memory:review-period:2026-W38",
+          "operations/12/closeout/scheduled_review_period_start": "2026-09-18"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-63",
+      "covers_negative_fixture": "a closeout history whose scheduled period start drifted between attempts",
+      "expected": "deny",
+      "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
+      "mutate": {
+        "set": {
+          "operations/11/closeout/scheduled_review_period_start": "2026-09-11"
+        }
+      }
+    },
+    {
+      "case_id": "pmr-neg-64",
+      "covers_negative_fixture": "a promotion_ref carried without a promotion idempotency key",
+      "expected": "deny",
+      "expected_failure_code": "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT",
+      "mutate": {
+        "delete": [
+          "operations/10/closeout/item_dispositions/urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1/promotion_idempotency_key"
+        ]
+      }
+    },
+    {
+      "case_id": "pmr-neg-65",
+      "covers_negative_fixture": "a store schema version that no migration in the chain produced",
+      "expected": "deny",
+      "expected_failure_code": "PMR_STORE_SCHEMA_VERSION_NOT_MIGRATION_CHAIN_TAIL",
+      "mutate": {
+        "set": {
+          "store/schema_version": "9.9.9"
+        }
+      }
+    }
+  ]
+}
