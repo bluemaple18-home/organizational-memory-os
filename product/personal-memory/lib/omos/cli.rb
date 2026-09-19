@@ -9,6 +9,9 @@
 require "json"
 require "optparse"
 require_relative "runtime"
+require_relative "installer"
+require_relative "host_config_writer"
+require_relative "doctor"
 
 module OMOS
   class CLI
@@ -23,6 +26,10 @@ module OMOS
                                 寫入一列（寫入前由既有治理 evaluator 判定）
         read                    讀出所有列（權限檢查先於讀取）
         closeout --file FILE    提交一次 weekly closeout
+        install [--home DIR]    初始化 store 並註冊到 Codex / Claude Code
+        uninstall [--home DIR] [--remove-store]
+                                移除本產品註冊（預設保留 Personal Store）
+        doctor [--home DIR]     對實物做健康檢查
         journal                 輸出 operation journal（證據，非保護）
 
       共用選項:
@@ -46,11 +53,22 @@ module OMOS
       when "read"     then cmd_read(store_path, out)
       when "closeout" then cmd_closeout(store_path, opts, out)
       when "journal"  then cmd_journal(store_path, out)
+      when "install"   then cmd_install(opts, out, err)
+      when "uninstall" then cmd_uninstall(opts, out, err)
+      when "doctor"    then cmd_doctor(opts, out)
       else
         err.puts "未知指令: #{command}"
         usage(err)
         2
       end
+    rescue Installer::Failed => e
+      err.puts "INSTALL FAILED #{e.code}"
+      err.puts "  已從備份還原，未留下半套安裝。"
+      1
+    rescue HostConfigWriter::RefusedWrite => e
+      err.puts "REFUSED #{e.code}"
+      err.puts "  設定檔未被修改。"
+      1
     rescue Runtime::Rejected => e
       # 治理層拒絕：明確失敗，不 silent fallback。
       err.puts "REJECTED #{e.code}"
@@ -72,6 +90,8 @@ module OMOS
         o.on("--key KEY") { |v| opts[:key] = v }
         o.on("--supersedes REF") { |v| opts[:supersedes] = v }
         o.on("--file FILE") { |v| opts[:file] = v }
+        o.on("--home DIR") { |v| opts[:home] = v }
+        o.on("--remove-store") { opts[:remove_store] = true }
       end.parse!(argv)
       opts
     end
@@ -148,6 +168,42 @@ module OMOS
         out.puts "COMMITTED #{result[:review_period_id]} terminal=#{result[:terminal]}"
       end
       0
+    end
+
+    def installer_for(opts)
+      home = opts[:home] || Dir.home
+      Installer.new(home: home, store_path: opts[:store])
+    end
+
+    def cmd_install(opts, out, err)
+      inst = installer_for(opts)
+      result = inst.install
+      out.puts "INSTALLED"
+      out.puts "  store:   #{result[:store_path]} (schema #{result[:schema_version]})"
+      out.puts "  hosts:   #{result[:hosts].join(", ")}"
+      out.puts "  receipt: #{inst.receipt_path}"
+      out.puts "接著執行 `omos-personal-memory doctor` 確認。"
+      0
+    end
+
+    def cmd_uninstall(opts, out, _err)
+      inst = installer_for(opts)
+      result = inst.uninstall(remove_store: opts[:remove_store] == true)
+      out.puts "UNINSTALLED hosts=#{result[:hosts].join(", ")}"
+      out.puts(result[:store_removed] ? "  Personal Store 已移除。" :
+               "  Personal Store 保留於 #{inst.store_path}（--remove-store 才會刪除）。")
+      0
+    end
+
+    def cmd_doctor(opts, out)
+      home = opts[:home] || Dir.home
+      results = Doctor.new(home: home, store_path: opts[:store]).run
+      width = results.map { |r| r.id.length }.max
+      results.each { |r| out.puts format("%-4s %-#{width}s  %s", r.status, r.id, r.detail) }
+      failed = results.reject(&:ok?)
+      out.puts
+      out.puts "doctor: #{results.size - failed.size}/#{results.size} OK"
+      failed.empty? ? 0 : 1
     end
 
     def cmd_journal(path, out)
