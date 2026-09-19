@@ -23,7 +23,12 @@ module OMOS
 
     attr_reader :host, :discovery, :home
 
-    def initialize(host, home: Dir.home)
+    # command_map：{具體命令 => 契約的 command_ref}。
+    # 契約裡的 command_ref 是符號 token（例如 OMOS_PERSONAL_MEMORY_MCP），
+    # 但實際設定檔必須放具體路徑。安裝 receipt 記錄兩者的對應，讓正規化後的
+    # 快照回到契約詞彙——對不上就是漂移，由既有 evaluator 報
+    # HBV1_EFFECTIVE_MCP_MISSING_OR_DRIFTED。
+    def initialize(host, home: Dir.home, command_map: {})
       profile = Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles", host)
       raise DiscoveryError, "未支援的 Host: #{host}" if profile.nil?
 
@@ -31,6 +36,7 @@ module OMOS
       @profile = profile
       @discovery = profile.fetch("config_discovery")
       @home = home
+      @command_map = command_map
     end
 
     def self.hosts = Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles").keys
@@ -118,7 +124,8 @@ module OMOS
     # 正規化成契約詞彙 command_ref；判定仍由既有 evaluator 做。
     def command_ref_of(cfg)
       cmd = cfg["command_ref"] || cfg["command"] || cfg.dig("hooks", 0, "command")
-      cmd.is_a?(Array) ? cmd.join(" ") : cmd.to_s
+      concrete = cmd.is_a?(Array) ? cmd.join(" ") : cmd.to_s
+      @command_map.fetch(concrete, concrete)
     end
 
     def transport_of(cfg)
