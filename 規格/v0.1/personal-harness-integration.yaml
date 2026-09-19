@@ -2218,6 +2218,135 @@ personal_memory_runtime:
       Because the runtime stores the closeout attempts, it is the layer that
       actually holds both attempts and can compare them.
 
+personal_memory_host_binding_v1:
+  slice_of: EMEM-11 切片 2｜Codex + Claude Code Host Binding
+  purpose: >-
+    把已驗收的 Local Personal Memory Runtime 綁到 v1 的兩個 Personal Host，
+    但不讓任何 Host 取得治理權。驗證範圍包含 user-scope install merge、
+    uninstall merge、higher-precedence conflict、Host health，以及一次
+    deterministic SessionStart bootstrap。Slice 3 的 installer / doctor 證據
+    可重用同一 evaluator，不得另寫第二份規則。
+  invariants:
+    - GLOBAL_HARNESS_NE_GLOBAL_MEMORY_VISIBILITY
+    - PROJECT_CONTEXT_MAY_NARROW_BUT_NOT_WIDEN_MEMORY_ACCESS
+    - HOST_INSTRUCTION_NE_MEMORY_AUTHORITY
+    - HOST_NATIVE_MEMORY_NE_PERSONAL_TRUTH
+    - MISSING_OR_CONFLICTED_HOST_BINDING_FAILS_CLOSED
+  binds_to:
+    - personal_memory_runtime.supported_hosts_v1
+    - personal_memory_runtime.host_session_binding
+    - runtime_policy.optional_executors
+    - ownership_visibility_contract.mode_definitions
+    - ownership_visibility_contract.visibility_scopes
+  host_profiles:
+    Codex:
+      native_adapter_spec: 規格/v0.1/codex-native-adapter.yaml
+      user_config_scope: USER
+      mcp_registration:
+        id: omos.personal-memory
+        transport: STDIO
+        command_ref: OMOS_PERSONAL_MEMORY_MCP
+      session_start_registration:
+        id: omos.personal-memory.session-start
+        event: SessionStart
+        command_ref: OMOS_PERSONAL_MEMORY_SESSION_START
+      higher_precedence_conflict_scopes:
+        - PROJECT
+      required_health:
+        - project_trusted
+        - mcp_visible
+        - session_start_hook_active
+        - runtime_compatible
+    Claude Code:
+      native_adapter_spec: 規格/v0.1/claude-code-native-adapter.yaml
+      user_config_scope: USER
+      mcp_registration:
+        id: omos.personal-memory
+        transport: STDIO
+        command_ref: OMOS_PERSONAL_MEMORY_MCP
+      session_start_registration:
+        id: omos.personal-memory.session-start
+        event: SessionStart
+        command_ref: OMOS_PERSONAL_MEMORY_SESSION_START
+      higher_precedence_conflict_scopes:
+        - PROJECT
+        - LOCAL
+      required_health:
+        - mcp_visible
+        - session_start_hook_active
+        - runtime_compatible
+  supported_hosts_binding_rule: >-
+    host_profiles 是 v1 的實體交付面，其 key 必須與
+    personal_memory_runtime.supported_hosts_v1 集合完全相等。新增 optional
+    executor 不會自動成為 v1 Personal Host；新增 v1 Host 必須先有經 review 的
+    host profile，不能只往 supported_hosts_v1 多塞一個字串。
+  config_snapshot_contract:
+    fields:
+      - mcp_entries
+      - session_start_hooks
+    safe_install_rule: >-
+      安裝只能新增或取代該 Host 的兩個 namespaced OMOS entry。所有非本產品的
+      MCP entry 與 SessionStart hook 必須保持語意相同，hook 順序也不得改變。
+    uninstall_rule: >-
+      Uninstall 只能移除兩個 OMOS-owned entry；所有外部 entry 必須原樣保留，
+      且 uninstall 永遠不得修改 Personal Store truth。
+  precedence_rule: >-
+    任何 higher-precedence project / local registration 只要使用 OMOS-owned id
+    就算衝突，即使 payload 看起來相同也一樣。重複 ownership 可能 shadow 或
+    重複執行 user binding，因此 bootstrap 必須 fail closed。
+  bootstrap_contract:
+    input_fields:
+      - native_session_id
+      - cwd
+      - project_ref
+      - runtime_scope_mode
+      - project_visibility_scope
+      - produced_binding
+    runtime_scope_mode_ref: employee_memory_scope_modes.modes
+    runtime_scope_definition_ref: ownership_visibility_contract.mode_definitions
+    project_visibility_scope_ref: ownership_visibility_contract.visibility_scopes
+    input_authority:
+      host_native_inputs:
+        - native_session_id
+        - cwd
+      runtime_policy_inputs:
+        - runtime_scope_mode
+      project_context_inputs:
+        - project_ref
+        - project_visibility_scope
+      derived_outputs:
+        - produced_binding
+    input_authority_rule: >-
+      Project context 永遠不能提供 runtime_scope_mode，也不能寫 produced binding。
+      本片只驗 normalized authority 分工與推導；真人 Host / Runtime 的實際觀測是否
+      為真，屬 Slice 3 doctor / conformance evidence，不由靜態 fixture 宣稱。
+    effective_scope_rule: >-
+      runtime_scope_mode 經 mode_definitions 解析成 baseline visibility_scope。
+      project_visibility_scope 是可選 context，只有其 default_readers 集合等於
+      baseline 或為 baseline 真子集時才可套用；互不包含或更寬都 fail closed。
+      produced_binding.effective_scope 是推導後的 visibility-scope key，不是另一個
+      可由 caller 自報的 employee scope mode。
+    identity_mapping_rule: >-
+      produced_binding.executor_ref 必須等於所選 Host，executor_session_ref 必須
+      等於 native_session_id，cwd / project_ref 則逐字綁回 bootstrap input；產生的
+      binding 同時必須符合 personal_memory_runtime.host_session_binding 的封閉 shape。
+  failure_policy:
+    broken_binding: FAIL_CLOSED
+    shadowed_binding: FAIL_CLOSED
+    incompatible_runtime: FAIL_CLOSED
+    vendor_native_memory_fallback: FORBIDDEN
+  evidence_boundary: >-
+    evaluator 證明 normalized Host Binding 語意，並攔截 config drift、遺漏、
+    shadowing 與 scope widening；它不宣稱 fixture 是 live ~/.codex 或 Claude Code
+    觀測。真人 installer / doctor capture 與 cross-host acceptance evidence 由
+    Slice 3 負責。
+  authority:
+    grants_personal_memory_governance: false
+    grants_company_canonical_writer: false
+    grants_promotion: false
+    grants_acceptance: false
+    project_instruction_is_context_only: true
+
 phase_1_pilot:
   target: product_department
   first_sources:
