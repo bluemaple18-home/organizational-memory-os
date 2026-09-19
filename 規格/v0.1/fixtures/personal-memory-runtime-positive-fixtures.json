@@ -78,7 +78,51 @@
             "row": {
               "kind": "PersonalMemoryRecord",
               "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
-              "idempotency_key": "k-1"
+              "idempotency_key": "k-1",
+              "resource": {
+                "record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+                "tenant_id": "t-acme",
+                "employee_owner_ref": "urn:omos:employee:emp-001",
+                "origin_candidate_ref": "V",
+                "memory_kind": "V",
+                "content": {
+                  "statement_or_structured_content": "V"
+                },
+                "applicability": {
+                  "scope_mode": "V",
+                  "applies_to_refs": []
+                },
+                "validity_interval": {
+                  "effective_from": "V"
+                },
+                "support_link_refs": [],
+                "candidate_snapshot": {
+                  "candidate_status": "V",
+                  "verification_status": "V",
+                  "acceptance_status": "V"
+                },
+                "governance": {
+                  "ownership_mode": "V",
+                  "visibility_scope": "V",
+                  "verification_status": "V",
+                  "acceptance_status": "V",
+                  "verification_receipt_ref": "V",
+                  "personal_acceptance_ref": "V",
+                  "sensitivity": "V",
+                  "acl_ref": "V",
+                  "freshness": "V",
+                  "review_due_at": "V",
+                  "conflict_refs": [],
+                  "supersedes": null,
+                  "superseded_by": null,
+                  "retention_state": "V"
+                },
+                "chronology": {
+                  "created_at": "V",
+                  "effective_from": "V"
+                },
+                "record_status": "V"
+              }
             }
           },
           {
@@ -96,7 +140,51 @@
             "row": {
               "kind": "PersonalMemoryRecord",
               "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
-              "idempotency_key": "k-1"
+              "idempotency_key": "k-1",
+              "resource": {
+                "record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+                "tenant_id": "t-acme",
+                "employee_owner_ref": "urn:omos:employee:emp-001",
+                "origin_candidate_ref": "V",
+                "memory_kind": "V",
+                "content": {
+                  "statement_or_structured_content": "V"
+                },
+                "applicability": {
+                  "scope_mode": "V",
+                  "applies_to_refs": []
+                },
+                "validity_interval": {
+                  "effective_from": "V"
+                },
+                "support_link_refs": [],
+                "candidate_snapshot": {
+                  "candidate_status": "V",
+                  "verification_status": "V",
+                  "acceptance_status": "V"
+                },
+                "governance": {
+                  "ownership_mode": "V",
+                  "visibility_scope": "V",
+                  "verification_status": "V",
+                  "acceptance_status": "V",
+                  "verification_receipt_ref": "V",
+                  "personal_acceptance_ref": "V",
+                  "sensitivity": "V",
+                  "acl_ref": "V",
+                  "freshness": "V",
+                  "review_due_at": "V",
+                  "conflict_refs": [],
+                  "supersedes": null,
+                  "superseded_by": null,
+                  "retention_state": "V"
+                },
+                "chronology": {
+                  "created_at": "V",
+                  "effective_from": "V"
+                },
+                "record_status": "V"
+              }
             }
           },
           {
@@ -122,7 +210,51 @@
               "kind": "PersonalMemoryRecord",
               "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002",
               "idempotency_key": "k-2",
-              "supersedes_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001"
+              "supersedes_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+              "resource": {
+                "record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002",
+                "tenant_id": "t-acme",
+                "employee_owner_ref": "urn:omos:employee:emp-001",
+                "origin_candidate_ref": "V",
+                "memory_kind": "V",
+                "content": {
+                  "statement_or_structured_content": "V"
+                },
+                "applicability": {
+                  "scope_mode": "V",
+                  "applies_to_refs": []
+                },
+                "validity_interval": {
+                  "effective_from": "V"
+                },
+                "support_link_refs": [],
+                "candidate_snapshot": {
+                  "candidate_status": "V",
+                  "verification_status": "V",
+                  "acceptance_status": "V"
+                },
+                "governance": {
+                  "ownership_mode": "V",
+                  "visibility_scope": "V",
+                  "verification_status": "V",
+                  "acceptance_status": "V",
+                  "verification_receipt_ref": "V",
+                  "personal_acceptance_ref": "V",
+                  "sensitivity": "V",
+                  "acl_ref": "V",
+                  "freshness": "V",
+                  "review_due_at": "V",
+                  "conflict_refs": [],
+                  "supersedes": null,
+                  "superseded_by": null,
+                  "retention_state": "V"
+                },
+                "chronology": {
+                  "created_at": "V",
+                  "effective_from": "V"
+                },
+                "record_status": "V"
+              }
             }
           },
           {
@@ -154,9 +286,23 @@
               "effective_scope": "EMPLOYEE_PRIVATE"
             },
             "closeout": {
-              "review_period_id": "rp-2026-W38",
+              "review_period_id": "urn:omos:personal-memory:review-period:2026-W38",
+              "scheduled_review_period_start": "2026-09-18",
+              "scheduled_anchor_at": "2026-09-18T15:00:00Z",
+              "actual_closeout_at": "2026-09-18T17:30:00Z",
+              "attempt_kind": "SCHEDULED",
               "final_status": "FAILED",
-              "attempt_kind": "SCHEDULED"
+              "catch_up_deadline_passed": true,
+              "selected_item_refs": [
+                "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1"
+              ],
+              "item_dispositions": {
+                "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1": {
+                  "category": "MATERIALLY_CHANGED",
+                  "promotion_ref": "urn:omos:promotion:pr-001",
+                  "promotion_idempotency_key": "pk-001"
+                }
+              }
             }
           },
           {
@@ -179,9 +325,23 @@
               "effective_scope": "EMPLOYEE_PRIVATE"
             },
             "closeout": {
-              "review_period_id": "rp-2026-W38",
+              "review_period_id": "urn:omos:personal-memory:review-period:2026-W38",
+              "scheduled_review_period_start": "2026-09-18",
+              "scheduled_anchor_at": "2026-09-18T15:00:00Z",
+              "actual_closeout_at": "2026-09-18T17:30:00Z",
+              "attempt_kind": "RETRY",
               "final_status": "COMPLETE",
-              "attempt_kind": "RETRY"
+              "catch_up_deadline_passed": true,
+              "selected_item_refs": [
+                "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1"
+              ],
+              "item_dispositions": {
+                "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1": {
+                  "category": "MATERIALLY_CHANGED",
+                  "promotion_ref": "urn:omos:promotion:pr-001",
+                  "promotion_idempotency_key": "pk-001"
+                }
+              }
             }
           },
           {
@@ -197,9 +357,84 @@
               "committed": true
             },
             "closeout": {
-              "review_period_id": "rp-2026-W37",
+              "review_period_id": "urn:omos:personal-memory:review-period:2026-W37",
+              "scheduled_review_period_start": "2026-09-11",
+              "scheduled_anchor_at": "2026-09-11T15:00:00Z",
+              "actual_closeout_at": "2026-09-11T17:30:00Z",
+              "attempt_kind": "CATCH_UP",
               "final_status": "NO_PROMOTION",
-              "attempt_kind": "CATCH_UP"
+              "catch_up_deadline_passed": true,
+              "selected_item_refs": [
+                "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1"
+              ],
+              "item_dispositions": {
+                "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000a1": {
+                  "category": "UNCHANGED"
+                }
+              }
+            }
+          },
+          {
+            "op_seq": 10,
+            "surface": "LOCAL_CLI",
+            "kind": "STORE_WRITE",
+            "path": [
+              "RUNTIME_POLICY_CHECK",
+              "RUNTIME_TRANSACTION",
+              "STORE_WRITE"
+            ],
+            "transaction": {
+              "committed": true
+            },
+            "row": {
+              "kind": "PersonalMemoryRecord",
+              "row_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002",
+              "idempotency_key": "k-2",
+              "supersedes_ref": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000001",
+              "resource": {
+                "record_id": "urn:omos:personal-memory:record:01900000-0000-7000-8000-000000000002",
+                "tenant_id": "t-acme",
+                "employee_owner_ref": "urn:omos:employee:emp-001",
+                "origin_candidate_ref": "V",
+                "memory_kind": "V",
+                "content": {
+                  "statement_or_structured_content": "V"
+                },
+                "applicability": {
+                  "scope_mode": "V",
+                  "applies_to_refs": []
+                },
+                "validity_interval": {
+                  "effective_from": "V"
+                },
+                "support_link_refs": [],
+                "candidate_snapshot": {
+                  "candidate_status": "V",
+                  "verification_status": "V",
+                  "acceptance_status": "V"
+                },
+                "governance": {
+                  "ownership_mode": "V",
+                  "visibility_scope": "V",
+                  "verification_status": "V",
+                  "acceptance_status": "V",
+                  "verification_receipt_ref": "V",
+                  "personal_acceptance_ref": "V",
+                  "sensitivity": "V",
+                  "acl_ref": "V",
+                  "freshness": "V",
+                  "review_due_at": "V",
+                  "conflict_refs": [],
+                  "supersedes": null,
+                  "superseded_by": null,
+                  "retention_state": "V"
+                },
+                "chronology": {
+                  "created_at": "V",
+                  "effective_from": "V"
+                },
+                "record_status": "V"
+              }
             }
           }
         ]

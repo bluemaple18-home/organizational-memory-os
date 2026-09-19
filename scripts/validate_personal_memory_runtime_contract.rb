@@ -36,6 +36,7 @@ require "yaml"
 require_relative "lib/omos_contract_helpers"
 require_relative "lib/loop_return_contract"
 require_relative "lib/minimal_evidence_package_shape"
+require_relative "lib/weekly_closeout_history"
 
 ROOT = File.expand_path("..", __dir__)
 SPEC_PATH = File.join(ROOT, "規格/v0.1/personal-harness-integration.yaml")
@@ -43,6 +44,9 @@ POSITIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/personal-memory-ru
 NEGATIVE_FIXTURE_PATH = File.join(ROOT, "規格/v0.1/fixtures/personal-memory-runtime-negative-fixtures.json")
 
 MEPShape = MinimalEvidencePackageShape
+# closeout 歷程直接交給切片 4 已在用的同一支 evaluator，不留第二份。
+WCH = WeeklyCloseoutHistory
+HISTORY_PATH = File.join(__dir__, "lib/weekly_closeout_history.rb")
 
 RUN_ALLOWED_FIELDS = %w[store operations].freeze
 STORE_ALLOWED_FIELDS = %w[engine journal_mode schema_version].freeze
@@ -51,8 +55,7 @@ OPERATION_ALLOWED_FIELDS = %w[
   migration row closeout
 ].freeze
 MIGRATION_ALLOWED_FIELDS = %w[migration_id from_version to_version applied_at].freeze
-ROW_ALLOWED_FIELDS = %w[kind row_id idempotency_key supersedes_ref deleted].freeze
-CLOSEOUT_ALLOWED_FIELDS = %w[review_period_id final_status attempt_kind].freeze
+ROW_ALLOWED_FIELDS = %w[kind row_id idempotency_key supersedes_ref deleted resource].freeze
 
 OPERATION_KINDS = %w[SCHEMA_MIGRATION STORE_READ STORE_WRITE CLOSEOUT_COMMIT].freeze
 WRITE_KINDS = %w[SCHEMA_MIGRATION STORE_WRITE CLOSEOUT_COMMIT].freeze
@@ -91,20 +94,28 @@ EXPECTED_NEGATIVE_LABELS = [
   "a migration whose from_version does not continue the chain",
   "a migration id re-emitted with different content",
   "a row payload that is not a map of known fields",
+  "a row carrying no Personal Memory resource body",
+  "a row resource missing a required field its kind declares upstream",
+  "a row resource carrying a field its kind forbids upstream",
+  "a row id that does not match its resource body identity",
   "a row kind outside the upstream id templates",
   "a row id that does not match its upstream id template",
   "an idempotency key that is not a non-blank string",
   "an idempotent replay that produced a second row id",
   "a write to an existing row id that is not an idempotent replay",
+  "a same-id same-key write that alters supersedes_ref",
   "a revision superseding a row this store never wrote",
   "a revision superseding a row of a different kind",
   "a revision superseding a row that was already superseded",
   "a row deletion erasing history",
   "a closeout payload that is not a map of known fields",
   "a closeout review period id that is not a non-blank string",
+  "a retry whose promotion identity drifted for the same item",
   "a closeout status outside the upstream vocabulary",
   "a closeout attempt kind outside the upstream vocabulary",
   "a second terminal closeout for the same review period",
+  "a closeout history whose scheduled period start drifted between attempts",
+  "a promotion_ref carried without a promotion idempotency key",
   "a store schema version that no migration in the chain produced"
 ].freeze
 
@@ -129,7 +140,7 @@ def runtime_log_failure(run, b)
   rows = {}                             # row_id => { kind, idempotency_key }
   key_to_row = {}                       # idempotency_key => row_id
   superseded = Set.new                  # 已被取代的 row_id
-  terminal_periods = Set.new            # 已收掉的 review_period_id
+  closeout_history = {}                 # review_period_id => 依序的 closeout entries
 
   operations.each_with_index do |op, index|
     return "PMR_OPERATION_NOT_MAP" unless op.is_a?(Hash)
@@ -217,16 +228,35 @@ def runtime_log_failure(run, b)
                                                           b[:id_patterns][row_kind].match?(row_id)
       return "PMR_IDEMPOTENCY_KEY_INVALID" if MEPShape.blank?(row["idempotency_key"])
 
+      # repair-01 P1-3：落地的是一筆 Personal Memory 資源，不是一個空殼 id。
+      # required_fields／forbidden 在評估當下讀 personal_memory_resource_
+      # contracts.resources.<kind>，本片不維護第二份欄位清單。
+      resource = row["resource"]
+      return "PMR_ROW_RESOURCE_NOT_MAP" unless resource.is_a?(Hash)
+      resource_def = b[:resource_defs][row_kind]
+      return "PMR_ROW_RESOURCE_FORBIDDEN_FIELD_PRESENT" if (resource_def["forbidden"] || [])
+        .any? { |f| dotted_key_present?(resource, f) }
+      return "PMR_ROW_RESOURCE_REQUIRED_FIELD_MISSING" unless (resource_def["required_fields"] || [])
+        .all? { |f| dotted_key_present?(resource, f) }
+      # 合法 id 配上別人的本體，等於 id 沒有真的指向任何東西。
+      return "PMR_ROW_ID_NOT_BOUND_TO_RESOURCE_IDENTITY" unless resource[b[:row_identity_fields][row_kind]] == row_id
+
       key = row["idempotency_key"]
       seen_row_for_key = key_to_row[key]
       # 重放必須落回同一列；換一個 row_id 就不是 retry，是第二筆。
       return "PMR_IDEMPOTENT_REPLAY_CREATED_SECOND_ROW" if !seen_row_for_key.nil? && seen_row_for_key != row_id
 
+      # repair-01 P1-1：凍結的是「整筆 row」，不是 row_id + key。先前只記
+      # {kind, key}，於是同一個 row_id + 同一把 key 只要把 supersedes_ref
+      # 改掉就能就地改寫；而原封不動重放一筆 revision 反而會被誤判成第二次
+      # supersession。兩者同一個根因：部分凍結。
+      canonical_row = canonical_json(row)
       existing = rows[row_id]
       unless existing.nil?
-        # row_id 已存在，只有「同一把 idempotency key 的重放」是合法的；
-        # 其餘都是 in_place_record_overwrite。
-        return "PMR_IN_PLACE_ROW_OVERWRITE" unless existing[:key] == key
+        return "PMR_IN_PLACE_ROW_OVERWRITE" unless existing[:canonical] == canonical_row
+
+        # 逐欄相同的重放是 no-op：不得再動 supersession 帳。
+        next
       end
 
       supersedes_ref = row["supersedes_ref"]
@@ -238,27 +268,33 @@ def runtime_log_failure(run, b)
         superseded << supersedes_ref
       end
 
-      rows[row_id] = { kind: row_kind, key: key }
+      rows[row_id] = { kind: row_kind, canonical: canonical_row }
       key_to_row[key] = row_id
     end
 
     if kind == "CLOSEOUT_COMMIT"
       closeout = op["closeout"]
-      return "PMR_CLOSEOUT_NOT_MAP" unless closeout.is_a?(Hash) &&
-                                          (closeout.keys - CLOSEOUT_ALLOWED_FIELDS).empty?
+      # 只做「能安全分組」所需的最低檢查，其餘全部交給共用 evaluator。
+      return "PMR_CLOSEOUT_NOT_MAP" unless closeout.is_a?(Hash)
       period_id = closeout["review_period_id"]
       return "PMR_CLOSEOUT_REVIEW_PERIOD_ID_INVALID" if MEPShape.blank?(period_id)
-      # 三套詞彙全部讀 weekly_review_cycle：本片不留自己的副本。
-      final_status = closeout["final_status"]
-      return "PMR_CLOSEOUT_STATUS_NOT_IN_VOCABULARY" unless b[:closeout_statuses].include?(final_status)
-      return "PMR_CLOSEOUT_ATTEMPT_KIND_NOT_IN_VOCABULARY" unless b[:attempt_kinds].include?(closeout["attempt_kind"])
-      # 唯一性只針對 terminal：RETRY／CATCH_UP 沿用同一個 review_period_id
-      # 是 weekly_review_cycle 明文允許的，不能被誤判成第二次 closeout。
-      if b[:terminal_statuses].include?(final_status)
-        return "PMR_DUPLICATE_TERMINAL_CLOSEOUT" if terminal_periods.include?(period_id)
-        terminal_periods << period_id
-      end
+
+      (closeout_history[period_id] ||= []) << closeout
     end
+  end
+
+  # repair-01 P1-2：同一個 review_period_id 的 CLOSEOUT_COMMIT 依發生順序
+  # 排起來，就是 weekly_review_cycle 眼中的一段 closeout 歷程——直接丟給
+  # 切片 4 已在用的同一支 evaluator。terminal 唯一性、status／attempt 詞彙、
+  # SKIPPED 的 catch-up 規則、disposition 分類，以及本片原本完全沒有落地的
+  # promotion idempotency（retry 不得換掉同一 item 的 promotion 身分），
+  # 全部來自那一份實作，本片不再自己列任何一份詞彙。
+  closeout_history.each_value do |entries|
+    problem = WCH.weekly_review_cycle_failure(
+      { "review_period_id" => entries.first["review_period_id"], "closeouts" => entries },
+      b[:disposition_categories], b[:candidate_ref_prefix], b[:record_ref_prefix]
+    )
+    return "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT" unless problem.nil?
   end
 
   # schema_version 不是獨立主張，是 migration 鏈的尾巴。
@@ -357,19 +393,37 @@ assert(uniqueness["derived_from"] == "weekly_review_cycle",
        "closeout_uniqueness 必須宣告 derived_from weekly_review_cycle（SQLite constraint 不是權威）", failures)
 assert(uniqueness["identity_field"] == "review_period_id",
        "closeout 唯一性的 identity 必須是 review_period_id", failures)
-{
-  "status_vocabulary_ref" => "weekly_review_cycle.closeout_statuses",
-  "terminal_vocabulary_ref" => "weekly_review_cycle.terminal_statuses",
-  "attempt_vocabulary_ref" => "weekly_review_cycle.attempt_kinds"
-}.each do |key, expected_ref|
-  assert(uniqueness[key].to_s == expected_ref,
-         "closeout_uniqueness.#{key} 必須指向 #{expected_ref}", failures)
+assert(uniqueness["evaluator_ref"] == "scripts/lib/weekly_closeout_history.rb",
+       "closeout_uniqueness 必須宣告它委派給哪一支共用 evaluator", failures)
+assert(File.exist?(HISTORY_PATH), "宣告的共用 evaluator 必須存在：#{HISTORY_PATH}", failures)
+assert(uniqueness["promotion_idempotency_rule_ref"] == "weekly_review_cycle.promotion_idempotency_rule",
+       "closeout_uniqueness 必須指回 weekly cycle 的 promotion idempotency 規則", failures)
+assert(!MEPShape.blank?(spec.dig("weekly_review_cycle", "promotion_idempotency_rule")),
+       "weekly_review_cycle.promotion_idempotency_rule 必須存在（本片委派它，不重述）", failures)
+%w[status_vocabulary_ref terminal_vocabulary_ref attempt_vocabulary_ref].each do |key|
+  assert(uniqueness[key].nil?,
+         "closeout_uniqueness 不得再自行指派 #{key}——詞彙由共用 evaluator 一併帶入", failures)
 end
 %w[closeout_statuses terminal_statuses attempt_kinds].each do |key|
   assert(uniqueness[key].nil?,
          "closeout_uniqueness 不得內嵌 #{key} 的副本（那就是取代 cycle 契約而非執行它）", failures)
 end
 wrc = spec.fetch("weekly_review_cycle")
+
+# 委派之後仍要確認「被委派的那一份」和上游沒有漂移——讀的是共用 evaluator
+# 的常數本身，不是在這裡再抄一份詞彙。少了這幾條，上游改詞彙時 runtime
+# 會靜靜地繼續用舊的（改版時的漂移探針就是這樣抓到的）。
+{
+  "closeout_statuses" => WCH::CLOSEOUT_STATUSES,
+  "terminal_statuses" => WCH::TERMINAL_STATUSES,
+  "attempt_kinds" => WCH::ATTEMPT_KINDS
+}.each do |key, shared|
+  assert(sorted_set(wrc.fetch(key, [])) == sorted_set(shared),
+         "weekly_review_cycle.#{key} 與共用 evaluator 的詞彙不一致：#{wrc[key].inspect} vs #{shared.inspect}", failures)
+end
+assert(sorted_set(spec.dig("weekly_review_cycle", "closeout_receipt", "required_fields") || []) ==
+       sorted_set(WCH::REQUIRED_FIELDS),
+       "weekly_review_cycle.closeout_receipt.required_fields 與共用 evaluator 不一致", failures)
 closeout_statuses = wrc.fetch("closeout_statuses")
 terminal_statuses = wrc.fetch("terminal_statuses")
 attempt_kinds = wrc.fetch("attempt_kinds")
@@ -402,6 +456,34 @@ end
 assert(id_patterns.key?("PersonalMemoryRecord") && id_patterns.key?("PersonalMemoryCandidate"),
        "id_templates 必須至少涵蓋 Candidate／Record", failures)
 
+# repair-01 P1-3：落地列必須是一筆真的 Personal Memory 資源。
+resources = spec.dig("personal_memory_resource_contracts", "resources") || {}
+row_contract = pmr.fetch("row_contract", {})
+assert(row_contract["resource_contract_ref"] == "personal_memory_resource_contracts.resources",
+       "row_contract 必須宣告它綁的是既有 resource 契約", failures)
+row_identity_fields = row_contract.fetch("identity_fields", {})
+assert(sorted_set(row_identity_fields.keys) == sorted_set(id_templates.keys),
+       "row_contract.identity_fields 必須恰好涵蓋 id_templates 的每一個 kind", failures)
+row_identity_fields.each do |kind, field|
+  kind_def = resources[kind]
+  assert(kind_def.is_a?(Hash), "row_contract.identity_fields 指名的 #{kind} 必須有 resource 契約", failures)
+  required = kind_def.is_a?(Hash) ? (kind_def["required_fields"] || []) : []
+  assert(required.include?(field),
+         "#{kind} 的 identity 欄位 #{field} 必須本來就在它的 required_fields 裡（本片不另立欄位）", failures)
+  assert(required.size > 1,
+         "#{kind} 的 required_fields 必須不只 identity 一欄，否則「有本體」等於沒要求", failures)
+end
+assert(row_contract["required_fields"].nil? && row_contract["forbidden"].nil?,
+       "row_contract 不得內嵌第二份欄位清單（必須在評估當下讀上游）", failures)
+
+# 共用 evaluator 的三個引數取法與切片 4 完全相同——讀同一批上游，
+# 不在本片重新定義分類詞彙或 ref 前綴。
+hc_categories = spec.dig("historical_comparison", "categories") || []
+assert(hc_categories.any?, "historical_comparison.categories 必須存在（共用 evaluator 綁定它）", failures)
+disposition_categories = (hc_categories + ["NEEDS_ORG_FOLLOWUP"]).to_set
+candidate_ref_prefix = id_templates["PersonalMemoryCandidate"].to_s.split("{").first
+record_ref_prefix = id_templates["PersonalMemoryRecord"].to_s.split("{").first
+
 genesis_version = store_spec["genesis_version"]
 assert(!MEPShape.blank?(genesis_version),
        "store.genesis_version 必須宣告（migration 鏈的起點，第一筆 from_version 比對它）", failures)
@@ -418,10 +500,12 @@ BINDINGS = {
   binding_forbidden_fields: binding_forbidden,
   write_path: write_path,
   read_path: read_path,
-  closeout_statuses: closeout_statuses,
-  terminal_statuses: terminal_statuses,
-  attempt_kinds: attempt_kinds,
   id_patterns: id_patterns,
+  resource_defs: resources,
+  row_identity_fields: row_identity_fields,
+  disposition_categories: disposition_categories,
+  candidate_ref_prefix: candidate_ref_prefix,
+  record_ref_prefix: record_ref_prefix,
   genesis_version: genesis_version
 }.freeze
 
@@ -527,6 +611,10 @@ ERROR_CONTRACT = {
   "PMR_MIGRATION_CHAIN_BROKEN" => "personal_memory_runtime.error.migration_chain_broken",
   "PMR_MIGRATION_RECEIPT_MUTATED" => "personal_memory_runtime.error.migration_receipt_mutated",
   "PMR_ROW_NOT_MAP" => "personal_memory_runtime.error.row_not_map",
+  "PMR_ROW_RESOURCE_NOT_MAP" => "personal_memory_runtime.error.row_resource_not_map",
+  "PMR_ROW_RESOURCE_REQUIRED_FIELD_MISSING" => "personal_memory_runtime.error.row_resource_required_field_missing",
+  "PMR_ROW_RESOURCE_FORBIDDEN_FIELD_PRESENT" => "personal_memory_runtime.error.row_resource_forbidden_field_present",
+  "PMR_ROW_ID_NOT_BOUND_TO_RESOURCE_IDENTITY" => "personal_memory_runtime.error.row_id_not_bound_to_resource_identity",
   "PMR_HISTORY_ERASURE" => "personal_memory_runtime.error.history_erasure",
   "PMR_ROW_KIND_UNKNOWN" => "personal_memory_runtime.error.row_kind_unknown",
   "PMR_ROW_ID_NOT_MATCHING_ID_TEMPLATE" => "personal_memory_runtime.error.row_id_not_matching_id_template",
@@ -538,13 +626,14 @@ ERROR_CONTRACT = {
   "PMR_SUPERSEDES_TARGET_ALREADY_SUPERSEDED" => "personal_memory_runtime.error.supersedes_target_already_superseded",
   "PMR_CLOSEOUT_NOT_MAP" => "personal_memory_runtime.error.closeout_not_map",
   "PMR_CLOSEOUT_REVIEW_PERIOD_ID_INVALID" => "personal_memory_runtime.error.closeout_review_period_id_invalid",
-  "PMR_CLOSEOUT_STATUS_NOT_IN_VOCABULARY" => "personal_memory_runtime.error.closeout_status_not_in_vocabulary",
-  "PMR_CLOSEOUT_ATTEMPT_KIND_NOT_IN_VOCABULARY" => "personal_memory_runtime.error.closeout_attempt_kind_not_in_vocabulary",
-  "PMR_DUPLICATE_TERMINAL_CLOSEOUT" => "personal_memory_runtime.error.duplicate_terminal_closeout",
+  "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT" => "personal_memory_runtime.error.closeout_fails_weekly_cycle_contract",
   "PMR_STORE_SCHEMA_VERSION_NOT_MIGRATION_CHAIN_TAIL" => "personal_memory_runtime.error.store_schema_version_not_migration_chain_tail"
 }.freeze
 
 declared_codes = ERROR_CONTRACT.keys
+history_violations = LoopReturnContract.exit_shape_violations(HISTORY_PATH, "weekly_review_cycle_failure")
+assert(history_violations.empty?,
+       "共用的 weekly closeout evaluator 有不合契約的 return 形式：#{history_violations.inspect}", failures)
 violations = LoopReturnContract.exit_shape_violations(__FILE__, "runtime_log_failure")
 assert(violations.empty?, "runtime_log_failure 有不合契約的 return 形式：#{violations.inspect}", failures)
 reachable = LoopReturnContract.reachable_codes(__FILE__, "runtime_log_failure")
