@@ -308,6 +308,14 @@ Dir.mktmpdir("omos-3c-a-rollback") do |dir|
   FileUtils.cp_r(File.join(OMOS::Contract::ARTIFACT_ROOT, "lib/."), File.join(altered, "lib"))
   File.write(File.join(altered, "lib/omos/slice_a_marker.rb"), "# 僅用於改變 artifact 內容\n")
 
+  # repair-02：模擬「前一版的 launcher 內容與新版不同」。只記錄存在與否是
+  # 不夠的——write_launchers 會覆寫，失敗後若不還原原始位元組，就會出現
+  # old current + old receipt + old Host config + NEW launcher 的半套狀態。
+  launcher_paths = OMOS::Installer::LAUNCHER_NAMES.map { |n| File.join(omos, "bin", n) }
+  launcher_paths.each { |p| File.write(p, "#!/bin/sh\n# previous-version launcher\nexec true\n") }
+  FileUtils.chmod(0o755, launcher_paths)
+  good_launchers = launcher_paths.to_h { |p| [p, File.binread(p)] }
+
   code = begin
     OMOS::Installer.new(home: home, product_root: altered, store_path: store)
                    .install(fail_after: "Claude Code")
@@ -316,6 +324,11 @@ Dir.mktmpdir("omos-3c-a-rollback") do |dir|
     e.code
   end
   C.check("升級中途失敗被回報", code.to_s, code == "INSTALL_INJECTED_FAILURE")
+  C.check("失敗後 launcher 還原成前一版的位元組（不是留下新版）",
+        launcher_paths.all? { |p| File.binread(p) == good_launchers[p] } ? "byte-identical" : "被新版覆蓋",
+        launcher_paths.all? { |p| File.binread(p) == good_launchers[p] })
+  C.check("失敗後 launcher 仍可執行（模式一併還原）", "",
+        launcher_paths.all? { |p| File.executable?(p) })
   C.check("失敗後 current 切回舊 artifact",
         File.readlink(File.join(omos, "current")) == good_current ? "已還原" : "仍指向新版",
         File.readlink(File.join(omos, "current")) == good_current)

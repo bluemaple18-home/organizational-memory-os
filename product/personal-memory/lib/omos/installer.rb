@@ -131,7 +131,12 @@ module OMOS
       activation = {
         previous_current: File.symlink?(current_link) ? File.readlink(current_link) : nil,
         previous_receipt: File.exist?(receipt_path) ? File.binread(receipt_path) : nil,
-        launchers_existed: LAUNCHER_NAMES.all? { |n| File.exist?(File.join(bin_dir, n)) },
+        # repair-02：要記的是**每一支 launcher 的原始位元組與模式**，不是
+        # 「有沒有存在」。write_launchers 會覆寫既有檔案，只記布林值的話，
+        # 前一版 launcher 內容與新版不同時，後段失敗會留下新版 launcher，
+        # 於是出現 old current + old receipt + old Host config + NEW launcher
+        # 的半套狀態。
+        previous_launchers: snapshot_launchers,
         created_artifact: nil
       }
       begin
@@ -251,6 +256,29 @@ module OMOS
         next if Digest::SHA256.file(src).hexdigest == Digest::SHA256.file(dst).hexdigest
 
         raise Failed, "INSTALL_GOVERNANCE_COPY_MISMATCH: #{rel}"
+      end
+    end
+
+    # 交易開始前的 launcher 狀態：{名稱 => {bytes:, mode:} 或 nil（原本不存在）}
+    def snapshot_launchers
+      LAUNCHER_NAMES.each_with_object({}) do |name, acc|
+        path = File.join(bin_dir, name)
+        acc[name] = File.exist?(path) ? { bytes: File.binread(path), mode: File.stat(path).mode } : nil
+      end
+    end
+
+    def restore_launchers(snapshot)
+      return if snapshot.nil?
+
+      snapshot.each do |name, state|
+        path = File.join(bin_dir, name)
+        if state.nil?
+          FileUtils.rm_f(path)
+        else
+          FileUtils.mkdir_p(bin_dir)
+          File.binwrite(path, state[:bytes])
+          FileUtils.chmod(state[:mode] & 0o7777, path)
+        end
       end
     end
 
@@ -405,9 +433,12 @@ module OMOS
         File.rename(tmp, current_link)
       else
         FileUtils.rm_f(current_link)
-        # 這次才第一次建立 launcher 就一併移除，不留「有殼沒實體」的半套。
-        LAUNCHER_NAMES.each { |n| FileUtils.rm_f(File.join(bin_dir, n)) } unless activation[:launchers_existed]
       end
+
+      # launcher 逐支精確還原：原本存在就寫回原始位元組與模式，原本不存在
+      # 才刪除。這與 current 的還原是**各自獨立**的——launcher 可能在
+      # current 沒變的情況下被覆寫。
+      restore_launchers(activation[:previous_launchers])
 
       if activation[:previous_receipt]
         FileUtils.mkdir_p(File.dirname(receipt_path))
