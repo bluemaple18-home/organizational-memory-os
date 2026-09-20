@@ -1,6 +1,8 @@
 ---
 id: EMEM11-SCOPE-FREEZE-20260920
-status: AWAITING_OWNER_SIGNATURE
+status: OWNER_SIGNED
+signed_at: 2026-09-20
+signature: FP-1 A / FP-2 C / FP-3 A
 type: scope_freeze
 tier: T3
 implements_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
@@ -85,10 +87,38 @@ jira: SSP-295_FULL_PRODUCT_PILOT 前置
 
 ---
 
-## 簽核方式
+## 簽核結果（2026-09-20）
 
-回三個字母即可，例如「A A A」。
-若要 DEFER（不裁決、卡在目前版本、先跑別張卡），回「DEFER」。
+**FP-1 A／FP-2 C／FP-3 A。**
 
-Owner 簽完後 CC 才會動契約與主卡；在那之前**不會**有任何 `supported_hosts_v1`
-或主卡 DoD 的變更。
+FP-2 Owner 選 C 並**明確否決 CC 建議的 A**，理由值得記下來：
+
+> 「A 最大的問題是把原本的『Cross-host acceptance』直接改名成『同 Host 並行
+> session』。後者值得驗……但它**不是 cross-host**。這會把一個原本存在的產品
+> 能力需求偷偷換成另一個能力。」
+
+因此正確做法是：EMEM-11 v1 收斂為 Claude Code；Codex 與真正的 cross-host 能力
+整條搬到 `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`（BLOCKED，上游觸發，
+**現在不排不做**）；EMEM-11 保留已成立的 same-store／parallel-session／
+cross-project／retry／restart 驗收，但**改掉會誤導的名字**，不再叫 cross-host。
+
+## 追加裁決：contract evaluator 的 seam（同日）
+
+實作 FP-1 A 時撞到一個原本沒看見的機械後果：
+`scripts/lib/personal_memory_host_binding.rb` 的 `scenario_failure` 是單一 gate
+chain，`supported_hosts` 檢查排在最頂層，**在所有設定面判定之前**。直接收斂
+`supported_hosts_v1` 會讓 Codex 的設定探索／安裝合併評估一併短路——validator
+當場 47 FAIL，44 個以 Codex 為 base 的負例（含純設定面的
+`HBV1_NEG_CODEX_MCP_SHADOWED_SAME_PAYLOAD`）全部變成 `HBV1_HOST_NOT_SUPPORTED`。
+那正是上面 FP-2 要避免的型態：為了讓帳面變綠而把覆蓋換掉。
+
+Owner 裁決 **B：additive seam，不重排已驗收的 evaluator gate**。
+
+- `known_hosts = host_profiles.keys`——認識、能評估設定面的 Host，Codex 仍屬於
+  這裡；頂層閘與 `HBV1_HOST_NOT_SUPPORTED` 的語意完全不變。
+- `delivered_hosts = supported_hosts_v1`——這一版真的能產出可信
+  `HostSessionBinding` 的 Host，只在 bootstrap 最後一關檢查。
+- known-but-not-delivered 回新碼 **`HBV1_HOST_BLOCKED_UPSTREAM`**，與
+  「根本不認識這個 Host」分得開。新碼已納入雙向 error-contract 與 return-site
+  coverage。
+- 既有 44 個 fixture 的期望結果**一個都沒有改**（這是選 B 的主要理由）。

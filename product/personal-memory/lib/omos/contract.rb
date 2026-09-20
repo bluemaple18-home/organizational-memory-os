@@ -63,7 +63,12 @@ module OMOS
     def forbidden_surfaces = runtime.fetch("forbidden_access_surfaces")
     def write_path = runtime.fetch("write_path")
     def read_path = runtime.fetch("read_path")
+    # delivered = 這一版真的能產出可信 HostSessionBinding 的 Host。
+    # known = 契約認識、能評估設定面的 Host（含 blocked）。兩者分開是 Owner
+    # 2026-09-20 的裁決：blocked 不等於不認識，設定面評估必須維持。
     def supported_hosts = runtime.fetch("supported_hosts_v1")
+    def blocked_hosts = runtime.fetch("blocked_hosts_v1", {}).keys
+    def known_hosts = supported_hosts + blocked_hosts
 
     def id_templates
       spec.dig("personal_memory_resource_contracts", "shared_constraints", "id_templates")
@@ -93,7 +98,9 @@ module OMOS
         additional_fields: additional,
         allowed_fields: identity + additional,
         forbidden_fields: runtime.dig("host_session_binding", "forbidden_fields"),
-        supported_hosts: supported_hosts,
+        # 形狀檢查問的是「executor_ref 是不是已知 Host」；是否已交付由
+        # SessionStart.produce 在最後一關判定，不在這裡重複。
+        supported_hosts: known_hosts,
         visibility_scopes: (spec.dig("ownership_visibility_contract", "visibility_scopes") || {}).keys
       }
     end

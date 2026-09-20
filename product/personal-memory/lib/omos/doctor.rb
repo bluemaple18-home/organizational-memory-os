@@ -218,13 +218,16 @@ module OMOS
     # --- binding / scope / cycle ----------------------------------------
 
     def binding_checks
+      # 探針必須用**已交付**的 Host：HostConfig.hosts 是「契約認識的 Host」，
+      # 其中可能含 blocked（例如 Codex），拿它去產 binding 只會得到
+      # HBV1_HOST_BLOCKED_UPSTREAM——那是契約的正常狀態，不是這台機器壞了。
       probe = SessionStart.produce(
-        host: HostConfig.hosts.first, native_session_id: "doctor-probe",
+        host: probe_host, native_session_id: "doctor-probe",
         cwd: Dir.pwd, project_ref: "urn:omos:project:doctor", runtime_scope_mode: "EMPLOYEE_PRIVATE"
       )
       results = [ok("binding_bootstrap", "產出 effective_scope=#{probe["effective_scope"]}")]
       widened = begin
-        SessionStart.produce(host: HostConfig.hosts.first, native_session_id: "doctor-probe",
+        SessionStart.produce(host: probe_host, native_session_id: "doctor-probe",
                              cwd: Dir.pwd, project_ref: "urn:omos:project:doctor",
                              runtime_scope_mode: "EMPLOYEE_PRIVATE",
                              project_visibility_scope: widest_scope)
@@ -238,6 +241,8 @@ module OMOS
     rescue SessionStart::Refused => e
       [bad("binding_bootstrap", e.code)]
     end
+
+    def probe_host = Contract.supported_hosts.first
 
     def widest_scope
       scopes = Contract.spec.dig("ownership_visibility_contract", "visibility_scopes") || {}

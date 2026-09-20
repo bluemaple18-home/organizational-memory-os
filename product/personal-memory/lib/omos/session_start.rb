@@ -30,7 +30,8 @@ module OMOS
     def self.bootstrap_bindings
       spec = Contract.spec
       {
-        supported_hosts: Contract.supported_hosts,
+        known_hosts: Contract.known_hosts,
+        delivered_hosts: Contract.supported_hosts,
         host_profiles: spec.dig("personal_memory_host_binding_v1", "host_profiles"),
         scope_modes: spec.dig("employee_memory_scope_modes", "modes") || [],
         mode_definitions: spec.dig("ownership_visibility_contract", "mode_definitions") || {},
@@ -46,14 +47,18 @@ module OMOS
       "urn:omos:project:#{File.basename(File.expand_path(cwd))}"
     end
 
-    # host           Host 名稱（必須是 supported_hosts_v1 之一）
+    # host           Host 名稱（必須是契約認識的 Host；且必須是這一版已交付的
+    #                Host 才產得出 binding——known 但未交付回 HBV1_HOST_BLOCKED_UPSTREAM）
     # native_session_id / cwd  Host 原生輸入
     # project_ref / project_visibility_scope  專案脈絡（可選 scope）
     # runtime_scope_mode  runtime policy 輸入，不得由專案脈絡提供
     def self.produce(host:, native_session_id:, cwd:, project_ref:,
                      runtime_scope_mode:, project_visibility_scope: nil)
       b = bootstrap_bindings
-      raise Refused, "HBV1_HOST_NOT_SUPPORTED" unless b[:supported_hosts].include?(host)
+      # 「已交付」不在這裡判：produce 最後會把整個 bootstrap 交給切片 2 的
+      # evaluator 複核，HBV1_HOST_BLOCKED_UPSTREAM 由那一關統一吐出，產品與
+      # 契約 evaluator 才不會各判各的。
+      raise Refused, "HBV1_HOST_NOT_SUPPORTED" unless b[:known_hosts].include?(host)
 
       bootstrap = {
         "native_session_id" => native_session_id, "cwd" => cwd, "project_ref" => project_ref,

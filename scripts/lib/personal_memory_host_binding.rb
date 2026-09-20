@@ -176,6 +176,13 @@ module PersonalMemoryHostBinding
     return "HBV1_CWD_NOT_BOUND" unless produced["cwd"] == bootstrap["cwd"]
     return "HBV1_PROJECT_REF_NOT_BOUND" unless produced["project_ref"] == bootstrap["project_ref"]
     return "HBV1_EFFECTIVE_SCOPE_NOT_DERIVED" unless produced["effective_scope"] == effective_scope
+
+    # 最後一關：這個 Host 這一版到底有沒有交付。放在最後是刻意的——形狀錯誤
+    # 要回形狀的碼，不能被「反正這個 Host 沒交付」蓋掉；而只要走到這裡，
+    # binding 就一定不會被產出。known but not delivered 是一個獨立狀態，
+    # 不是 HBV1_HOST_NOT_SUPPORTED（那是「根本不認識這個 Host」）。
+    return "HBV1_HOST_BLOCKED_UPSTREAM" unless bindings[:delivered_hosts].include?(host)
+
     nil
   end
 
@@ -183,7 +190,12 @@ module PersonalMemoryHostBinding
     return "HBV1_RUN_NOT_MAP" unless run.is_a?(Hash)
     return "HBV1_RUN_UNKNOWN_FIELD" unless (run.keys - SCENARIO_FIELDS).empty?
     host = run["host"]
-    return "HBV1_HOST_NOT_SUPPORTED" unless bindings[:supported_hosts].include?(host)
+    # Owner 裁決 2026-09-20（additive seam）：這一層問的是「認不認識這個 Host」，
+    # 用 known_hosts（= host_profiles 的 key）。「這一版有沒有交付這個 Host」是
+    # 另一個問題，留到 bootstrap 真的要產出 binding 時才問——否則把某個 Host
+    # 標成 blocked 會連它的設定面評估（install／uninstall／shadow／health）
+    # 一起短路，等於無聲丟掉已經實證過的覆蓋。
+    return "HBV1_HOST_NOT_SUPPORTED" unless bindings[:known_hosts].include?(host)
     profile = bindings[:host_profiles][host]
     return "HBV1_HOST_PROFILE_MISSING" unless profile.is_a?(Hash)
     problem = install_merge_problem(run["install"], profile)

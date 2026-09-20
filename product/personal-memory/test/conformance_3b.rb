@@ -32,13 +32,37 @@ Dir.mktmpdir("omos-3b") do |dir|
 
   # --- SessionStart 產出 binding（推導委派切片 2 evaluator）---
   binding = OMOS::SessionStart.produce(
-    host: "Codex", native_session_id: "codex-session-3b", cwd: File.join(dir, "projA"),
+    host: "Claude Code", native_session_id: "claude-session-3b", cwd: File.join(dir, "projA"),
     project_ref: "urn:omos:project:a", runtime_scope_mode: "EMPLOYEE_PRIVATE"
   )
   C.check("SessionStart 產出 binding", binding["effective_scope"], binding["effective_scope"] == "SELF_ONLY")
 
+  # Owner 範圍裁決 2026-09-20：v1 只交付 Claude Code。Codex 仍是契約認識的
+  # Host（設定面照常評估，見本檔後段的設定探索段落），但產不出 binding——
+  # 而且錯誤碼必須是「認識但未交付」，不是「不認識這個 Host」。
+  blocked = begin
+    OMOS::SessionStart.produce(host: "Codex", native_session_id: "codex-session-3b",
+                               cwd: File.join(dir, "projA"), project_ref: "urn:omos:project:a",
+                               runtime_scope_mode: "EMPLOYEE_PRIVATE")
+    nil
+  rescue OMOS::SessionStart::Refused => e
+    e.code
+  end
+  C.check("Codex 為 known-but-not-delivered，SessionStart 產不出 binding", blocked.to_s,
+          blocked == "HBV1_HOST_BLOCKED_UPSTREAM")
+
+  unknown = begin
+    OMOS::SessionStart.produce(host: "DeepSeek Harness", native_session_id: "s", cwd: dir,
+                               project_ref: "p", runtime_scope_mode: "EMPLOYEE_PRIVATE")
+    nil
+  rescue OMOS::SessionStart::Refused => e
+    e.code
+  end
+  C.check("完全不認識的 Host 回的是 HOST_NOT_SUPPORTED，與 blocked 分得開", unknown.to_s,
+          unknown == "HBV1_HOST_NOT_SUPPORTED")
+
   widened = begin
-    OMOS::SessionStart.produce(host: "Codex", native_session_id: "s", cwd: dir,
+    OMOS::SessionStart.produce(host: "Claude Code", native_session_id: "s", cwd: dir,
                                project_ref: "p", runtime_scope_mode: "EMPLOYEE_PRIVATE",
                                project_visibility_scope: "WORK_CONTEXT_PARTICIPANTS")
     nil

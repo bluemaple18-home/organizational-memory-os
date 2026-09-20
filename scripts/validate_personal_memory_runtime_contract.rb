@@ -175,6 +175,12 @@ assert(surfaces.all? { |s| s.start_with?("LOCAL_") },
 # Design Freeze B：supported_hosts_v1 ⊂ runtime_policy.optional_executors。
 optional_executors = spec.dig("runtime_policy", "optional_executors") || []
 supported_hosts = pmr.fetch("supported_hosts_v1", [])
+# Owner 裁決 2026-09-20：本片的 binding 形狀檢查
+# （PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST）問的是「executor_ref 是不是
+# 契約認識的 Host」，屬詞彙／形狀問題。「這一版有沒有交付該 Host」是切片 2
+# bootstrap 的最後一關（HBV1_HOST_BLOCKED_UPSTREAM），不在本片重複判定。
+blocked_hosts = pmr.fetch("blocked_hosts_v1", {}).keys
+known_hosts = supported_hosts + blocked_hosts
 assert(optional_executors.any?, "runtime_policy.optional_executors 必須存在（本片讀它，不重述）", failures)
 assert(supported_hosts.any?, "supported_hosts_v1 不得為空", failures)
 assert((sorted_set(supported_hosts) - sorted_set(optional_executors)).empty?,
@@ -330,14 +336,14 @@ BINDINGS = {
   journal_mode: journal_mode,
   surfaces: surfaces,
   forbidden_surfaces: forbidden_surfaces,
-  supported_hosts: supported_hosts,
+  supported_hosts: known_hosts,
   identity_fields: identity_fields,
   binding_shape: {
     identity_fields: identity_fields,
     additional_fields: binding_additional,
     allowed_fields: identity_fields + binding_additional,
     forbidden_fields: binding_forbidden,
-    supported_hosts: supported_hosts,
+    supported_hosts: known_hosts,
     visibility_scopes: visibility_scope_names
   },
   write_path: write_path,

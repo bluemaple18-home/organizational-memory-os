@@ -297,7 +297,7 @@ Dir.mktmpdir("omos-3c-c") do |dir|
 
   # 跨專案：切到 projB 不得擴權
   widened = begin
-    OMOS::SessionStart.produce(host: "Codex", native_session_id: "codex-2", cwd: proj_b,
+    OMOS::SessionStart.produce(host: "Claude Code", native_session_id: "claude-c4", cwd: proj_b,
                                project_ref: "urn:omos:project:b", runtime_scope_mode: "EMPLOYEE_PRIVATE",
                                project_visibility_scope: "WORK_CONTEXT_PARTICIPANTS")
     nil
@@ -306,7 +306,7 @@ Dir.mktmpdir("omos-3c-c") do |dir|
   end
   C.check("切換專案不得擴權", widened.to_s, widened == "HBV1_PROJECT_SCOPE_WIDENS_BASELINE")
 
-  narrowed = OMOS::SessionStart.produce(host: "Codex", native_session_id: "codex-3", cwd: proj_b,
+  narrowed = OMOS::SessionStart.produce(host: "Claude Code", native_session_id: "claude-c5", cwd: proj_b,
                                         project_ref: "urn:omos:project:b",
                                         runtime_scope_mode: "EMPLOYEE_PRIVATE",
                                         project_visibility_scope: "SELF_ONLY")

@@ -2100,12 +2100,31 @@ personal_memory_runtime:
     second writer. Any surface outside the enumeration -- including anything in
     forbidden_access_surfaces -- is rejected outright rather than downgraded.
   supported_hosts_v1:
-    - Codex
     - Claude Code
+  blocked_hosts_v1:
+    # Owner 範圍裁決 2026-09-20（.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md，
+    # 簽 FP-1 A / FP-2 C / FP-3 A）：v1 的 delivery scope 收斂為 Claude Code。
+    # 這不是把 Codex 從契約詞彙裡刪掉——host profile 與既有實證全部保留，
+    # 解除條件達成後重新納入 supported_hosts_v1。
+    Codex:
+      reason: BLOCKED_UPSTREAM_IDENTITY_CHANNEL
+      evidence_ref: >-
+        personal_memory_host_binding_v1.bootstrap_contract.native_session_id_source.Codex
+      unblock_condition: >-
+        上游提供可由 MCP server 獨立取得、且模型無法自報的 native session
+        identity channel；屆時重新納入 supported_hosts_v1，並補齊真人實測與
+        Codex ↔ Claude Code 的 cross-host same-store 驗收。
+      follow_up_card: CARD-EMEM11B-CODEX-CROSS-HOST-20260920
   supported_hosts_rule: >-
     supported_hosts_v1 must be a subset of runtime_policy.optional_executors.
     Declaring a host this repository's executor vocabulary does not know is a
     contract error, not a runtime feature.
+  blocked_hosts_rule: >-
+    blocked_hosts_v1 的每個 key 都必須有對應的 host profile，且不得同時出現在
+    supported_hosts_v1。標記 blocked 描述的是「這一版交不出來」，因此 runtime
+    對該 host 一律在契約邊界拒絕（HBV1_HOST_NOT_SUPPORTED），不是宣稱支援後
+    在更下游才失敗。每一筆都必須帶 reason、可查證的 evidence_ref 與
+    unblock_condition——沒有解除條件的 blocked 等於偷偷刪功能。
   host_session_binding:
     executor_identity_fields_ref: runtime_policy.portable_record_contract.executor_provenance_fields
     additional_fields:
@@ -2364,10 +2383,12 @@ personal_memory_host_binding_v1:
         - session_start_hook_active
         - runtime_compatible
   supported_hosts_binding_rule: >-
-    host_profiles 是 v1 的實體交付面，其 key 必須與
-    personal_memory_runtime.supported_hosts_v1 集合完全相等。新增 optional
-    executor 不會自動成為 v1 Personal Host；新增 v1 Host 必須先有經 review 的
-    host profile，不能只往 supported_hosts_v1 多塞一個字串。
+    host_profiles 是「已經過 review 的 host 實體面」，其 key 必須與
+    personal_memory_runtime.supported_hosts_v1 ∪ blocked_hosts_v1 的 key
+    集合完全相等。新增 optional executor 不會自動成為 v1 Personal Host；
+    新增 v1 Host 必須先有經 review 的 host profile，不能只往 supported_hosts_v1
+    多塞一個字串。反過來，把某個 host 移進 blocked_hosts_v1 也不得順手刪掉它的
+    profile——profile 記錄的是已實證的設定形狀，刪掉等於把證據一起丟了。
   config_snapshot_contract:
     fields:
       - mcp_entries
@@ -2453,8 +2474,14 @@ personal_memory_host_binding_v1:
           也不另造第三套 session registry。等上游提供可信的 native session
           identity channel 再重新納入。
         scope_note: >-
-          本區塊只記錄「runtime 能力」的事實。supported_hosts_v1 是否應隨之收斂
-          屬 Owner 的產品範圍裁決，**不在此處變更**。
+          本區塊只記錄「runtime 能力」的事實。當初刻意不在此處收斂
+          supported_hosts_v1，因為那是 Owner 的產品範圍裁決。**該裁決已於
+          2026-09-20 作成**（.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md，
+          簽 FP-1 A / FP-2 C / FP-3 A）：v1 收斂為 Claude Code，Codex 移入
+          personal_memory_runtime.blocked_hosts_v1，理由
+          BLOCKED_UPSTREAM_IDENTITY_CHANNEL。因此 Codex 現在是在契約邊界就被
+          拒絕（HBV1_HOST_NOT_SUPPORTED），而不是宣稱支援後才在 session
+          identity 這一層 fail closed。
     host_native_stdin_fields:
       # 切片 3 repair-01：真 Host 交給 SessionStart hook 的 stdin 欄位。
       # 先前實作期待 host / native_session_id / project_ref / runtime_scope_mode，

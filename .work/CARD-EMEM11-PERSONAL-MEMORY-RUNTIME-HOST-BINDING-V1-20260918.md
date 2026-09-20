@@ -12,7 +12,20 @@ parallel_with:
   - SSP-324
 blocks:
   - SSP-295_FULL_PRODUCT_PILOT
+scope_decision: .work/CARD-EMEM11-SCOPE-FREEZE-20260920.md
+supported_hosts_v1:
+  - Claude Code
+follow_up:
+  - CARD-EMEM11B-CODEX-CROSS-HOST-20260920
 ---
+
+> **Owner 範圍裁決 2026-09-20（FP-1 A／FP-2 C／FP-3 A）**：v1 交付範圍為
+> **Claude Code 單一 Host**。Codex 為 known-but-not-delivered
+> （`BLOCKED_UPSTREAM_IDENTITY_CHANNEL`）：契約仍認識它、設定面（install／
+> uninstall／shadow／health）照常評估，但產不出 HostSessionBinding，
+> 一律回 `HBV1_HOST_BLOCKED_UPSTREAM`。Codex 與真正的 cross-host 能力見
+> `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`。
+> **SSP-295 的進入條件以收斂後的單 Host DoD 為準**，不等 Codex。
 
 # EMEM-11｜Personal Memory Runtime & Host Binding v1
 
@@ -399,12 +412,21 @@ omos-personal-memory doctor
 - weekly review period continuity
 - uninstall / rollback metadata
 
-### Cross-host acceptance
+### Same-store acceptance（v1 範圍：Claude Code）
+
+> **Owner 範圍裁決 2026-09-20**（`.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md`，簽
+> FP-1 A／FP-2 C／FP-3 A）：v1 交付範圍收斂為 Claude Code。原本的第 1、2 項
+> **Codex ↔ Claude Code cross-host 實測整條搬到
+> `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`**（狀態 BLOCKED，等上游提供可信
+> native session identity channel），**不是改寫成別的能力**——並行 session
+> 共用同一 store 值得驗，但那不是 cross-host。
 
 必須實測：
 
-1. Codex → Claude Code 使用同一 Local Personal Store，不做 memory migration。
-2. Claude Code → Codex 同理。
+1. 同一 Host 的兩個並行 session（同 cwd、不同 native session id）使用同一
+   Local Personal Store，不互相覆蓋 identity、不做 memory migration。
+2. （原 Codex ↔ Claude Code 雙向 cross-host 實測 → 移至 EMEM-11b，此處不再列為
+   v1 驗收項。）
 3. Project A → Project B 不重新建 store、不重新定義 lifecycle。
 4. Project B 比 A 權限小時，只能少看，不能擴權。
 5. Host restart / resume / compact 不產生 duplicate weekly closeout / Promotion。
@@ -481,9 +503,11 @@ before/after 快照是證據。
 |---|---|
 | **A 安裝與復原** | 在隔離 HOME 實際 install → reinstall → upgrade → uninstall；保留非本產品設定與個人資料；中途失敗必須停止或復原，不得留下半套卻回報成功（以注入失敗點實測）。 |
 | **B Doctor 與失敗診斷** | 讀實際設定檔、解析實際啟動目標、實際執行健康檢查。「設定存在」「程序能啟動」「Store 能使用」必須是三種不同結果；缺 executable／被同名設定遮蔽／hook 未啟用各自要有實測失敗案例，不得靠 caller 自報。 |
-| **C 跨 Host 與跨專案** | Codex 寫入 → Claude Code 從同一 Store 讀回，反向亦然；切換專案不得擴權；retry／重啟不得產生第二筆相同提交或第二次 terminal closeout。記錄實際測試的 Host 版本與使用入口。 |
+| **C 並行 session、同一 Store 與跨專案** | 同一 Host 的兩個並行 session（同 cwd、不同 native session id）對同一個 Store 雙向往返，各自 binding 不被對方覆蓋；切換專案不得擴權；retry／重啟不得產生第二筆相同提交或第二次 terminal closeout。記錄實際測試的 Host 版本與使用入口。**這一組不叫 cross-host**——Codex ↔ Claude Code 的 cross-host same-store 驗收在 EMEM-11b。 |
 
-只驗 Codex + Claude Code。**沒實測過的入口不得因品牌相同一併宣稱支援。**
+v1 只驗 Claude Code（Owner 裁決 2026-09-20；Codex 為 known-but-not-delivered，
+見 `personal_memory_runtime.blocked_hosts_v1`）。**沒實測過的入口不得因品牌相同
+一併宣稱支援；被標為 blocked 的 Host 也不得因為設定寫得進去就算交付。**
 
 ### 4. 實作順序（同一張卡內分三階段，非三張卡）
 
@@ -559,8 +583,10 @@ installer 不得假設每位同事都已有合適版本的 Ruby；取得與鎖�
 
 ### 7. Minimum Sufficient
 
-**why_not_less** — DoD 明文要求 installer / doctor deterministic acceptance、兩個
-Host 真人實測、cross-host same-store 實證。少於「一支三個介面（CLI／MCP／installer）
+**why_not_less** — DoD 明文要求 installer / doctor deterministic acceptance、
+**Claude Code 真人實測**（Owner 裁決 2026-09-20 前為「兩個 Host 真人實測」，
+Codex 部分連同 cross-host same-store 實證一併移至 EMEM-11b）、同一 Store 在
+並行 session 下的實證。少於「一支三個介面（CLI／MCP／installer）
 共用的 runtime」就交不出這些。
 
 **why_not_more** — 明確不做：常駐 daemon、background reasoning agent、vector DB、
