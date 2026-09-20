@@ -1,6 +1,8 @@
 ---
 id: EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
-status: BACKLOG_READY_NOT_IMPLEMENTED
+status: SLICE3_ACCEPTED_GO_20260920_DOD_AWAITING_REAL_HOST_TEST
+slice3_delivery: fa0959a
+slice3_review: GO_20260920（repair-04，P0/P1/P2/P3 全 0）
 jira: NOT_CREATED
 parent_jira: SSP-286
 type: mvp-product-capability
@@ -26,6 +28,16 @@ follow_up:
 > 一律回 `HBV1_HOST_BLOCKED_UPSTREAM`。Codex 與真正的 cross-host 能力見
 > `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`。
 > **SSP-295 的進入條件以收斂後的單 Host DoD 為準**，不等 Codex。
+
+> **切片 3 收線（2026-09-20）**：delivery `fa0959a`，定點 review **GO**
+> （P0/P1/P2/P3 全 0）。回歸：3a 26/26、3b 33/33、3c 49/49、39 支 validators
+> 全過。repair 歷程：repair-02 `756f005`（GO）→ scope correction `263c048`
+> （NO_GO）→ repair-03 `6f042d9`（四筆 CLOSED）→ repair-04 `fa0959a`（GO）。
+>
+> **本卡 DoD 尚未全部成立，因此還不能進 SSP-295**——唯一未完成項是
+> 「已交付 Host（Claude Code）有真人實測」：SessionStart hook 的形狀已對齊
+> 官方 schema，但**尚未由真的 Claude Code 觸發過**（doctor 對這一項維持 WARN，
+> 照實回報）。這需要一次真人操作，不是再寫一輪程式。
 
 # EMEM-11｜Personal Memory Runtime & Host Binding v1
 

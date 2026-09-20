@@ -68,7 +68,23 @@ pure_shape(known)  = ["Claude Code", "Codex"]
 | 全庫 `scripts/validate_*.rb`（39 支） | 39/39 | **39/39**（含新增的 pmr-neg-25b） |
 | `git diff --check` | clean | **clean** |
 
-## 請 review 針對這一點
+## Reviewer 裁決（2026-09-20，回填）
+
+**GO — P0=0／P1=0／P2=0／P3=0。** 審的是 delivery `fa0959a`（packet `b0fe3c3`），
+定點範圍 `6f042d9..fa0959a`。
+
+reviewer 追完 `pure_shape` 的呼叫點，確認**沒有第三個 consumer** 會拿它決定
+store authority 或 evidence validity：會動 store 的
+`Runtime#authorize! → Contract.binding_problem` 用
+`runtime_authorization_bindings`，事後 journal oracle 本輪也已改用同一份。
+因此 Codex 仍可存在於切片 2 的純 composition／known-host 語意中，但取不到
+Runtime authority，也不能讓 Codex journal 被事後 evidence oracle 判合法。
+
+切片 3 至此收線。**本卡 DoD 仍有一項未完成**——「已交付 Host 真人實測」，
+需要一次真的由 Claude Code 觸發 SessionStart hook 的操作（doctor 目前對該項
+照實回報 WARN），不是再寫一輪程式。
+
+## 原本請 review 的那一點（已由上述裁決回答）
 
 `pure_shape` 是目前唯一仍認 `known_hosts` 的出口。我的判斷是它只被切片 2
 evaluator 的 composition 檢查使用（`HBV1_PRODUCED_BINDING_REJECTED_BY_RUNTIME`），
