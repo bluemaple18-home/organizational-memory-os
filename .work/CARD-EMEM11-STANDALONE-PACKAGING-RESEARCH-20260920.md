@@ -12,7 +12,9 @@ cc_response: .work/handoff/EMEM11-PACKAGING-REVIEW-RESPONSE-20260920.md
 review_round_2: GO after documentation correction（P0/P1/P2 = 0）
 review_round_3: GO（P2×1 metadata 已修）
 # 下一階段（packaging 實作）開卡前必須先處理的既存缺陷：
-implementation_prerequisite: CARD-EMEM11-STALE-HOOK-RELOCATION-20260920
+implementation_prerequisite:
+  - CARD-EMEM11-STALE-HOOK-RELOCATION-20260920
+  - CARD-EMEM11-RUBY-GUARD-CRITERION-20260921
 authority: organizational-memory-os
 ---
 
@@ -36,13 +38,25 @@ authority: organizational-memory-os
 | Packaging 方案 | **A（build 時納入 artifact）selected** |
 | installer-copy | **B rejected** —— authority／version integrity ＋ lifecycle duplication |
 | Ruby runtime | **不先配送 runtime；也不先綁死 Homebrew build；更不先宣稱 universal Ruby 3.4.x** |
-| Q6 Part 1 | **已完成（2026-09-21）**：zero-local-compiled-extension **不可行**；真實約束是 native linkage path ＋ ABI，不是版本字串。證據：`.work/handoff/EMEM11-Q6-PART1-EVIDENCE-20260921.md` |
-| Q6 Part 2 | 重新定義為 **Clean macOS runtime-profile matrix**，需無 Homebrew `ruby@3.4` 的乾淨 macOS 環境；**不再阻塞 Q7**，改列為 packaging acceptance 的一部分 |
-| `pinned-ruby.sh` guard | Q6 衍生的新缺陷，另立卡待裁（`CARD-EMEM11-RUBY-GUARD-CRITERION-20260921`），**不順手修** |
-| Q7 | activation identity 待裁 |
+| Q6 Part 1 | **已完成並收線（2026-09-21）**：**在目前 dependency set ＋ Bundler vendor 模式下**，zero-local-compiled-extension **不可行**。證據：`.work/handoff/EMEM11-Q6-PART1-EVIDENCE-20260921.md` |
+| runtime 支援判準 | 由 `RUBY_VERSION` 字串改為 **runtime profile ＝ native linkage 可解析 ＋ ABI 相容**。口語可稱「安裝路徑 ＋ ABI」，但**契約不得只寫 path** |
+| Homebrew patch 相容 | **`EXPECTED_COMPATIBLE / NOT_YET_VERIFIED`** —— 證據足以支持「3.4.10 → 3.4.11 很可能相容」，但未實際載入跑過，**不得寫成 guaranteed support**；遇下一個 patch 時補 qualification，**不阻塞 Q7** |
+| Q6 Part 2 | 重新定義為 **clean-macOS runtime qualification**，需一台真的沒有 `/opt/homebrew/opt/ruby@3.4` 的 Mac／VM／同事機；**不再阻塞 Q7**，移入 packaging acceptance |
+| `pinned-ruby.sh` guard | 另立卡（`CARD-EMEM11-RUBY-GUARD-CRITERION-20260921`），`CONFIRMED_DEFECT` ／ blocked by runtime profile decision，**與 stale-hook P1 同層列為 packaging 實作前置**，現在不修 |
+| Q7 | activation identity ／ runtime profile 待裁 |
 | zombie hook | **另開 P1**（`CARD-EMEM11-STALE-HOOK-RELOCATION-20260920`），且為 **packaging 實作的前置** |
 | standalone acceptance | workspace B／clean environment，不動已驗收工作區 |
 | artifact receipt | 需能識別 code + spec + evaluator 同屬一個 build；**不得拿 store `schema_version` 代替** |
+
+### 定案順序
+
+```
+Q6 Part 1 收線（已完成）
+  → Q7 activation identity ／ runtime profile 裁決
+  → stale-hook P1 ＋ pinned-ruby guard defect（兩者同層）
+  → packaging implementation
+  → clean-macOS Part 2 qualification
+```
 
 ---
 
@@ -147,8 +161,21 @@ resolve 並載入**——功能相依上，Ruby 隨附版本可用。
    extension**。沒有第二個 Ruby 3.4 distribution 的實跑證據前，**不能從
    `otool` 推論 ABI 相容**——那是「觀察到一個就推廣」的同一類錯誤。
 
-**因此定案**：不先配送 runtime；**也不先綁死 Homebrew build**；更不先宣稱
-universal。實際支援範圍由 Q6 的實驗結果決定。
+**Q6 Part 1 已於 2026-09-21 就上述兩點給出結論**（證據：
+`.work/handoff/EMEM11-Q6-PART1-EVIDENCE-20260921.md`）：
+
+- 第 1 點走不通——`bigdecimal` 沒有任何 `*-darwin` 預編譯，而 Bundler 明文
+  拒絕 `path` 與 system gems 並用（`Using a custom path while using system
+  gems is unsupported.`）。**在目前 dependency set ＋ Bundler vendor 模式下，
+  zero-local-compiled-extension 不可行。**
+- 第 2 點維持成立——仍未取得第二個 distribution 的實跑證據，因此
+  Part 2 改為 **clean-macOS runtime qualification**（需一台沒有
+  `/opt/homebrew/opt/ruby@3.4` 的 Mac），且**不阻塞 Q7**。
+- 已實證：缺 linkage path 時是**明確 LoadError、exit 非零**，不是靜默失敗。
+
+**因此定案**：不配送 runtime；支援判準改為 **runtime profile ＝ native
+linkage 可解析 ＋ ABI 相容**（不以版本字串為準）；Homebrew patch 相容列為
+`EXPECTED_COMPATIBLE / NOT_YET_VERIFIED`。
 
 ---
 

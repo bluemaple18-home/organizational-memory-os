@@ -6,10 +6,18 @@
 - 執行環境：macOS arm64，Homebrew Ruby 3.4.10，Bundler 4.0.21
 - 日期：2026-09-21
 
-## 結論（先講）
+## 結論（先講，範圍刻意寫精確）
 
-**Part 1 的答案是「不可行」——production artifact 無法做到 zero-local-compiled
-extension。** 但量測過程推翻了一個原本以為成立的風險，也讓真正的邊界變清楚了。
+> **在目前的 dependency set ＋ Bundler vendor 模式下，
+> zero-local-compiled-extension 不可行。**
+>
+> 兩個必要條件同時成立才構成此結論：(1) `bigdecimal` 必須本機編譯
+> （無任何 `*-darwin` 預編譯）；(2) 現行 Bundler 不允許同時使用 custom
+> vendor path 與 system gems。**任一條件在未來改變（例如上游開始提供
+> precompiled bigdecimal、或依賴樹不再經過 json_schemer），結論就要重驗**，
+> 不是永久事實。
+
+量測過程另外推翻了一個原本以為成立的風險，也讓真正的邊界變清楚了。
 
 ---
 
@@ -59,7 +67,7 @@ production 實跑掃 `$LOADED_FEATURES` 確認 `bigdecimal.bundle` 真的被載�
 
 ---
 
-## 2. 被推翻的假設：Homebrew patch 升級**不會**弄壞 artifact
+## 2. Homebrew patch 升級：**EXPECTED_COMPATIBLE / NOT_YET_VERIFIED**
 
 原本（含我與 reviewer 雙方）都假設 Homebrew `ruby@3.4` 是 major.minor formula，
 patch 前進後會讓 artifact 失效。**實測顯示不會**：
@@ -78,10 +86,18 @@ Homebrew 升 patch 時只是把 `opt/ruby@3.4` 重新指向新的 Cellar 目錄�
 **因此 3.4.10 → 3.4.11 的 Homebrew 升級，dylib 路徑與 ABI 皆不變，
 既有的 `bigdecimal.bundle` 應可繼續載入。**
 
-> 誠實標註：這是**由 install_name 與 ABI 目錄推得的推論**，不是實測。
-> 要確證需等到實際有一次 patch 升級，或 Part 2 的第二個 distribution 矩陣。
+> **狀態：`EXPECTED_COMPATIBLE / NOT_YET_VERIFIED`。**
+> 這是由 install_name 與 ABI 目錄推得的**推論**，沒有真的載入 3.4.11 跑過，
+> 因此**不得寫成 guaranteed support**。遇到下一個 Homebrew 3.4 patch 時補一次
+> qualification 即可；此項**不阻塞 Q7**。
 
-## 3. 真正的邊界是「安裝路徑」，不是「版本」
+## 3. 真正的判準：runtime profile（linkage 可解析 ＋ ABI 相容）
+
+口語可簡稱「安裝路徑 ＋ ABI」，但**契約不得只寫 path**。實際要驗的是兩件事：
+
+1. `bigdecimal.bundle` 所需的 `libruby` **能否被 loader 正確解析**
+   （路徑存在只是其中一種成立方式）；
+2. **ABI 是否相容**（Ruby 的 C extension ABI 目錄，3.4 系列為 `3.4.0`）。
 
 綜合 1 與 2：artifact 能不能在另一個 Ruby 上跑，取決於
 **編譯時那個絕對 dylib 路徑在目標機器上存不存在、且 ABI 目錄相同**。
