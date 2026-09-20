@@ -1,6 +1,9 @@
 ---
 id: EMEM11-HUMAN-ACCEPTANCE-CLAUDE-CODE-20260920
-status: READY
+status: ACCEPTED_GO_20260920
+evidence_packet: .work/handoff/EMEM11-HUMAN-ACCEPTANCE-20260920.md
+executed_at: 2026-09-20 19:04–20:33 +0800
+claude_code_version: v2.1.278
 type: human-acceptance
 tier: T2
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
@@ -431,17 +434,14 @@ binding 之後就固定在該進程裡。所以「在 session 進行中把 sessi
 
 正確做法（兩者擇一，做一條即可，兩條都做更好）：
 
-**7a｜刪記錄後重開 session**
+> **7a（刪記錄後重開 session）是無效的負例，不要用。** 2026-09-20 實測踩到：
+> 把 `sessions/` 搬走後重開 session，read **正常成功**。原因不是產品有問題，
+> 而是**重開 session 的瞬間 SessionStart hook 會先執行**，立刻替新 session
+> 寫下一份屬於它自己的記錄，MCP server 讀到的是那份新的，binding 自然建立
+> 成功。要製造「沒有可信記錄」的情境，唯一可靠的做法是**讓 hook 不要執行**
+> ——也就是 7b。
 
-```sh
-mv ~/.omos/personal-memory/sessions ~/.omos/personal-memory/sessions.bak
-```
-
-然後開一個新的 Claude Code session，呼叫 `personal_memory_read`。
-期望：**被拒**，`code` 為 `MCP_NO_SESSION_RECORD`。
-驗完還原：`mv ~/.omos/personal-memory/sessions.bak ~/.omos/personal-memory/sessions`
-
-**7b｜拔掉 hook 後重開 session**
+**7b｜拔掉 hook 後重開 session（唯一有效做法）**
 
 暫時把**隔離 HOME 的** `$HOME/.claude/settings.json` 的 `hooks.SessionStart`
 清空，開新 session，呼叫 `personal_memory_read`。期望同樣 fail closed

@@ -1,6 +1,7 @@
 ---
 id: EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
-status: SLICE3_ACCEPTED_GO_20260920_DOD_AWAITING_REAL_HOST_TEST
+status: DOD_MET_20260920_READY_FOR_SSP295
+human_acceptance: .work/handoff/EMEM11-HUMAN-ACCEPTANCE-20260920.md（ACCEPTED_GO）
 slice3_delivery: fa0959a
 slice3_review: GO_20260920（repair-04，P0/P1/P2/P3 全 0）
 jira: NOT_CREATED
@@ -34,10 +35,18 @@ follow_up:
 > 全過。repair 歷程：repair-02 `756f005`（GO）→ scope correction `263c048`
 > （NO_GO）→ repair-03 `6f042d9`（四筆 CLOSED）→ repair-04 `fa0959a`（GO）。
 >
-> **本卡 DoD 尚未全部成立，因此還不能進 SSP-295**——唯一未完成項是
-> 「已交付 Host（Claude Code）有真人實測」：SessionStart hook 的形狀已對齊
-> 官方 schema，但**尚未由真的 Claude Code 觸發過**（doctor 對這一項維持 WARN，
-> 照實回報）。這需要一次真人操作，不是再寫一輪程式。
+> **DoD 已全部成立（2026-09-20）**：最後一項「已交付 Host（Claude Code）有
+> 真人實測」已完成並判 **ACCEPTED_GO**。在真的 Claude Code v2.1.278
+> session 中實測：SessionStart hook 由真 Host 觸發、hook 與 MCP server 看到
+> 同一個 native session id、write→read→closeout 全程經 MCP 進 Store（獨立
+> SQLite 連線佐證）、重啟後資料存活且新 session 不沿用舊 identity、缺可信
+> binding 時以 `MCP_NO_SESSION_RECORD` fail closed 且未動到任何資料、
+> doctor 0 FAIL。證據包：
+> `.work/handoff/EMEM11-HUMAN-ACCEPTANCE-20260920.md`。
+> **本卡不再阻擋 SSP-295。**
+>
+> 仍未收治（不在本卡範圍）：產品尚未可獨立安裝（`contract.rb` 的 spec 路徑
+> 指向 repo 內）、session state 檔無清理路徑、doctor 的 hook WARN 無法收斂。
 
 # EMEM-11｜Personal Memory Runtime & Host Binding v1
 
