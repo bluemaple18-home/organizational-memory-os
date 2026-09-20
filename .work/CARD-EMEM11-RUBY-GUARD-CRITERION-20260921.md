@@ -1,12 +1,12 @@
 ---
 id: EMEM11-RUBY-GUARD-CRITERION-20260921
-status: CONFIRMED_DEFECT
-blocked_by: RUNTIME_PROFILE_DECISION
+status: CONFIRMED_DEFECT_READY_TO_IMPLEMENT
+unblocked_by: CARD-EMEM11-Q7-ACTIVATION-RUNTIME-PROFILE-20260921（2026-09-21 凍結）
 severity: TBD（P1／P2 待裁）
 type: product-defect
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
 discovered_via: .work/handoff/EMEM11-Q6-PART1-EVIDENCE-20260921.md §4
-blocked_on: CARD-EMEM11-STANDALONE-PACKAGING-RESEARCH-20260920 的 Q7／runtime profile 定案
+target_shape: Q7 §0.3（runtime profile guard 四項，定義已收緊）
 # 與 stale-hook P1 同層，皆為 packaging 實作的前置：
 prerequisite_for: PENDING_PACKAGING_IMPLEMENTATION_CARD
 peer_prerequisite: CARD-EMEM11-STALE-HOOK-RELOCATION-20260920
@@ -16,8 +16,8 @@ authority: organizational-memory-os
 
 # `pinned-ruby.sh` 驗的是版本字串，但真正的前置條件不是版本字串
 
-> **現在不要修。** 修法取決於 packaging 的 runtime profile 怎麼定（研究卡
-> Q6／Q7）。先修會做兩次。本卡只負責把缺陷與證據鎖住，等裁決。
+> **判準已於 2026-09-21 由 Q7 §0.3 凍結，blocker 解除，可實作。**
+> 本卡原本等的是「runtime profile 怎麼定」——現已定案，見下方「判準」一節。
 
 ## 缺陷
 
@@ -44,17 +44,31 @@ authority: organizational-memory-os
 缺哪個路徑。**失敗是大聲的、不是靜默的**——所以這不是安全性風險，是
 **診斷時機錯誤**：本該在 guard 當場擋下並說清楚，卻延後到載入原生擴充才炸。
 
-## 為什麼現在不修
+## 判準（**已裁決**，Q7 §0.3 於 2026-09-21 凍結）
 
-修法直接取決於尚未定案的事項：
+guard 改驗四項，**不得**再由 `RUBY_VERSION == "3.4.10"` 決定：
 
-- 若 runtime profile 定為「綁定編譯時的 Ruby 安裝路徑」→ guard 應改為檢查
-  **linkage 路徑可解析 ＋ ABI 目錄相符**，版本字串反而不該是主判準。
-- 若日後改走「安裝時重編原生擴充」→ guard 要檢查的是**編譯工具鏈**，
-  又是另一種形狀。
-- 若提供多組預編譯 artifact → guard 要做的是**選對 artifact**，不是拒絕。
+1. 記錄**實際選中的 Ruby executable**（不是「版本符合就好」）。
+2. 對 artifact 宣告的**全部 production native dependencies** 驗 loader
+   resolution ——**不只 `bigdecimal`**。
+3. 用該 Ruby 對**這一份 artifact 自己的 native extensions** 做**真實 load
+   probe**；目前至少涵蓋 `bigdecimal` ＋ `sqlite3`。
+4. 比對 **qualified runtime profile**，該 profile 至少綁：
 
-三者的 guard 長相完全不同。先修一定白做。
+```
+artifact build identity
++ OS / architecture
++ Ruby implementation
++ Ruby ABI
++ native linkage / profile
+```
+
+**「load probe 成功」≠「qualified」**：前者是「這台機器能跑」，後者是
+「我們承諾支援這個組合」。能跑但未 qualified 的組合必須是**明確可辨識的
+狀態**，不得靜默放行。
+
+guard 必須 **fail closed 並給明確錯誤**——錯誤訊息要指出實際缺的是什麼
+（哪個 native dependency、哪一項 profile 不符），不是只說版本不符。
 
 ## 驗收（啟動後才適用）
 

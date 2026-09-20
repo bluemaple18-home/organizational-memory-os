@@ -1,6 +1,8 @@
 ---
 id: EMEM11-STALE-HOOK-RELOCATION-20260920
-status: CONFIRMED_DEFECT_NOT_SCHEDULED
+status: CONFIRMED_DEFECT_READY_TO_IMPLEMENT
+unblocked_by: CARD-EMEM11-Q7-ACTIVATION-RUNTIME-PROFILE-20260921（2026-09-21 凍結）
+target_shape: Q7 §0.1（固定 launcher path → current → versions/<artifact-id>）
 severity: P1
 type: product-defect
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
@@ -47,17 +49,32 @@ install（product_root = A）   → SessionStart hook 1 組
 從 B 執行時前綴是 B 的路徑，同樣認不出 A 的 hook。缺陷本來就在，只是先前
 沒有人換過 product_root。
 
-## 修法方向（待裁，不要直接動手）
+## 修法方向（**已裁決**，Q7 於 2026-09-21 凍結）
 
-兩條路，對應 packaging 研究卡的 Q7：
+採 **A｜固定 launcher**。Host 永遠只認一條固定路徑，artifact 換版只切
+launcher 背後的 pointer，Host 設定不隨版本變動：
 
-- **A｜stable launcher**：Host 永遠指向固定路徑的 launcher，artifact 換版
-  只換 launcher 背後的目標。Host 設定不隨版本變動。
-- **B｜versioned path ＋ receipt 驅動遷移**：保留 versioned 路徑，但 upgrade
-  必須讀前一份 receipt 取得舊 command，先遷移／清除舊註冊再寫新的。
+```
+Host config → ~/.omos/personal-memory/bin/omos-personal-memory-session-start
+            → current -> versions/<artifact-id> → 真正的 artifact
+```
 
-兩者都需要決定「uninstall 要清到什麼程度」——只清自己這版，還是清掉所有
-歷史版本留下的本產品註冊。
+（B｜versioned path ＋ receipt 遷移已被否決：它把 Host 設定的正確性綁在
+「每次遷移都成功且 receipt never lost」這個前提上。）
+
+**實作時的硬性約束**（來自 Q7 §0.4，不遵守的話缺陷會原封不動回來）：
+
+1. **installer 不得用 `__dir__` 推導出的路徑去組 Host command。**
+   實測：同一次呼叫裡 shell 保留 `current`，但 Ruby 的 `__dir__` 會解析
+   symlink 得到 `versions/<id>`；而 `Installer#product_root` 的預設值正是
+   由 `__dir__` 推導。沿用它就等於 Host 又被寫進版本路徑。
+2. **argv authority 注入契約保留**：hook handler 在兩個 Host 的官方 schema
+   都沒有 env 欄位，`--host` / `--runtime-scope-mode` 只能走 argv
+   （repair-01 既有裁決）。固定 launcher 必須原樣轉傳。
+3. **uninstall 不得刪掉 launcher 的父目錄**：`~/.omos/personal-memory/bin/`
+   與 Personal Store（`…/personal.db`）同一個父目錄，預設必須保留 store。
+4. 仍須決定 uninstall 清理的深度——只清本版，還是連歷史版本留下的本產品
+   註冊一併清掉（Q7 裁決點 7 指定「歷史版本清理策略另外明確定義」）。
 
 ## 驗收（啟動後才適用）
 

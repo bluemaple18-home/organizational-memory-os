@@ -42,8 +42,8 @@ authority: organizational-memory-os
 | runtime 支援判準 | 由 `RUBY_VERSION` 字串改為 **runtime profile ＝ native linkage 可解析 ＋ ABI 相容**。口語可稱「安裝路徑 ＋ ABI」，但**契約不得只寫 path** |
 | Homebrew patch 相容 | **`EXPECTED_COMPATIBLE / NOT_YET_VERIFIED`** —— 證據足以支持「3.4.10 → 3.4.11 很可能相容」，但未實際載入跑過，**不得寫成 guaranteed support**；遇下一個 patch 時補 qualification，**不阻塞 Q7** |
 | Q6 Part 2 | 重新定義為 **clean-macOS runtime qualification**，需一台真的沒有 `/opt/homebrew/opt/ruby@3.4` 的 Mac／VM／同事機；**不再阻塞 Q7**，移入 packaging acceptance |
-| `pinned-ruby.sh` guard | 另立卡（`CARD-EMEM11-RUBY-GUARD-CRITERION-20260921`），`CONFIRMED_DEFECT` ／ blocked by runtime profile decision，**與 stale-hook P1 同層列為 packaging 實作前置**，現在不修 |
-| Q7 | activation identity ／ runtime profile 待裁 |
+| `pinned-ruby.sh` guard | 另立卡（`CARD-EMEM11-RUBY-GUARD-CRITERION-20260921`）。判準已由 Q7 §0.3 定義、**blocker 解除**，與 stale-hook P1 同層列為 packaging 實作前置 |
+| Q7 | **已裁決並凍結（2026-09-21）**：A 案，stable identity ＝ **固定 launcher path**（非 current symlink）；三層分離 Host identity ／ activation pointer ／ artifact identity。runtime guard 四項定義收緊。見 `CARD-EMEM11-Q7-ACTIVATION-RUNTIME-PROFILE-20260921` §0 |
 | zombie hook | **另開 P1**（`CARD-EMEM11-STALE-HOOK-RELOCATION-20260920`），且為 **packaging 實作的前置** |
 | standalone acceptance | workspace B／clean environment，不動已驗收工作區 |
 | artifact receipt | 需能識別 code + spec + evaluator 同屬一個 build；**不得拿 store `schema_version` 代替** |

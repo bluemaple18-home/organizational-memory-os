@@ -1,6 +1,7 @@
 ---
 id: EMEM11-Q7-ACTIVATION-RUNTIME-PROFILE-20260921
-status: RESEARCH_ONLY_AWAITING_DECISION
+status: DECIDED_FROZEN
+decided_at: 2026-09-21
 type: research
 tier: T3
 parent_card: CARD-EMEM11-STANDALONE-PACKAGING-RESEARCH-20260920
@@ -13,6 +14,99 @@ authority: organizational-memory-os
 ---
 
 # Q7｜Activation identity ＋ Runtime profile（合併裁決）
+
+## 0. 裁決（2026-09-21，已凍結）
+
+### 0.1 選 A，且 stable identity ＝**固定 launcher path**（不是 `current` symlink）
+
+```
+Host config
+  ↓  ← Host identity（永遠只認這一層，且永遠不含版本）
+固定 launcher path
+  ~/.omos/personal-memory/bin/omos-personal-memory-mcp
+  ~/.omos/personal-memory/bin/omos-personal-memory-session-start
+  ↓  ← activation pointer
+current -> versions/<artifact-id>
+  ↓  ← artifact identity
+真正的 artifact
+```
+
+**三個概念必須分清楚，不得再由單一 `product_root` 同時扮三個角色：**
+
+| 概念 | 是什麼 | 誰會看到它 |
+|---|---|---|
+| **Host identity** | 固定 launcher path | 寫進 Host 設定；升版**不變** |
+| **activation pointer** | `current` symlink | 只在 launcher 背後；切版時改的就是它 |
+| **artifact identity** | `versions/<artifact-id>` | artifact 自我識別（`__dir__` 解析後即得） |
+
+> reviewer 獨立重播 §1.2 結果一致：shell 經 `current/exe/…` 呼叫保留
+> `current`，Ruby `__dir__` 直接解析成 `versions/v1`。因此**Host 不應直接綁
+> `current/exe/…` 當 identity**——那仍是一條會隨佈局改變的路徑。固定 launcher
+> 是唯一不受 symlink 解析語意影響的一層。
+
+### 0.2 不接受「升級前必須關閉所有 session」作為架構前提
+
+可以當**操作建議**，但不得靠它讓原地覆蓋成立。理由（reviewer 補充後）：
+
+1. 產品**無法可靠證明**所有 session 都關了；
+2. 原地覆蓋仍**沒有乾淨的 rollback target**；
+3. copy 中途失敗仍可能半新半舊；
+4. 要驗證新 artifact，**必須先污染現行版本**才驗得到。
+
+而若為了解這四點再加 staging directory ＋ backup ＋ atomic rename，
+**那就是重新發明了 versioned artifact／current seam**。
+
+因此 §5 的結論成立：**versioned artifact 不是炫技，是目前最小能同時滿足
+atomic activation ＋ rollback ＋ running-session safety 的形狀。**
+
+### 0.3 Runtime profile guard —— 四項（定義已收緊）
+
+1. 記錄**實際選中的 Ruby executable**（不是「版本符合就好」）。
+2. 對 artifact 宣告的**全部 production native dependencies** 驗 loader
+   resolution——**不只 `bigdecimal`**。
+3. 用該 Ruby 對**這一份 artifact 自己的 native extensions** 做**真實 load
+   probe**；目前至少涵蓋 `bigdecimal` ＋ `sqlite3`。
+4. 比對 **qualified runtime profile**。
+
+**qualified profile 不得只是 `Ruby 3.4.x = allowed`**，至少要綁：
+
+```
+artifact build identity
++ OS / architecture
++ Ruby implementation
++ Ruby ABI
++ native linkage / profile
+```
+
+> **「load probe 成功」≠「qualified」**：前者是「這台機器能跑」，後者是
+> 「我們承諾支援這個組合」。兩者不得混為一談——能跑但未 qualified 的組合，
+> 應該是明確的、可辨識的狀態，而不是靜默放行。
+
+guard 必須 **fail closed 並給明確錯誤**；**不得**再由
+`RUBY_VERSION == "3.4.10"` 決定。
+
+### 0.4 由本裁決衍生的實作約束（供下游兩張卡）
+
+- **installer 不得用 `__dir__` 推導出的路徑去組 Host command**（§1.2）。
+  寫進 Host 的必須是固定 launcher path。
+- **hook 的 argv authority 注入契約保留**：hook handler 在兩個 Host 的官方
+  schema 都沒有 env 欄位，`--host` / `--runtime-scope-mode` 仍只能走 argv
+  （repair-01 既有裁決）。固定 launcher 必須原樣轉傳這些參數。
+- launcher 位於 `~/.omos/personal-memory/bin/`，與 Personal Store
+  （`~/.omos/personal-memory/personal.db`）**同一個父目錄**。因此
+  uninstall 移除 launcher 時**不得**整個刪除該父目錄——預設仍須保留 store
+  （裁決點 7）。
+- `current` 切換要原子：以 `ln -s new tmp && mv -f tmp current`（`rename(2)`）
+  達成，**不要用 `ln -sfn` 先刪後建**。
+
+### 0.5 下游解鎖
+
+- `CARD-EMEM11-STALE-HOOK-RELOCATION-20260920` —— 根因（Host 綁版本路徑）
+  由 0.1 消除，可按此最終形狀實作。
+- `CARD-EMEM11-RUBY-GUARD-CRITERION-20260921` —— 判準由 0.3 定義，
+  `blocked_by: RUNTIME_PROFILE_DECISION` 解除。
+
+---
 
 👉 [假設與目標確認]
 - **目標**：一次裁掉 activation identity 與 runtime profile。兩者綁在一起——
