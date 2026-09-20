@@ -26,7 +26,7 @@ module OMOS
                                 寫入一列（寫入前由既有治理 evaluator 判定）
         read                    讀出所有列（權限檢查先於讀取）
         closeout --file FILE    提交一次 weekly closeout
-        install [--home DIR]    初始化 store 並註冊到 Codex / Claude Code
+        install [--home DIR]    初始化 store 並註冊到已交付的 Host（v1：Claude Code）
         uninstall [--home DIR] [--remove-store]
                                 移除本產品註冊（預設保留 Personal Store）
         doctor [--home DIR]     對實物做健康檢查
