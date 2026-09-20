@@ -229,14 +229,26 @@ echo "HOME=$HOME"                 # 必須是 /Users/matt/omos-acceptance-home
 ls -a "$HOME" | head
 ```
 
-同時在**另一個一般終端機**（沒有 export HOME）記錄正式設定的 hash，
-作為「全程沒被動過」的對照基準：
+同時在**另一個一般終端機**（沒有 export HOME）確認正式設定沒被本產品污染。
+
+> **不要用整份檔案的 shasum 當基準**（2026-09-20 實測踩到）：Claude Code
+> 正常運作時就會持續改寫 `~/.claude.json`（`projects` 鍵存著每個專案的對話
+> 歷史），hash 每隔幾秒就不同。拿它當「有沒有被動到」的判準會一直誤報。
+> 要檢查的是**本產品自己的那幾個鍵在不在**：
 
 ```sh
-shasum ~/.claude.json ~/.claude/settings.json ~/.codex/config.toml 2>/dev/null
+ruby -rjson -e 'j=JSON.parse(File.read(File.expand_path("~/.claude.json"))); puts "mcpServers=#{(j["mcpServers"]||{}).keys.inspect}"'
+ruby -rjson -e 'j=JSON.parse(File.read(File.expand_path("~/.claude/settings.json"))); puts "SessionStart 組數=#{(j.dig("hooks","SessionStart")||[]).size}"'
+shasum ~/.codex/config.toml 2>/dev/null
 ```
 
-把這三個 hash 記進 evidence packet；**Step 9 收尾時要再跑一次，必須完全相同**。
+判準（三條都要成立，Step 9 收尾時再跑一次）：
+
+- 正式 `mcpServers` **不含** `omos.personal-memory`
+- 正式 `settings.json` 的 SessionStart 組數**維持原值**（本機基準：**0 組**）
+- `~/.codex/config.toml` 的 shasum **不變**（它不會被 Claude Code 自己改寫，
+  所以這份用 hash 是可靠的；本機基準
+  `f0b440b25e55aeb6fe3d42c0804187428b61faac`）
 
 ---
 
@@ -522,15 +534,14 @@ rm -rf /Users/matt/omos-acceptance-home
 rm -rf /tmp/omos-probe /tmp/omos-ha
 ```
 
-然後確認正式設定全程未被動過——與 Step 1 記下的 hash 比對：
+然後用 Step 1 的**同一組指令**確認正式設定沒被本產品污染：正式 `mcpServers`
+不含 `omos.personal-memory`、正式 SessionStart 維持 0 組、`~/.codex/config.toml`
+的 shasum 不變。
 
-```sh
-shasum ~/.claude.json ~/.claude/settings.json ~/.codex/config.toml 2>/dev/null
-```
-
-三個 hash 必須與 Step 1 完全相同。**若有任何一個不同，那本身就是一個必須
-記錄的發現**（代表有路徑繞過了 HOME 隔離），要寫進 evidence packet 並判
-NO_GO，不要默默還原了事。
+**若其中任何一條不成立，那是必須記錄的發現**（代表有路徑繞過了 HOME 隔離），
+要寫進 evidence packet 並判 NO_GO，不要默默還原了事。
+（再次提醒：`~/.claude.json` 整份的 hash 本來就會一直變，那不是污染，
+不要拿它當判準。）
 
 > 想在刪掉前保留證據：先把 `/Users/matt/omos-acceptance-home/.omos/` 整個
 > 複製出來（裡面有 store、session state 與 receipt），那是 packet 的 B 段
