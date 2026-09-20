@@ -162,9 +162,21 @@ module OMOS
       results << (mcp_present ? ok("#{tag(host)}_mcp_visible", config.own_mcp_id) :
                   bad("#{tag(host)}_mcp_visible", "設定檔內找不到 #{config.own_mcp_id}"))
 
+      # 這一項只證明「我們寫的那筆，我們自己的正規化讀得回來」，**不證明
+      # Host 會接受它**。實測依據：Codex 真實設定裡的 hook 是巢狀的
+      # [[hooks.<Event>]] + [[hooks.<Event>.hooks]]（含 type / timeout，
+      # 且無 id，另有 [hooks.state] 的 trusted_hash），與我們寫入的扁平
+      # {id, command} 不同；而 Codex 是否支援 SessionStart 事件本身也**尚無
+      # 證據**（真實設定只出現過 Interrupt）。Claude Code 的 SessionStart 事件
+      # 確實存在（repo 官方快照有列），但其 settings 條目 schema 亦未驗證。
+      # 詳見交付包的「已知缺陷」。
       hook = snapshot["session_start_hooks"].find { |h| h["id"] == config.own_hook_id }
-      results << (hook ? ok("#{tag(host)}_session_start_hook_active", config.own_hook_id) :
-                  bad("#{tag(host)}_session_start_hook_active", "SessionStart hook 未啟用"))
+      results << if hook.nil?
+                   bad("#{tag(host)}_session_start_hook_present", "SessionStart hook 未寫入")
+                 else
+                   warn_("#{tag(host)}_session_start_hook_present",
+                         "已寫入 #{config.own_hook_id}，但 hook 條目形狀未經 Host 實際驗證")
+                 end
 
       # 漂移判定委派切片 2 既有 evaluator（含 command_ref 對不上的情況）
       drift = config.own_registration_problem

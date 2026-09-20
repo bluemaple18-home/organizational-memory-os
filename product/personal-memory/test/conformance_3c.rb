@@ -117,8 +117,10 @@ Dir.mktmpdir("omos-3c-b") do |dir|
   post_warn = post.select { |r| r.status == "WARN" }
   C.check("安裝後無任何 FAIL",
         "#{post.count(&:ok?)} OK / #{post_warn.size} WARN / #{post_fail.size} FAIL", post_fail.empty?)
-  C.check("唯一的 WARN 是 Codex 遮蔽無法觀測（照實回報，不假裝 OK）",
-        post_warn.map(&:id).inspect, post_warn.map(&:id) == ["codex_no_shadow"])
+  C.check("WARN 只出現在「無法觀測／未經 Host 驗證」這兩類，且照實回報",
+        post_warn.map(&:id).sort.inspect,
+        post_warn.map(&:id).sort == ["claude_code_session_start_hook_present", "codex_no_shadow",
+                                     "codex_session_start_hook_present"])
 
   # 被同名專案設定遮蔽 → 必須明確失敗
   File.write(File.join(proj, ".mcp.json"),
@@ -141,7 +143,7 @@ Dir.mktmpdir("omos-3c-b") do |dir|
   settings["hooks"]["SessionStart"] = []
   File.write(File.join(home, ".claude/settings.json"), "#{JSON.pretty_generate(settings)}\n")
   hook_gone = OMOS::Doctor.new(home: home, store_path: store, cwd: proj).run
-                          .find { |r| r.id == "claude_code_session_start_hook_active" }
+                          .find { |r| r.id == "claude_code_session_start_hook_present" }
   C.check("SessionStart hook 被移除會明確失敗", hook_gone.detail[0, 30], hook_gone.status == "FAIL")
 
   # executable 不存在 → 必須明確失敗
