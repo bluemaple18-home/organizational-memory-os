@@ -48,23 +48,29 @@ Dir.mktmpdir("omos-3b") do |dir|
   C.check("專案不得擴權", widened, widened == "HBV1_PROJECT_SCOPE_WIDENS_BASELINE")
 
   # --- 真的跑 SessionStart hook（真 Host 的 stdin 形狀），再 spawn MCP server ---
+  #
+  # repair-02：MCP server 的 binding 需要獨立得知 native session id，目前只有
+  # Claude Code 有官方管道（PROCESS_ENV）；Codex 一律 fail closed
+  # （MCP_NATIVE_SESSION_ID_UNAVAILABLE，見本檔案後段獨立驗證）。這裡的
+  # 「MCP 真的能寫能讀」happy path 因此改用 Claude Code。
   state_dir = File.join(dir, "state")
   proj = File.join(dir, "projA")
   FileUtils.mkdir_p(proj)
+  sid = "claude-session-3b"
   hook_out, _hook_err, hook_st = Support.run_session_start(
-    host: "Codex", session_id: "codex-session-3b", cwd: proj, state_dir: state_dir
+    host: "Claude Code", session_id: sid, cwd: proj, state_dir: state_dir
   )
   C.check("SessionStart hook 吃真 Host stdin 並成功", "exit=#{hook_st.exitstatus}",
           hook_st.success? && hook_out.include?("hookSpecificOutput"))
 
   no_sid_out, no_sid_err, no_sid_st = Support.run_session_start(
-    host: "Codex", session_id: "", cwd: proj, state_dir: state_dir
+    host: "Claude Code", session_id: "", cwd: proj, state_dir: state_dir
   )
   C.check("stdin 缺 session_id 時 hook 明確拒絕", (no_sid_err + no_sid_out).strip[0, 40],
           !no_sid_st.success? && (no_sid_err + no_sid_out).include?("MISSING_HOST_SESSION_ID"))
 
-  client = Support::MCPClient.new(store, host: "Codex", cwd: proj, state_dir: state_dir,
-                                  handshake: false)
+  client = Support::MCPClient.new(store, host: "Claude Code", cwd: proj, state_dir: state_dir,
+                                  session_id: sid, handshake: false)
   init = client.rpc("initialize", { "protocolVersion" => "2024-11-05",
                                         "capabilities" => {},
                                         "clientInfo" => { "name" => "conformance", "version" => "0" } })
@@ -112,15 +118,26 @@ Dir.mktmpdir("omos-3b") do |dir|
 
   client.close
 
-  # 沒有 session 記錄的 cwd：server 建不出 binding，必須 fail closed。
+  # 沒有 session 記錄（有 native session id，但 hook 沒落地過這一個）：
+  # server 建不出 binding，必須 fail closed。
   other = File.join(dir, "no-session")
   FileUtils.mkdir_p(other)
-  lone = Support::MCPClient.new(store, host: "Codex", cwd: other, state_dir: state_dir)
+  lone = Support::MCPClient.new(store, host: "Claude Code", cwd: other, state_dir: state_dir,
+                                session_id: "claude-session-3b-no-record")
   lone_res = lone.read
   lone.close
-  C.check("無 SessionStart 記錄的 cwd 一律 fail closed",
+  C.check("無 SessionStart 記錄的 native session 一律 fail closed",
           lone_res.is_a?(Hash) ? lone_res["code"] : lone_res.to_s,
-          lone_res.is_a?(Hash) && lone_res["code"] == "MCP_NO_SESSION_RECORD_FOR_CWD")
+          lone_res.is_a?(Hash) && lone_res["code"] == "MCP_NO_SESSION_RECORD")
+
+  # repair-02 的產品裁決：Codex 目前沒有官方管道讓 MCP server 獨立得知
+  # native session id，因此一律 fail closed，不退回 cwd 或任何代理鍵猜測。
+  codex_client = Support::MCPClient.new(store, host: "Codex", cwd: proj, state_dir: state_dir)
+  codex_res = codex_client.read
+  codex_client.close
+  C.check("Codex 目前無可信 native session 管道，MCP 一律 fail closed",
+          codex_res.is_a?(Hash) ? codex_res["code"] : codex_res.to_s,
+          codex_res.is_a?(Hash) && codex_res["code"] == "MCP_NATIVE_SESSION_ID_UNAVAILABLE")
 
   # Runtime 層的保證（不依賴 tool schema）：MCP surface 少了 binding 必須以
   # 契約錯誤碼拒絕。

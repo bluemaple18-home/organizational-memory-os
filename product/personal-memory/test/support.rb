@@ -130,13 +130,16 @@ module Support
   class MCPClient
     EXE = File.expand_path("../exe/omos-personal-memory-mcp", __dir__)
 
-    def initialize(store, host: nil, cwd: nil, state_dir: nil,
+    def initialize(store, host: nil, cwd: nil, state_dir: nil, session_id: nil,
                    scope_mode: "EMPLOYEE_PRIVATE", handshake: true)
       env = { "OMOS_PERSONAL_MEMORY_STORE" => store }
       # installer 會把這兩個寫進 MCP 註冊的 env 表；測試照做。
       env["OMOS_HOST"] = host if host
       env["OMOS_RUNTIME_SCOPE_MODE"] = scope_mode if host
       env["OMOS_SESSION_STATE_DIR"] = state_dir if state_dir
+      # repair-02：server 自己找 native session id 的來源。目前唯一有官方管道
+      # 的是 Claude Code（PROCESS_ENV），測試比照真 Host 把它放進子行程環境。
+      env["CLAUDE_CODE_SESSION_ID"] = session_id if session_id && host == "Claude Code"
       @host = host
       opts = cwd ? { chdir: cwd } : {}
       @in, @out, @err, @wait = Open3.popen3(env, EXE, **opts)

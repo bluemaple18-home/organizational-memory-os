@@ -40,6 +40,8 @@ module OMOS
       @host = host
       @home = home
       @env = env
+      @mcp_command = mcp_command
+      @hook_command = hook_command
       # 安裝 receipt 記錄的對應：具體命令 → 契約 command_ref。
       @command_map = {
         mcp_command => Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles",
@@ -47,11 +49,12 @@ module OMOS
         hook_command => Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles",
                                           host, "session_start_registration", "command_ref")
       }
+      # hook_invocation 讀 @hook_command／@env，必須等它們賦值後才能呼叫；
+      # repair-02 P2 把比對從前綴改成精確相等後，先前「先呼叫、後賦值」的
+      # 順序會讓這裡存進去的鍵少了命令本體，只剩參數，永遠比對不到。
       @command_map[hook_invocation] = @command_map[hook_command]
       @config = HostConfig.new(host, home: home, command_map: @command_map)
       @profile = Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles", host)
-      @mcp_command = mcp_command
-      @hook_command = hook_command
     end
 
     attr_reader :config, :command_map
@@ -244,10 +247,13 @@ module OMOS
       end
     end
 
+    # repair-02 P2：必須是**精確的 invocation**，不能用裸 prefix。
+    # reviewer 實測 ".../omos-personal-memory-session-start-foreign" 會被
+    # start_with? 誤認成自己的 hook，install/uninstall 就可能動到別人的註冊。
     def own_group?(group)
       return false unless group.is_a?(Hash)
 
-      Array(group["hooks"]).any? { |h| h.is_a?(Hash) && h["command"].to_s.start_with?(@hook_command) }
+      Array(group["hooks"]).any? { |h| h.is_a?(Hash) && h["command"].to_s == hook_invocation }
     end
 
     def mutate_json(path)

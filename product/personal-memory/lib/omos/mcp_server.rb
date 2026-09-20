@@ -31,6 +31,17 @@ module OMOS
       attr_accessor :runtime, :binding, :binding_problem
     end
 
+    # server 必須能**獨立**得知自己屬於哪個 native session。來源由契約的
+    # native_session_id_source 宣告，各 Host 不同；取不到就 fail closed，
+    # 不用 cwd 之類的代理鍵去猜（repair-02 P1-1/P1-2）。
+    def self.native_session_id(host)
+      source = Contract.spec.dig("personal_memory_host_binding_v1", "bootstrap_contract",
+                                 "native_session_id_source", host) || {}
+      case source["mechanism"]
+      when "PROCESS_ENV" then ENV[source.fetch("env_var")]
+      end
+    end
+
     # 由可信來源建構 binding。模型既不經手也無法改寫。
     def self.establish_binding!
       host = ENV["OMOS_HOST"]
@@ -40,18 +51,22 @@ module OMOS
         return
       end
 
-      record = SessionState.read(Dir.pwd)
-      if record.nil?
-        self.binding_problem = "MCP_NO_SESSION_RECORD_FOR_CWD"
+      session_id = native_session_id(host)
+      if session_id.nil? || session_id.to_s.strip.empty?
+        # 例如 Codex：目前沒有任何機制讓 MCP server 得知 native session id，
+        # 契約標為 UNDECIDED。在決定之前一律拒絕，不退回 cwd 猜測。
+        self.binding_problem = "MCP_NATIVE_SESSION_ID_UNAVAILABLE"
         return
       end
-      if record["host"] != host
-        self.binding_problem = "MCP_SESSION_RECORD_HOST_MISMATCH"
+
+      record = SessionState.read(host, session_id)
+      if record.nil?
+        self.binding_problem = "MCP_NO_SESSION_RECORD"
         return
       end
 
       self.binding = SessionStart.produce(
-        host: host, native_session_id: record.fetch("session_id"),
+        host: host, native_session_id: session_id,
         cwd: record.fetch("cwd"), project_ref: SessionStart.project_ref_for(record.fetch("cwd")),
         runtime_scope_mode: scope_mode
       )

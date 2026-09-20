@@ -170,12 +170,10 @@ module OMOS
     def command_ref_of(cfg)
       cmd = cfg["command_ref"] || cfg["command"] || cfg.dig("hooks", 0, "command")
       concrete = cmd.is_a?(Array) ? cmd.join(" ") : cmd.to_s
-      return @command_map[concrete] if @command_map.key?(concrete)
-
-      # hook 的 authority input 走命令列參數，所以實際字串是「命令 + 參數」；
-      # 以最長前綴命中，避免因為多了參數就判成漂移。
-      hit = @command_map.keys.select { |k| concrete.start_with?(k) }.max_by(&:length)
-      hit ? @command_map[hit] : concrete
+      # repair-02 P2：只接受**精確相等**。先前用最長前綴命中，會把
+      # ".../omos-personal-memory-session-start-foreign" 誤認成自己的註冊。
+      # 帶參數的完整 invocation 已由 writer 一併登記進 command_map。
+      @command_map.fetch(concrete, concrete)
     end
 
     def transport_of(cfg)

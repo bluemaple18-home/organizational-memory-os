@@ -178,8 +178,15 @@ Dir.mktmpdir("omos-3c-b") do |dir|
 end
 
 # ===========================================================================
-# C 跨 Host 與跨專案
+# C 同一 Host 的兩個並行 session（同 cwd）與跨專案
 # ===========================================================================
+#
+# repair-02 之前這裡是「Codex 寫、Claude Code 讀」的跨 Host 測試。Codex 目前
+# 沒有官方管道讓 MCP server 獨立得知 native session id，一律 fail closed
+# （見 3b「Codex 目前無可信 native session 管道」），因此跨 Host 的 MCP 讀寫
+# 現在只能由一個 Host 示範。改用兩個**並行的 Claude Code session**、**同一個
+# cwd**——這正是 repair-02 P1-1 要修的情境（cwd 不是 session identity，同
+# cwd 的兩個並行 session 不得互相覆蓋或誤讀對方的 binding）。
 C.group = "C"
 Dir.mktmpdir("omos-3c-c") do |dir|
   home = File.join(dir, "home")
@@ -192,40 +199,42 @@ Dir.mktmpdir("omos-3c-c") do |dir|
   FileUtils.mkdir_p(proj_a)
   FileUtils.mkdir_p(proj_b)
 
-  # 兩個 Host 各自跑真的 SessionStart hook（真 stdin 形狀）落地 session 事實；
-  # 測試不捏造 binding——MCP server 自己從 env + session 記錄建構。
-  state_codex = File.join(dir, "state-codex")
-  state_claude = File.join(dir, "state-claude")
-  _o1, _e1, st1 = Support.run_session_start(host: "Codex", session_id: "codex-1",
-                                            cwd: proj_a, state_dir: state_codex)
-  _o2, _e2, st2 = Support.run_session_start(host: "Claude Code", session_id: "claude-1",
-                                            cwd: proj_a, state_dir: state_claude)
-  C.check("兩個 Host 的 SessionStart hook 都成功", "#{st1.exitstatus}/#{st2.exitstatus}",
+  # 兩個並行 session 跑真的 SessionStart hook（真 stdin 形狀）落地 session 事實；
+  # 同一個 cwd、同一個 state_dir，只有 session_id 不同——測試不捏造 binding，
+  # MCP server 自己從 env + session 記錄建構。
+  state_dir = File.join(dir, "state")
+  _o1, _e1, st1 = Support.run_session_start(host: "Claude Code", session_id: "claude-c1",
+                                            cwd: proj_a, state_dir: state_dir)
+  _o2, _e2, st2 = Support.run_session_start(host: "Claude Code", session_id: "claude-c2",
+                                            cwd: proj_a, state_dir: state_dir)
+  C.check("兩個並行 session 的 SessionStart hook 都成功", "#{st1.exitstatus}/#{st2.exitstatus}",
           st1.success? && st2.success?)
 
-  codex = Support::MCPClient.new(store, host: "Codex", cwd: proj_a, state_dir: state_codex)
-  claude = Support::MCPClient.new(store, host: "Claude Code", cwd: proj_a, state_dir: state_claude)
+  c1 = Support::MCPClient.new(store, host: "Claude Code", cwd: proj_a, state_dir: state_dir,
+                              session_id: "claude-c1")
+  c2 = Support::MCPClient.new(store, host: "Claude Code", cwd: proj_a, state_dir: state_dir,
+                              session_id: "claude-c2")
 
   l1 = "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000c1"
   r1 = "urn:omos:personal-memory:record:01900000-0000-7000-8000-0000000000c2"
   l2 = "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000c3"
   r2 = "urn:omos:personal-memory:record:01900000-0000-7000-8000-0000000000c4"
 
-  # Codex 寫 → Claude Code 讀同一個 store
-  wrote = codex.write("MemorySupportLink", F.link_body(l1, r1), "k-c1")
-  seen_by_claude = claude.read
-  C.check("Codex 寫入成功", wrote["status"].to_s, wrote["status"] == "WROTE")
-  C.check("Claude Code 從同一個 store 讀到 Codex 寫的列", "",
-        seen_by_claude.is_a?(Array) && seen_by_claude.any? { |r| r["row_id"] == l1 })
+  # session 1 寫 → session 2 讀同一個 store（同 cwd，不同 native session）
+  wrote = c1.write("MemorySupportLink", F.link_body(l1, r1), "k-c1")
+  seen_by_c2 = c2.read
+  C.check("session 1 寫入成功", wrote["status"].to_s, wrote["status"] == "WROTE")
+  C.check("session 2 從同一個 store 讀到 session 1 寫的列", "",
+        seen_by_c2.is_a?(Array) && seen_by_c2.any? { |r| r["row_id"] == l1 })
 
-  # Claude Code 寫 → Codex 讀（反向）
-  wrote2 = claude.write("MemorySupportLink", F.link_body(l2, r2), "k-c2")
-  seen_by_codex = codex.read
-  C.check("Claude Code 寫入成功", wrote2["status"].to_s, wrote2["status"] == "WROTE")
-  C.check("Codex 反向讀到 Claude Code 寫的列", "",
-        seen_by_codex.is_a?(Array) && seen_by_codex.any? { |r| r["row_id"] == l2 })
-  C.check("兩邊看到的是同一份資料（不是各自的 store）", "",
-        seen_by_codex.map { |r| r["row_id"] }.sort == seen_by_claude.map { |r| r["row_id"] }.sort + [l2].sort - [])
+  # session 2 寫 → session 1 讀（反向）
+  wrote2 = c2.write("MemorySupportLink", F.link_body(l2, r2), "k-c2")
+  seen_by_c1 = c1.read
+  C.check("session 2 寫入成功", wrote2["status"].to_s, wrote2["status"] == "WROTE")
+  C.check("session 1 反向讀到 session 2 寫的列", "",
+        seen_by_c1.is_a?(Array) && seen_by_c1.any? { |r| r["row_id"] == l2 })
+  C.check("兩邊看到的是同一份資料，且各自 binding 沒被同 cwd 的另一個 session 覆蓋", "",
+        seen_by_c1.map { |r| r["row_id"] }.sort == (seen_by_c2.map { |r| r["row_id"] } + [l2]).sort)
 
   # 跨專案：切到 projB 不得擴權
   widened = begin
@@ -245,37 +254,38 @@ Dir.mktmpdir("omos-3c-c") do |dir|
   C.check("切換專案可維持同等收窄", narrowed["effective_scope"], narrowed["effective_scope"] == "SELF_ONLY")
   C.check("切換專案不重建 store", "", File.exist?(store))
 
-  # 週期：同一 review period 跨 Host 仍是同一身分，且只能收一次 terminal
+  # 週期：同一 review period 跨並行 session 仍是同一身分，且只能收一次 terminal
   period = "urn:omos:personal-memory:review-period:2026-W38"
   item = "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000d1"
-  first = codex.closeout(F.closeout(period, item, "FAILED", "SCHEDULED"))
-  second = claude.closeout(F.closeout(period, item, "COMPLETE", "RETRY"))
-  third = codex.closeout(F.closeout(period, item, "NO_PROMOTION", "RETRY"))
-  C.check("Codex 開的週期，Claude Code 可以接續收尾", second["status"].to_s,
+  first = c1.closeout(F.closeout(period, item, "FAILED", "SCHEDULED"))
+  second = c2.closeout(F.closeout(period, item, "COMPLETE", "RETRY"))
+  third = c1.closeout(F.closeout(period, item, "NO_PROMOTION", "RETRY"))
+  C.check("session 1 開的週期，session 2 可以接續收尾", second["status"].to_s,
         first["status"] == "COMMITTED" && second["status"] == "COMMITTED")
   C.check("第二次 terminal closeout 被拒", third["code"].to_s,
         third["status"] == "REJECTED" && third["code"] == "PMR_CLOSEOUT_FAILS_WEEKLY_CYCLE_CONTRACT")
 
   # promotion identity 在 retry 間漂移 → 被拒
   drift_payload = F.closeout("#{period}-b", item, "COMPLETE", "SCHEDULED")
-  codex.closeout(drift_payload)
+  c1.closeout(drift_payload)
   drifted = F.closeout("#{period}-b", item, "COMPLETE", "RETRY")
   drifted["item_dispositions"][item]["promotion_idempotency_key"] = "pk-999"
-  drift_res = claude.closeout(drifted)
-  C.check("跨 Host 的 retry 換掉 promotion identity 被拒", drift_res["code"].to_s,
+  drift_res = c2.closeout(drifted)
+  C.check("跨並行 session 的 retry 換掉 promotion identity 被拒", drift_res["code"].to_s,
         drift_res["status"] == "REJECTED")
 
   # 重啟：關掉兩個進程再開，重放同一筆寫入不得產生第二列
-  codex.close
-  claude.close
+  c1.close
+  c2.close
   db = SQLite3::Database.new(store)
   rows_before_restart = db.get_first_value("SELECT COUNT(*) FROM memory_rows")
   terminal_before = db.get_first_value("SELECT COUNT(*) FROM closeouts WHERE is_terminal = 1")
   db.close
 
-  codex2 = Support::MCPClient.new(store, host: "Codex", cwd: proj_a, state_dir: state_codex)
-  replay = codex2.write("MemorySupportLink", F.link_body(l1, r1), "k-c1")
-  codex2.close
+  c1_restarted = Support::MCPClient.new(store, host: "Claude Code", cwd: proj_a, state_dir: state_dir,
+                                        session_id: "claude-c1")
+  replay = c1_restarted.write("MemorySupportLink", F.link_body(l1, r1), "k-c1")
+  c1_restarted.close
   db = SQLite3::Database.new(store)
   rows_after_restart = db.get_first_value("SELECT COUNT(*) FROM memory_rows")
   terminal_after = db.get_first_value("SELECT COUNT(*) FROM closeouts WHERE is_terminal = 1")

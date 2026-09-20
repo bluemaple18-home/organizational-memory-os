@@ -2414,6 +2414,47 @@ personal_memory_host_binding_v1:
       baseline 或為 baseline 真子集時才可套用；互不包含或更寬都 fail closed。
       produced_binding.effective_scope 是推導後的 visibility-scope key，不是另一個
       可由 caller 自報的 employee scope mode。
+    native_session_id_source:
+      # repair-02（P1-1 / P1-2）：cwd 不是 session identity。同一個 repo 同時開
+      # 多個 Codex task / Claude session 是正常情境，以 cwd 為鍵會讓後者覆蓋前者，
+      # 舊 session 與並行 session 都可能取得錯的 identity。
+      #
+      # 因此 session state 一律以 (host, native_session_id) 為鍵；而 MCP server
+      # 必須能獨立得知「自己屬於哪個 native session」，否則只是把 cwd hack 換形式。
+      # 各 Host 的可信來源（本機實證）：
+      Claude Code:
+        mechanism: PROCESS_ENV
+        env_var: CLAUDE_CODE_SESSION_ID
+        evidence: >-
+          在 Claude Code 啟動的子程序環境中實測存在，值為 UUID；
+          hook 與 MCP server 同為其子程序，因此兩端可取得同一個 id。
+      Codex:
+        mechanism: UNAVAILABLE
+        runtime_capability: BLOCKED
+        evidence: >-
+          codex-cli 0.153.2 端到端實測（一次 codex exec，以 -c 覆寫注入探針 MCP
+          server 與 mcp_tool 型 SessionStart hook）：
+          (1) MCP server 為 per-session 單一進程，模型用的就是它；
+          (2) 該進程可見的 CODEX_* / SESSION_* / MCP_* 環境變數為空集合，
+              取不到任何 native session 身分；
+          (3) 整個 session 期間該 server 只收到 initialize、
+              notifications/initialized 與 tools/list，**沒有任何 tools/call**
+              ——mcp_tool 型 SessionStart hook 並未叫到它；
+          (4) 唯一帶 _meta 的是 tools/list，沒有任何可用來分辨
+              「hook 呼叫」與「模型呼叫」的標記。
+          這與官方文件「SessionStart 可能發生在 MCP server ready 之前，
+          且 server/tool 不可用時不會阻止 session」一致：session 照常進行，
+          bind 從未發生。因此即使把 bind tool 宣告進 tools/list 讓 hook 叫得到，
+          模型也會同時看見該 tool，而 server 無從分辨來源——authority 隔離
+          不成立。
+        decision: >-
+          **Codex 的 Personal Memory 能力一律 fail closed**
+          （MCP_NATIVE_SESSION_ID_UNAVAILABLE），不得退回 cwd 或任何代理鍵猜測，
+          也不另造第三套 session registry。等上游提供可信的 native session
+          identity channel 再重新納入。
+        scope_note: >-
+          本區塊只記錄「runtime 能力」的事實。supported_hosts_v1 是否應隨之收斂
+          屬 Owner 的產品範圍裁決，**不在此處變更**。
     host_native_stdin_fields:
       # 切片 3 repair-01：真 Host 交給 SessionStart hook 的 stdin 欄位。
       # 先前實作期待 host / native_session_id / project_ref / runtime_scope_mode，
