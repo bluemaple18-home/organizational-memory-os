@@ -8,7 +8,8 @@ parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
 discovered_via: .work/handoff/EMEM11-Q6-PART1-EVIDENCE-20260921.md §4
 target_shape: Q7 §0.3（runtime profile guard 四項，定義已收緊）
 # 與 stale-hook P1 同層，皆為 packaging 實作的前置：
-prerequisite_for: PENDING_PACKAGING_IMPLEMENTATION_CARD
+prerequisite_for: CARD-EMEM11-STANDALONE-PACKAGING-IMPLEMENTATION-20260921
+absorbed_as: Slice B
 peer_prerequisite: CARD-EMEM11-STALE-HOOK-RELOCATION-20260920
 found_in: fa0959a
 authority: organizational-memory-os
