@@ -276,7 +276,7 @@ module OMOS
 
     def mutate_json(path)
       FileUtils.mkdir_p(File.dirname(path))
-      doc = File.exist?(path) ? JSON.parse(File.read(path)) : {}
+      doc = File.exist?(path) ? JSON.parse(File.read(path, encoding: "UTF-8")) : {}
       yield doc
       File.write(path, "#{JSON.pretty_generate(doc)}\n")
     end

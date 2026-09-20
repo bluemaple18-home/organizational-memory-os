@@ -56,7 +56,7 @@ module OMOS
       path = path_for(host, session_id, home: home)
       return nil unless File.exist?(path)
 
-      record = JSON.parse(File.read(path))
+      record = JSON.parse(File.read(path, encoding: "UTF-8"))
       # 防重放：檔名由 (host, session_id) 推導，內容也必須自洽。
       return nil unless record["host"] == host && record["session_id"] == session_id
 

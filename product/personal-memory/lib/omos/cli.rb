@@ -141,7 +141,7 @@ module OMOS
       %i[kind resource key].each do |required|
         raise ArgumentError, "缺少 --#{required}" if opts[required].nil?
       end
-      resource = JSON.parse(File.read(opts[:resource]))
+      resource = JSON.parse(File.read(opts[:resource], encoding: "UTF-8"))
       with_runtime(path) do |rt|
         result = rt.write_row(kind: opts[:kind], resource: resource, idempotency_key: opts[:key],
                               supersedes_ref: opts[:supersedes], surface: surface)
@@ -162,7 +162,7 @@ module OMOS
     def cmd_closeout(path, opts, out)
       raise ArgumentError, "缺少 --file" if opts[:file].nil?
 
-      closeout = JSON.parse(File.read(opts[:file]))
+      closeout = JSON.parse(File.read(opts[:file], encoding: "UTF-8"))
       with_runtime(path) do |rt|
         result = rt.commit_closeout(closeout: closeout, surface: surface)
         out.puts "COMMITTED #{result[:review_period_id]} terminal=#{result[:terminal]}"

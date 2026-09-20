@@ -87,12 +87,12 @@ module OMOS
     # manifest，Slice B 的 runtime profile guard 會消費它，因此必須隨 artifact
     # 一起配送（也因此被納入 artifact identity）。
     PAYLOAD_ENTRIES = %w[lib exe bin vendor Gemfile Gemfile.lock .ruby-version .bundle
-                         native-dependencies.json].freeze
+                         native-dependencies.json runtime-profile.json].freeze
 
     def receipt
       return nil unless File.exist?(receipt_path)
 
-      JSON.parse(File.read(receipt_path))
+      JSON.parse(File.read(receipt_path, encoding: "UTF-8"))
     end
 
     # receipt 記錄的 {具體命令 => command_ref}，供 HostConfig 正規化與 doctor 使用。

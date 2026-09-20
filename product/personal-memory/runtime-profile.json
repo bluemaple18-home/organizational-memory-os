@@ -1,0 +1,13 @@
+{
+  "schema": "omos.personal-memory/runtime-profile/v1",
+  "note": "已 qualification 的 runtime 組合。artifact build identity 由「本檔位於該 artifact 內」隱含綁定，故不重複記錄 id（會自我引用）。probe 成功代表「這台機器跑得起來」；列在這裡才代表「我們承諾支援」——兩者不同，見 Q7 §0.3。",
+  "qualified_profiles": [
+    {
+      "host_os": "darwin25",
+      "host_cpu": "arm64",
+      "ruby_engine": "ruby",
+      "ruby_abi": "3.4.0",
+      "native_linkage_digest": "b98ef1f165311d0d23045f5ab64f646c6896e7764b32fd26cb312549e2a9fe4c"
+    }
+  ]
+}

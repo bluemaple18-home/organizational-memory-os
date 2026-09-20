@@ -335,6 +335,115 @@ Dir.mktmpdir("omos-3c-a-manifest") do |dir|
         File.file?(File.join(home, ".omos/personal-memory/current/native-dependencies.json")))
 end
 
+# --- Slice B：runtime profile guard ---
+#
+# 取代 RUBY_VERSION == "3.4.10"。Q6 Part 1 證明版本字串同時過嚴與過鬆，真正的
+# 約束是 native linkage 可解析 ＋ ABI 相容。
+Dir.mktmpdir("omos-3c-b-runtime-profile") do |dir|
+  root = OMOS::Contract::ARTIFACT_ROOT
+
+  # (0) reviewer P2：manifest 的 require 欄位必須被真正使用。
+  #     mutation proof——把某一項的 require 改成不存在的名稱，guard 必須轉紅；
+  #     不得被「該 extension 其實已被別的路徑載入」的證據掩蓋。
+  mutated = File.join(dir, "mutated-manifest.json")
+  man = JSON.parse(File.read(File.join(root, "native-dependencies.json")))
+  man["production_native_dependencies"] = man["production_native_dependencies"].map do |e|
+    e["extension"] == "bigdecimal" ? e.merge("require" => "bigdecimal_typo_does_not_exist") : e
+  end
+  File.write(mutated, JSON.generate(man))
+  probe = <<~RUBY
+    require "omos/runtime_profile"
+    OMOS::RuntimeProfile.send(:remove_instance_variable, :@manifest) rescue nil
+    OMOS::RuntimeProfile.define_singleton_method(:manifest) do
+      JSON.parse(File.read(#{mutated.dump})).fetch("production_native_dependencies")
+    end
+    begin
+      puts OMOS::RuntimeProfile.verify!
+    rescue OMOS::RuntimeProfile::Unsupported => e
+      puts e.code
+    end
+  RUBY
+  out, _err, = Open3.capture3({ "BUNDLE_GEMFILE" => File.join(root, "Gemfile") },
+                              RbConfig.ruby, "-rbundler/setup", "-I#{File.join(root, "lib")}",
+                              "-e", probe)
+  C.check("manifest 的 require 被真正使用：拼錯的 require 會讓 guard 轉紅",
+        out.strip, out.strip == "OMOS_NATIVE_REQUIRE_FAILED")
+
+  # (1) 正常情況：四項檢查全過，且回報 QUALIFIED
+  ok_out, ok_err, ok_st = Open3.capture3(
+    { "BUNDLE_GEMFILE" => File.join(root, "Gemfile") }, RbConfig.ruby, "-rbundler/setup",
+    "-I#{File.join(root, "lib")}", "-e",
+    'require "omos/runtime_profile"; puts OMOS::RuntimeProfile.verify!'
+  )
+  C.check("已 qualification 的組合回報 QUALIFIED",
+        ok_st.success? ? ok_out.strip : ok_err[0, 60], ok_out.strip == "QUALIFIED")
+
+  # (2) 宣告的 native 相依解析不到 → 當場擋下，並指出缺的是什麼
+  broken = File.join(dir, "broken-manifest.json")
+  man2 = JSON.parse(File.read(File.join(root, "native-dependencies.json")))
+  man2["production_native_dependencies"] = man2["production_native_dependencies"].map do |e|
+    e["extension"] == "bigdecimal" ? e.merge("non_system_libraries" => ["/nonexistent/libruby.3.4.dylib"]) : e
+  end
+  File.write(broken, JSON.generate(man2))
+  probe2 = <<~RUBY
+    require "omos/runtime_profile"
+    OMOS::RuntimeProfile.define_singleton_method(:manifest) do
+      JSON.parse(File.read(#{broken.dump})).fetch("production_native_dependencies")
+    end
+    begin
+      OMOS::RuntimeProfile.verify!
+      puts "NO_ERROR"
+    rescue OMOS::RuntimeProfile::Unsupported => e
+      puts "#{"#{'#'}"}{e.code}|#{"#{'#'}"}{e.detail}"
+    end
+  RUBY
+  out2, = Open3.capture3({ "BUNDLE_GEMFILE" => File.join(root, "Gemfile") },
+                         RbConfig.ruby, "-rbundler/setup", "-I#{File.join(root, "lib")}", "-e", probe2)
+  code2, detail2 = out2.strip.split("|", 2)
+  C.check("宣告的 native 相依解析不到 → guard 擋下", code2.to_s,
+        code2 == "OMOS_NATIVE_DEPENDENCY_UNRESOLVED")
+  C.check("錯誤訊息指出實際缺的是哪個函式庫（不是只說版本不符）",
+        detail2.to_s[0, 50], detail2.to_s.include?("/nonexistent/libruby.3.4.dylib"))
+
+  # (3) 能跑但未 qualified → 不擋，但必須是明確可辨識的狀態
+  unqual = File.join(dir, "unqualified-profile.json")
+  File.write(unqual, JSON.generate({ "qualified_profiles" => [{ "host_os" => "someother" }] }))
+  probe3 = <<~RUBY
+    require "omos/runtime_profile"
+    OMOS::RuntimeProfile.define_singleton_method(:qualified_profiles) do
+      JSON.parse(File.read(#{unqual.dump})).fetch("qualified_profiles")
+    end
+    status = OMOS::RuntimeProfile.assert_supported!
+    puts "status=#{"#{'#'}"}{status} env=#{"#{'#'}"}{ENV["OMOS_RUNTIME_PROFILE_STATUS"]}"
+  RUBY
+  out3, err3, st3 = Open3.capture3({ "BUNDLE_GEMFILE" => File.join(root, "Gemfile") },
+                                   RbConfig.ruby, "-rbundler/setup",
+                                   "-I#{File.join(root, "lib")}", "-e", probe3)
+  C.check("未 qualified 但能跑 → 不擋下（仍可執行）", "exit=#{st3.exitstatus}", st3.success?)
+  C.check("未 qualified 必須明確可辨識（stderr 通知 ＋ 狀態變數）",
+        out3.strip[0, 60],
+        out3.include?("status=UNQUALIFIED_RUNTIME_PROFILE") &&
+        out3.include?("env=UNQUALIFIED_RUNTIME_PROFILE") &&
+        err3.include?("UNQUALIFIED_RUNTIME_PROFILE"))
+
+  # (4) 判準不再是版本字串：ABI 目錄由 artifact 自己的 vendor 佈局推導
+  abi_dirs = Dir.children(File.join(root, "vendor/bundle/ruby"))
+  C.check("ABI 判準來自 artifact 自身內容（vendor/bundle/ruby/<ABI>）",
+        abi_dirs.inspect,
+        abi_dirs.size == 1 && abi_dirs.first == RbConfig::CONFIG["ruby_version"])
+  guard_src = File.read(File.join(root, "bin/pinned-ruby.sh"))
+  C.check("選擇器不再以 RUBY_VERSION 字串相等為判準", "",
+        !guard_src.include?('print RUBY_VERSION') &&
+        guard_src.include?('RbConfig::CONFIG["ruby_version"]'))
+
+  # (5) 完全不相容的 Ruby 仍當場失敗，不靜默改用別的
+  bad_out, bad_err, bad_st = Open3.capture3({ "OMOS_RUBY" => "/usr/bin/ruby" },
+                                            File.join(root, "exe/omos-personal-memory"), "status")
+  C.check("不相容的 Ruby 當場失敗且訊息完整（含實際 ABI 值）",
+        "exit=#{bad_st.exitstatus}",
+        !bad_st.success? && (bad_err + bad_out).include?("ABI #{RbConfig::CONFIG["ruby_version"]}"))
+end
+
 # --- Slice A repair-01 P1-1：升級失敗必須把 activation 一起回滾 ---
 #
 # 先前只還原 Host 設定：升級失敗後 current 已指向新版、舊 receipt 還被刪掉，

@@ -14,6 +14,7 @@ require "tmpdir"
 require "fileutils"
 require "open3"
 require "sqlite3"
+require "rbconfig"
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
 require "omos/version_guard"
 OMOS::VersionGuard.assert!
@@ -330,9 +331,12 @@ Dir.mktmpdir("omos-3b") do |dir|
 
   bad_out, bad_err, bad_st = Open3.capture3(clean.merge("OMOS_RUBY" => "/usr/bin/ruby"),
                                             cli_exe, "--help", unsetenv_others: true)
+  # Slice B：判準由版本字串改為 ABI 相容，訊息也必須說明**實際**的不符原因，
+  # 並帶出 artifact 需要的 ABI——只說「版本不對」對使用者沒有幫助。
   C.check("指定不合格的 OMOS_RUBY 會當場失敗，不靜默改用別的",
         "exit=#{bad_st.exitstatus}",
-        !bad_st.success? && (bad_err + bad_out).include?("不是"))
+        !bad_st.success? && (bad_err + bad_out).include?("ABI 與本 artifact 不符") &&
+        (bad_err + bad_out).include?("ABI #{RbConfig::CONFIG["ruby_version"]}"))
 
   # --- 3b 邊界：唯讀，不得有任何 Host 設定寫入路徑 ---
   src = File.read(File.expand_path("../lib/omos/host_config.rb", __dir__))
