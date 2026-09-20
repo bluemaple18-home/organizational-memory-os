@@ -26,6 +26,45 @@ authority: organizational-memory-os
   唯一例外是 Step 0 的臨時探針，它不動本產品的任何設定。
 - 驗收過程發現的產品缺陷 → 記進 evidence packet 並判 NO_GO，**不要就地改碼**。
 
+## 執行環境：隔離 HOME（Owner 裁決 2026-09-20）
+
+**不碰你正在用的設定。** 整場驗收跑在一個獨立的 HOME 底下：
+
+```
+隔離 HOME   /Users/matt/omos-acceptance-home
+```
+
+這仍然是**真的 Claude Code**（同一個 binary、真的 session id），只是設定、
+store、session state 全部落在隔離目錄，因此：
+
+- `~/.claude.json`、`~/.claude/settings.json`、`~/.codex/config.toml`
+  **完全不會被動到**，不需要備份它們；
+- 該 HOME 的 MCP 清單是乾淨的，不會有其他 server 干擾判讀；
+- 驗完直接刪掉那個目錄就還原了。
+
+### 開一個驗收用的終端機 session
+
+```sh
+export HOME=/Users/matt/omos-acceptance-home
+mkdir -p "$HOME"
+cd /Users/matt/Documents/ChatGPT/知識庫
+cc
+```
+
+**注意事項（都是實測過的）**：
+
+- **第一次會要求登入**：實測換 HOME 後會顯示 `Not logged in · Please run /login`
+  ——憑證雖在 macOS Keychain，但不會自動接上。在該 session 裡跑一次 `/login`
+  即可，這不影響你正式 HOME 的登入狀態。
+- `cc` 是你 shell 的 function。若在改了 `HOME` 之後 `cc` 行為異常，直接用
+  binary：`/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe`
+  （**不要**用 `which claude` 查到的路徑——那是每個 session 專屬的暫時 shim，
+  換個終端機就不存在了）。
+- 本卡之後所有 `~/...` 路徑，都是指**隔離 HOME 底下**的
+  `/Users/matt/omos-acceptance-home/...`。
+- 從**一般終端機**（沒 export HOME）操作本產品 CLI 時，要自己補
+  `--home /Users/matt/omos-acceptance-home`，否則會動到正式設定。
+
 ## 釘死的版本（evidence packet 必須逐項填實際值）
 
 | 項目 | 值 |
@@ -73,8 +112,9 @@ SH
 chmod +x /tmp/omos-probe/probe.sh
 ```
 
-2. 把它註冊成 user-scope MCP server，**開一個新的 Claude Code session**
-   （這個 repo 用 `cc` 啟動），等十幾秒後結束該 session。
+2. 把它註冊成隔離 HOME 的 user-scope MCP server，**開一個新的 Claude Code
+   session**（`export HOME=/Users/matt/omos-acceptance-home` 後用 `cc` 啟動，
+   首次需 `/login`），等十幾秒後結束該 session。
 3. 檢查：
 
 ```sh
@@ -96,22 +136,26 @@ cat /tmp/omos-probe/mcp-env.txt
 
 ---
 
-## Step 1｜備份正式設定（安裝會動到你正在用的檔案）
+## Step 1｜確認隔離生效（取代備份）
 
-install 會寫入**真實**的：
+因為跑在隔離 HOME，**不需要備份正式設定**。改為確認隔離真的生效——這一步
+沒做，後面所有「Codex 沒被動到」之類的斷言都會失去意義。
 
-- `~/.claude.json`（約 62 KB 的實際使用者狀態）
-- `~/.claude/settings.json`（目前 162 B，`hooks.SessionStart` 目前是 **0 組**）
+在驗收 session 裡：
 
 ```sh
-mkdir -p ~/omos-acceptance-backup-20260920
-cp ~/.claude.json ~/omos-acceptance-backup-20260920/
-cp ~/.claude/settings.json ~/omos-acceptance-backup-20260920/
-cp ~/.codex/config.toml ~/omos-acceptance-backup-20260920/ 2>/dev/null
-shasum ~/omos-acceptance-backup-20260920/*
+echo "HOME=$HOME"                 # 必須是 /Users/matt/omos-acceptance-home
+ls -a "$HOME" | head
 ```
 
-把 shasum 記進 evidence packet。**任何一步失敗就走文末的「中止與還原」。**
+同時在**另一個一般終端機**（沒有 export HOME）記錄正式設定的 hash，
+作為「全程沒被動過」的對照基準：
+
+```sh
+shasum ~/.claude.json ~/.claude/settings.json ~/.codex/config.toml 2>/dev/null
+```
+
+把這三個 hash 記進 evidence packet；**Step 9 收尾時要再跑一次，必須完全相同**。
 
 ---
 
@@ -129,11 +173,10 @@ cd /Users/matt/Documents/ChatGPT/知識庫/product/personal-memory
 ruby -rjson -e 'puts JSON.parse(File.read(File.expand_path("~/.omos/personal-memory/install-receipt.json")))["hosts"].keys.inspect'
 # 期望：["Claude Code"]
 
-# (b) Codex 設定完全沒被動過
-shasum ~/.codex/config.toml ~/omos-acceptance-backup-20260920/config.toml
-# 期望：兩行 hash 相同
+# (b) 隔離 HOME 裡根本不該出現 Codex 設定（install 不交付 blocked host）
+ls -l "$HOME/.codex/config.toml" 2>/dev/null || echo "不存在 → 正確"
 
-# (c) SessionStart hook 從 0 組變成 1 組，且是本產品的
+# (c) SessionStart hook 恰為 1 組，且是本產品的（隔離 HOME 原本 0 組）
 ruby -rjson -e 'j=JSON.parse(File.read(File.expand_path("~/.claude/settings.json"))); g=j.dig("hooks","SessionStart")||[]; puts "groups=#{g.size}"; puts g.flat_map{|x|(x["hooks"]||[]).map{|h|h["command"]}}'
 # 期望：groups=1，且 command 指向 exe/omos-personal-memory-session-start
 ```
@@ -307,9 +350,9 @@ mv ~/.omos/personal-memory/sessions ~/.omos/personal-memory/sessions.bak
 
 **7b｜拔掉 hook 後重開 session**
 
-暫時把 `~/.claude/settings.json` 的 `hooks.SessionStart` 清空，開新 session，
-呼叫 `personal_memory_read`。期望同樣 fail closed（hook 沒跑 → 沒有記錄）。
-驗完從 Step 1 的備份還原。
+暫時把**隔離 HOME 的** `$HOME/.claude/settings.json` 的 `hooks.SessionStart`
+清空，開新 session，呼叫 `personal_memory_read`。期望同樣 fail closed
+（hook 沒跑 → 沒有記錄）。驗完重跑一次 `install` 即可還原。
 
 **判定重點**：失敗必須是**明確的契約錯誤碼**，不是逾時、不是空陣列、
 更不是「照常回答但沒有資料」。任何一種 silent fallback 都是 NO_GO。
@@ -391,16 +434,27 @@ DoD 未結項；**EMEM-11 至此才正式滿足收斂後的 DoD，才可進 SSP-
 
 ## 中止與還原（任何一步出事都走這裡）
 
+因為全程在隔離 HOME，還原就是**刪掉那個目錄**：
+
 ```sh
-cd /Users/matt/Documents/ChatGPT/知識庫/product/personal-memory
-./exe/omos-personal-memory uninstall          # 預設保留 Personal Store
-cp ~/omos-acceptance-backup-20260920/.claude.json ~/.claude.json
-cp ~/omos-acceptance-backup-20260920/settings.json ~/.claude/settings.json
-shasum ~/.claude.json ~/.claude/settings.json ~/omos-acceptance-backup-20260920/*
+rm -rf /Users/matt/omos-acceptance-home
+rm -rf /tmp/omos-probe /tmp/omos-ha
 ```
 
-確認 hash 與備份一致。`uninstall` 依 install receipt 的 `hosts` 清理，所以
-只會動它自己裝過的東西；但備份還原是最後保險，不要省。
+然後確認正式設定全程未被動過——與 Step 1 記下的 hash 比對：
 
-若要連 store 一起清掉（**會刪掉 Step 4 寫進去的資料**）：
-`./exe/omos-personal-memory uninstall --remove-store`
+```sh
+shasum ~/.claude.json ~/.claude/settings.json ~/.codex/config.toml 2>/dev/null
+```
+
+三個 hash 必須與 Step 1 完全相同。**若有任何一個不同，那本身就是一個必須
+記錄的發現**（代表有路徑繞過了 HOME 隔離），要寫進 evidence packet 並判
+NO_GO，不要默默還原了事。
+
+> 想在刪掉前保留證據：先把 `/Users/matt/omos-acceptance-home/.omos/` 整個
+> 複製出來（裡面有 store、session state 與 receipt），那是 packet 的 B 段
+> 實物證據來源。
+>
+> 若只想卸載產品但保留隔離環境繼續看：
+> `./exe/omos-personal-memory uninstall --home /Users/matt/omos-acceptance-home`
+> （預設保留 Personal Store；加 `--remove-store` 會連 Step 4 寫的資料一起刪）
