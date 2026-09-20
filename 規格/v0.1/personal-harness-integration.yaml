@@ -2260,7 +2260,33 @@ personal_memory_host_binding_v1:
         session_start_config_file: "~/.codex/config.toml"
         session_start_config_format: TOML
         session_start_hooks_path: hooks.SessionStart
-        session_start_hooks_shape: ARRAY_OF_TABLES
+        session_start_hooks_shape: MATCHER_GROUP_WITH_HANDLERS
+        # 切片 3 repair-01：以下形狀取自 codex-cli 0.153.2 本機實證，
+        # 不是憑文件記憶。
+        #   `codex mcp add <name> --env K=V -- <command>` 實際寫出：
+        #       [mcp_servers."<id>"]
+        #       command = "<abs>"
+        #       [mcp_servers."<id>".env]
+        #       K = "V"
+        #     ——**沒有 transport 欄位**（stdio 由 command 判定，HTTP 才用 url）。
+        #   binary 內的 HookHandlerConfig / MatcherGroup 顯示 hook 是三層：
+        #       [[hooks.<Event>]]            MatcherGroup（matcher 可省）
+        #       [[hooks.<Event>.hooks]]      HookHandlerConfig[]
+        #       type = "command" / command / timeout / async / ...
+        #     ——**沒有 id 欄位**，也**沒有 env 欄位**。
+        #   binary 內列出的事件含 SessionStart（先前誤判為「無證據」，已更正）。
+        registration_shape:
+          mcp_entry_fields: [command, env]
+          mcp_entry_forbidden_fields: [transport]
+          hook_levels: [event_matcher_group, handler_list]
+          hook_handler_fields: [type, command, timeout]
+          hook_handler_type: command
+          hook_has_id_field: false
+          hook_supports_env: false
+          identify_own_hook_by: command
+          # hook 無法帶 env，因此 host 與 runtime scope 這兩個 authority input
+          # 只能由 installer 寫進命令列參數（設定檔本身即信任邊界）。
+          hook_authority_via: command_arguments
         # 切片 3c 實測：~/.codex/config.toml 的 36 個 [projects."<path>"]
         # section 只帶 trust_level，**沒有任何專案層 MCP 覆寫**。因此 Codex 的
         # PROJECT scope 不是 MCP 遮蔽來源；它對應的是 required_health 裡的
@@ -2302,7 +2328,20 @@ personal_memory_host_binding_v1:
         session_start_config_file: "~/.claude/settings.json"
         session_start_config_format: JSON
         session_start_hooks_path: hooks.SessionStart
-        session_start_hooks_shape: ARRAY
+        session_start_hooks_shape: MATCHER_GROUP_WITH_HANDLERS
+        # Claude Code 的 hook 同樣是三層：event → matcher group → handler[]。
+        # SessionStart 事件存在（repo 內官方 hook 事件快照有列，
+        # 來源 https://code.claude.com/docs/en/hooks）。
+        registration_shape:
+          mcp_entry_fields: [command, env]
+          mcp_entry_forbidden_fields: []
+          hook_levels: [event_matcher_group, handler_list]
+          hook_handler_fields: [type, command]
+          hook_handler_type: command
+          hook_has_id_field: false
+          hook_supports_env: false
+          identify_own_hook_by: command
+          hook_authority_via: command_arguments
         # 切片 3c 實測：Claude Code 的專案層設定確實存在於工作目錄下
         # （本機找到 3 處 .mcp.json 與 3 處 .claude/settings.json），
         # 兩者都可能以更高優先序遮蔽 user scope 的同名註冊。
@@ -2375,6 +2414,22 @@ personal_memory_host_binding_v1:
       baseline 或為 baseline 真子集時才可套用；互不包含或更寬都 fail closed。
       produced_binding.effective_scope 是推導後的 visibility-scope key，不是另一個
       可由 caller 自報的 employee scope mode。
+    host_native_stdin_fields:
+      # 切片 3 repair-01：真 Host 交給 SessionStart hook 的 stdin 欄位。
+      # 先前實作期待 host / native_session_id / project_ref / runtime_scope_mode，
+      # 那是本專案自訂的名字，真 Host 一個都不會給——因此真 Host 啟動後必然被拒。
+      - session_id
+      - cwd
+      - hook_event_name
+      - source
+    host_native_stdin_mapping:
+      native_session_id: session_id
+      cwd: cwd
+    authority_not_in_stdin:
+      # 這兩項 Host 不提供，必須由 installer 寫進註冊時的可信來源
+      # （MCP server 用 env 表，hook 用命令列參數），不得由模型或專案脈絡提供。
+      - host
+      - runtime_scope_mode
     identity_mapping_rule: >-
       produced_binding.executor_ref 必須等於所選 Host，executor_session_ref 必須
       等於 native_session_id，cwd / project_ref 則逐字綁回 bootstrap input；產生的

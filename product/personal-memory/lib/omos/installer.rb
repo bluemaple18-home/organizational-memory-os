@@ -37,10 +37,12 @@ module OMOS
 
     attr_reader :home, :product_root
 
-    def initialize(home: Dir.home, product_root: File.expand_path("../..", __dir__), store_path: nil)
+    def initialize(home: Dir.home, product_root: File.expand_path("../..", __dir__),
+                   store_path: nil, runtime_scope_mode: "EMPLOYEE_PRIVATE")
       @home = home
       @product_root = product_root
       @store_path = store_path
+      @runtime_scope_mode = runtime_scope_mode
     end
 
     def store_path = @store_path || expand(DEFAULT_STORE)
@@ -57,9 +59,7 @@ module OMOS
     # receipt 記錄的 {具體命令 => command_ref}，供 HostConfig 正規化與 doctor 使用。
     def command_map
       HostConfig.hosts.each_with_object({}) do |host, acc|
-        profile = Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles", host)
-        acc[mcp_command] = profile.dig("mcp_registration", "command_ref")
-        acc[hook_command] = profile.dig("session_start_registration", "command_ref")
+        acc.merge!(writer_for(host).command_map)
       end
     end
 
@@ -123,8 +123,18 @@ module OMOS
 
     def expand(path) = path.sub(%r{\A~(?=/)}, @home)
 
+    # installer 是唯一可信的 authority 注入點：Host 的 stdin 不會給 host 與
+    # runtime_scope_mode，模型也不得提供。MCP server 走官方的 env 表，
+    # hook 沒有 env 欄位，只能走命令列參數。
+    def trusted_env(host)
+      { "OMOS_HOST" => host,
+        "OMOS_RUNTIME_SCOPE_MODE" => @runtime_scope_mode,
+        "OMOS_PERSONAL_MEMORY_STORE" => store_path }
+    end
+
     def writer_for(host)
-      HostConfigWriter.new(host, home: @home, mcp_command: mcp_command, hook_command: hook_command)
+      HostConfigWriter.new(host, home: @home, mcp_command: mcp_command,
+                                 hook_command: hook_command, env: trusted_env(host))
     end
 
     def write_receipt(hosts, schema_version)

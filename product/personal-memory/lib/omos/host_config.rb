@@ -136,17 +136,33 @@ module OMOS
       normalize_hooks(dig_path(doc, @discovery.fetch("session_start_hooks_path")))
     end
 
-    def normalize_hooks(hooks)
-      return [] if hooks.nil?
+    # 兩個 Host 的 hook 都是三層：event → matcher group → handler[]。
+    # handler **沒有 id**，所以這裡把每個 handler 攤平，並以 command 辨識
+    # 本產品自己那一筆；辨識出來後仍以契約的 own_hook_id 呈現，讓切片 2 的
+    # 既有 evaluator 不需要任何改動。
+    def normalize_hooks(groups)
+      return [] if groups.nil?
 
-      list = hooks.is_a?(Array) ? hooks : [hooks]
-      list.each_with_index.map do |entry, index|
-        next unless entry.is_a?(Hash)
+      Array(groups).flat_map.with_index do |group, gi|
+        handlers = group.is_a?(Hash) ? Array(group["hooks"]) : []
+        handlers = [group] if handlers.empty? && group.is_a?(Hash) && group.key?("command")
+        handlers.each_with_index.map do |handler, hi|
+          next unless handler.is_a?(Hash)
 
-        { "id" => entry["id"] || entry["name"] || "unnamed-#{index}",
-          "event" => "SessionStart",
-          "command_ref" => command_ref_of(entry) }
-      end.compact
+          ref = command_ref_of(handler)
+          { "id" => hook_id_for(ref, gi, hi), "event" => "SessionStart", "command_ref" => ref }
+        end.compact
+      end
+    end
+
+    def hook_id_for(command_ref, group_index, handler_index)
+      return own_hook_id if command_ref == own_hook_command_ref
+
+      "unnamed-#{group_index}-#{handler_index}"
+    end
+
+    def own_hook_command_ref
+      @profile.dig("session_start_registration", "command_ref")
     end
 
     # 兩個 Host 的欄位名不同（Codex 用 command/args，Claude 用 command），
@@ -154,7 +170,12 @@ module OMOS
     def command_ref_of(cfg)
       cmd = cfg["command_ref"] || cfg["command"] || cfg.dig("hooks", 0, "command")
       concrete = cmd.is_a?(Array) ? cmd.join(" ") : cmd.to_s
-      @command_map.fetch(concrete, concrete)
+      return @command_map[concrete] if @command_map.key?(concrete)
+
+      # hook 的 authority input 走命令列參數，所以實際字串是「命令 + 參數」；
+      # 以最長前綴命中，避免因為多了參數就判成漂移。
+      hit = @command_map.keys.select { |k| concrete.start_with?(k) }.max_by(&:length)
+      hit ? @command_map[hit] : concrete
     end
 
     def transport_of(cfg)

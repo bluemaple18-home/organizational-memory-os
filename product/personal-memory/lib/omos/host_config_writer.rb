@@ -36,9 +36,10 @@ module OMOS
     BEGIN_MARK = "# >>> omos-personal-memory (managed block — do not edit by hand) >>>"
     END_MARK = "# <<< omos-personal-memory <<<"
 
-    def initialize(host, home:, mcp_command:, hook_command:)
+    def initialize(host, home:, mcp_command:, hook_command:, env: {})
       @host = host
       @home = home
+      @env = env
       # 安裝 receipt 記錄的對應：具體命令 → 契約 command_ref。
       @command_map = {
         mcp_command => Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles",
@@ -46,6 +47,7 @@ module OMOS
         hook_command => Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles",
                                           host, "session_start_registration", "command_ref")
       }
+      @command_map[hook_invocation] = @command_map[hook_command]
       @config = HostConfig.new(host, home: home, command_map: @command_map)
       @profile = Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles", host)
       @mcp_command = mcp_command
@@ -148,18 +150,34 @@ module OMOS
 
     # --- TOML：哨兵區塊外科式編輯 ----------------------------------------
 
+    # 形狀取自 codex-cli 0.153.2 實證（見規格 registration_shape）：
+    #   MCP entry 只有 command 與巢狀 .env 表，**沒有 transport**；
+    #   hook 是 [[hooks.<Event>]] → [[hooks.<Event>.hooks]] 兩層，
+    #   handler 帶 type/command，**沒有 id、也沒有 env**。
+    # 因此本產品的 hook 以「命令列參數」攜帶 authority input，
+    # 並以 command 字串辨識自己的註冊（不是 id）。
     def managed_block
+      env_lines = @env.map { |k, v| "#{k} = #{v.to_json}" }.join("\n")
       <<~TOML.rstrip
         #{BEGIN_MARK}
         [mcp_servers."#{@config.own_mcp_id}"]
         command = #{@mcp_command.to_json}
-        transport = "STDIO"
+
+        [mcp_servers."#{@config.own_mcp_id}".env]
+        #{env_lines}
 
         [[hooks.SessionStart]]
-        id = #{@config.own_hook_id.to_json}
-        command = #{@hook_command.to_json}
+
+        [[hooks.SessionStart.hooks]]
+        type = "command"
+        command = #{hook_invocation.to_json}
         #{END_MARK}
       TOML
+    end
+
+    # hook 無法帶 env，authority input 只能進命令列。設定檔本身就是信任邊界。
+    def hook_invocation
+      "#{@hook_command} --host #{@host.inspect} --runtime-scope-mode #{@env.fetch("OMOS_RUNTIME_SCOPE_MODE")}"
     end
 
     def write_block(path, format, block)
@@ -214,14 +232,22 @@ module OMOS
         if remove
           entries.delete(@config.own_mcp_id)
         else
-          entries[@config.own_mcp_id] = { "command" => @mcp_command, "transport" => "STDIO" }
+          entries[@config.own_mcp_id] = { "command" => @mcp_command, "env" => @env }
         end
       end
       mutate_json(hook_path) do |doc|
-        list = ((doc["hooks"] ||= {})["SessionStart"] ||= [])
-        list.reject! { |h| h.is_a?(Hash) && h["id"] == @config.own_hook_id }
-        list << { "id" => @config.own_hook_id, "command" => @hook_command } unless remove
+        # Claude Code 同樣是三層：event → matcher group → handler[]。
+        # 自己的 group 以「handler 的 command」辨識，不是 id。
+        groups = ((doc["hooks"] ||= {})["SessionStart"] ||= [])
+        groups.reject! { |g| own_group?(g) }
+        groups << { "hooks" => [{ "type" => "command", "command" => hook_invocation }] } unless remove
       end
+    end
+
+    def own_group?(group)
+      return false unless group.is_a?(Hash)
+
+      Array(group["hooks"]).any? { |h| h.is_a?(Hash) && h["command"].to_s.start_with?(@hook_command) }
     end
 
     def mutate_json(path)

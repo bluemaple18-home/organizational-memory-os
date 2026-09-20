@@ -41,6 +41,11 @@ module OMOS
       }
     end
 
+    # project_ref 由 cwd 決定，不接受模型或呼叫端提供——這是 authority 的一部分。
+    def self.project_ref_for(cwd)
+      "urn:omos:project:#{File.basename(File.expand_path(cwd))}"
+    end
+
     # host           Host 名稱（必須是 supported_hosts_v1 之一）
     # native_session_id / cwd  Host 原生輸入
     # project_ref / project_visibility_scope  專案脈絡（可選 scope）

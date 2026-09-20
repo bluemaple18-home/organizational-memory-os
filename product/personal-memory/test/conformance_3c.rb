@@ -77,6 +77,23 @@ Dir.mktmpdir("omos-3c-a") do |dir|
         JSON.parse(after[:claude])["mcpServers"].keys == ["relay"])
   C.check("uninstall 預設保留 Personal Store", "", File.exist?(store))
 
+  # --- Host 端驗證：用真的 codex CLI 讀我們寫出的設定 ---
+  #
+  # 這一項回答 review 的核心質疑：post-write 複驗只能證明「我讀得回我寫的」，
+  # 不能證明 Host 接受。這裡把假 HOME 交給實際安裝的 codex CLI 去解析。
+  if system("command -v codex >/dev/null 2>&1")
+    OMOS::Installer.new(home: home, store_path: store).install
+    out, _err, st = Open3.capture3({ "HOME" => home }, "codex", "mcp", "get", "omos.personal-memory")
+    parsed = out.include?("transport: stdio") && out.include?("omos-personal-memory-mcp")
+    C.check("真的 codex CLI 解析我們寫出的 MCP 註冊", st.success? ? out.lines.grep(/transport/).first.to_s.strip : "失敗",
+            st.success? && parsed)
+    C.check("codex 自行判定 transport（我們不寫該欄位）", "",
+            !File.read(File.join(home, ".codex/config.toml")).include?("transport ="))
+    OMOS::Installer.new(home: home, store_path: store).uninstall
+  else
+    C.check("真的 codex CLI 解析我們寫出的 MCP 註冊", "本機無 codex CLI，略過", true)
+  end
+
   # 中途失敗必須完全復原
   pre_fail = Support::FakeHome.read_all(home)
   code = begin
@@ -175,17 +192,19 @@ Dir.mktmpdir("omos-3c-c") do |dir|
   FileUtils.mkdir_p(proj_a)
   FileUtils.mkdir_p(proj_b)
 
-  codex_binding = OMOS::SessionStart.produce(
-    host: "Codex", native_session_id: "codex-1", cwd: proj_a,
-    project_ref: "urn:omos:project:a", runtime_scope_mode: "EMPLOYEE_PRIVATE"
-  )
-  claude_binding = OMOS::SessionStart.produce(
-    host: "Claude Code", native_session_id: "claude-1", cwd: proj_a,
-    project_ref: "urn:omos:project:a", runtime_scope_mode: "EMPLOYEE_PRIVATE"
-  )
+  # 兩個 Host 各自跑真的 SessionStart hook（真 stdin 形狀）落地 session 事實；
+  # 測試不捏造 binding——MCP server 自己從 env + session 記錄建構。
+  state_codex = File.join(dir, "state-codex")
+  state_claude = File.join(dir, "state-claude")
+  _o1, _e1, st1 = Support.run_session_start(host: "Codex", session_id: "codex-1",
+                                            cwd: proj_a, state_dir: state_codex)
+  _o2, _e2, st2 = Support.run_session_start(host: "Claude Code", session_id: "claude-1",
+                                            cwd: proj_a, state_dir: state_claude)
+  C.check("兩個 Host 的 SessionStart hook 都成功", "#{st1.exitstatus}/#{st2.exitstatus}",
+          st1.success? && st2.success?)
 
-  codex = Support::MCPClient.new(store, binding: codex_binding)
-  claude = Support::MCPClient.new(store, binding: claude_binding)
+  codex = Support::MCPClient.new(store, host: "Codex", cwd: proj_a, state_dir: state_codex)
+  claude = Support::MCPClient.new(store, host: "Claude Code", cwd: proj_a, state_dir: state_claude)
 
   l1 = "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000c1"
   r1 = "urn:omos:personal-memory:record:01900000-0000-7000-8000-0000000000c2"
@@ -254,7 +273,7 @@ Dir.mktmpdir("omos-3c-c") do |dir|
   terminal_before = db.get_first_value("SELECT COUNT(*) FROM closeouts WHERE is_terminal = 1")
   db.close
 
-  codex2 = Support::MCPClient.new(store, binding: codex_binding)
+  codex2 = Support::MCPClient.new(store, host: "Codex", cwd: proj_a, state_dir: state_codex)
   replay = codex2.write("MemorySupportLink", F.link_body(l1, r1), "k-c1")
   codex2.close
   db = SQLite3::Database.new(store)

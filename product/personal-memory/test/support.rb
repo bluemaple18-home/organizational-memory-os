@@ -111,22 +111,42 @@ module Support
 
   # --- 真的 MCP stdio 子進程（一個實例＝一個進程）-----------------------
 
+  # 真的跑 SessionStart hook executable，餵真 Host 的 stdin 形狀。
+  # 測試不自己捏造 binding——binding 只能由 hook 落地、由 server 讀回。
+  HOOK_EXE = File.expand_path("../exe/omos-personal-memory-session-start", __dir__)
+
+  module_function
+
+  def run_session_start(host:, session_id:, cwd:, state_dir:, scope_mode: "EMPLOYEE_PRIVATE",
+                        source: "startup")
+    payload = JSON.generate({ "session_id" => session_id, "cwd" => cwd,
+                              "hook_event_name" => "SessionStart", "source" => source })
+    out, err, st = Open3.capture3({ "OMOS_SESSION_STATE_DIR" => state_dir },
+                                  HOOK_EXE, "--host", host, "--runtime-scope-mode", scope_mode,
+                                  stdin_data: payload)
+    [out, err, st]
+  end
+
   class MCPClient
     EXE = File.expand_path("../exe/omos-personal-memory-mcp", __dir__)
 
-    attr_reader :binding
-
-    def initialize(store, binding: nil, handshake: true)
-      @binding = binding
-      @in, @out, @err, @wait = Open3.popen3({ "OMOS_PERSONAL_MEMORY_STORE" => store }, EXE)
+    def initialize(store, host: nil, cwd: nil, state_dir: nil,
+                   scope_mode: "EMPLOYEE_PRIVATE", handshake: true)
+      env = { "OMOS_PERSONAL_MEMORY_STORE" => store }
+      # installer 會把這兩個寫進 MCP 註冊的 env 表；測試照做。
+      env["OMOS_HOST"] = host if host
+      env["OMOS_RUNTIME_SCOPE_MODE"] = scope_mode if host
+      env["OMOS_SESSION_STATE_DIR"] = state_dir if state_dir
+      @host = host
+      opts = cwd ? { chdir: cwd } : {}
+      @in, @out, @err, @wait = Open3.popen3(env, EXE, **opts)
       @id = 0
       initialize! if handshake
     end
 
     def initialize!
-      name = @binding ? @binding["executor_ref"] : "conformance"
       rpc("initialize", { "protocolVersion" => "2024-11-05", "capabilities" => {},
-                          "clientInfo" => { "name" => name, "version" => "0" } })
+                          "clientInfo" => { "name" => @host || "conformance", "version" => "0" } })
       notify("notifications/initialized")
     end
 
@@ -147,7 +167,6 @@ module Support
 
     # 回傳 [原始 response, 解析後的 tool 內容]
     def call_tool(name, args)
-      args = args.merge("host_session_binding" => @binding) if @binding
       res = rpc("tools/call", { "name" => name, "arguments" => args })
       text = res&.dig("result", "content", 0, "text")
       [res, text && (begin

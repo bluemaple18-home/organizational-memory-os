@@ -47,8 +47,24 @@ Dir.mktmpdir("omos-3b") do |dir|
   end
   C.check("專案不得擴權", widened, widened == "HBV1_PROJECT_SCOPE_WIDENS_BASELINE")
 
-  # --- 真的 spawn MCP server，走真的 stdio JSON-RPC ---
-  client = Support::MCPClient.new(store, handshake: false)
+  # --- 真的跑 SessionStart hook（真 Host 的 stdin 形狀），再 spawn MCP server ---
+  state_dir = File.join(dir, "state")
+  proj = File.join(dir, "projA")
+  FileUtils.mkdir_p(proj)
+  hook_out, _hook_err, hook_st = Support.run_session_start(
+    host: "Codex", session_id: "codex-session-3b", cwd: proj, state_dir: state_dir
+  )
+  C.check("SessionStart hook 吃真 Host stdin 並成功", "exit=#{hook_st.exitstatus}",
+          hook_st.success? && hook_out.include?("hookSpecificOutput"))
+
+  no_sid_out, no_sid_err, no_sid_st = Support.run_session_start(
+    host: "Codex", session_id: "", cwd: proj, state_dir: state_dir
+  )
+  C.check("stdin 缺 session_id 時 hook 明確拒絕", (no_sid_err + no_sid_out).strip[0, 40],
+          !no_sid_st.success? && (no_sid_err + no_sid_out).include?("MISSING_HOST_SESSION_ID"))
+
+  client = Support::MCPClient.new(store, host: "Codex", cwd: proj, state_dir: state_dir,
+                                  handshake: false)
   init = client.rpc("initialize", { "protocolVersion" => "2024-11-05",
                                         "capabilities" => {},
                                         "clientInfo" => { "name" => "conformance", "version" => "0" } })
@@ -61,19 +77,14 @@ Dir.mktmpdir("omos-3b") do |dir|
   C.check("tools/list 暴露三個 tool", names.inspect,
         names == %w[personal_memory_closeout personal_memory_read personal_memory_write])
 
-  # 缺 binding 必須明確失敗。tool schema 會先擋下來（更早的拒絕，合格），
-  # 但真正的保證在 Runtime，所以另外直接驗 Runtime 那一層。
-  res_missing, missing = client.call_tool("personal_memory_write",
-                                          { "kind" => "MemorySupportLink", "resource" => F.link_body(L1, R1),
-                                            "idempotency_key" => "k-l1" })
-  protocol_refused = !res_missing.nil? &&
-                     (!res_missing["error"].nil? || missing.to_s.include?("Missing required arguments"))
-  C.check("MCP 呼叫缺 host_session_binding 被 tool schema 擋下",
-        missing.to_s[0, 50], protocol_refused)
+  # binding 不再是 tool 參數——模型連提供的欄位都沒有。
+  write_schema = (tools&.dig("result", "tools") || []).find { |t| t["name"] == "personal_memory_write" }
+  schema_props = (write_schema&.dig("inputSchema", "properties") || {}).keys.sort
+  C.check("tool schema 不含 host_session_binding（模型無從提供）", schema_props.inspect,
+          !schema_props.include?("host_session_binding"))
 
-  # 帶 binding 的合法寫入
   _, wrote = client.call_tool("personal_memory_write",
-                              { "host_session_binding" => binding, "kind" => "MemorySupportLink",
+                              { "kind" => "MemorySupportLink",
                                 "resource" => F.link_body(L1, R1), "idempotency_key" => "k-l1" })
   C.check("MCP 合法寫入", wrote.is_a?(Hash) ? wrote["status"] : wrote.to_s,
         wrote.is_a?(Hash) && wrote["status"] == "WROTE")
@@ -82,23 +93,34 @@ Dir.mktmpdir("omos-3b") do |dir|
   bad = F.link_body("urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b9", R1)
   bad["anchor_resolution"] = "AMBIGUOUS"
   _, refused = client.call_tool("personal_memory_write",
-                                { "host_session_binding" => binding, "kind" => "MemorySupportLink",
+                                { "kind" => "MemorySupportLink",
                                   "resource" => bad, "idempotency_key" => "k-bad" })
   C.check("MCP 寫入被既有治理 evaluator 拒絕",
         refused.is_a?(Hash) ? refused["code"] : refused.to_s,
         refused.is_a?(Hash) && refused["code"] == "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT")
 
-  # 偽造 binding（塞第二套身分欄位）
-  shadow = binding.merge("host" => "Codex")
-  _, shadowed = client.call_tool("personal_memory_read", { "host_session_binding" => shadow })
-  C.check("MCP 帶第二套身分欄位的 binding 被拒",
-        shadowed.is_a?(Hash) ? shadowed["code"] : shadowed.to_s,
-        shadowed.is_a?(Hash) && shadowed["code"] == "PMR_HOST_BINDING_SHADOW_IDENTITY_FIELD")
+  # 模型即使硬塞 binding 參數也無效：schema 未宣告，server 一律用自己建構的。
+  _, ignored = client.call_tool("personal_memory_read",
+                                { "host_session_binding" => { "executor_ref" => "Hermes",
+                                                              "executor_session_ref" => "forged" } })
+  C.check("模型硬塞的 binding 參數被忽略（server 用自己建構的）",
+          ignored.is_a?(Array) ? "以 server binding 正常回應" : ignored.to_s,
+          ignored.is_a?(Array))
 
-  _, rows = client.call_tool("personal_memory_read", { "host_session_binding" => binding })
+  _, rows = client.call_tool("personal_memory_read", {})
   C.check("MCP 讀回", rows.is_a?(Array) ? rows.size : rows.to_s, rows.is_a?(Array) && rows.size == 1)
 
   client.close
+
+  # 沒有 session 記錄的 cwd：server 建不出 binding，必須 fail closed。
+  other = File.join(dir, "no-session")
+  FileUtils.mkdir_p(other)
+  lone = Support::MCPClient.new(store, host: "Codex", cwd: other, state_dir: state_dir)
+  lone_res = lone.read
+  lone.close
+  C.check("無 SessionStart 記錄的 cwd 一律 fail closed",
+          lone_res.is_a?(Hash) ? lone_res["code"] : lone_res.to_s,
+          lone_res.is_a?(Hash) && lone_res["code"] == "MCP_NO_SESSION_RECORD_FOR_CWD")
 
   # Runtime 層的保證（不依賴 tool schema）：MCP surface 少了 binding 必須以
   # 契約錯誤碼拒絕。
@@ -133,35 +155,39 @@ Dir.mktmpdir("omos-3b") do |dir|
   fake_home = File.join(dir, "home")
   FileUtils.mkdir_p(File.join(fake_home, ".codex"))
   FileUtils.mkdir_p(File.join(fake_home, ".claude"))
+  # Host 原生形狀：hook 是 event → matcher group → handler[]，handler 無 id。
   File.write(File.join(fake_home, ".codex/config.toml"), <<~TOML)
     [mcp_servers.foreign-tool]
     command = "foreign"
+
     [[hooks.SessionStart]]
-    id = "foreign.bootstrap"
+
+    [[hooks.SessionStart.hooks]]
+    type = "command"
     command = "foreign-boot"
   TOML
   File.write(File.join(fake_home, ".claude.json"),
              JSON.generate({ "mcpServers" => { "foreign-tool" => { "command" => "foreign" } } }))
   File.write(File.join(fake_home, ".claude/settings.json"),
-             JSON.generate({ "hooks" => { "SessionStart" => [{ "id" => "foreign.bootstrap",
-                                                               "command" => "foreign-boot" }] } }))
+             JSON.generate({ "hooks" => { "SessionStart" =>
+                             [{ "hooks" => [{ "type" => "command", "command" => "foreign-boot" }] }] } }))
 
   codex = OMOS::HostConfig.new("Codex", home: fake_home)
   snap = codex.snapshot
   C.check("Codex 設定探索讀到實際 TOML 的 mcp_servers", snap["mcp_entries"].keys.inspect,
         snap["mcp_entries"].keys == ["foreign-tool"])
-  C.check("Codex 設定探索讀到 [[hooks.SessionStart]]",
-        snap["session_start_hooks"].map { |h| h["id"] }.inspect,
-        snap["session_start_hooks"].map { |h| h["id"] } == ["foreign.bootstrap"])
+  C.check("Codex 設定探索讀到三層 [[hooks.SessionStart.hooks]]",
+        snap["session_start_hooks"].map { |h| h["command_ref"] }.inspect,
+        snap["session_start_hooks"].map { |h| h["command_ref"] } == ["foreign-boot"])
   C.check("未安裝時既有 evaluator 回報 MCP 缺漏", codex.own_registration_problem.to_s,
         codex.own_registration_problem == "HBV1_EFFECTIVE_MCP_MISSING_OR_DRIFTED")
 
   claude = OMOS::HostConfig.new("Claude Code", home: fake_home)
   csnap = claude.snapshot
   C.check("Claude Code 的 MCP 與 hook 在不同檔案，兩者都讀到",
-        "#{csnap["mcp_entries"].keys.inspect} / #{csnap["session_start_hooks"].map { |h| h["id"] }.inspect}",
+        "#{csnap["mcp_entries"].keys.inspect} / #{csnap["session_start_hooks"].map { |h| h["command_ref"] }.inspect}",
         csnap["mcp_entries"].keys == ["foreign-tool"] &&
-        csnap["session_start_hooks"].map { |h| h["id"] } == ["foreign.bootstrap"])
+        csnap["session_start_hooks"].map { |h| h["command_ref"] } == ["foreign-boot"])
 
   # 設定壞掉要明確失敗，不得 silent fallback 成「沒有註冊」
   File.write(File.join(fake_home, ".claude.json"), "{ this is not json")
