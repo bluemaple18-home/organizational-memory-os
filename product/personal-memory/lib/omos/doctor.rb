@@ -34,6 +34,7 @@ module OMOS
     def initialize(home: Dir.home, product_root: File.expand_path("../..", __dir__),
                    store_path: nil, cwd: Dir.pwd)
       @installer = Installer.new(home: home, product_root: product_root, store_path: store_path)
+      @product_root = product_root
       @home = home
       @cwd = cwd
     end
@@ -125,8 +126,19 @@ module OMOS
 
     # --- PROCESS_OK 群：真的把 executable 叫起來 -------------------------
 
+    # 「程序叫得起來」必須是與「設定存在」「store 可用」**獨立**的結果，
+    # 因此未安裝時也要能驗——這時固定 launcher 還不存在（它是安裝產物），
+    # 改探產品原始目錄裡的 exe。已安裝時則探 launcher，因為那才是 Host
+    # 實際會叫的東西。
+    def probe_mcp_command
+      launcher = @installer.mcp_command
+      return launcher if File.executable?(launcher)
+
+      File.join(@product_root, "exe/omos-personal-memory-mcp")
+    end
+
     def process_checks
-      cmd = @installer.mcp_command
+      cmd = probe_mcp_command
       return [bad("mcp_executable", "不存在或不可執行：#{cmd}")] unless File.executable?(cmd)
 
       [ok("mcp_executable", cmd), mcp_handshake_check(cmd)]
@@ -281,7 +293,7 @@ module OMOS
       data = @installer.receipt
       return bad("uninstall_metadata", "找不到安裝 receipt：#{@installer.receipt_path}") if data.nil?
 
-      required = %w[installed_at product_root store_path commands hosts]
+      required = %w[installed_at artifact_id build_source_root store_path commands hosts]
       missing = required.reject { |k| data.key?(k) }
       return bad("uninstall_metadata", "receipt 缺欄位：#{missing.inspect}") unless missing.empty?
 

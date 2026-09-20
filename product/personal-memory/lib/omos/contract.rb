@@ -6,9 +6,17 @@
 # 已經過三輪 review 的治理 evaluator**，不在產品端新寫第二套治理邏輯，也不做
 # 跨語言橋接。
 #
-# 注意：這裡載入的 spec 路徑目前指向 repo 內的 規格/v0.1/。把 spec 與共用
-# evaluator 一起打包進可安裝的產物，是 3c installer 的交付項，尚未完成
-# （NOT_IMPLEMENTED），在此明記以免日後誤以為已處理。
+# 治理檔（2 份 spec ＋ 7 支共用 evaluator）的來源解析（Slice A）：
+#
+#   1. artifact 自己帶的 governance/ ——**已安裝的 artifact 走這條**。
+#      只要該目錄存在，就**只**用它；缺檔或壞檔一律 fail closed，
+#      **不得**回頭去找 repo。否則一份壞掉的 package 會靜默退化成
+#      「用 repo 的治理跑起來」，那正是最危險的假成功。
+#   2. repo 內的原始位置 —— 只有在 governance/ **完全不存在**時才使用，
+#      也就是直接從 repo checkout 執行的開發／測試情境。
+#
+# 這不是「讓使用者指定契約來源」（研究卡已否決該方向）：路徑不可由環境變數
+# 或設定檔指定，只有「artifact 內」與「repo 內」兩個固定位置。
 
 require "yaml"
 require "json"
@@ -16,12 +24,37 @@ require "set"
 
 module OMOS
   module Contract
-    REPO_ROOT = File.expand_path("../../../..", __dir__)
-    SHARED_LIB = File.join(REPO_ROOT, "scripts/lib")
-    SPEC_PATH = File.join(REPO_ROOT, "規格/v0.1/personal-harness-integration.yaml")
-    VOCAB_PATH = File.join(REPO_ROOT, "規格/v0.1/common-vocabulary.yaml")
+    class GovernanceSourceError < StandardError; end
 
-    # 共用 evaluator：一律從既有位置載入，不複製到產品目錄。
+    # artifact 根目錄：安裝後是 versions/<artifact-id>，開發時是
+    # product/personal-memory。
+    ARTIFACT_ROOT = File.expand_path("../..", __dir__)
+    GOVERNANCE_DIR = File.join(ARTIFACT_ROOT, "governance")
+    REPO_ROOT = File.expand_path("../../../..", __dir__)
+
+    # artifact 內與 repo 內採**相同的相對結構**，materialize 是直接複製，
+    # Slice C 的 drift gate 也因此只需逐路徑比對。
+    GOVERNANCE_ROOT = Dir.exist?(GOVERNANCE_DIR) ? GOVERNANCE_DIR : REPO_ROOT
+    ARTIFACT_LOCAL_GOVERNANCE = (GOVERNANCE_ROOT == GOVERNANCE_DIR)
+
+    SHARED_LIB = File.join(GOVERNANCE_ROOT, "scripts/lib")
+    SPEC_PATH = File.join(GOVERNANCE_ROOT, "規格/v0.1/personal-harness-integration.yaml")
+    VOCAB_PATH = File.join(GOVERNANCE_ROOT, "規格/v0.1/common-vocabulary.yaml")
+
+    # artifact 自帶治理檔時，缺任何一個都必須當場失敗——不回退、不猜。
+    if ARTIFACT_LOCAL_GOVERNANCE
+      %w[omos_contract_helpers host_session_binding_shape personal_memory_resource_evaluator
+         weekly_closeout_history minimal_evidence_package_shape runtime_log_oracle
+         personal_memory_host_binding].each do |lib|
+        path = File.join(SHARED_LIB, "#{lib}.rb")
+        raise GovernanceSourceError, "PACKAGED_GOVERNANCE_MISSING: #{path}" unless File.file?(path)
+      end
+      [SPEC_PATH, VOCAB_PATH].each do |path|
+        raise GovernanceSourceError, "PACKAGED_GOVERNANCE_MISSING: #{path}" unless File.file?(path)
+      end
+    end
+
+    # 共用 evaluator：從上面解析出的單一來源載入，產品端不新寫第二套。
     require File.join(SHARED_LIB, "omos_contract_helpers")
     require File.join(SHARED_LIB, "host_session_binding_shape")
     require File.join(SHARED_LIB, "personal_memory_resource_evaluator")

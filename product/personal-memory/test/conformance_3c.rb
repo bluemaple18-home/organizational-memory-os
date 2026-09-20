@@ -18,9 +18,11 @@ require "tmpdir"
 require "fileutils"
 require "open3"
 require "sqlite3"
+require "digest"
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
 require "omos/version_guard"
 OMOS::VersionGuard.assert!
+require "omos/artifact"
 require "omos/installer"
 require "omos/doctor"
 require "omos/session_start"
@@ -174,6 +176,171 @@ Dir.mktmpdir("omos-3c-a-hook-identity") do |dir|
         doctor_with_collision.status == "WARN" && doctor_with_collision.detail.include?("已依官方 schema 寫入"))
 end
 
+# --- Slice A：activation substrate（固定 launcher → current → versions/<id>）---
+#
+# Q7 §0.1 凍結的三層分離。這一組驗的是：Host 只認固定 launcher、artifact 由
+# 內容識別、原本的 stale-hook 缺陷歸零、舊形狀安裝可被遷移、證據不足時不猜。
+Dir.mktmpdir("omos-3c-a-activation") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "p.db")
+  settings = File.join(home, ".claude/settings.json")
+  omos = File.join(home, ".omos/personal-memory")
+  hooks = lambda do
+    (JSON.parse(File.read(settings)).dig("hooks", "SessionStart") || [])
+      .flat_map { |g| Array(g["hooks"]).map { |h| h["command"] } }
+  end
+
+  inst = OMOS::Installer.new(home: home, store_path: store)
+  first = inst.install
+
+  C.check("Host 只寫固定 launcher，且不含任何版本字樣",
+        hooks.call.first.to_s.sub(home, "~"),
+        hooks.call.size == 1 &&
+        hooks.call.first.start_with?(File.join(omos, "bin/omos-personal-memory-session-start")) &&
+        !hooks.call.first.include?("versions/"))
+
+  C.check("hook 的 argv authority 注入未被 launcher 吃掉", "",
+        hooks.call.first.include?("--host \"Claude Code\"") &&
+        hooks.call.first.include?("--runtime-scope-mode EMPLOYEE_PRIVATE"))
+
+  C.check("current 是 symlink 且指向 versions/<artifact-id>",
+        File.readlink(File.join(omos, "current")).sub(home, "~"),
+        File.symlink?(File.join(omos, "current")) &&
+        File.readlink(File.join(omos, "current")) == File.join(omos, "versions", first[:artifact_id]))
+
+  C.check("artifact 自帶 2 份 spec ＋ 7 支 evaluator（materialize）",
+        "#{Dir.glob(File.join(omos, "current/governance/規格/v0.1/*.yaml")).size} spec / " \
+        "#{Dir.glob(File.join(omos, "current/governance/scripts/lib/*.rb")).size} evaluator",
+        Dir.glob(File.join(omos, "current/governance/規格/v0.1/*.yaml")).size == 2 &&
+        Dir.glob(File.join(omos, "current/governance/scripts/lib/*.rb")).size == 7)
+
+  # materialize 必須 byte-identical，否則 artifact 與 repo 判定依據會不同
+  drifted = OMOS::Installer::GOVERNANCE_FILES.reject do |rel|
+    Digest::SHA256.file(File.join(OMOS::Contract::REPO_ROOT, rel)).hexdigest ==
+      Digest::SHA256.file(File.join(omos, "current/governance", rel)).hexdigest
+  end
+  C.check("materialize 的 9 個治理檔與 repo 原件 byte-identical", drifted.inspect, drifted.empty?)
+
+  # 透過固定 launcher 實際執行——證明 artifact 離開 repo 也跑得起來
+  state_dir = File.join(dir, "state")
+  payload = JSON.generate({ "session_id" => "slice-a-1", "cwd" => dir,
+                            "hook_event_name" => "SessionStart", "source" => "startup" })
+  lout, lerr, lst = Open3.capture3({ "OMOS_SESSION_STATE_DIR" => state_dir },
+                                   File.join(omos, "bin/omos-personal-memory-session-start"),
+                                   "--host", "Claude Code",
+                                   "--runtime-scope-mode", "EMPLOYEE_PRIVATE", stdin_data: payload)
+  C.check("固定 launcher 可實際執行，且 artifact 用自己的治理檔",
+        lst.success? ? "exit=0" : (lerr + lout)[0, 60],
+        lst.success? && lout.include?("hookSpecificOutput") &&
+        Dir.glob(File.join(state_dir, "*.json")).size == 1)
+
+  # --- artifact identity 的 deterministic semantics（reviewer P2）---
+  Dir.mktmpdir("omos-ident") do |idd|
+    mk = lambda do |root|
+      FileUtils.mkdir_p(File.join(root, "lib"))
+      File.write(File.join(root, "lib/a.rb"), "puts 1\n")
+      File.write(File.join(root, "top.txt"), "x\n")
+    end
+    a = File.join(idd, "a")
+    b = File.join(idd, "b-different-path")
+    mk.call(a)
+    mk.call(b)
+    id_a = OMOS::Artifact.identity(a)
+    C.check("identity：同內容不同安裝位置 → 同一個 id", id_a[0, 12], id_a == OMOS::Artifact.identity(b))
+    FileUtils.touch(File.join(a, "lib/a.rb"), mtime: Time.now - 86_400)
+    C.check("identity：mtime 改變不影響 id", "", id_a == OMOS::Artifact.identity(a))
+    File.write(File.join(b, "lib/a.rb"), "puts 99\n")
+    C.check("identity：payload 改變 → id 改變", "", id_a != OMOS::Artifact.identity(b))
+  end
+  C.check("identity：receipt 等 activation metadata 不影響 id（安裝後重算相同）",
+        "", OMOS::Artifact.identity(File.join(omos, "versions", first[:artifact_id])) == first[:artifact_id])
+
+  # --- 原 stale-hook 缺陷：換 product_root 後仍只有一組註冊 ---
+  relocated = File.join(dir, "relocated-product")
+  FileUtils.mkdir_p(relocated)
+  OMOS::Installer::PAYLOAD_ENTRIES.each do |entry|
+    src = File.join(OMOS::Contract::ARTIFACT_ROOT, entry)
+    File.symlink(src, File.join(relocated, entry)) if File.exist?(src)
+  end
+  second = OMOS::Installer.new(home: home, product_root: relocated, store_path: store).upgrade
+  C.check("換 product_root 升級後，Host 內仍只有一組註冊（原 stale-hook 歸零）",
+        "#{hooks.call.size} 組", hooks.call.size == 1)
+  C.check("同一份 payload → 同一個 artifact_id（install 具 idempotency）",
+        second[:artifact_id] == first[:artifact_id] ? "相同" : "不同",
+        second[:artifact_id] == first[:artifact_id])
+
+  OMOS::Installer.new(home: home, product_root: relocated, store_path: store).uninstall
+  C.check("uninstall 後 Host 零殘留", "#{hooks.call.size} 組", hooks.call.empty?)
+  C.check("uninstall 清掉 launcher／current／versions，但保留 Personal Store", "",
+        !File.exist?(File.join(omos, "current")) &&
+        !Dir.exist?(File.join(omos, "versions")) &&
+        !File.exist?(File.join(omos, "bin/omos-personal-memory-mcp")) &&
+        File.exist?(store))
+end
+
+# --- Slice A：舊形狀（pre-launcher）安裝的遷移 ---
+Dir.mktmpdir("omos-3c-a-migration") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "p.db")
+  settings = File.join(home, ".claude/settings.json")
+  product = OMOS::Contract::ARTIFACT_ROOT
+  legacy_hook = "#{product}/exe/omos-personal-memory-session-start " \
+                "--host \"Claude Code\" --runtime-scope-mode EMPLOYEE_PRIVATE"
+  hooks = lambda do
+    (JSON.parse(File.read(settings)).dig("hooks", "SessionStart") || [])
+      .flat_map { |g| Array(g["hooks"]).map { |h| h["command"] } }
+  end
+
+  # 手工重建舊形狀：Host 直接指向 repo 內 exe/，receipt 記著那兩條命令
+  File.write(settings, "#{JSON.pretty_generate({ "hooks" => { "SessionStart" =>
+    [{ "hooks" => [{ "type" => "command", "command" => legacy_hook }] }] } })}\n")
+  claude_json = JSON.parse(File.read(File.join(home, ".claude.json")))
+  claude_json["mcpServers"] = (claude_json["mcpServers"] || {}).merge(
+    "omos.personal-memory" => { "command" => "#{product}/exe/omos-personal-memory-mcp", "env" => {} }
+  )
+  File.write(File.join(home, ".claude.json"), "#{JSON.pretty_generate(claude_json)}\n")
+  FileUtils.mkdir_p(File.join(home, ".omos/personal-memory"))
+  File.write(File.join(home, ".omos/personal-memory/install-receipt.json"),
+             "#{JSON.pretty_generate({ "product_root" => product, "hosts" => { "Claude Code" => {} },
+                                       "commands" => {
+                                         "OMOS_PERSONAL_MEMORY_MCP" => "#{product}/exe/omos-personal-memory-mcp",
+                                         "OMOS_PERSONAL_MEMORY_SESSION_START" => legacy_hook
+                                       } })}\n")
+
+  OMOS::Installer.new(home: home, store_path: store).install
+  migrated = hooks.call
+  C.check("舊形狀安裝被遷移成 launcher 形狀，且不留舊註冊",
+        "#{migrated.size} 組", migrated.size == 1 && !migrated.first.include?("#{product}/exe/"))
+  C.check("遷移後 MCP 也指向固定 launcher", "",
+        JSON.parse(File.read(File.join(home, ".claude.json")))
+            .dig("mcpServers", "omos.personal-memory", "command")
+            .start_with?(File.join(home, ".omos/personal-memory/bin/")))
+  C.check("遷移保留第三方 mcp 設定", "",
+        JSON.parse(File.read(File.join(home, ".claude.json")))["mcpServers"].key?("relay"))
+end
+
+# --- Slice A：證據不足時不得用猜的 ---
+Dir.mktmpdir("omos-3c-a-noevidence") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  product = OMOS::Contract::ARTIFACT_ROOT
+  # Host 裡有一條「執行檔名正好是我們的、但路徑不是 launcher」的註冊，
+  # 而且**沒有 receipt** 可以證明那是我們寫的。
+  File.write(File.join(home, ".claude/settings.json"), "#{JSON.pretty_generate({ "hooks" =>
+    { "SessionStart" => [{ "hooks" => [{ "type" => "command",
+                                         "command" => "#{product}/exe/omos-personal-memory-session-start --host \"Claude Code\" --runtime-scope-mode EMPLOYEE_PRIVATE" }] }] } })}\n")
+  code = begin
+    OMOS::Installer.new(home: home, store_path: File.join(dir, "p.db")).install
+    nil
+  rescue OMOS::Installer::Failed => e
+    e.code
+  end
+  C.check("無 receipt 佐證的疑似舊註冊 → 當場失敗，不自行刪除",
+        code.to_s[0, 45], code.to_s.start_with?("INSTALL_UNKNOWN_LEGACY_REGISTRATION"))
+end
+
 # ===========================================================================
 # B Doctor 與失敗診斷
 # ===========================================================================
@@ -228,11 +395,28 @@ Dir.mktmpdir("omos-3c-b") do |dir|
                           .find { |r| r.id == "claude_code_session_start_hook_present" }
   C.check("SessionStart hook 被移除會明確失敗", hook_gone.detail[0, 30], hook_gone.status == "FAIL")
 
-  # executable 不存在 → 必須明確失敗
+  # executable 不存在 → 必須明確失敗。
+  # Slice A：doctor 已安裝時探的是**固定 launcher**，所以製造方式改成把
+  # launcher 移走（並給一個不存在的 product_root，讓未安裝時的後備也落空）。
+  launcher = File.join(home, ".omos/personal-memory/bin/omos-personal-memory-mcp")
+  FileUtils.mv(launcher, "#{launcher}.away")
   missing = OMOS::Doctor.new(home: home, store_path: store, cwd: proj,
                              product_root: File.join(dir, "nowhere")).run
                         .find { |r| r.id == "mcp_executable" }
   C.check("MCP executable 不存在會明確失敗", missing.detail[0, 30], missing.status == "FAIL")
+  FileUtils.mv("#{launcher}.away", launcher)
+
+  # Slice A 新增：launcher 還在、但 current 指向的 artifact 不見了。
+  # 這種「殼還在、實體沒了」的狀態必須被抓到——不得因為 launcher 可執行就
+  # 判成健康。
+  current = File.join(home, ".omos/personal-memory/current")
+  target = File.readlink(current)
+  FileUtils.mv(target, "#{target}.away")
+  broken = OMOS::Doctor.new(home: home, store_path: store, cwd: proj).run
+                       .find { |r| r.id == "mcp_handshake" }
+  C.check("current 指向的 artifact 消失時 doctor 明確失敗", broken.detail[0, 40],
+          broken.status == "FAIL")
+  FileUtils.mv("#{target}.away", target)
 
   # SQLite 版本比較：低於修復版本必須判為不安全
   s = OMOS::Store.new(store)

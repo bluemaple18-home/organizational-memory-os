@@ -1,7 +1,8 @@
 ---
 id: EMEM11-STANDALONE-PACKAGING-IMPLEMENTATION-20260921
-status: AWAITING_GO_SIGNATURE_SLICE_A_NOT_STARTED
-review_round_1: NO_GO（P1×1：A/B identity 邊界矛盾）→ 已修，見 Slice A「identity ownership」
+status: SLICE_A_IN_PROGRESS
+review_round_1: NO_GO（P1×1：A/B identity 邊界矛盾）→ 已修
+review_round_2: GO（2026-09-21，P2×1 非阻擋，已納入 Slice A 驗收第 8 項）
 type: implementation
 tier: T2
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
@@ -74,6 +75,9 @@ Slice C  standalone packaging closure
 
 - **定義最小 artifact／build identity**（見下方「identity ownership」）
 - **宣告 production native dependency manifest**
+- **materialize 2 份 spec ＋ 7 支 evaluator 進 artifact**（ownership 由 C 前移，
+  見下方「為什麼 9 檔 materialize 在 A」）
+- **`contract.rb` 改讀 artifact-local 路徑**，artifact 搬離 repo 後仍能啟動
 - 建立固定 launcher：
   `~/.omos/personal-memory/bin/omos-personal-memory-mcp`、
   `…/bin/omos-personal-memory-session-start`
@@ -97,8 +101,27 @@ identity 的算法必須是對「**artifact 實際承載的內容**」取 digest
 **不得**定義成「固定列舉這幾類檔案」——那會逼 C 再改一次定義，重蹈本次
 P1 的覆轍。
 
+### 為什麼 9 檔 materialize 在 A（reviewer 裁決，2026-09-21）
+
+實測：把 artifact 複製到 repo 外後，立刻在 `contract.rb:25` 掛掉——
+`cannot load such file -- <relocated>/scripts/lib/omos_contract_helpers`，
+因為 `REPO_ROOT` 由 `__dir__` 上溯四層推導。
+
+**A 既然要建立真正的 `versions/<artifact-id>`，那 artifact 當下就必須是可執行
+的完整單位**，不能等 C 才補那 9 個檔。否則只剩兩條路，且都會產生之後要拆掉
+的暫時結構：在 artifact 裡記「repo 在哪」的橋接檔（接近研究卡已否決的
+「契約來源可被指定」），或讓 `versions/<id>` 只放假門面（identity-over-content
+就沒有東西可雜湊）。
+
+**因此**：9 檔 materialize、`contract.rb` 改讀 artifact-local 路徑、複製必須
+**byte-identical 且 deterministic** —— 全部屬 Slice A。
+**Slice C 改為驗證與防漂移**（雙向 digest gate、workspace B 驗收、
+packaged 缺檔／損壞 fail-closed、receipt 最終綁定、upgrade/rollback/relocation
+E2E）。
+
 ### 驗收
 
+0. **artifact 搬離 repo 後可正常啟動**，不再依賴 `REPO_ROOT`。
 1. **原缺陷重現案例歸零**：`install(A)` → 從 B `upgrade` → Host 內**只有
    一組**本產品 SessionStart 註冊且指向 stable launcher；再 `uninstall` →
    **零殘留**。（原始重現：A→B upgrade 後 2 組並存、uninstall 後殘留 A。）
@@ -123,6 +146,14 @@ P1 的覆轍。
 6. **atomic switch**：切版過程中不存在「`current` 不指向任何有效 artifact」
    的窗口；切換失敗時舊版本仍可用。
 7. 3a／3b／3c 全數通過（3c 群組 A 預期需隨新結構調整，但**不得放寬斷言**）。
+8. **identity 的 deterministic semantics 必須鎖在測試裡**（reviewer P2，
+   非阻擋但本片收）：
+   - 同一組「相對路徑 ＋ bytes」→ **同一個 ID**
+   - 任一實際 payload 改變 → **ID 改變**
+   - 安裝位置、`current` symlink、mtime、receipt 等 **activation metadata
+     不得影響 ID**
+   - 流程採 **stage → hash → rename to `versions/<artifact-id>`**，
+     避免 identity 自我引用
 
 ### 不做
 
@@ -172,8 +203,7 @@ qualification 矩陣（Part 2）。
 
 ### 範圍
 
-- 把 2 份 spec ＋ 7 支 evaluator **機械納入** artifact（方案 A：build 時複製，
-  byte 相同；**非** installer 執行時複製）
+- **驗證** Slice A 產出的 materialize 結果（9 檔 byte-identical）
 - **source ↔ packaged digest drift gate（雙向）**：repo 改了原件而未重新
   產生 package，**CI 必須紅**；只驗「package 內副本有沒有被竄改」不足夠
 - receipt 綁 artifact identity（**Slice A** 定義的那一份）

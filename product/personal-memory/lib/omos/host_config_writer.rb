@@ -36,12 +36,16 @@ module OMOS
     BEGIN_MARK = "# >>> omos-personal-memory (managed block — do not edit by hand) >>>"
     END_MARK = "# <<< omos-personal-memory <<<"
 
-    def initialize(host, home:, mcp_command:, hook_command:, env: {})
+    # legacy_commands：{command_ref => 上一版實際寫進 Host 的具體命令}。
+    # 來源只有 install receipt——遷移舊形狀安裝時，唯有靠這份精確證據才能
+    # 認出「那條 hook 是我們自己上一版寫的」。**不得**用前綴或名稱相似去猜。
+    def initialize(host, home:, mcp_command:, hook_command:, env: {}, legacy_commands: {})
       @host = host
       @home = home
       @env = env
       @mcp_command = mcp_command
       @hook_command = hook_command
+      @legacy_commands = legacy_commands || {}
       # 安裝 receipt 記錄的對應：具體命令 → 契約 command_ref。
       @command_map = {
         mcp_command => Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles",
@@ -53,6 +57,10 @@ module OMOS
       # repair-02 P2 把比對從前綴改成精確相等後，先前「先呼叫、後賦值」的
       # 順序會讓這裡存進去的鍵少了命令本體，只剩參數，永遠比對不到。
       @command_map[hook_invocation] = @command_map[hook_command]
+      # 舊版命令一併登記進 map，映到同一個 command_ref。這樣讀取端會把它
+      # 正規化成「本產品自己的註冊」，install 的 before/after 判定與
+      # own_group? 才會一致地認出它——而且仍然是**精確字串**比對。
+      @legacy_commands.each { |ref, cmd| @command_map[cmd] = ref if cmd.is_a?(String) && !cmd.empty? }
       @config = HostConfig.new(host, home: home, command_map: @command_map)
       @profile = Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles", host)
     end
@@ -247,13 +255,23 @@ module OMOS
       end
     end
 
-    # repair-02 P2：必須是**精確的 invocation**，不能用裸 prefix。
+    # repair-02 P2：必須是**精確**比對，不能用裸 prefix。
     # reviewer 實測 ".../omos-personal-memory-session-start-foreign" 會被
     # start_with? 誤認成自己的 hook，install/uninstall 就可能動到別人的註冊。
+    #
+    # Slice A：改以 command_map 解析後的 command_ref 判定——map 的鍵是精確
+    # 字串，因此 collision-adjacent 的第三方命令查不到、仍會被正確排除；
+    # 同時自然涵蓋 receipt 提供的舊版命令（遷移用）。
     def own_group?(group)
       return false unless group.is_a?(Hash)
 
-      Array(group["hooks"]).any? { |h| h.is_a?(Hash) && h["command"].to_s == hook_invocation }
+      own_ref = @command_map[@hook_command]
+      Array(group["hooks"]).any? do |h|
+        next false unless h.is_a?(Hash)
+
+        cmd = h["command"].to_s
+        @command_map.key?(cmd) && @command_map[cmd] == own_ref
+      end
     end
 
     def mutate_json(path)
