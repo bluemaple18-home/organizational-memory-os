@@ -119,6 +119,60 @@ ABI）。** 這一條應該納入 Q6 的結論與後續 packaging 設計，但**
   「能不能放寬到任何 3.4.x」，而是 **§3 那張表的預期是否成立**，特別是
   「不同路徑的 Ruby 確實會失敗，且失敗方式是明確的、不是靜默壞掉」。
 
+## 5b. 缺 linkage path 時會**大聲失敗**（已直接實證）
+
+reviewer 設計的零成本負例，CC 獨立重現一次，結果一致：把
+`bigdecimal.bundle` 複製到 `/private/tmp`，以 `install_name_tool` 把它的
+libruby load command 改寫成不存在的絕對路徑，再嘗試載入：
+
+```
+otool -L → /nonexistent/libruby.3.4.dylib
+
+$ ruby -e 'require "/tmp/q6neg/bigdecimal.bundle"'
+LoadError: dlopen(...): Library not loaded: /nonexistent/libruby.3.4.dylib
+  Reason: tried: '/nonexistent/libruby.3.4.dylib' (no such file), ...
+exit 1
+```
+
+**結論**：目標機器缺少編譯時的 linkage path 時，失敗是
+**明確的 LoadError、退出碼非零、訊息直接指出缺哪個路徑**——不會靜默繼續、
+不會退化成「跑得起來但行為不明」。這符合本產品一貫的 fail-closed 紀律。
+
+§3 那張表裡「rbenv／asdf 的 3.4.10（裝在別的路徑）→ 不可用」這一格，
+至此有了直接證據支持其**失敗方式**（雖然尚未在真實 rbenv 環境重現，見 §5c）。
+
+## 5c. 為什麼 Part 2 **不能**在這台機器上做（reviewer 指出，CC 同意）
+
+原本規劃用 `ruby-build` 或可攜式 Ruby 在本機裝第二個 3.4.10 來跑矩陣。
+**這個設計有缺陷**：
+
+`bigdecimal.bundle` 寫死的是
+`/opt/homebrew/opt/ruby@3.4/lib/libruby.3.4.dylib`，而**這條路徑在本機依然
+存在**。alternate Ruby 載入該 extension 時，dyld 仍可解析到 **Homebrew 的
+libruby**，於是同一個程序裡會出現兩套 Ruby runtime。
+
+此時無論結果是成功、crash 或 LoadError，**都不等價於「一台只有 rbenv Ruby、
+沒有 Homebrew Ruby 的乾淨機器」**，因此沒有判定力。
+
+同理：
+
+- `brew install ruby-build` 後在 `/tmp` 編 3.4.10 → 成本高且證據混淆。
+- 第三方 portable Ruby → 同樣被既存 Homebrew dylib 路徑污染。
+- Docker 官方 `ruby:3.4` → linux/arm64，答不了 macOS dyld/ABI 的問題。
+
+**三者現在都不值得跑。**
+
+### Part 2 重新定義
+
+不再是「在這台裝第二個 Ruby」，改為：
+
+> **Clean macOS runtime-profile matrix** —— 需要一個真的**沒有
+> `/opt/homebrew/opt/ruby@3.4`** 的 macOS 環境（同事機、乾淨 Mac／VM、
+> 或之後的第二台測試機）才有判定力。
+
+**Part 2 因此不再阻塞 Q7**，改列為 **packaging acceptance／runtime-profile
+qualification** 的一部分。
+
 ## 6. 後續可考慮的方向（不在本輪，僅列出以免遺失）
 
 1. **接受單一 build profile**：artifact 綁定編譯時的 Ruby 安裝路徑，

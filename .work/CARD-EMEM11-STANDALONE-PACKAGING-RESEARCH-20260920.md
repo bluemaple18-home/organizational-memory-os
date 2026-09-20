@@ -36,7 +36,9 @@ authority: organizational-memory-os
 | Packaging 方案 | **A（build 時納入 artifact）selected** |
 | installer-copy | **B rejected** —— authority／version integrity ＋ lifecycle duplication |
 | Ruby runtime | **不先配送 runtime；也不先綁死 Homebrew build；更不先宣稱 universal Ruby 3.4.x** |
-| Q6 | 先驗 zero-local-compiled-extension ＋ 第二個 Ruby 3.4 distribution 的 standalone matrix |
+| Q6 Part 1 | **已完成（2026-09-21）**：zero-local-compiled-extension **不可行**；真實約束是 native linkage path ＋ ABI，不是版本字串。證據：`.work/handoff/EMEM11-Q6-PART1-EVIDENCE-20260921.md` |
+| Q6 Part 2 | 重新定義為 **Clean macOS runtime-profile matrix**，需無 Homebrew `ruby@3.4` 的乾淨 macOS 環境；**不再阻塞 Q7**，改列為 packaging acceptance 的一部分 |
+| `pinned-ruby.sh` guard | Q6 衍生的新缺陷，另立卡待裁（`CARD-EMEM11-RUBY-GUARD-CRITERION-20260921`），**不順手修** |
 | Q7 | activation identity 待裁 |
 | zombie hook | **另開 P1**（`CARD-EMEM11-STALE-HOOK-RELOCATION-20260920`），且為 **packaging 實作的前置** |
 | standalone acceptance | workspace B／clean environment，不動已驗收工作區 |
@@ -181,13 +183,17 @@ closure 仍不成立——而且會讓**契約來源變成可由使用者指定*
    版本治理系統**。
 5. **失效時的行為**：packaged spec／evaluator 缺檔或損壞時，必須 **fail
    closed 並回明確錯誤碼**，不得退化成「跑得起來但沒有治理」。
-6. **（新）Runtime／native ABI closure**：artifact 支援哪個 Ruby
-   distribution／build profile？**做法已定案**：先產出
-   **zero-local-compiled-extension 的 production artifact**，再跑
-   **至少一個其他 Ruby 3.4 distribution 的 standalone matrix**；通過後才放寬
-   支援宣稱。Ruby patch 更新時如何換代（Homebrew `ruby@3.4` 是 major.minor
-   formula，會隨 patch 前進，而 `.ruby-version` 鎖 exact `3.4.10`，兩者會
-   對撞）亦須一併回答。
+6. **（新）Runtime／native ABI closure**：**Part 1 已於 2026-09-21 完成並
+   結案**——zero-local-compiled-extension 路線**證否**（`bigdecimal` 無任何
+   `*-darwin` 預編譯；Bundler 拒絕 `path` 與 system gems 並用）。因此支援
+   宣稱改以 **native linkage path ＋ ABI 目錄**為準，不以版本字串為準。
+   另已實證：缺 linkage path 時是明確 LoadError、非靜默失敗。
+   **Part 2（Clean macOS runtime-profile matrix）需要一台沒有
+   `/opt/homebrew/opt/ruby@3.4` 的 macOS 環境**才有判定力——在本機裝第二個
+   Ruby 會被既存的 Homebrew dylib 路徑污染（dyld 可能把 Homebrew libruby
+   載進 alternate Ruby 的程序），結果不等價於乾淨機器。Part 2 因此移入
+   packaging acceptance，**不阻塞 Q7**。
+   `pinned-ruby.sh` guard 判準錯誤另立卡待裁。
 7. **（新）Installation root／activation identity**：Host command 要綁
    **stable launcher**，還是 versioned artifact path ＋ receipt 驅動的遷移？
    artifact relocation／upgrade／rollback 如何保證不留下舊 hook？
