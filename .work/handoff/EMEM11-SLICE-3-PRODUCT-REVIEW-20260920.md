@@ -1,6 +1,7 @@
 # EMEM-11 切片 3｜Store / Runtime / CLI / MCP / Installer / Doctor — Handoff Packet
 
-- **交付範圍**：`251a0d8..<本 packet 之前的 HEAD>`（見下方「交付 SHA」）
+- **交付範圍**：`251a0d8..806cfba`
+- **交付 SHA**：`806cfba4e5bde54735fcb3c6ada197fcaf67081c`
 - **分支**：`main`（**流程偏差，見 §7**）
 - 產品路徑：`product/personal-memory/`
 - 收治：主卡切片 3（Cross-Host Conformance / Installer / Doctor）全部範圍
