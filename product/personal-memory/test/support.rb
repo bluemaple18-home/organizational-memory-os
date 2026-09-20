@@ -27,6 +27,17 @@ module Support
       ok
     end
 
+    # 這台機器上**無法驗證**的命題。
+    #
+    # 只有兩種合法用法，且都必須說清楚由誰負責：workspace B 沒有 repo
+    # 原件可比對（由 repo 側的 drift gate 負責），以及需要真 Host 才能觀測
+    # 的項目。一律印成 N/A 而不是 PASS——把驗不到的東西報成通過，正是
+    # 本產品一路在防的「假成功」。N/A 不影響離開碼，但會出現在報表上。
+    def skip(name, reason, group: @group)
+      @rows << ["N/A", group, name, reason.to_s]
+      nil
+    end
+
     # 期待被治理層拒絕，且**實際資料表不得多出任何一列**。
     def expect_rejected(name, code, store, group: @group)
       before = store.db.get_first_value("SELECT COUNT(*) FROM memory_rows")
@@ -50,7 +61,9 @@ module Support
         puts format("%-6s %-#{width}s  %s", prefix, n, d)
       end
       failed = @rows.count { |st, _, _, _| st == "FAIL" }
-      puts "\n#{@label}：#{@rows.size - failed}/#{@rows.size} PASS"
+      skipped = @rows.count { |st, _, _, _| st == "N/A" }
+      suffix = skipped.zero? ? "" : "（#{skipped} 項本環境無法驗證，見上方 N/A）"
+      puts "\n#{@label}：#{@rows.size - failed - skipped}/#{@rows.size - skipped} PASS#{suffix}"
       exit(failed.zero? ? 0 : 1)
     end
   end
@@ -197,6 +210,14 @@ module Support
   end
 
   # --- 假 HOME：全程不碰使用者的正式設定 --------------------------------
+
+  # repo 原件的所在。workspace B（無 source checkout）沒有這個目錄，此時
+  # 「package 與原件位元組相同」在本機無從驗證——由 repo 側的
+  # validate_packaged_governance_drift.rb 負責，**不得**改成與自己比對。
+  def repo_originals
+    root = OMOS::Contract::REPO_ROOT
+    Dir.exist?(File.join(root, "規格/v0.1")) ? root : nil
+  end
 
   module FakeHome
     module_function

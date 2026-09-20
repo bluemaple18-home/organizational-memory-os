@@ -218,11 +218,16 @@ Dir.mktmpdir("omos-3c-a-activation") do |dir|
         Dir.glob(File.join(omos, "current/governance/scripts/lib/*.rb")).size == 7)
 
   # materialize 必須 byte-identical，否則 artifact 與 repo 判定依據會不同
-  drifted = OMOS::Installer::GOVERNANCE_FILES.reject do |rel|
-    Digest::SHA256.file(File.join(OMOS::Contract::REPO_ROOT, rel)).hexdigest ==
-      Digest::SHA256.file(File.join(omos, "current/governance", rel)).hexdigest
+  if (repo = Support.repo_originals)
+    drifted = OMOS::Installer::GOVERNANCE_FILES.reject do |rel|
+      Digest::SHA256.file(File.join(repo, rel)).hexdigest ==
+        Digest::SHA256.file(File.join(omos, "current/governance", rel)).hexdigest
+    end
+    C.check("materialize 的 9 個治理檔與 repo 原件 byte-identical", drifted.inspect, drifted.empty?)
+  else
+    C.skip("materialize 的 9 個治理檔與 repo 原件 byte-identical",
+           "workspace B 無 repo 原件可比對；由 repo 側 validate_packaged_governance_drift.rb 負責")
   end
-  C.check("materialize 的 9 個治理檔與 repo 原件 byte-identical", drifted.inspect, drifted.empty?)
 
   # 透過固定 launcher 實際執行——證明 artifact 離開 repo 也跑得起來
   state_dir = File.join(dir, "state")
@@ -531,13 +536,21 @@ Dir.mktmpdir("omos-3c-a-selfhost") do |dir|
         st.success? ? "exit=0" : (err + out)[0, 70], st.success?)
 
   gov_b = File.join(home_b, ".omos/personal-memory/current/governance")
-  drifted = OMOS::Installer::GOVERNANCE_FILES.reject do |rel|
-    File.file?(File.join(gov_b, rel)) &&
-      Digest::SHA256.file(File.join(OMOS::Contract::REPO_ROOT, rel)).hexdigest ==
-        Digest::SHA256.file(File.join(gov_b, rel)).hexdigest
+  if (repo = Support.repo_originals)
+    drifted = OMOS::Installer::GOVERNANCE_FILES.reject do |rel|
+      File.file?(File.join(gov_b, rel)) &&
+        Digest::SHA256.file(File.join(repo, rel)).hexdigest ==
+          Digest::SHA256.file(File.join(gov_b, rel)).hexdigest
+    end
+    C.check("自我安裝產生的 artifact，9 個治理檔仍與原件 byte-identical",
+          drifted.inspect, drifted.empty?)
+  else
+    # 原件不在，但「自我安裝有沒有把 9 份都帶過去」仍然驗得到，照驗。
+    missing = OMOS::Installer::GOVERNANCE_FILES.reject { |rel| File.file?(File.join(gov_b, rel)) }
+    C.check("自我安裝產生的 artifact 仍帶齊 9 份治理檔", missing.inspect, missing.empty?)
+    C.skip("自我安裝產生的 artifact，9 個治理檔仍與原件 byte-identical",
+           "workspace B 無 repo 原件可比對；由 repo 側 drift gate 負責")
   end
-  C.check("自我安裝產生的 artifact，9 個治理檔仍與原件 byte-identical",
-        drifted.inspect, drifted.empty?)
 end
 
 # --- Slice A：舊形狀（pre-launcher）安裝的遷移 ---
@@ -600,6 +613,298 @@ Dir.mktmpdir("omos-3c-a-noevidence") do |dir|
   end
   C.check("無 receipt 佐證的疑似舊註冊 → 當場失敗，不自行刪除",
         code.to_s[0, 45], code.to_s.start_with?("INSTALL_UNKNOWN_LEGACY_REGISTRATION"))
+end
+
+# --- Slice C：packaged governance 隨 artifact 走，且**只**認自己那一份 ---
+Dir.mktmpdir("omos-3c-a-governance") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  inst = OMOS::Installer.new(home: home, store_path: File.join(dir, "p.db"))
+  result = inst.install
+  artifact = File.readlink(File.join(home, ".omos/personal-memory/current"))
+
+  # 9 份治理檔（2 spec ＋ 7 evaluator）必須在 artifact 內。
+  total = OMOS::Installer::GOVERNANCE_FILES.size
+  present = OMOS::Installer::GOVERNANCE_FILES.count { |rel| File.file?(File.join(artifact, "governance", rel)) }
+  C.check("artifact 內帶齊 #{total} 份治理檔", "#{present}/#{total}", present == total)
+  if (repo = Support.repo_originals)
+    mismatched = OMOS::Installer::GOVERNANCE_FILES.reject do |rel|
+      pkg = File.join(artifact, "governance", rel)
+      File.file?(pkg) && Digest::SHA256.file(pkg).hexdigest ==
+        Digest::SHA256.file(File.join(repo, rel)).hexdigest
+    end
+    C.check("且與 repo 原件逐位元組相同", "#{total - mismatched.size}/#{total}", mismatched.empty?)
+  else
+    C.skip("且與 repo 原件逐位元組相同",
+           "workspace B 無 repo 原件可比對；由 repo 側 drift gate 負責")
+  end
+
+  # receipt 綁的是 Slice A 定義的那一份 artifact identity——不是安裝時間、
+  # 不是 schema_version、也不是「上次裝的那個目錄名」而已：這裡重算一次。
+  receipt = inst.receipt
+  C.check("receipt 的 artifact_id 等於 current 指向的目錄名",
+          receipt["artifact_id"], receipt["artifact_id"] == File.basename(artifact))
+  C.check("receipt 的 artifact_id 等於對實物重算的 content identity",
+          OMOS::Artifact.identity(artifact)[0, 12],
+          receipt["artifact_id"] == OMOS::Artifact.identity(artifact))
+  C.check("install 回傳值與 receipt 記的是同一個 artifact", result[:artifact_id][0, 12],
+          result[:artifact_id] == receipt["artifact_id"])
+
+  # 缺檔 → fail closed。關鍵在於**不得**因為 repo 還在就靜默改用 repo 的治理：
+  # 那會讓一份壞掉的 package 看起來完全健康。
+  victim = File.join(artifact, "governance/scripts/lib/personal_memory_host_binding.rb")
+  FileUtils.mv(victim, "#{victim}.away")
+  out, err, st = Open3.capture3({ "OMOS_PERSONAL_MEMORY_STORE" => File.join(dir, "p.db") },
+                                File.join(artifact, "exe/omos-personal-memory"), "status")
+  C.check("artifact 少一份治理檔 → 直接失敗，不回退 repo",
+          (err + out)[/PACKAGED_GOVERNANCE_MISSING[^\n]{0,40}/].to_s,
+          !st.success? && (err + out).include?("PACKAGED_GOVERNANCE_MISSING"))
+  FileUtils.mv("#{victim}.away", victim)
+
+  # 被竄改 → artifact identity 立刻不等於 receipt 記的那一份。identity 是
+  # 內容決定的，所以「改一個位元組」與「多一個檔案」都會被同一條規則抓到。
+  File.write(victim, "#{File.read(victim, encoding: "UTF-8")}\n# tampered\n")
+  C.check("治理檔被竄改 → 重算的 identity 不再等於 receipt", "",
+          OMOS::Artifact.identity(artifact) != receipt["artifact_id"])
+end
+
+# --- Slice C：rollback 只切 pointer ---
+Dir.mktmpdir("omos-3c-a-rollback") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "p.db")
+
+  # 兩個內容不同的來源樹 → 兩個不同的 artifact identity。
+  src_v1 = File.join(dir, "src-v1")
+  src_v2 = File.join(dir, "src-v2")
+  FileUtils.cp_r(OMOS::Contract::ARTIFACT_ROOT, src_v1)
+  FileUtils.cp_r(src_v1, src_v2)
+  # 只需要「內容不同」——寫一個不會被 require 的標記檔即可。identity 是對
+  # artifact **整體內容**取的，任何一個位元組不同就是另一個版本。
+  File.write(File.join(src_v2, "lib/omos/.build-variant"), "v2\n")
+
+  v1 = OMOS::Installer.new(home: home, product_root: src_v1, store_path: store).install
+  v2_inst = OMOS::Installer.new(home: home, product_root: src_v2, store_path: store)
+  v2 = v2_inst.install
+  C.check("兩次安裝產生兩個不同的 artifact", "#{v1[:artifact_id][0, 8]}→#{v2[:artifact_id][0, 8]}",
+          v1[:artifact_id] != v2[:artifact_id])
+
+  # 「沒碰」要用**可以分辨重寫的**指標。只比內容不行：writer.install 是
+  # idempotent 的，一次多餘的重寫會產生位元組完全相同的檔案，內容比對抓不到。
+  # 因此連 mtime 與 inode 一起指紋化——in-place 重寫一定會動到 mtime。
+  host_files = %w[.codex/config.toml .claude.json .claude/settings.json]
+                 .map { |rel| File.join(home, rel) }
+  fingerprint = lambda do
+    host_files.to_h do |f|
+      st = File.stat(f)
+      [f, [File.binread(f), st.ino, st.mtime.to_f, st.mode]]
+    end
+  end
+  # 同時把三個設定檔設成唯讀：rollback 若真的去重寫 Host 設定就會 EACCES。
+  # 這不只是加強檢查——「Host 設定不可寫時 rollback 仍然要能成功」本身就是
+  # pointer-only 的意義：回退不該依賴寫得進使用者的設定檔。
+  # chmod 本身會動到 mode，所以基準線要在 chmod **之後**才取。
+  host_files.each { |f| File.chmod(0o444, f) }
+  before = fingerprint.call
+  launchers_before = OMOS::Installer::LAUNCHER_NAMES.to_h do |n|
+    p = File.join(home, ".omos/personal-memory/bin", n)
+    [n, [File.binread(p), File.stat(p).mode]]
+  end
+
+  # 包起來的理由：唯讀守衛若被觸發，錯誤是 EACCES 例外而不是 false。
+  # 讓它變成一列具名的 FAIL，而不是整個 suite 中止。
+  rolled, rollback_error = begin
+    [v2_inst.rollback, nil]
+  rescue StandardError => e
+    [nil, "#{e.class}: #{e.message}"]
+  end
+  after = fingerprint.call
+  host_files.each { |f| File.chmod(0o644, f) }
+  launchers_after = OMOS::Installer::LAUNCHER_NAMES.to_h do |n|
+    p = File.join(home, ".omos/personal-memory/bin", n)
+    [n, [File.binread(p), File.stat(p).mode]]
+  end
+  current_target = File.readlink(File.join(home, ".omos/personal-memory/current"))
+
+  C.check("rollback 後 current 指向前一版", File.basename(current_target)[0, 8],
+          File.basename(current_target) == v1[:artifact_id])
+  C.check("rollback 回傳值與實物一致", rolled.to_h[:artifact_id].to_s[0, 8],
+          rolled.to_h[:artifact_id] == v1[:artifact_id] &&
+          rolled.to_h[:previous_artifact_id] == v2[:artifact_id])
+  # 驗收項 4：**不重寫 Host 設定**。Host 認的是固定 launcher，與版本無關。
+  C.check("rollback 完全沒碰三個 Host 設定檔（內容／inode／mtime 皆不變）", "", before == after)
+  C.check("Host 設定唯讀時 rollback 仍然成功（回退不依賴寫得進 Host）",
+          rollback_error.to_s[0, 60], rollback_error.nil? && !rolled.nil?)
+  C.check("rollback 完全沒碰 launcher（位元組與模式都不變）", "",
+          launchers_before == launchers_after)
+  C.check("rollback 後 receipt 交換 current／previous，可再切回去",
+          v2_inst.receipt["previous_artifact_id"].to_s[0, 8],
+          v2_inst.receipt["artifact_id"] == v1[:artifact_id] &&
+          v2_inst.receipt["previous_artifact_id"] == v2[:artifact_id])
+  # 不得靠重新下載或猜 SHA：目標只能是 receipt 記下的那一個，而且實物要在。
+  C.check("rollback 的目標來自 receipt，且實物存在於 versions/", "",
+          Dir.exist?(File.join(home, ".omos/personal-memory/versions", v1[:artifact_id])))
+
+  # 切回去（rollback 是對稱的）
+  v2_inst.rollback
+  C.check("再 rollback 一次切回 v2", "",
+          File.basename(File.readlink(File.join(home, ".omos/personal-memory/current"))) == v2[:artifact_id])
+
+  # 目標實物被刪 → 明確失敗，不得重新下載、不得猜、更不得留在半途
+  FileUtils.rm_rf(File.join(home, ".omos/personal-memory/versions", v1[:artifact_id]))
+  code = begin
+    v2_inst.rollback
+    nil
+  rescue OMOS::Installer::Failed => e
+    e.code
+  end
+  C.check("previous artifact 不在了 → 明確失敗，不重新下載也不猜",
+          code.to_s[0, 30], code.to_s.start_with?("ROLLBACK_ARTIFACT_MISSING"))
+  C.check("失敗的 rollback 沒有動到 current", "",
+          File.basename(File.readlink(File.join(home, ".omos/personal-memory/current"))) == v2[:artifact_id])
+end
+
+# --- Slice C：rollback 的前提不足時一律明確失敗 ---
+Dir.mktmpdir("omos-3c-a-rollback-guard") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  inst = OMOS::Installer.new(home: home, store_path: File.join(dir, "p.db"))
+
+  no_receipt = begin
+    inst.rollback
+    nil
+  rescue OMOS::Installer::Failed => e
+    e.code
+  end
+  C.check("沒有 receipt 就 rollback → 明確失敗", no_receipt.to_s, no_receipt == "ROLLBACK_NO_RECEIPT")
+
+  inst.install
+  first_install = begin
+    inst.rollback
+    nil
+  rescue OMOS::Installer::Failed => e
+    e.code
+  end
+  C.check("第一次安裝後沒有前一版可回 → 明確失敗", first_install.to_s,
+          first_install == "ROLLBACK_NO_PREVIOUS_ARTIFACT")
+
+  # 同內容重裝：artifact identity 不變。此時 previous 不得被填成自己，
+  # 否則 rollback 會變成「回報成功卻什麼都沒換」的 no-op。
+  inst.install
+  C.check("同內容重裝不會把 previous 填成自己", inst.receipt["previous_artifact_id"].inspect,
+          inst.receipt["previous_artifact_id"].nil?)
+end
+
+# --- Slice C：versions/ GC 只留 current ＋ previous ---
+Dir.mktmpdir("omos-3c-a-gc") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "p.db")
+  ids = (1..3).map do |n|
+    src = File.join(dir, "src-#{n}")
+    FileUtils.cp_r(OMOS::Contract::ARTIFACT_ROOT, src)
+    File.write(File.join(src, "lib/omos/.build-variant"), "gen#{n}\n")
+    OMOS::Installer.new(home: home, product_root: src, store_path: store).install[:artifact_id]
+  end
+  kept = Dir.children(File.join(home, ".omos/personal-memory/versions")).sort
+  C.check("裝三版後 versions/ 只留 current ＋ previous", "#{kept.size} 版",
+          kept == ids.last(2).sort)
+  C.check("留下的正是 receipt 指的那兩版", "",
+          kept == [ids[-1], ids[-2]].sort)
+end
+
+# --- Slice C：workspace B —— 沒有 source checkout 的完整 standalone acceptance ---
+#
+# 這是本切片真正要證明的事：artifact 安裝完之後，把**整棵來源樹刪掉**，
+# 產品的四個交付面（CLI／MCP／SessionStart／doctor）仍然完整可用。
+# 來源樹是從 repo 複製到 tmpdir 的副本，所以刪除是真的刪，不是改路徑騙自己。
+Dir.mktmpdir("omos-3c-a-standalone") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "p.db")
+  src = File.join(dir, "workspace-a-src")
+  FileUtils.cp_r(OMOS::Contract::ARTIFACT_ROOT, src)
+
+  inst = OMOS::Installer.new(home: home, product_root: src, store_path: store)
+  artifact_id = inst.install[:artifact_id]
+
+  # 來源樹消失。從這裡開始，任何還依賴 repo／checkout 的東西都會壞。
+  FileUtils.rm_rf(src)
+  C.check("來源樹已實際刪除", "", !Dir.exist?(src))
+
+  bin = File.join(home, ".omos/personal-memory/bin")
+  env = { "OMOS_PERSONAL_MEMORY_STORE" => store,
+          "OMOS_HOST" => "Claude Code", "OMOS_RUNTIME_SCOPE_MODE" => "EMPLOYEE_PRIVATE",
+          "OMOS_SESSION_STATE_DIR" => File.join(dir, "state"),
+          "CLAUDE_CODE_SESSION_ID" => "standalone-1" }
+
+  # 1. CLI（透過 artifact 內的 exe，這是 launcher 實際 exec 的目標）
+  cli = File.join(home, ".omos/personal-memory/current/exe/omos-personal-memory")
+  cli_out, cli_err, cli_st = Open3.capture3(env, cli, "status", "--store", store)
+  C.check("無 source checkout：CLI status 可用",
+          cli_st.success? ? cli_out[/schema_version:.*/].to_s : cli_err[0, 80],
+          cli_st.success? && cli_out.include?("schema_version"))
+
+  # 2. SessionStart hook（走固定 launcher，authority 由 argv 注入）
+  hook_out, hook_err, hook_st = Open3.capture3(env,
+                                               File.join(bin, "omos-personal-memory-session-start"),
+                                               "--host", "Claude Code",
+                                               "--runtime-scope-mode", "EMPLOYEE_PRIVATE",
+                                               stdin_data: JSON.generate(
+                                                 { "session_id" => "standalone-1", "cwd" => dir,
+                                                   "hook_event_name" => "SessionStart", "source" => "startup" }))
+  C.check("無 source checkout：SessionStart hook 可用（走固定 launcher）",
+          hook_st.success? ? "exit 0" : hook_err[0, 80], hook_st.success?)
+
+  # 3. MCP server（同樣走固定 launcher），真的握手 → 寫 → 讀
+  mcp_in, mcp_out, mcp_err, mcp_wait = Open3.popen3(env, File.join(bin, "omos-personal-memory-mcp"))
+  rpc = lambda do |id, method, params|
+    payload = { "jsonrpc" => "2.0", "id" => id, "method" => method }
+    payload["params"] = params if params
+    mcp_in.puts(JSON.generate(payload))
+    mcp_in.flush
+    line = mcp_out.gets
+    line && JSON.parse(line)
+  end
+  init = rpc.call(1, "initialize", { "protocolVersion" => "2024-11-05", "capabilities" => {},
+                                     "clientInfo" => { "name" => "standalone", "version" => "0" } })
+  mcp_in.puts(JSON.generate({ "jsonrpc" => "2.0", "method" => "notifications/initialized", "params" => {} }))
+  mcp_in.flush
+  link = F.link_id("e1")
+  wrote = rpc.call(2, "tools/call",
+                   { "name" => "personal_memory_write",
+                     "arguments" => { "kind" => "MemorySupportLink",
+                                      "resource" => F.link_body(link, F.record_id("e2")),
+                                      "idempotency_key" => "standalone-k1" } })
+  wrote_body = JSON.parse(wrote.dig("result", "content", 0, "text"))
+  read = rpc.call(3, "tools/call", { "name" => "personal_memory_read", "arguments" => {} })
+  read_body = JSON.parse(read.dig("result", "content", 0, "text"))
+  mcp_in.close
+  mcp_wait.value
+  mcp_err_text = begin
+    mcp_err.read
+  rescue IOError
+    ""
+  end
+  C.check("無 source checkout：MCP server 完成 initialize",
+          init&.dig("result", "serverInfo", "name").to_s,
+          !init.nil? && init.dig("result", "protocolVersion")
+                             .is_a?(String))
+  C.check("無 source checkout：MCP 寫入成功（治理 evaluator 來自 artifact 內的副本）",
+          wrote_body["status"].to_s, wrote_body["status"] == "WROTE")
+  C.check("無 source checkout：MCP 讀得回剛寫的列", "",
+          read_body.is_a?(Array) && read_body.any? { |r| r["row_id"] == link })
+  C.check("無 source checkout：MCP server 沒有在 stderr 抱怨治理來源",
+          mcp_err_text[0, 60], !mcp_err_text.include?("GOVERNANCE"))
+
+  # 4. doctor —— 由 artifact 內的 CLI 自己跑，且探到的是固定 launcher
+  doc_out, _doc_err, doc_st = Open3.capture3(env, cli, "doctor", "--home", home, "--store", store)
+  C.check("無 source checkout：doctor 無 FAIL",
+          doc_out[/doctor: .*/].to_s, doc_st.success? && !doc_out.include?("FAIL "))
+
+  # 5. artifact identity 在來源樹消失後仍可重算（identity 是內容決定的）
+  C.check("來源樹消失後 artifact identity 仍可重算且不變", artifact_id[0, 12],
+          OMOS::Artifact.identity(File.join(home, ".omos/personal-memory/versions", artifact_id)) == artifact_id)
 end
 
 # ===========================================================================

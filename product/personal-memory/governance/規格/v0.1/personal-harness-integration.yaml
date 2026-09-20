@@ -1,0 +1,2604 @@
+schema:
+  schema_id: urn:omos:schema:employee-personal-memory-standard:0.3.0
+  version: 0.3.0
+  status: DRAFT_REVIEW_REQUIRED
+  date: '2026-08-30'
+
+purpose:
+  statement: >-
+    Define one logical personal-memory contract and lifecycle for every employee,
+    independent of role, source tool, model, agent runtime, or deployment mode.
+  company_knowledge_preparation: true
+  ai_core_carve_out: false
+  ai_core_full_clone_per_employee: false
+
+standardization_model:
+  shared_across_all_employees:
+    - contract families
+    - identifiers and provenance
+    - evidence-to-memory lifecycle
+    - permission and retention floor
+    - correction and supersession
+    - personal-to-shared promotion proposal
+    - recall/context-pack contract
+  configurable_per_role_or_tenant:
+    - source adapters
+    - role profile
+    - capability level
+    - sensitivity defaults
+    - retention defaults
+    - review requirements
+    - context priorities
+  statement: SAME_CORE_CONTRACT_PLUS_ROLE_PROFILE
+
+product_authority:
+  organizational_memory_os:
+    owns:
+      - employee personal memory standard
+      - personal memory governance
+      - scope and permission semantics
+      - promotion proposal boundary
+      - organizational canonical knowledge boundary
+  ai_core:
+    role: DEVELOPER_SPECIFIC_DONOR_AND_ADAPTER
+    owns_its_complete_system: true
+    not_required_for_general_employees: true
+  runtime_and_agents:
+    role: OPTIONAL_EXECUTOR
+    authority_over_memory: false
+
+employee_memory_scope_modes:
+  modes:
+    - EMPLOYEE_PRIVATE
+    - COMPANY_MANAGED_PERSONAL
+    - SHARED_WORK_CONTEXT
+  derived_from:
+    - ownership_mode
+    - visibility_scope
+  rule: >-
+    Scope mode, visibility, retention, export, deletion, and offboarding behavior
+    must be explicit; PERSONAL never implies company-wide search authority.
+
+ownership_visibility_contract:
+  ownership_modes:
+    EMPLOYEE_CONTROLLED:
+      owner_of_memory_statement: employee
+      company_default_content_access: forbidden
+      employee_export_right: allowed_subject_to_policy
+      employee_delete_right: allowed_subject_to_retention_and_legal_hold
+    COMPANY_MANAGED_EMPLOYEE_CONTEXT:
+      owner_of_memory_statement: company_for_work_purpose
+      company_default_content_access: conditional
+      employee_export_right: conditional
+      employee_delete_right: request_or_tombstone_subject_to_policy
+    JOINT_WORK_CONTEXT:
+      owner_of_memory_statement: work_group_or_company_context
+      company_default_content_access: conditional
+      employee_export_right: scoped_to_own_contributions
+      employee_delete_right: request_redaction_or_correction
+  visibility_scopes:
+    SELF_ONLY:
+      default_readers:
+        - employee_owner
+      widening_requires_promotion_gate: true
+    EMPLOYEE_AND_POLICY_SYSTEM:
+      default_readers:
+        - employee_owner
+        - policy_bound_system
+      widening_requires_promotion_gate: true
+    WORK_CONTEXT_PARTICIPANTS:
+      default_readers:
+        - employee_owner
+        - source_acl_participants
+        - assigned_reviewer_when_needed
+      widening_requires_promotion_gate: true
+  mode_definitions:
+    EMPLOYEE_PRIVATE:
+      ownership_mode: EMPLOYEE_CONTROLLED
+      visibility_scope: SELF_ONLY
+      semantics: employee-owned private work memory; company cannot search content by default
+      consent_or_notice_required: CONSENT_REQUIRED
+      retention_default: EMPLOYEE_POLICY_DEFAULT
+      offboarding_default: EXPORT_THEN_PURGE_UNLESS_LEGAL_HOLD
+    COMPANY_MANAGED_PERSONAL:
+      ownership_mode: COMPANY_MANAGED_EMPLOYEE_CONTEXT
+      visibility_scope: EMPLOYEE_AND_POLICY_SYSTEM
+      semantics: company-managed personal work context with explicit policy-bound access
+      consent_or_notice_required: NOTICE_AND_POLICY_REF_REQUIRED
+      retention_default: COMPANY_POLICY_DEFAULT
+      offboarding_default: TRANSFER_OR_ARCHIVE_WITH_EMPLOYEE_NOTICE
+    SHARED_WORK_CONTEXT:
+      ownership_mode: JOINT_WORK_CONTEXT
+      visibility_scope: WORK_CONTEXT_PARTICIPANTS
+      semantics: work-context memory visible only to participants allowed by source ACL and policy
+      consent_or_notice_required: NOTICE_REQUIRED
+      retention_default: SOURCE_OR_TEAM_POLICY_DEFAULT
+      offboarding_default: RETAIN_WORK_CONTEXT_WITH_PRIVATE_MATERIAL_REDACTED
+  actor_action_policy:
+    EMPLOYEE:
+      READ:
+        EMPLOYEE_PRIVATE:
+          decision: ALLOW
+          required_conditions:
+            - is_owner
+        COMPANY_MANAGED_PERSONAL:
+          decision: ALLOW
+          required_conditions:
+            - is_owner
+        SHARED_WORK_CONTEXT:
+          decision: ALLOW
+          required_conditions:
+            - source_acl_allows_requester
+      WRITE:
+        EMPLOYEE_PRIVATE:
+          decision: ALLOW
+          required_conditions:
+            - is_owner
+            - consent_or_notice_present
+        COMPANY_MANAGED_PERSONAL:
+          decision: ALLOW
+          required_conditions:
+            - is_owner
+            - consent_or_notice_present
+            - source_acl_propagated
+        SHARED_WORK_CONTEXT:
+          decision: ALLOW
+          required_conditions:
+            - source_acl_allows_requester
+            - source_acl_propagated
+            - private_material_redacted
+      DELETE:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - legal_hold_absent
+            - retention_allows_delete
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - legal_hold_absent
+            - company_policy_allows_delete
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - private_material_redacted
+            - legal_hold_absent
+      EXPORT:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - legal_hold_absent
+            - export_policy_allows
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - export_policy_allows
+            - company_policy_allows_export
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - export_policy_allows
+            - private_material_redacted
+      PROMOTE:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - is_owner
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - source_acl_allows_requester
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+    MANAGER:
+      READ:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - manager_business_need
+            - company_policy_allows_manager_read
+            - employee_notice_given
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - source_acl_allows_requester
+            - manager_business_need
+      WRITE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - source_acl_allows_requester
+            - writes_only_work_context
+      DELETE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - retention_allows_delete
+            - legal_hold_absent
+            - private_material_redacted
+      EXPORT:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - export_policy_allows
+            - source_acl_allows_requester
+            - private_material_redacted
+      PROMOTE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - manager_business_need
+            - company_policy_allows_manager_promotion
+            - employee_notice_given
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - manager_business_need
+            - source_acl_allows_requester
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+    ADMIN:
+      READ:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - break_glass_approved
+            - audit_reason_recorded
+            - employee_notice_given
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - admin_policy_scope_allows
+            - audit_reason_recorded
+      WRITE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+      DELETE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - retention_allows_delete
+            - legal_hold_absent
+            - audit_reason_recorded
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - retention_allows_delete
+            - legal_hold_absent
+            - audit_reason_recorded
+      EXPORT:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - export_policy_allows
+            - audit_reason_recorded
+            - employee_notice_given
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - export_policy_allows
+            - admin_policy_scope_allows
+            - audit_reason_recorded
+      PROMOTE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+    REVIEWER:
+      READ:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - employee_consent
+            - redaction_complete
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - company_policy_allows_review
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - source_acl_allows_requester
+      WRITE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+      DELETE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+      EXPORT:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+      PROMOTE:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - employee_consent
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - review_assignment
+            - promotion_review_approved
+            - scope_widening_checked
+            - redaction_complete
+    SYSTEM:
+      READ:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - is_owner_context
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - source_acl_propagated
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - source_acl_propagated
+      WRITE:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - is_owner_context
+            - consent_or_notice_present
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - consent_or_notice_present
+            - source_acl_propagated
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - source_acl_propagated
+            - private_material_redacted
+      DELETE:
+        EMPLOYEE_PRIVATE:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - retention_allows_delete
+            - legal_hold_absent
+        COMPANY_MANAGED_PERSONAL:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - retention_allows_delete
+            - legal_hold_absent
+        SHARED_WORK_CONTEXT:
+          decision: CONDITIONAL
+          required_conditions:
+            - policy_bound_system
+            - retention_allows_delete
+            - legal_hold_absent
+      EXPORT:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+      PROMOTE:
+        EMPLOYEE_PRIVATE:
+          decision: DENY
+          required_conditions: []
+        COMPANY_MANAGED_PERSONAL:
+          decision: DENY
+          required_conditions: []
+        SHARED_WORK_CONTEXT:
+          decision: DENY
+          required_conditions: []
+  retention_and_lifecycle_policy:
+    legal_hold_overrides_delete_and_purge: true
+    offboarding_requires:
+      - mode_specific_disposition
+      - export_or_notice_decision
+      - private_material_redaction_before_shared_retention
+      - audit_receipt
+    delete_semantics:
+      EMPLOYEE_PRIVATE: remove_payload_or_tombstone_subject_to_legal_hold
+      COMPANY_MANAGED_PERSONAL: request_delete_or_archive_subject_to_company_policy
+      SHARED_WORK_CONTEXT: redact_private_material_and_retain_work_provenance_when_allowed
+    export_semantics:
+      EMPLOYEE_PRIVATE: employee_export_allowed_when_policy_and_legal_hold_allow
+      COMPANY_MANAGED_PERSONAL: employee_export_requires_company_policy_and_notice
+      SHARED_WORK_CONTEXT: export_only_own_contribution_or_redacted_context
+  source_acl_inheritance:
+    rule: source ACL is a ceiling; personal memory may narrow but cannot widen without promotion gate
+    required_receipts:
+      - source_acl_snapshot
+      - personal_acl_decision
+      - policy_ref
+  promotion_widening_gate:
+    required:
+      - promotion_proposal
+      - evidence_support_check
+      - source_acl_check
+      - redaction_complete
+      - reviewer_approval
+      - canonical_single_writer
+    forbidden:
+      - direct_copy_to_shared_canonical
+      - model_confidence_only
+      - admin_override_without_review
+
+capability_levels:
+  L1:
+    name: 基礎
+    behavior:
+      - manual evidence capture or marking
+      - candidate generation
+      - employee confirmation
+      - basic recall with citation
+  L2:
+    name: 自動化
+    behavior:
+      - automatic source ingestion
+      - deterministic dedup/version/ACL/retention handling
+      - automatic candidate queue
+  L3:
+    name: 智慧化
+    behavior:
+      - cross-source object linking
+      - WorkRecord correlation
+      - conflict/freshness/gap suggestions
+      - context-aware recall
+      - promotion suggestions
+  L4:
+    name: 自治化
+    behavior:
+      - continuous stale/conflict/gap monitoring
+      - correction and promotion proposals
+      - projection rebuild and regression evaluation
+    authority_gate_required: true
+  same_contract_all_levels: true
+
+capability_matrix:
+  purpose: >-
+    Machine-readable grant of automation depth per capability level. Higher
+    levels are cumulative supersets of lower levels; the shared core contract
+    does not change across levels.
+  capabilities:
+    - manual_capture
+    - candidate_generation
+    - employee_confirmation
+    - basic_recall_with_citation
+    - automatic_source_ingestion
+    - deterministic_dedup_version_acl_retention
+    - automatic_candidate_queue
+    - cross_source_object_linking
+    - workrecord_correlation
+    - conflict_freshness_gap_suggestion
+    - context_aware_recall
+    - promotion_suggestion
+    - continuous_stale_conflict_gap_monitoring
+    - correction_proposal
+    - promotion_proposal
+    - projection_rebuild_regression_evaluation
+  cumulative: true
+  grants:
+    L1:
+      - manual_capture
+      - candidate_generation
+      - employee_confirmation
+      - basic_recall_with_citation
+    L2:
+      - automatic_source_ingestion
+      - deterministic_dedup_version_acl_retention
+      - automatic_candidate_queue
+    L3:
+      - cross_source_object_linking
+      - workrecord_correlation
+      - conflict_freshness_gap_suggestion
+      - context_aware_recall
+      - promotion_suggestion
+    L4:
+      - continuous_stale_conflict_gap_monitoring
+      - correction_proposal
+      - promotion_proposal
+      - projection_rebuild_regression_evaluation
+  grant_semantics: >-
+    grants[Ln] lists the capabilities first unlocked at level Ln. The effective
+    grant for a level is the union of its own row and every lower level. A
+    profile at level Ln must not claim a capability whose first-unlock level is
+    above Ln.
+  level_gated_actions:
+    L4:
+      - correction_proposal
+      - promotion_proposal
+
+level_transitions:
+  single_step_only: true
+  allowed_upgrades:
+    L1:
+      - L2
+    L2:
+      - L3
+    L3:
+      - L4
+    L4: []
+  allowed_downgrades:
+    L4:
+      - L3
+    L3:
+      - L2
+    L2:
+      - L1
+    L1: []
+  transition_requirements:
+    - authorized_actor
+    - reason_recorded
+  downgrade_rules:
+    must_preserve_safety_floor: true
+    reduces_automation_depth_only: true
+  forbidden:
+    - multi_step_jump
+    - unauthorized_actor
+    - downgrade_that_removes_safety_floor
+    - transition_that_forks_core_contract
+
+capability_safety_floor:
+  invariants:
+    - permission_before_retrieval
+    - provenance_required
+    - canonical_single_writer
+    - candidate_not_auto_accepted_by_level
+    - promotion_requires_widening_gate
+  l4_authority_gate:
+    authority_gate_required: true
+    gated_actions:
+      - correction_proposal
+      - promotion_proposal
+  applies_to_all_levels: true
+  downgrade_preserves_all_invariants: true
+  statement: >-
+    Lowering the capability level reduces automation depth only. It never
+    removes permission-before-retrieval, provenance, canonical single writer,
+    the candidate acceptance gate, the promotion widening gate, or the L4
+    authority gate.
+
+core_pipeline:
+  - SOURCE
+  - RAW_EVIDENCE
+  - OBJECT_LINKING
+  - WORK_RECORD_PROJECTION
+  - PERSONAL_MEMORY_CANDIDATE
+  - VERIFICATION
+  - PERSONAL_ACCEPTANCE
+  - PERSONAL_MEMORY_RECORD
+  - RECALL_OR_CORRECTION
+  - OPTIONAL_PROMOTION_PROPOSAL
+
+# repo #5 稽核 F-01（2026-09-16 發現，2026-09-17 收斂）：core_pipeline 的中段
+# 是 canonical 升格路徑的重述，但過去沒有任何東西宣告這件事，也沒有 validator
+# 讀它——相鄰的 core_invariants 反而有被 boundary validator 斷言。
+#
+# 這裡明確宣告「哪一段是重述、重述了上游的哪些步驟」。covers 必須逐項都是
+# 上游**現在**仍存在的步驟，所以上游若移除或改名某步，這裡會立刻變成孤兒而
+# 轉紅——那正是單靠「順序與跳步檢查」補不到的缺口（舊名稱會直接從比對範圍
+# 消失，靜默通過）。
+core_pipeline_promotion_binding:
+  promotion_path_ref: ai-work-record-boundary.promotion_path.ordered_steps
+  covers:
+    - PERSONAL_MEMORY_CANDIDATE
+    - VERIFICATION
+    - PERSONAL_ACCEPTANCE
+    - PERSONAL_MEMORY_RECORD
+  rule: >-
+    The listed steps are a restatement of the canonical promotion path, not an
+    independent ordering. Each must be a step that currently exists in
+    ai-work-record-boundary.promotion_path.ordered_steps, they must appear in
+    that same relative order, and they must be contiguous there -- core_pipeline
+    may describe only part of the canonical path, but it may not silently drop a
+    step from the part it does describe. core_pipeline's own additional stages
+    (SOURCE, OBJECT_LINKING, RECALL_OR_CORRECTION, ...) are outside the canonical
+    path and are not governed by this binding.
+
+core_invariants:
+  - RAW_EVIDENCE_NE_PERSONAL_MEMORY
+  - WORK_RECORD_NE_PERSONAL_MEMORY
+  - CANDIDATE_NE_ACCEPTED_PERSONAL_MEMORY
+  - PERSONAL_CANONICAL_MEMORY_IS_PERSONAL_SCOPE_ONLY
+  - PERSONAL_MEMORY_NE_COMPANY_CANONICAL_KNOWLEDGE
+  - CAPTURED_NE_REMEMBERED
+  - MODEL_CONFIDENCE_NE_VERIFICATION
+  - OBJECT_LINK_NE_PERMISSION_EXPANSION
+  - CORRECTION_CREATES_REVISION_NOT_HISTORY_ERASURE
+  - PROMOTION_REQUIRES_PROPOSAL_REVIEW_AND_SINGLE_WRITER
+  - GENERAL_EMPLOYEE_NEEDS_NO_AI_CORE
+  - ROLE_PROFILE_NE_CORE_SCHEMA_AUTHORITY
+
+contract_registry:
+  reuse_existing:
+    - RawEvidenceEnvelope
+    - SourceAnchor
+    - Object
+    - ObjectLinkAssertion
+    - WorkRecord
+    - VerificationReceipt
+    - AcceptanceReceipt
+    - CanonicalWriteReceipt
+  define_for_employee_memory:
+    EmployeeMemoryProfile:
+      purpose: employee identity, role/source configuration, policy, level
+    PersonalMemoryCandidate:
+      purpose: unaccepted durable-memory proposal
+    PersonalMemoryRecord:
+      purpose: accepted memory inside PERSONAL scope
+    MemorySupportLink:
+      purpose: exact evidence and source-anchor support
+    MemoryConflictSet:
+      purpose: contradictory or scope/time-qualified memories
+    MemoryCorrectionProposal:
+      purpose: employee/model correction request with evidence
+      required_fields_ref: correction_flow.contract.proposal_required_fields
+    MemorySupersessionReceipt:
+      purpose: immutable history of replace/invalidate/amend decision
+      required_fields_ref: correction_flow.contract.supersession_receipt_required_fields
+    MemoryContextPack:
+      purpose: permission-aware bounded recall result
+      required_fields_ref: recall_context_pack.contract.pack_required_fields
+    MemoryPromotionProposal:
+      purpose: PERSONAL to TEAM/DEPARTMENT/COMPANY/CLIENT proposal
+    MemoryProjectionManifest:
+      purpose: rebuildable human-readable views and summaries
+
+employee_memory_profile_minimum:
+  identity:
+    - tenant_id
+    - employee_id
+    - role_profile
+  source_policy:
+    - connector_grants
+    - consent_or_notice_ref
+    - capture_scope
+  memory_policy:
+    - capability_level
+    - personal_scope_mode
+    - ownership_mode
+    - visibility_scope
+    - sensitivity_policy_ref
+    - retention_policy_ref
+    - promotion_policy_ref
+    - context_budget_policy_ref
+
+memory_kinds_phase_1:
+  - WORK_PREFERENCE
+  - WORKING_STYLE
+  - DOMAIN_FACT
+  - DEFINITION
+  - RULE
+  - DECISION
+  - LESSON
+  - PROCEDURE
+  - PROJECT_CONTEXT
+  - RELATIONSHIP_CONTEXT
+  - LONG_LIVED_CONSTRAINT
+
+not_long_lived_memory_by_default:
+  - CURRENT_TASK_STATUS
+  - ONE_OFF_COMMAND_OUTPUT
+  - TRANSIENT_OPEN_LOOP
+  - TEMPORARY_BRANCH_OR_WORKTREE_STATE
+  - RUNTIME_COMPLETION_MESSAGE
+  - UNVERIFIED_MODEL_SUGGESTION
+  - SHORT_LIVED_SCHEDULE
+
+personal_memory_resource_contracts:
+  version: 0.1.0
+  shared_constraints:
+    tenant_id_required: true
+    employee_owner_ref_required: true
+    id_profile: UUIDv7_URN
+    id_templates:
+      PersonalMemoryCandidate: urn:omos:personal-memory:candidate:{uuidv7}
+      PersonalMemoryRecord: urn:omos:personal-memory:record:{uuidv7}
+      MemorySupportLink: urn:omos:personal-memory:support-link:{uuidv7}
+      MemoryConflictSet: urn:omos:personal-memory:conflict-set:{uuidv7}
+    candidate_not_record_rule: >-
+      A PersonalMemoryCandidate is a durable-memory proposal only; it cannot
+      become an accepted PersonalMemoryRecord by status, confidence, or label
+      mutation. A separate PersonalMemoryRecord requires a distinct record_id,
+      origin_candidate_ref, verification receipt, personal acceptance receipt,
+      and support links.
+    support_target_rule: >-
+      Candidate and Record support must point through MemorySupportLink to exact
+      Evidence and SourceAnchor refs. Model summaries, completion messages, and
+      confidence scores are routing signals only.
+    model_summary_as_support: forbidden
+    cross_employee_reference_rule: >-
+      Any support or member reference that crosses employee_owner_ref requires
+      permission_intersection_ref and must not widen the source ACL.
+    transient_memory_rule: >-
+      Kinds listed in not_long_lived_memory_by_default must fail closed unless a
+      later explicit governance contract reclassifies them with support,
+      verification, and personal acceptance.
+  enums:
+    candidate_status:
+      - PROPOSED
+      - NEEDS_VERIFICATION
+      - VERIFIED
+      - ACCEPTANCE_REQUESTED
+      - ACCEPTED_FOR_RECORD
+      - REJECTED
+      - BLOCKED
+      - SUPERSEDED
+    record_status:
+      - ACTIVE
+      - SUPERSEDED
+      - INVALIDATED
+      - ARCHIVED
+    verification_status:
+      - NOT_RUN
+      - PARTIAL
+      - PASS
+      - FAIL
+    acceptance_status:
+      - PENDING
+      - ACCEPTED
+      - REJECTED
+      - BLOCKED
+    support_relation:
+      - SUPPORTS
+      - QUALIFIES
+      - LIMITS
+      - CONTRADICTS
+      - DERIVED_FROM
+    allowed_anchor_resolution_for_support:
+      - EXACT_MATCH
+      - RELOCATED
+    conflict_resolution_status:
+      - UNRESOLVED
+      - QUALIFIED_BY_SCOPE
+      - QUALIFIED_BY_TIME
+      - RESOLVED_BY_REVIEW
+      - BLOCKED
+  resources:
+    PersonalMemoryCandidate:
+      purpose: unaccepted durable-memory proposal
+      identity_kind: PERSONAL_MEMORY_CANDIDATE
+      required_fields:
+        - candidate_id
+        - tenant_id
+        - employee_owner_ref
+        - memory_kind
+        - content.statement_or_structured_content
+        - applicability.scope_mode
+        - applicability.applies_to_refs
+        - validity_interval.effective_from
+        - support_link_refs
+        - provenance.generated_from_refs
+        - provenance.proposed_by
+        - governance.ownership_mode
+        - governance.visibility_scope
+        - governance.sensitivity
+        - governance.acl_ref
+        - governance.verification_status
+        - governance.acceptance_status
+        - chronology.created_at
+        - candidate_status
+      required_support:
+        minimum_support_link_refs: 1
+        link_resource: MemorySupportLink
+        must_resolve_to:
+          - RawEvidenceEnvelope
+          - SourceAnchor
+      lifecycle:
+        initial_status: PROPOSED
+        allowed_transitions:
+          PROPOSED:
+            - NEEDS_VERIFICATION
+            - VERIFIED
+            - REJECTED
+            - BLOCKED
+          NEEDS_VERIFICATION:
+            - VERIFIED
+            - REJECTED
+            - BLOCKED
+          VERIFIED:
+            - ACCEPTANCE_REQUESTED
+            - REJECTED
+            - BLOCKED
+          ACCEPTANCE_REQUESTED:
+            - ACCEPTED_FOR_RECORD
+            - REJECTED
+            - BLOCKED
+          ACCEPTED_FOR_RECORD:
+            - SUPERSEDED
+          BLOCKED:
+            - NEEDS_VERIFICATION
+            - REJECTED
+          REJECTED: []
+          SUPERSEDED: []
+      acceptance_gate:
+        acceptance_status_ACCEPTED_requires:
+          - governance.verification_status=PASS
+          - governance.verification_receipt_ref
+          - governance.personal_acceptance_ref
+        creates_record: false
+      forbidden:
+        - record_id
+        - resource_kind=PERSONAL_MEMORY_RECORD
+        - model_confidence_only
+        - memory_kind in not_long_lived_memory_by_default
+    PersonalMemoryRecord:
+      purpose: accepted memory inside PERSONAL scope
+      identity_kind: PERSONAL_MEMORY_RECORD
+      required_fields:
+        - record_id
+        - tenant_id
+        - employee_owner_ref
+        - origin_candidate_ref
+        - memory_kind
+        - content.statement_or_structured_content
+        - applicability.scope_mode
+        - applicability.applies_to_refs
+        - validity_interval.effective_from
+        - support_link_refs
+        - candidate_snapshot.candidate_status
+        - candidate_snapshot.verification_status
+        - candidate_snapshot.acceptance_status
+        - governance.ownership_mode
+        - governance.visibility_scope
+        - governance.verification_status
+        - governance.acceptance_status
+        - governance.verification_receipt_ref
+        - governance.personal_acceptance_ref
+        - governance.sensitivity
+        - governance.acl_ref
+        - governance.freshness
+        - governance.review_due_at
+        - governance.conflict_refs
+        - governance.supersedes
+        - governance.superseded_by
+        - governance.retention_state
+        - chronology.created_at
+        - chronology.effective_from
+        - record_status
+      creation_gate:
+        required:
+          - origin_candidate_ref points to PersonalMemoryCandidate
+          - record_id differs from origin_candidate_ref
+          - candidate_snapshot.candidate_status=ACCEPTED_FOR_RECORD
+          - candidate_snapshot.verification_status=PASS
+          - candidate_snapshot.acceptance_status=ACCEPTED
+          - governance.verification_status=PASS
+          - governance.acceptance_status=ACCEPTED
+          - governance.verification_receipt_ref
+          - governance.personal_acceptance_ref
+          - support_link_refs minimum 1
+      lifecycle:
+        initial_status: ACTIVE
+        allowed_transitions:
+          ACTIVE:
+            - SUPERSEDED
+            - INVALIDATED
+            - ARCHIVED
+          SUPERSEDED:
+            - ARCHIVED
+          INVALIDATED:
+            - ARCHIVED
+          ARCHIVED: []
+      update_rule: >-
+        Corrections create a new revision or supersession receipt; accepted
+        records are not overwritten in place.
+      forbidden:
+        - memory_kind in not_long_lived_memory_by_default
+        - missing evidence support
+        - missing personal acceptance
+    MemorySupportLink:
+      purpose: exact evidence and source-anchor support
+      identity_kind: MEMORY_SUPPORT_LINK
+      required_fields:
+        - link_id
+        - tenant_id
+        - employee_owner_ref
+        - target_ref
+        - evidence_ref
+        - source_anchor_ref
+        - source_anchor_profile
+        - relation
+        - anchor_resolution
+        - provenance.created_by
+        - provenance.created_at
+      allowed_targets:
+        - PersonalMemoryCandidate
+        - PersonalMemoryRecord
+      required_source_refs:
+        - RawEvidenceEnvelope.evidence_ref
+        - SourceAnchor.source_anchor_ref
+      source_anchor_profile_allowed_from: common-vocabulary.source_anchor_profiles.phase_1
+      relation_semantics:
+        SUPPORTS: evidence supports the memory statement
+        QUALIFIES: evidence limits applicability or validity
+        LIMITS: evidence restricts scope, actor, time, or confidence
+        CONTRADICTS: evidence contributes to MemoryConflictSet
+        DERIVED_FROM: memory was derived from a work record or normalized view
+      forbidden:
+        - model_summary_only
+        - source_anchor_ref missing
+        - evidence_ref missing
+        - anchor_resolution in MISSING/AMBIGUOUS/NOT_CHECKED
+    MemoryConflictSet:
+      purpose: contradictory or scope/time-qualified memories
+      identity_kind: MEMORY_CONFLICT_SET
+      required_fields:
+        - set_id
+        - tenant_id
+        - employee_owner_ref
+        - member_memory_refs
+        - member_owner_refs
+        - conflict_type
+        - resolution_status
+        - support_link_refs
+        - created_at
+      member_rules:
+        minimum_member_memory_refs: 2
+        allowed_members:
+          - PersonalMemoryCandidate
+          - PersonalMemoryRecord
+        member_owner_refs_must_match_resolved_members: true
+        cross_employee_member_requires: permission_intersection_ref
+      support_rules:
+        support_links_target_members_only: true
+        required_relation: CONTRADICTS
+        support_link_target_resource: MemorySupportLink
+      resolution_rule: >-
+        ConflictSet records contradiction, qualification, or review state only.
+        Review or supersession receipts may resolve the conflict elsewhere, but
+        the set does not select a winner or grant write authority by itself.
+      forbidden_fields:
+        - winner_memory_ref
+        - accepted_winner_ref
+        - canonical_winner_ref
+      forbidden_authority:
+        - acceptance
+        - canonical_writer
+        - winner_selection
+
+personal_memory_record_minimum:
+  identity:
+    - memory_id
+    - tenant_id
+    - employee_owner_ref
+    - memory_kind
+  content:
+    - statement_or_structured_content
+    - applicability
+    - validity_interval
+  support:
+    - evidence_refs
+    - source_anchor_refs
+    - provenance
+  governance:
+    - ownership_mode
+    - visibility_scope
+    - verification_status
+    - acceptance_status
+    - sensitivity
+    - acl_ref
+    - freshness
+    - review_due_at
+    - conflict_refs
+    - supersedes
+    - superseded_by
+    - retention_state
+  chronology:
+    - created_at
+    - effective_from
+    - effective_to
+    - reviewed_at
+
+source_profiles:
+  universal_examples:
+    - OUTLOOK_EMAIL
+    - TEAMS_MESSAGE
+    - JIRA_ENTITY
+    - DOCUMENT
+    - MEETING
+    - WEB
+    - MANUAL_NOTE
+  advanced_examples:
+    - GIT_ARTIFACT
+    - CODEX_RECEIPT
+    - AI_CORE_ACCEPTED_RESULT
+    - CLAUDE_CODE_RECEIPT
+  rule: ALL_SOURCES_MAP_TO_SAME_RAW_EVIDENCE_CONTRACT
+
+role_profiles:
+  PM_PROFILE:
+    likely_sources:
+      - OUTLOOK_EMAIL
+      - TEAMS_MESSAGE
+      - JIRA_ENTITY
+      - DOCUMENT
+      - MEETING
+  RD_PROFILE:
+    likely_sources:
+      - JIRA_ENTITY
+      - DOCUMENT
+      - GIT_ARTIFACT
+      - CODEX_RECEIPT
+      - AI_CORE_ACCEPTED_RESULT
+  MD_PROFILE:
+    likely_sources:
+      - DOCUMENT
+      - TEAMS_MESSAGE
+      - CLIENT_FEEDBACK
+  SALES_PROFILE:
+    likely_sources:
+      - CRM_ENTITY
+      - OUTLOOK_EMAIL
+      - MEETING
+      - CLIENT_DOCUMENT
+  rules:
+    - role profile may configure but not redefine lifecycle
+    - extensions must be namespaced
+    - role profile cannot bypass promotion review
+
+work_record:
+  role: REBUILDABLE_PROJECTION
+  answers: what happened in this work
+  does_not_answer: what should be remembered long term
+  may_generate_candidates: '0..N'
+
+historical_comparison:
+  slice_of: SSP-323（EMEM-09）切片 1
+  purpose: >-
+    Classify how a submission compares to prior history for the same
+    identity, and derive whether a resend/update is warranted. This is a
+    comparison RESULT, not a second candidate lifecycle: it does not read or
+    set candidate_status, record_status, verification_status or
+    acceptance_status, and every disposition still passes through the
+    existing PersonalMemoryCandidate lifecycle and acceptance gate
+    unchanged. SSP-324's dedup/resend rule binds to the dispositions
+    declared here rather than restating them.
+  categories:
+    - UNSEEN
+    - UNCHANGED
+    - NEW_EVIDENCE
+    - MATERIALLY_CHANGED
+    - CONTRADICTED
+  dispositions:
+    UNSEEN: INITIAL_SUBMISSION
+    UNCHANGED: NO_RESEND
+    NEW_EVIDENCE_WITHOUT_MATERIAL_EFFECT: LOCAL_RECURRENCE_ONLY
+    NEW_EVIDENCE_WITH_MATERIAL_EFFECT: EVIDENCE_UPDATE_REVISION
+    MATERIALLY_CHANGED: CORRECTION_SUPERSESSION_PROPOSAL
+    CONTRADICTED: CORRECTION_CONFLICT_PROPOSAL
+  material_effect_dimensions:
+    - evidence_strength_tier
+    - applicability
+    - risk
+    - conflict_determination
+    - redaction_or_sensitivity_requirement
+    - conclusion
+  category_and_disposition_derivation: >-
+    category and disposition are NEVER caller-declared -- both are computed
+    by the evaluator from primitive signals, so a caller cannot assert an
+    arbitrary classification and have it trusted. This directly answers a
+    review finding against an earlier design in this repository (SSP-294)
+    where a caller-declared classification was checked only for internal
+    self-consistency, not against the facts it claimed to summarize.
+
+    Precedence, highest first (a submission can trigger more than one
+    signal at once -- e.g. new evidence that also contradicts a prior
+    conclusion -- so an explicit order is required, not just five
+    mutually-assumed-exclusive names):
+
+      1. no_prior_record            -> UNSEEN
+      2. contradicts_prior          -> CONTRADICTED
+      3. has_new_evidence           -> NEW_EVIDENCE
+                                        (material_effect then selects which
+                                        of the two NEW_EVIDENCE dispositions)
+      4. material_effect            -> MATERIALLY_CHANGED
+                                        (material effect with no new
+                                        evidence: the same material was
+                                        re-examined and the conclusion no
+                                        longer holds, distinct from new
+                                        evidence arriving)
+      5. identical_to_prior         -> UNCHANGED
+
+    no_prior_record, identical_to_prior and has_new_evidence are
+    machine-checkable and computed directly from the submitted prior/current
+    identity, content hash and evidence_refs -- never read from a
+    caller-declared boolean. material_effect and contradicts_prior require
+    semantic judgment this evaluator cannot perform; the caller supplies
+    them, but a bare boolean is not accepted on its own -- each true value
+    must carry non-empty reasons naming which material_effect_dimensions
+    changed, and at least one evidence_ref. A caller cannot claim
+    material_effect or contradicts_prior when no_prior_record is true --
+    there is nothing prior to differ from or contradict.
+
+organizational_value_assessment:
+  slice_of: SSP-323（EMEM-09）切片 2
+  purpose: >-
+    Assess how much organizational value an already-surfaced personal
+    observation/pattern might carry, and -- separately -- whether an
+    employee genuinely cannot resolve an open question themselves while it
+    still carries enough value to flag for organizational follow-up.
+    Organizational Value Assessment != Promotion Eligibility: this
+    evaluator never reads or writes candidate_status, record_status,
+    verification_status, acceptance_status or conflict_resolution_status,
+    and a HIGH assessment here does not itself authorize promotion --
+    SSP-294's existing gate, policy matrix and scope ceiling still apply
+    unchanged to whatever eventually gets proposed. NEEDS_ORG_FOLLOWUP !=
+    Company Knowledge: it is a follow-up signal carried through SSP-324's
+    Minimal Evidence Package, not a canonical record, and creates no
+    candidate/record identity by itself.
+  dimensions:
+    - repeatability
+    - impact_scope
+    - reusability
+    - cost_of_not_knowing
+    - decision_rationale_value
+    - scarcity
+    - stability
+    - evidence_strength
+    - sensitivity_or_permission_constraint
+  rating_levels:
+    - LOW
+    - MEDIUM
+    - HIGH
+  no_single_score: >-
+    The card requires readable per-dimension reasons, not a false-precision
+    single score. This evaluator structurally forbids any aggregate numeric
+    field (overall_score, value_score, total_score, score,
+    aggregate_score) on the run -- there is no computed or caller-declared
+    single number anywhere in this contract.
+  rating_derivation_and_substantiation: >-
+    Unlike historical_comparison's identity/hash/evidence-set signals,
+    none of these nine dimensions are computable from raw facts -- they
+    are inherently a human judgment call about value, so there is no
+    machine-derived rating for this evaluator to compute. The machine
+    boundary this evaluator enforces instead is completeness and
+    substantiation, not derivation: every dimension in `dimensions` must
+    appear in dimension_ratings (an assessment run may not silently omit
+    an unfavourable axis or cherry-pick only favourable ones), and every
+    dimension -- regardless of level -- requires non-empty reasons in
+    dimension_reasons: the card requires readable reasons for the
+    assessment as a whole, not only for the consequential HIGH claims.
+    A HIGH rating carries one further requirement on top of that: at least
+    one evidence_ref in dimension_evidence_refs for that dimension, because
+    it is the one claim that can make an item eligible for
+    needs_org_followup and this evaluator refuses to trust it on reasons
+    text alone. LOW/MEDIUM ratings carry no evidence_ref requirement.
+  needs_org_followup:
+    purpose: >-
+      needs_org_followup is never caller-declared -- like category and
+      disposition in historical_comparison, it is computed by the
+      evaluator from primitive signals, so a caller cannot silently
+      suppress a follow-up that the submitted signals otherwise warrant by
+      simply asserting a favourable boolean. A run carrying a
+      needs_org_followup field at all is rejected outright.
+    derivation: >-
+      True exactly when (the employee genuinely could not answer, i.e.
+      answer_provided is false) OR (missing_external_evidence is true),
+      AND at least one dimension in dimension_ratings is HIGH with its
+      substantiation (reasons + evidence_ref) present -- reusing the same
+      substantiation rule this evaluator already enforces for any HIGH
+      rating rather than a second, separately-trusted org-value flag. The
+      "or" is load-bearing: the card's wording is "the employee genuinely
+      cannot answer, OR the external evidence is missing" -- either
+      condition alone is sufficient, they are not both required.
+    consistency: >-
+      answer_provided is cross-checked against unresolved_question for
+      internal consistency (answered-with-a-lingering-question and
+      unanswered-with-no-named-question are both self-contradictory and
+      rejected) rather than trusted as an unrelated bare flag.
+    suggested_expert: >-
+      Optional hint only; null is legal and does not weaken the follow-up.
+      Expert routing, taxonomy and cross-person conflict resolution stay
+      in the Organizational Layer (SSP-324), not here.
+
+weekly_review_cycle:
+  slice_of: SSP-323（EMEM-09）切片 4
+  purpose: >-
+    Wire slices 1-3 into an actually executable Weekly Grill closeout
+    loop. review_period_id is the core identity: every closeout attempt
+    for the same scheduled period -- whether it runs on time, as a
+    catch-up on the next business day, or as a retry after a failure --
+    must carry the SAME review_period_id, so duplicate-closeout or
+    duplicate-promotion cannot be produced by re-deriving identity from
+    whichever day the work actually happened on.
+  binds_to:
+    - historical_comparison.categories（item disposition 的機器可查分類
+      詞彙，直接讀取，不重述——這同時是「不讓固定問卷冒充 dynamic
+      grill」的機器邊界：本片自己完全不新造分類詞彙）
+    - organizational_value_assessment（NEEDS_ORG_FOLLOWUP 是
+      item_dispositions 唯一額外允許的分類，來自切片 2 的推導結果）
+    - runtime_policy.local_first_export_surface（closeout receipt 正是
+      該封閉列舉的第二項）
+    - personal_memory_resource_contracts.resources.PersonalMemoryCandidate
+      （item_dispositions 只能引用既有 candidate 生命週期，不自建一套）
+  cadence_policy:
+    default_anchor: FRIDAY_AFTERNOON
+    anchor_is_tenant_configurable: true
+    anchor_change_forbidden_from_altering: closeout_statuses / attempt_kinds / closeout_receipt schema
+    catch_up_rule: >-
+      A missed scheduled review period rolls forward to the next business
+      day. The catch-up attempt keeps the ORIGINAL review_period_id and
+      the original scheduled_review_period_start -- it never becomes part
+      of the following period's closeout, and the following period's new
+      evidence is never mixed into this period's review.
+    skipped_requires_exhausted_catch_up: >-
+      SKIPPED is a final, explicit disposition. A period that is merely
+      awaiting its catch-up window is not SKIPPED -- asserting SKIPPED
+      before the catch-up deadline has passed is rejected outright, not
+      merely discouraged.
+  closeout_statuses:
+    - COMPLETE
+    - FAILED
+    - SKIPPED
+    - NO_PROMOTION
+  terminal_statuses:
+    - COMPLETE
+    - SKIPPED
+    - NO_PROMOTION
+  attempt_kinds:
+    - SCHEDULED
+    - CATCH_UP
+    - RETRY
+  closeout_receipt:
+    required_fields:
+      - review_period_id
+      - scheduled_review_period_start
+      - scheduled_anchor_at
+      - actual_closeout_at
+      - attempt_kind
+      - final_status
+      - catch_up_deadline_passed
+      - selected_item_refs
+      - item_dispositions
+    forbidden_fields:
+      - full_personal_store_ref
+      - weekly_work_summary
+      - personal_store_snapshot
+      - candidate_status
+      - record_status
+      - verification_status
+      - acceptance_status
+      - conflict_resolution_status
+    forbidden_fields_note: >-
+      The last five reuse historical_comparison's FORBIDDEN_LIFECYCLE_
+      FIELDS: the receipt itself must never carry bulk lifecycle state
+      any more than a single comparison run may -- a closeout is a
+      lightweight pointer record (selected_item_refs / item_dispositions
+      are bounded refs and enum categories, never inline content), never
+      a second WeeklyReviewBundle resource with its own record identity,
+      and batch confirmation therefore cannot itself accept anything: the
+      only acceptance authority remains each PersonalMemoryCandidate's own
+      existing verification/acceptance gate.
+  item_disposition_rule: >-
+    selected_item_refs and item_dispositions must have identical key
+    sets -- every selected item reaches a disposition in the same review
+    session it was selected in; NEEDS_ORG_FOLLOWUP (the disposition
+    supplied by organizational_value_assessment) is the only legal way to
+    defer an item without answering it, not silent carry-over to next
+    week. An item_dispositions entry whose category is NEEDS_ORG_FOLLOWUP
+    must not carry record_ref or promotion_ref -- it stays a follow-up
+    signal, never a Knowledge or Canonical creation.
+  promotion_idempotency_rule: >-
+    When the same item appears with a promotion_idempotency_key across
+    more than one closeout attempt for the same review_period_id (a
+    retry re-touching the same item), that key must be identical every
+    time. A retry that produced a DIFFERENT key for the same item is
+    indistinguishable from a retry that created a second, duplicate
+    promotion -- the identity that downstream Promotion idempotency
+    relies on would have silently drifted.
+
+minimal_evidence_package:
+  slice_of: SSP-324（EMEM-10）切片 A
+  purpose: >-
+    The Personal -> Company transmission envelope, and the ONLY way company
+    side ever obtains personal material. This is a payload boundary, not a
+    second Promotion design: SSP-294's widening gate, actor x material
+    policy matrix and source ACL ceiling still decide whether anything may
+    be promoted, and Verification / Review / Acceptance / Canonical Single
+    Writer are unchanged. Evidence Package != Company Knowledge.
+  binds_to:
+    - ownership_visibility_contract.mode_definitions（scope_mode 對應的
+      ownership_mode／visibility_scope／consent 要求，全部從上游讀，
+      package 只是宣告自己屬於哪個 mode，數值必須對得上）
+    - personal_memory_resource_contracts...id_templates.PersonalMemoryCandidate
+      （candidate_ref 必須真的是 Candidate identity）
+    - runtime_policy.local_first_export_surface（本區塊正是該封閉列舉裡
+      minimal_evidence_package 這一項的實際 enforcement；切片 3 review
+      留下的 P2「宣稱比 enforcement 大」由此收斂）
+  access_boundary:
+    allowed_request_kinds:
+      - PACKAGE_LOOKUP
+    forbidden_request_kinds:
+      - BROWSE
+      - SEARCH
+      - PULL
+      - REMOTE_QUERY
+      - REMOTE_MOUNT
+    allowed_request_fields:
+      - request_kind
+      - package_ref
+    rule: >-
+      Company side may only ask for one already-submitted package by its
+      exact package_ref. There is no query, filter, scope or wildcard
+      field in the request vocabulary at all -- an open browse/search/pull
+      is not "denied by policy", it is structurally unrepresentable, which
+      is what "no reverse local connector / search API" has to mean if it
+      is to be more than a sentence. A request naming a package_ref that
+      is not the package actually being transmitted is also rejected, so a
+      bounded lookup cannot be used to fetch something else.
+  package_identity:
+    id_template: "urn:omos:personal-memory:evidence-package:{uuidv7}"
+    rule: >-
+      slice C repair-01: package_id was previously accepted as any generic
+      omos URN, while slice C assumed every package could be recognised by
+      a fixed prefix. The two ranges did not match, so a package whose
+      package_id was a legal-but-differently-shaped omos URN passed slice
+      A yet was invisible to slice C's retrieval exclusion. The identity
+      spec now lives here, once, and both the admission check (slice A)
+      and the exclusion check (slice C) read it -- same template, same
+      {uuidv7} identity shape the rest of this contract already uses.
+
+      This deliberately NARROWS what slice A accepts for package_id. It is
+      a listed, limited change to an accepted slice, not a silent one:
+      slice A's and slice B's fixtures were re-verified against it, and a
+      negative case now proves a generic-but-non-template package_id is
+      rejected.
+  package_required_fields:
+    - package_id
+    - tenant_id
+    - employee_owner_ref
+    - candidate_ref
+    - scope_mode
+    - ownership_mode
+    - visibility_scope
+    - sensitivity
+    - consent_ref
+    - content_snapshot
+    - content_hash
+    - evidence_refs
+    - source_anchor_refs
+    - provenance_chain_refs
+    - source_acl_snapshot_ref
+    - redaction_ref
+    - organizational_value_reasons
+    - unresolved_question
+    - suggested_expert
+    - submitted_at
+  package_forbidden_fields:
+    - full_personal_store_ref
+    - personal_store_snapshot
+    - weekly_work_summary
+    - candidate_status
+    - record_status
+    - verification_status
+    - acceptance_status
+    - conflict_resolution_status
+  package_closed_shape_rule: >-
+    package_required_fields is also the complete allowlist: a package's key
+    set must be exactly those fields, no more. repair-01 -- the first
+    version only checked "required present" plus a fixed forbidden-name
+    list, so renaming the payload (private_blob, extra_context, anything
+    not on the ban list) carried whole-store material straight through the
+    boundary this slice exists to enforce. A ban list can only ever name
+    yesterday's bypass; the allowlist is the actual boundary. The
+    forbidden list is kept in front of it so those specific names still
+    fail with their own loud code rather than a generic "unknown field".
+  ref_binding:
+    evidence_refs: EVIDENCE_RECORD
+    source_anchor_refs: SOURCE_ANCHOR
+    canonical_ref_source: common-vocabulary.identifiers.omos_generated.ref_template + common-vocabulary.resource_kinds
+    acl_snapshot_pattern_source: 規格/v0.1/raw-evidence-envelope.schema.json#/properties/access/properties/acl_snapshot_ref
+    rule: >-
+      repair-01 -- these were originally checked only as "some urn:omos:*
+      string", so urn:omos:canonical:secret passed as an evidence ref, a
+      source anchor ref and an ACL snapshot ref alike. They are now bound
+      to the upstream shapes that actually define them: evidence_refs and
+      source_anchor_refs must be canonical refs of exactly the pinned
+      resource kind, built from common-vocabulary's own ref_template and
+      resource_kinds vocabulary; source_acl_snapshot_ref binds to the same
+      STD-01 acl_snapshot_ref pattern permission-retention-deletion.yaml
+      already binds to, read from the schema rather than transcribed.
+    known_gap: >-
+      common-vocabulary declares no PROVENANCE resource kind, so
+      provenance_chain_refs can only be bound to "a canonical ref whose
+      kind is one of the declared resource_kinds", not to a pinned kind.
+      package_id, employee_owner_ref, consent_ref and redaction_ref are
+      org-side identifiers (tenant / employee / consent / redaction
+      records), not OMOS canonical resources, so they stay at generic
+      omos-URN shape. Both are stated here rather than left to look like
+      the same strength of binding as the pinned fields.
+  content_bound:
+    basis: UTF8_BYTES
+    max_bytes: 4096
+    rule: >-
+      repair-01 -- content_snapshot was previously only "a non-blank
+      string", so an entire serialized Personal Store was a legal package.
+      The snapshot is a bounded excerpt supporting THIS proposal, so it
+      carries a declared byte ceiling, measured by the evaluator from the
+      value itself rather than from any self-reported size field. The
+      number lives here as policy, not in the evaluator.
+  content_hash_basis:
+    algorithm: SHA256
+    serialization: "sha256:<64 lowercase hex>"
+    input: content_snapshot UTF-8 bytes, verbatim, no normalization
+    rule: >-
+      repair-01 -- content_hash was previously only a non-blank string, so
+      "not-a-hash" passed and content could be altered while the hash
+      stayed put, which is the one thing an integrity field exists to
+      prevent. The evaluator now recomputes the digest from
+      content_snapshot and requires an exact match, so the basis above is
+      normative, not descriptive.
+  package_forbidden_fields_note: >-
+    The first three are the "whole Personal Store dump" ban; the last five
+    are the same FORBIDDEN_LIFECYCLE_FIELDS boundary historical_comparison
+    and weekly_review_cycle already enforce -- a package carries bounded
+    refs plus one content snapshot, never lifecycle state, because
+    verification_status / acceptance_status remain SSP-294's to decide
+    after the package arrives, not something the package asserts about
+    itself on the way in.
+  governance_binding_rule: >-
+    A package declares scope_mode (a key of
+    ownership_visibility_contract.mode_definitions) and then its
+    ownership_mode and visibility_scope must equal exactly what that mode
+    declares upstream. They are cross-checked, never trusted as
+    independent self-reported values -- a package cannot claim
+    EMPLOYEE_PRIVATE while carrying a company-wide visibility_scope.
+  consent_rule: >-
+    Whether consent is required is read from the upstream mode's
+    consent_or_notice_required value, not hardcoded to one mode name: any
+    scope_mode whose upstream declaration is CONSENT_REQUIRED must carry a
+    non-null consent_ref, and fails closed without one. This keeps
+    EMPLOYEE_PRIVATE's "no consent, no upload" rule bound to the single
+    place that defines it, and means a future mode that becomes
+    consent-requiring is covered without touching this contract.
+
+evidence_package_revision:
+  slice_of: SSP-324（EMEM-10）切片 B
+  purpose: >-
+    Immutable submission / revision semantics and the dedup-resend rule for
+    Minimal Evidence Packages. The validation unit is the submission CHAIN
+    for one candidate, not a single package: "不得每週因同一知識再次發生就
+    往公司重送 duplicate package" and "previous package 必須可追溯" are only
+    visible across submissions -- the same lesson weekly_review_cycle
+    learned about closeout histories.
+  binds_to:
+    - historical_comparison.categories / .dispositions（dedup／resend 規則
+      的唯一權威。SSP-324 卡片那張表逐條就是這裡的 dispositions，本區塊
+      一個字都不抄，評估當下從上游讀）
+    - correction_flow.contract.correction_kinds（revision 走既有
+      correction／supersession，不建立第二套 revision lifecycle）
+    - minimal_evidence_package（切片 A 的封閉封包。本片不重驗封包內部形狀，
+      只驗鏈關係——見 layering_boundary）
+  layering_boundary: >-
+    Slice A owns package-internal shape (its package_required_fields is a
+    closed allowlist); slice B owns the relationships BETWEEN packages.
+    B therefore wraps A's package in an envelope rather than adding fields
+    to it -- adding revision fields into the package would have forced
+    reopening an accepted closed shape. B still value-shape-locks the three
+    package fields it actually reads (package_id / candidate_ref /
+    content_hash) instead of trusting them, but it does not re-implement
+    A's validation.
+
+    repair-01: the first version claimed this layering but did not enforce
+    it -- a B submission carrying a 3-of-20-field package, or one with an
+    extra field, passed, because "both validators run under the same
+    aggregator" is not composition: the aggregator merely runs two fixture
+    sets. B now calls the SAME package evaluator A calls, extracted to
+    scripts/lib/minimal_evidence_package_shape.rb from A with
+    byte-identical behaviour, so a package embedded in a submission is held
+    to the whole slice A contract. Neutralising one guard inside that
+    shared evaluator turns BOTH slices red -- the machine proof that the
+    two are one implementation, not two that happen to agree.
+  package_evaluator_shared_with: scripts/lib/minimal_evidence_package_shape.rb
+  submission_allowed_fields:
+    - submission_id
+    - supersedes_package_ref
+    - comparison
+    - correction_proposal_ref
+    - correction_kind
+    - package
+  forbidden_self_declared_fields:
+    - comparison_category
+    - disposition
+  classification_provenance: >-
+    repair-02: the first two versions let the submission DECLARE
+    comparison_category and disposition, and only checked the pair was a
+    legal one. That is vocabulary binding, not result binding -- a caller
+    could keep content_hash, evidence_refs, redaction_ref and sensitivity
+    all identical to the predecessor, self-report MATERIALLY_CHANGED plus
+    a well-formed CORRECTION_SUPERSESSION_PROPOSAL, and send a revision
+    having demonstrated no material effect whatsoever, straight through
+    the parent card's Acceptance #7.
+
+    historical_comparison already states that category and disposition are
+    NEVER caller-declared. So a submission now carries `comparison` -- the
+    primitive signals that contract consumes (prior/current identity,
+    content hashes, evidence_refs sets, and the substantiated
+    material_effect / contradicts_prior judgments) -- and this contract
+    derives category and disposition by calling the SAME evaluator slice 1
+    calls (scripts/lib/historical_comparison_derivation.rb). Declaring
+    comparison_category or disposition on a submission is rejected
+    outright.
+  comparison_chain_binding: >-
+    The primitives must describe the actual chain, or they would simply be
+    fabricable one level up: comparison.current_content_hash must equal the
+    submission's own package content_hash, and for any later submission
+    comparison.prior_content_hash must equal the predecessor package's
+    content_hash. The first submission must have no prior record and later
+    ones must have one, matching the chain's own shape.
+  non_transmittable_dispositions:
+    - NO_RESEND
+    - LOCAL_RECURRENCE_ONLY
+  non_transmittable_rule: >-
+    This is the one genuinely NEW decision in this block, so it is declared
+    here rather than read from upstream -- but each listed value must exist
+    in historical_comparison.dispositions, asserted at evaluation time, so
+    it cannot drift away from the vocabulary it selects from. A comparison
+    whose disposition is one of these authorizes no company-bound
+    submission at all: UNCHANGED means no resend, and NEW_EVIDENCE without
+    material effect stays local recurrence history. A submission carrying
+    such a disposition is itself the contradiction -- it was sent.
+  correction_required_dispositions:
+    - CORRECTION_SUPERSESSION_PROPOSAL
+    - CORRECTION_CONFLICT_PROPOSAL
+  chain_rules: >-
+    The first submission supersedes nothing and must be the UNSEEN /
+    INITIAL_SUBMISSION case; every later submission must name a
+    predecessor that already appears earlier in the same chain, so the
+    history stays traceable. package_id must be unique across the chain and
+    no two submissions may name the same predecessor: a duplicate id or a
+    forked chain is an in-place overwrite wearing a resubmission costume,
+    which correction_flow already forbids as in_place_record_overwrite.
+    submission_id must be unique too, or an immutable submission audit has
+    ambiguous identity. UNSEEN / INITIAL_SUBMISSION is allowed only as the
+    first entry: repair-01 found the original check was one-directional
+    (first must be UNSEEN) and so let a second entry declare itself an
+    initial submission all over again.
+
+    repair-01 also removed an earlier rule that a revision must change
+    content_hash. That rule was wrong: slice A's content_hash covers
+    content_snapshot only, while the parent card explicitly allows new
+    evidence, redaction, policy, applicability and risk changes to produce
+    a revision with the statement text untouched -- it would have rejected
+    exactly those legitimate revisions. Whether something may be sent at
+    all is decided by the upstream disposition, never by whether a hash
+    moved.
+
+company_side_evidence_boundary:
+  slice_of: SSP-324（EMEM-10）切片 C
+  purpose: >-
+    What the company side may and may not do with a Minimal Evidence
+    Package once it has arrived, and the boundary that keeps
+    NEEDS_ORG_FOLLOWUP from quietly becoming Knowledge. Evidence Package !=
+    Company Knowledge; NEEDS_ORG_FOLLOWUP != Company Knowledge.
+  binds_to:
+    - promotion_flow.required_steps（canonical 只能走完整的 promotion
+      路徑，本片不重述那串步驟，直接比對）
+    - promotion_flow.direct_copy_to_shared_canonical: forbidden
+    - capability_safety_floor.invariants（permission_before_retrieval／
+      canonical_single_writer 是既有 floor，本片只確認自己沒有繞過它們）
+    - core_invariants.PERSONAL_MEMORY_NE_COMPANY_CANONICAL_KNOWLEDGE
+    - recall_context_pack.contract.pack_required_fields（正式 retrieval 的
+      欄位詞彙由它定義，本片檢查封包不得出現在那些欄位裡）
+  allowed_purposes:
+    - PROMOTION_REVIEW_SUPPORT
+    - VERIFICATION_SUPPORT
+    - AUDIT_DISPUTE_PROVENANCE
+  forbidden_purposes:
+    - GENERAL_SEARCH_CORPUS
+    - RAG_RETRIEVAL_SOURCE
+    - COMPANY_CANONICAL_KNOWLEDGE
+    - PERSONAL_STORE_REPLICA
+  purpose_rule: >-
+    Both lists come from the parent card verbatim in intent, and are
+    declared here because upstream has no purpose vocabulary to read. The
+    evaluator asserts they are disjoint and that the allowed list is a
+    closed enum: a purpose outside it is rejected rather than treated as
+    "not forbidden". "Not on the ban list" is exactly how slice A's first
+    version leaked, so this one is an allowlist from the start.
+  handling_forbidden_fields:
+    - canonical_record_ref
+    - retrieval_corpus_ref
+    - rag_index_ref
+    - personal_store_replica_ref
+  canonical_requires_full_promotion: >-
+    A handling record may carry promotion_proposal_ref only for
+    PROMOTION_REVIEW_SUPPORT, and when it does it must list
+    promotion_steps_completed equal to promotion_flow.required_steps --
+    read from upstream at evaluation time, never restated here. That is
+    what "the package is not a shortcut into canonical" has to mean
+    mechanically: the package supports the review, it does not replace the
+    steps. direct_copy_to_shared_canonical stays forbidden upstream and
+    this contract adds no exception to it.
+
+    repair-01 boundary, stated plainly: promotion_flow.required_steps is
+    the authority on WHICH steps must exist, not evidence that this
+    particular promotion actually completed them. Comparing the submitted
+    list proves it is complete and in order; it does not prove
+    Verification, Review or the Single Writer ran. This layer cannot
+    observe that, and the correct response is to say so rather than to
+    invent a second ledger to pretend otherwise -- the execution facts
+    belong to those steps' own contracts and, ultimately, to SSP-295's
+    real-person pilot.
+  retrieval_exclusion:
+    reads_pack_fields:
+      - selected_memories
+      - source_refs
+    selected_memory_entry_ref_field: memory_ref
+    rule: >-
+      A formal retrieval pack must not reach an Evidence Package.
+
+      repair-01: the first version read the right FIELD NAMES but the
+      wrong DATA SHAPE. recall_context_pack's evaluator reads
+      selected_memories as objects -- selected.map { |m| m["memory_ref"] }
+      -- while source_refs is a list of bare refs. This contract had
+      flattened both and compared elements directly, so a retrieval pack
+      in the real shape, selecting the handled package by memory_ref,
+      passed both recall's evaluator and this one. Matching a field name
+      is not integration; the container and element shape have to match
+      too.
+
+      The evaluator therefore locks the shape of what it consumes before
+      comparing: selected_memories must be a list of maps each carrying a
+      string memory_ref (that entry field name is read from
+      recall_context_pack.contract.permission_intersection_entry_fields,
+      the same vocabulary recall itself uses), and source_refs must be a
+      list of strings. Only then are the referenced identities compared.
+    scope_note: >-
+      Only these two fields are checked, deliberately.
+      permission_decision_covered_memory_refs is authorisation coverage,
+      not selected output -- sweeping every *_ref field together would
+      conflate "what was actually returned" with "what could have been
+      authorised". Those are different obligations and are not merged
+      here.
+    identity_source: >-
+      Which identities count as an Evidence Package is NOT decided here:
+      it is read from minimal_evidence_package.package_identity, the same
+      template slice A admits packages by. repair-01 removed the local
+      prefix this block used to declare, because A accepting a wider range
+      than C could recognise was exactly the gap.
+  followup_allowed_fields:
+    - unresolved_question
+    - suggested_expert
+  followup_shape_rule: >-
+    repair-01: the follow-up object was an open shape -- only three named
+    things were rejected on its top level. Two inputs got through: one
+    carrying a legal record_ref plus promotion_ref (which
+    weekly_review_cycle already forbids for NEEDS_ORG_FOLLOWUP, so this
+    contract was contradicting an accepted one), and one hiding a whole
+    canonical object inside unresolved_question, which was never
+    value-shape checked. Adding more banned names only waits for the next
+    rename or the next nesting, so the envelope is now a closed allowlist
+    with value shapes: unresolved_question must be a non-blank string and
+    suggested_expert a string or null. The explicit canonical and
+    lifecycle checks are kept ahead of the allowlist so those names still
+    fail with their own loud code.
+  needs_org_followup_boundary: >-
+    A follow-up carried into the Organizational Layer may name a
+    suggested_expert or leave it null -- both legal, and null must not
+    weaken it. What it may never do is acquire canonical identity: a
+    follow-up record carrying canonical_record_ref, or any of the
+    lifecycle fields historical_comparison already forbids, is rejected.
+    Expert routing, taxonomy and cross-person conflict resolution remain
+    the Organizational Layer's, and are explicitly out of this contract.
+
+personal_memory_governance:
+  required_dimensions:
+    - source support
+    - scope
+    - ownership_mode
+    - visibility_scope
+    - sensitivity
+    - consent_or_notice
+    - applicability
+    - validity
+    - freshness
+    - confidence
+    - conflict
+    - correction
+    - supersession
+    - retention
+    - verification
+    - acceptance
+
+recall_context_pack:
+  input:
+    - intent
+    - requester_identity
+    - requester_scope
+    - ownership_mode
+    - visibility_scope
+    - context_budget
+  output:
+    - selected_memory_refs
+    - source_refs
+    - applicability
+    - freshness
+    - permission_decision_ref
+    - omitted_or_gap_notice
+    - budget_usage
+  permission_strategy: INTERSECTION
+  unrestricted_global_personal_memory_search: forbidden
+  contract:
+    request_required_fields:
+      - intent
+      - requester_identity
+      - requester_scope
+      - ownership_mode
+      - visibility_scope
+      - context_budget
+    pack_required_fields:
+      - pack_id
+      - request_ref
+      - permission_decision_ref
+      - permission_decision_before_selection
+      - permission_decision_covered_memory_refs
+      - selected_memories
+      - source_refs
+      - applicability
+      - freshness
+      - permission_intersection_refs
+      - not_applicable_filtered_count
+      - omitted_or_gap_notice
+      - budget_usage
+    permission_intersection_entry_fields:
+      - memory_ref
+      - intersection_ref
+    forbidden_search_strategies:
+      GLOBAL_THEN_PROMPT_GUARD: SEARCH_ALL_THEN_PROMPT_GUARD
+      UNRESTRICTED_GLOBAL_SEARCH: UNRESTRICTED_GLOBAL_SEARCH
+    permission_ordering:
+      decision_before_candidate_set: true
+      decision_scope_covers_selected: true
+    gap_notice_reasons:
+      - STALE_PRESENT
+      - NOT_APPLICABLE_FILTERED
+      - BUDGET_OMITTED
+    gap_notice_required_when:
+      - stale memory is present in or filtered from the selection
+      - a memory was filtered as not applicable to the intent
+      - a memory was omitted because of the context budget
+    forbidden:
+      - SEARCH_ALL_THEN_PROMPT_GUARD
+      - UNRESTRICTED_GLOBAL_SEARCH
+      - STALE_WITHOUT_FRESHNESS
+      - CROSS_OWNER_WITHOUT_INTERSECTION
+    statement: >-
+      A MemoryContextPack is the only recall result shape. The permission
+      decision is made before the candidate set is formed and its scope must
+      cover every selected memory. Stale, not-applicable, and budget-omitted
+      memories each require an explicit gap notice. There is no path that
+      searches all personal memory and then relies on a prompt to prevent
+      leakage.
+
+correction_flow:
+  steps:
+    - USER_OR_SYSTEM_CORRECTION_EVIDENCE
+    - CORRECTION_PROPOSAL
+    - VERIFY
+    - ACCEPT
+    - AMEND_INVALIDATE_OR_SUPERSEDE
+  history_erasure: forbidden
+  contract:
+    correction_kinds:
+      AMEND: SUPERSEDED
+      INVALIDATE: INVALIDATED
+      SUPERSEDE: SUPERSEDED
+    proposal_required_fields:
+      - proposal_id
+      - tenant_id
+      - employee_owner_ref
+      - target_record_ref
+      - correction_kind
+      - correction_evidence_refs
+      - proposed_by
+      - chronology.created_at
+    supersession_receipt_required_fields:
+      - receipt_id
+      - tenant_id
+      - employee_owner_ref
+      - origin_proposal_ref
+      - target_record_ref
+      - correction_kind
+      - old_record_ref
+      - resulting_record_status
+      - verification_status
+      - chronology.created_at
+    gate_enforced_fields:
+      - verification_receipt_ref
+      - personal_acceptance_ref
+    gate:
+      verification_status_must_be: PASS
+      requires:
+        - verification_receipt_ref
+        - personal_acceptance_ref
+    supersede_requires_new_record_ref: true
+    immutable_receipt: true
+    forbidden:
+      - history_erasure
+      - in_place_record_overwrite
+      - skip_verification
+      - skip_acceptance
+      - receipt_mutation
+    statement: >-
+      A correction is started by correction evidence and a proposal. The
+      supersession receipt only takes effect after verification PASS and personal
+      acceptance. The old record is never overwritten in place — it moves to the
+      lifecycle status mapped from correction_kind, and SUPERSEDE also records a
+      distinct new_record_ref. The receipt is immutable and always keeps
+      old_record_ref; history is never erased.
+
+promotion_flow:
+  source:
+    - PersonalMemoryCandidate
+    - PersonalMemoryRecord
+  target_scopes:
+    - TEAM
+    - DEPARTMENT
+    - COMPANY
+    - CLIENT
+  required_steps:
+    - PromotionProposal
+    - permission_and_scope_check
+    - ownership_and_visibility_check
+    - evidence_support_check
+    - redaction
+    - verification
+    - review
+    - canonical_single_writer
+  direct_copy_to_shared_canonical: forbidden
+
+projection_views:
+  examples:
+    - memory-summary
+    - identity-view
+    - project-memory-view
+    - people-context-view
+    - procedure-view
+    - role-home
+  rebuildable: true
+  folder_taxonomy_is_schema_authority: false
+
+ai_core_donor_mapping:
+  absorb:
+    - memory distillation failure cases
+    - preference and working-style patterns
+    - lesson decision procedure patterns
+    - correction supersession provenance patterns
+    - bounded recall and context budget
+    - founder-vault projection experience
+  do_not_make_universal:
+    - task card state
+    - branch worktree reservation
+    - runtime session or thread
+    - model or provider routing
+    - code review merge deploy state
+    - developer workflow canonical rules
+    - physical .memory or .founder-vault layout
+  product_position: DEVELOPER_ROLE_SOURCE_ADAPTER
+
+runtime_policy:
+  per_employee_local_runtime_required: false
+  central_or_on_prem_service_allowed: true
+  optional_executors:
+    - deterministic_worker
+    - bounded_model_worker
+    - Codex
+    - Claude Code
+    - Hermes
+    - DeepSeek Harness
+  executor_authority_over_memory: false
+  portable_record_contract:
+    slice_of: SSP-323（EMEM-09）切片 3
+    purpose: >-
+      Make "the AI platform is only an executor, never the Personal Memory
+      authority" a machine-checkable claim, not only a sentence. This
+      extends the executor_authority_over_memory / optional_executors
+      declared above (already enforced by
+      ai-work-record-boundary.cross_reference) rather than replacing them
+      with a second vocabulary or a second executor list.
+    binds_to: personal_memory_resource_contracts.resources
+    repair_01_note: >-
+      The first version of this block declared its own four-field
+      portable_fields list (record_id / content_digest / evidence_refs /
+      created_at) instead of binding to the real PersonalMemoryCandidate /
+      PersonalMemoryRecord required_fields. A review found this let
+      ownership, visibility, ACL, status and the real content drift
+      silently across executors -- a caller-supplied content_digest was
+      never actually compared against content -- and that the restated
+      list collided with PersonalMemoryCandidate's own forbidden
+      record_id. This block no longer declares a second core-semantics
+      field list: portability for a projection is defined against
+      whichever resource kind it declares (PersonalMemoryCandidate or
+      PersonalMemoryRecord), read from personal_memory_resource_contracts.
+      resources.<kind>.required_fields / .forbidden at evaluation time.
+    executor_provenance_fields:
+      - executor_ref
+      - executor_session_ref
+    no_migration_invariant: >-
+      executor_provenance_fields live alongside a projection's `resource`
+      object, never inside it, and must never intersect with any resource
+      kind's required_fields in personal_memory_resource_contracts -- they
+      are the only things permitted to differ when the same resource is
+      re-projected by a different executor. Every required_field of the
+      resource's declared kind must be present (the key itself, not
+      merely a non-null value -- some required fields such as
+      governance.supersedes are legitimately null) and equal between the
+      two projections (URN/array-valued fields compared as sets); any
+      field that kind's contract forbids must not appear in either
+      projection's resource object. Switching executor therefore requires
+      no rewrite of any resource field and no knowledge migration.
+  local_first_export_surface:
+    - minimal_evidence_package
+    - weekly_closeout_receipt
+
+personal_memory_runtime:
+  slice_of: EMEM-11 切片 1｜Local Personal Store Runtime
+  purpose: >-
+    The Personal store is a local, embedded SQLite runtime. This block is the
+    machine-checkable contract that runtime must satisfy: what may reach the
+    store (surfaces), who may be recorded as reaching it (host binding), how a
+    write is allowed to land (policy check -> transaction -> store), and which
+    uniqueness/immutability guarantees the schema is obliged to enforce. It is
+    deliberately NOT a second authority: every vocabulary it checks against is
+    read from an existing block at evaluation time.
+  owner_authorization: >-
+    Owner authorization for this capability is bounded to: a local embedded
+    personal store, a deterministic runtime writer, local host binding, and
+    Personal scope only. It grants no Company Canonical authority, no Promotion
+    authority, and no Acceptance authority.
+  invariants:
+    - HOST_BINDING_IS_AN_ADAPTER_NOT_THE_RUNTIME
+    - LOCAL_CLI_AND_HOST_MCP_SHARE_THE_SAME_RUNTIME_AUTHORITY
+    - NO_REMOTE_PERSONAL_STORE_ACCESS_SURFACE
+  binds_to:
+    - runtime_policy.optional_executors（supported_hosts_v1 必須是它的子集；
+      本片不自建 executor 詞彙）
+    - runtime_policy.portable_record_contract.executor_provenance_fields
+      （HostSessionBinding 的身分欄位就是這兩欄，直接讀取，不另造
+      host / host_session_id 這類第二套身分）
+    - weekly_review_cycle.closeout_statuses / .terminal_statuses /
+      .attempt_kinds（closeout 唯一性是「從既有 cycle 契約推導出的
+      enforcement」，SQLite constraint 不是權威）
+    - personal_memory_resource_contracts.shared_constraints.id_templates
+      （落地列的 id 形狀，含 UUIDv7 version/variant nibble）
+    - correction_flow.contract.forbidden（in_place_record_overwrite /
+      history_erasure / receipt_mutation 在 runtime 層的落地）
+    - capability_safety_floor.invariants.permission_before_retrieval
+      （讀路徑的確定性權限檢查 seam）
+  store:
+    engine: SQLITE
+    journal_mode: WAL
+    schema_version_required: true
+    migration_receipt_required: true
+    genesis_version: "0.0.0"
+    schema_version_source: MIGRATION_CHAIN_TAIL
+    schema_version_source_note: >-
+      The store's declared schema_version is not an independent assertion --
+      it must equal the to_version of the last migration receipt in the log.
+      A store that claims a version no migration produced is rejected.
+  access_surfaces:
+    - LOCAL_STDIO_MCP
+    - LOCAL_CLI
+  forbidden_access_surfaces:
+    - HTTP_TUNNEL
+    - REMOTE_QUERY
+    - REMOTE_MOUNT
+    - COMPANY_SIDE_FORWARDING
+  access_surface_rule: >-
+    access_surfaces is a CLOSED enumeration, not a starting set. Both legal
+    surfaces are local and both must reach the store through the same runtime
+    authority; an MCP server is an adapter in front of that runtime, never a
+    second writer. Any surface outside the enumeration -- including anything in
+    forbidden_access_surfaces -- is rejected outright rather than downgraded.
+  supported_hosts_v1:
+    - Claude Code
+  blocked_hosts_v1:
+    # Owner 範圍裁決 2026-09-20（.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md，
+    # 簽 FP-1 A / FP-2 C / FP-3 A）：v1 的 delivery scope 收斂為 Claude Code。
+    # 這不是把 Codex 從契約詞彙裡刪掉——host profile 與既有實證全部保留，
+    # 解除條件達成後重新納入 supported_hosts_v1。
+    Codex:
+      reason: BLOCKED_UPSTREAM_IDENTITY_CHANNEL
+      evidence_ref: >-
+        personal_memory_host_binding_v1.bootstrap_contract.native_session_id_source.Codex
+      unblock_condition: >-
+        上游提供可由 MCP server 獨立取得、且模型無法自報的 native session
+        identity channel；屆時重新納入 supported_hosts_v1，並補齊真人實測與
+        Codex ↔ Claude Code 的 cross-host same-store 驗收。
+      follow_up_card: CARD-EMEM11B-CODEX-CROSS-HOST-20260920
+  supported_hosts_rule: >-
+    supported_hosts_v1 must be a subset of runtime_policy.optional_executors.
+    Declaring a host this repository's executor vocabulary does not know is a
+    contract error, not a runtime feature.
+  blocked_hosts_rule: >-
+    blocked_hosts_v1 的每個 key 都必須有對應的 host profile，且不得同時出現在
+    supported_hosts_v1。標記 blocked 描述的是「這一版交不出來」：該 host 產不出
+    HostSessionBinding（bootstrap 回 HBV1_HOST_BLOCKED_UPSTREAM，與「根本不認識
+    這個 Host」的 HBV1_HOST_NOT_SUPPORTED 分開），而且即使有人繞過 bootstrap
+    遞一份形狀合法的 binding，Runtime 的授權閘也只認 supported_hosts_v1，一律
+    回 PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST。設定面（install／uninstall／
+    shadow／health）仍照常評估——blocked 不等於不認識。每一筆都必須帶 reason、
+    可查證的 evidence_ref 與 unblock_condition——沒有解除條件的 blocked 等於
+    偷偷刪功能。
+  host_session_binding:
+    executor_identity_fields_ref: runtime_policy.portable_record_contract.executor_provenance_fields
+    additional_fields:
+      - cwd
+      - project_ref
+      - effective_scope
+    forbidden_fields:
+      - host
+      - host_session_id
+      - session_id
+      - client_id
+      - agent_id
+      - remote_endpoint
+    shape_rule: >-
+      A HostSessionBinding is a CLOSED shape: exactly the fields named by
+      executor_identity_fields_ref, plus any of additional_fields. It carries no
+      second identity vocabulary -- binding to a host reuses the executor
+      identity the portable record contract already defines, so switching host
+      needs no identity migration.
+    presence_rule: >-
+      LOCAL_STDIO_MCP operations MUST carry a host_session_binding whose
+      executor_ref names a supported_hosts_v1 host. LOCAL_CLI operations MUST
+      NOT carry one: the CLI is usable without a Host, and a CLI operation that
+      claims a host session is fabricating provenance. Neither surface gets
+      extra authority from that difference.
+  write_path:
+    - RUNTIME_POLICY_CHECK
+    - RUNTIME_TRANSACTION
+    - STORE_WRITE
+  read_path:
+    - RUNTIME_POLICY_CHECK
+    - STORE_READ
+  path_rule: >-
+    Every operation declares the path it actually took, and it must equal the
+    declared path for its kind, in order. direct_sql is forbidden on every
+    surface: the CLI does not get a shortcut around the policy/transaction layer
+    just because no Host is involved. The RUNTIME_POLICY_CHECK step is the
+    deterministic permission seam required by
+    capability_safety_floor.invariants.permission_before_retrieval -- a read
+    that reaches the store before its policy check is rejected even if the check
+    later returns allow.
+  transaction_rule: >-
+    Every store write happens inside a runtime transaction and only a committed
+    transaction may produce a durable row. A write that reports an uncommitted
+    or rolled-back transaction yet still lists durable rows is a torn write.
+  row_contract:
+    resource_contract_ref: personal_memory_resource_contracts.resources
+    identity_fields:
+      PersonalMemoryCandidate: candidate_id
+      PersonalMemoryRecord: record_id
+      MemorySupportLink: link_id
+      MemoryConflictSet: set_id
+    identity_fields_rule: >-
+      Each declared identity field must itself appear in that kind's
+      required_fields in personal_memory_resource_contracts. This block names
+      which required field carries the identity; it does not define a second
+      field list.
+    body_rule: >-
+      A stored row is a Personal Memory resource, not a bare identity. Every
+      STORE_WRITE carries a `resource` object that satisfies its kind's
+      required_fields and forbidden list, read from
+      personal_memory_resource_contracts.resources.<kind> at evaluation time.
+      A row with a well-formed id and no body is rejected: an id the store
+      accepts but cannot tie to memory content is exactly the contentless row
+      Slice 1 is required to make impossible.
+    identity_binding_rule: >-
+      The row id and the body's identity field must be the same value. A row
+      whose id is well-formed but whose body belongs to a different resource
+      would let a legal identity carry someone else's content.
+  idempotency_rule: >-
+    A replayed write carrying an idempotency_key already seen in this store must
+    resolve to the SAME row id. A second row id under the same key is a
+    duplicate, not a retry.
+  revision_rule: >-
+    Rows are immutable, and immutability is checked over the WHOLE row, not over
+    its id and idempotency key alone. Writing to an existing row id is legal
+    only when the row is field-for-field identical to what that id already
+    holds -- that exact replay is a no-op and changes no supersession state.
+    Anything else written to an existing row id is correction_flow's
+    in_place_record_overwrite, including a write that keeps the same id and
+    idempotency key but alters, adds, or drops supersedes_ref. A correction is
+    instead a NEW revision row that names its predecessor via supersedes_ref,
+    and that predecessor must already exist in this store. Deleting or
+    rewriting a superseded row is history_erasure. Migration receipts are
+    immutable for the same reason (receipt_mutation): re-emitting a
+    migration_id with different content is rejected.
+  closeout_uniqueness:
+    derived_from: weekly_review_cycle
+    identity_field: review_period_id
+    evaluator_ref: scripts/lib/weekly_closeout_history.rb
+    delegation_rule: >-
+      The runtime does NOT re-implement closeout checking. It groups its
+      CLOSEOUT_COMMIT operations by review_period_id -- each group is, by
+      construction, exactly one closeout history in weekly_review_cycle's sense
+      -- and hands each group to the shared evaluator that SSP-323 slice 4
+      already uses. Terminal uniqueness, the legal status and attempt
+      vocabularies, the SKIPPED catch-up rule, item disposition categories and
+      promotion identity across retries therefore all arrive from that one
+      implementation. A runtime that enumerated its own copy of those
+      vocabularies would have replaced the cycle contract instead of enforcing
+      it, and a runtime that checked only review_period_id and final_status
+      would silently drop the promotion idempotency guarantee the cycle
+      contract makes.
+    promotion_idempotency_rule_ref: weekly_review_cycle.promotion_idempotency_rule
+    promotion_idempotency_note: >-
+      This is the guarantee the runtime most needs and is least able to
+      re-derive: a retry legitimately reuses the same review_period_id, so the
+      only thing distinguishing "the same item, touched again" from "a second,
+      duplicate promotion" is that the item's promotion identity did not drift.
+      Because the runtime stores the closeout attempts, it is the layer that
+      actually holds both attempts and can compare them.
+
+personal_memory_host_binding_v1:
+  slice_of: EMEM-11 切片 2｜Codex + Claude Code Host Binding
+  purpose: >-
+    把已驗收的 Local Personal Memory Runtime 綁到 v1 的兩個 Personal Host，
+    但不讓任何 Host 取得治理權。驗證範圍包含 user-scope install merge、
+    uninstall merge、higher-precedence conflict、Host health，以及一次
+    deterministic SessionStart bootstrap。Slice 3 的 installer / doctor 證據
+    可重用同一 evaluator，不得另寫第二份規則。
+  invariants:
+    - GLOBAL_HARNESS_NE_GLOBAL_MEMORY_VISIBILITY
+    - PROJECT_CONTEXT_MAY_NARROW_BUT_NOT_WIDEN_MEMORY_ACCESS
+    - HOST_INSTRUCTION_NE_MEMORY_AUTHORITY
+    - HOST_NATIVE_MEMORY_NE_PERSONAL_TRUTH
+    - MISSING_OR_CONFLICTED_HOST_BINDING_FAILS_CLOSED
+  binds_to:
+    - personal_memory_runtime.supported_hosts_v1
+    - personal_memory_runtime.host_session_binding
+    - runtime_policy.optional_executors
+    - ownership_visibility_contract.mode_definitions
+    - ownership_visibility_contract.visibility_scopes
+  host_profiles:
+    Codex:
+      native_adapter_spec: 規格/v0.1/codex-native-adapter.yaml
+      user_config_scope: USER
+      mcp_registration:
+        id: omos.personal-memory
+        transport: STDIO
+        command_ref: OMOS_PERSONAL_MEMORY_MCP
+      session_start_registration:
+        id: omos.personal-memory.session-start
+        event: SessionStart
+        command_ref: OMOS_PERSONAL_MEMORY_SESSION_START
+      # 切片 3b：把切片 2 的 normalized 快照綁到**實際檔案**。
+      # 以下路徑與結構皆為本機實測（~/.codex/config.toml 內確有
+      # [mcp_servers.<id>] 與 [[hooks.<Event>]] array-of-tables）。
+      config_discovery:
+        mcp_config_file: "~/.codex/config.toml"
+        mcp_config_format: TOML
+        mcp_entries_path: mcp_servers
+        session_start_config_file: "~/.codex/config.toml"
+        session_start_config_format: TOML
+        session_start_hooks_path: hooks.SessionStart
+        session_start_hooks_shape: MATCHER_GROUP_WITH_HANDLERS
+        # 切片 3 repair-01：以下形狀取自 codex-cli 0.153.2 本機實證，
+        # 不是憑文件記憶。
+        #   `codex mcp add <name> --env K=V -- <command>` 實際寫出：
+        #       [mcp_servers."<id>"]
+        #       command = "<abs>"
+        #       [mcp_servers."<id>".env]
+        #       K = "V"
+        #     ——**沒有 transport 欄位**（stdio 由 command 判定，HTTP 才用 url）。
+        #   binary 內的 HookHandlerConfig / MatcherGroup 顯示 hook 是三層：
+        #       [[hooks.<Event>]]            MatcherGroup（matcher 可省）
+        #       [[hooks.<Event>.hooks]]      HookHandlerConfig[]
+        #       type = "command" / command / timeout / async / ...
+        #     ——**沒有 id 欄位**，也**沒有 env 欄位**。
+        #   binary 內列出的事件含 SessionStart（先前誤判為「無證據」，已更正）。
+        registration_shape:
+          mcp_entry_fields: [command, env]
+          mcp_entry_forbidden_fields: [transport]
+          hook_levels: [event_matcher_group, handler_list]
+          hook_handler_fields: [type, command, timeout]
+          hook_handler_type: command
+          hook_has_id_field: false
+          hook_supports_env: false
+          identify_own_hook_by: command
+          # hook 無法帶 env，因此 host 與 runtime scope 這兩個 authority input
+          # 只能由 installer 寫進命令列參數（設定檔本身即信任邊界）。
+          hook_authority_via: command_arguments
+        # 切片 3c 實測：~/.codex/config.toml 的 36 個 [projects."<path>"]
+        # section 只帶 trust_level，**沒有任何專案層 MCP 覆寫**。因此 Codex 的
+        # PROJECT scope 不是 MCP 遮蔽來源；它對應的是 required_health 裡的
+        # project_trusted。doctor 必須照實回報，不得因為「掃不到遮蔽」就回 OK。
+        higher_precedence_sources:
+          PROJECT:
+            file: "~/.codex/config.toml"
+            format: TOML
+            project_table_path: projects
+            mcp_entries_path: null
+            session_start_hooks_path: null
+            observable_keys:
+              - trust_level
+      higher_precedence_conflict_scopes:
+        - PROJECT
+      required_health:
+        - project_trusted
+        - mcp_visible
+        - session_start_hook_active
+        - runtime_compatible
+    Claude Code:
+      native_adapter_spec: 規格/v0.1/claude-code-native-adapter.yaml
+      user_config_scope: USER
+      mcp_registration:
+        id: omos.personal-memory
+        transport: STDIO
+        command_ref: OMOS_PERSONAL_MEMORY_MCP
+      session_start_registration:
+        id: omos.personal-memory.session-start
+        event: SessionStart
+        command_ref: OMOS_PERSONAL_MEMORY_SESSION_START
+      # 切片 3b：本機實測——MCP 註冊在 ~/.claude.json 的 mcpServers，
+      # SessionStart hook 在 ~/.claude/settings.json 的 hooks.SessionStart。
+      # 兩者是不同檔案，因此探索與 doctor 必須分開查。
+      config_discovery:
+        mcp_config_file: "~/.claude.json"
+        mcp_config_format: JSON
+        mcp_entries_path: mcpServers
+        session_start_config_file: "~/.claude/settings.json"
+        session_start_config_format: JSON
+        session_start_hooks_path: hooks.SessionStart
+        session_start_hooks_shape: MATCHER_GROUP_WITH_HANDLERS
+        # Claude Code 的 hook 同樣是三層：event → matcher group → handler[]。
+        # SessionStart 事件存在（repo 內官方 hook 事件快照有列，
+        # 來源 https://code.claude.com/docs/en/hooks）。
+        registration_shape:
+          mcp_entry_fields: [command, env]
+          mcp_entry_forbidden_fields: []
+          hook_levels: [event_matcher_group, handler_list]
+          hook_handler_fields: [type, command]
+          hook_handler_type: command
+          hook_has_id_field: false
+          hook_supports_env: false
+          identify_own_hook_by: command
+          hook_authority_via: command_arguments
+        # 切片 3c 實測：Claude Code 的專案層設定確實存在於工作目錄下
+        # （本機找到 3 處 .mcp.json 與 3 處 .claude/settings.json），
+        # 兩者都可能以更高優先序遮蔽 user scope 的同名註冊。
+        higher_precedence_sources:
+          PROJECT:
+            file: "{cwd}/.mcp.json"
+            format: JSON
+            mcp_entries_path: mcpServers
+            session_start_hooks_path: null
+          LOCAL:
+            file: "{cwd}/.claude/settings.local.json"
+            format: JSON
+            mcp_entries_path: mcpServers
+            session_start_hooks_path: hooks.SessionStart
+      higher_precedence_conflict_scopes:
+        - PROJECT
+        - LOCAL
+      required_health:
+        - mcp_visible
+        - session_start_hook_active
+        - runtime_compatible
+  supported_hosts_binding_rule: >-
+    host_profiles 是「已經過 review 的 host 實體面」，其 key 必須與
+    personal_memory_runtime.supported_hosts_v1 ∪ blocked_hosts_v1 的 key
+    集合完全相等。新增 optional executor 不會自動成為 v1 Personal Host；
+    新增 v1 Host 必須先有經 review 的 host profile，不能只往 supported_hosts_v1
+    多塞一個字串。反過來，把某個 host 移進 blocked_hosts_v1 也不得順手刪掉它的
+    profile——profile 記錄的是已實證的設定形狀，刪掉等於把證據一起丟了。
+  config_snapshot_contract:
+    fields:
+      - mcp_entries
+      - session_start_hooks
+    safe_install_rule: >-
+      安裝只能新增或取代該 Host 的兩個 namespaced OMOS entry。所有非本產品的
+      MCP entry 與 SessionStart hook 必須保持語意相同，hook 順序也不得改變。
+    uninstall_rule: >-
+      Uninstall 只能移除兩個 OMOS-owned entry；所有外部 entry 必須原樣保留，
+      且 uninstall 永遠不得修改 Personal Store truth。
+  precedence_rule: >-
+    任何 higher-precedence project / local registration 只要使用 OMOS-owned id
+    就算衝突，即使 payload 看起來相同也一樣。重複 ownership 可能 shadow 或
+    重複執行 user binding，因此 bootstrap 必須 fail closed。
+  bootstrap_contract:
+    input_fields:
+      - native_session_id
+      - cwd
+      - project_ref
+      - runtime_scope_mode
+      - project_visibility_scope
+      - produced_binding
+    runtime_scope_mode_ref: employee_memory_scope_modes.modes
+    runtime_scope_definition_ref: ownership_visibility_contract.mode_definitions
+    project_visibility_scope_ref: ownership_visibility_contract.visibility_scopes
+    input_authority:
+      host_native_inputs:
+        - native_session_id
+        - cwd
+      runtime_policy_inputs:
+        - runtime_scope_mode
+      project_context_inputs:
+        - project_ref
+        - project_visibility_scope
+      derived_outputs:
+        - produced_binding
+    input_authority_rule: >-
+      Project context 永遠不能提供 runtime_scope_mode，也不能寫 produced binding。
+      本片只驗 normalized authority 分工與推導；真人 Host / Runtime 的實際觀測是否
+      為真，屬 Slice 3 doctor / conformance evidence，不由靜態 fixture 宣稱。
+    effective_scope_rule: >-
+      runtime_scope_mode 經 mode_definitions 解析成 baseline visibility_scope。
+      project_visibility_scope 是可選 context，只有其 default_readers 集合等於
+      baseline 或為 baseline 真子集時才可套用；互不包含或更寬都 fail closed。
+      produced_binding.effective_scope 是推導後的 visibility-scope key，不是另一個
+      可由 caller 自報的 employee scope mode。
+    native_session_id_source:
+      # repair-02（P1-1 / P1-2）：cwd 不是 session identity。同一個 repo 同時開
+      # 多個 Codex task / Claude session 是正常情境，以 cwd 為鍵會讓後者覆蓋前者，
+      # 舊 session 與並行 session 都可能取得錯的 identity。
+      #
+      # 因此 session state 一律以 (host, native_session_id) 為鍵；而 MCP server
+      # 必須能獨立得知「自己屬於哪個 native session」，否則只是把 cwd hack 換形式。
+      # 各 Host 的可信來源（本機實證）：
+      Claude Code:
+        mechanism: PROCESS_ENV
+        env_var: CLAUDE_CODE_SESSION_ID
+        evidence: >-
+          在 Claude Code 啟動的子程序環境中實測存在，值為 UUID；
+          hook 與 MCP server 同為其子程序，因此兩端可取得同一個 id。
+      Codex:
+        mechanism: UNAVAILABLE
+        runtime_capability: BLOCKED
+        evidence: >-
+          codex-cli 0.153.2 端到端實測（一次 codex exec，以 -c 覆寫注入探針 MCP
+          server 與 mcp_tool 型 SessionStart hook）：
+          (1) MCP server 為 per-session 單一進程，模型用的就是它；
+          (2) 該進程可見的 CODEX_* / SESSION_* / MCP_* 環境變數為空集合，
+              取不到任何 native session 身分；
+          (3) 整個 session 期間該 server 只收到 initialize、
+              notifications/initialized 與 tools/list，**沒有任何 tools/call**
+              ——mcp_tool 型 SessionStart hook 並未叫到它；
+          (4) 唯一帶 _meta 的是 tools/list，沒有任何可用來分辨
+              「hook 呼叫」與「模型呼叫」的標記。
+          這與官方文件「SessionStart 可能發生在 MCP server ready 之前，
+          且 server/tool 不可用時不會阻止 session」一致：session 照常進行，
+          bind 從未發生。因此即使把 bind tool 宣告進 tools/list 讓 hook 叫得到，
+          模型也會同時看見該 tool，而 server 無從分辨來源——authority 隔離
+          不成立。
+        decision: >-
+          **Codex 的 Personal Memory 能力一律 fail closed**
+          （MCP_NATIVE_SESSION_ID_UNAVAILABLE），不得退回 cwd 或任何代理鍵猜測，
+          也不另造第三套 session registry。等上游提供可信的 native session
+          identity channel 再重新納入。
+        scope_note: >-
+          本區塊只記錄「runtime 能力」的事實。當初刻意不在此處收斂
+          supported_hosts_v1，因為那是 Owner 的產品範圍裁決。**該裁決已於
+          2026-09-20 作成**（.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md，
+          簽 FP-1 A / FP-2 C / FP-3 A）：v1 收斂為 Claude Code，Codex 移入
+          personal_memory_runtime.blocked_hosts_v1，理由
+          BLOCKED_UPSTREAM_IDENTITY_CHANNEL。因此 Codex 現在是在契約邊界就被
+          拒絕（bootstrap 產不出 binding，回 HBV1_HOST_BLOCKED_UPSTREAM；
+          繞過 bootstrap 的 binding 則由 Runtime 授權閘以
+          PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST 擋下），而不是宣稱
+          支援後才在 session identity 這一層 fail closed。
+    host_native_stdin_fields:
+      # 切片 3 repair-01：真 Host 交給 SessionStart hook 的 stdin 欄位。
+      # 先前實作期待 host / native_session_id / project_ref / runtime_scope_mode，
+      # 那是本專案自訂的名字，真 Host 一個都不會給——因此真 Host 啟動後必然被拒。
+      - session_id
+      - cwd
+      - hook_event_name
+      - source
+    host_native_stdin_mapping:
+      native_session_id: session_id
+      cwd: cwd
+    authority_not_in_stdin:
+      # 這兩項 Host 不提供，必須由 installer 寫進註冊時的可信來源
+      # （MCP server 用 env 表，hook 用命令列參數），不得由模型或專案脈絡提供。
+      - host
+      - runtime_scope_mode
+    identity_mapping_rule: >-
+      produced_binding.executor_ref 必須等於所選 Host，executor_session_ref 必須
+      等於 native_session_id，cwd / project_ref 則逐字綁回 bootstrap input；產生的
+      binding 同時必須符合 personal_memory_runtime.host_session_binding 的封閉 shape。
+  failure_policy:
+    broken_binding: FAIL_CLOSED
+    shadowed_binding: FAIL_CLOSED
+    incompatible_runtime: FAIL_CLOSED
+    vendor_native_memory_fallback: FORBIDDEN
+  evidence_boundary: >-
+    evaluator 證明 normalized Host Binding 語意，並攔截 config drift、遺漏、
+    shadowing 與 scope widening；它不宣稱 fixture 是 live ~/.codex 或 Claude Code
+    觀測。真人 installer / doctor capture 與 cross-host acceptance evidence 由
+    Slice 3 負責。
+  authority:
+    grants_personal_memory_governance: false
+    grants_company_canonical_writer: false
+    grants_promotion: false
+    grants_acceptance: false
+    project_instruction_is_context_only: true
+
+phase_1_pilot:
+  target: product_department
+  first_sources:
+    - JIRA_ENTITY
+    - DOCUMENT
+  next_sources_if_policy_ready:
+    - TEAMS_MESSAGE
+    - OUTLOOK_EMAIL
+  slice:
+    - Personal Raw Evidence
+    - Object Linking and WorkRecord
+    - Personal Memory Candidate
+    - employee review and acceptance
+    - personal recall with citation
+    - correction
+    - shared promotion proposal
+
+backlog:
+  EMEM_00:
+    title: Employee Personal Memory Scope and Ownership Contract
+    status: COMPLETE_GO_20260903
+  EMEM_01:
+    title: Personal Memory Candidate and Record Schema
+    status: COMPLETE_GO_20260903
+  EMEM_02:
+    title: Personal Evidence Profile and Source Mapping
+    status: UNBLOCKED_NOT_STARTED_BY_STD_03_LOCK
+  EMEM_03:
+    title: Recall and MemoryContextPack Contract
+    status: UNBLOCKED_NOT_STARTED_BY_EMEM_01_GO
+  EMEM_04:
+    title: Correction and Supersession
+    status: UNBLOCKED_NOT_STARTED_BY_EMEM_01_GO
+  EMEM_05:
+    title: Personal-to-Shared Promotion Proposal
+    status: UNBLOCKED_NOT_STARTED_BY_EMEM_00_01_GO
+  EMEM_06:
+    title: Product Department Vertical Slice
+    status: BLOCKED_BY_EMEM_02_TO_05
+  EMEM_07:
+    title: Role Profiles
+    status: DEFER_UNTIL_CORE_CONTRACT_STABLE
+  EMEM_08:
+    title: AI Core Developer Adapter
+    status: DEFER_OPTIONAL
+
+hard_stops:
+  - no full AI Core clone per employee
+  - no AI Core requirement for general employees
+  - no folder taxonomy as company schema
+  - no task branch worktree state auto-promoted to memory
+  - no role-specific lifecycle fork
+  - no personal memory direct write to company canonical knowledge
+  - no search-all-personal-memory-before-permission
+  - no model-confidence auto-acceptance or auto-promotion
+  - no correction history erasure
+  - no WorkRecord and memory conflation
+  - no mass automatic capture before ownership/privacy policy
+
+required_negative_fixtures:
+  - private Teams message auto-promoted to COMPANY
+  - employee A memory visible to employee B without permission
+  - company admin searches EMPLOYEE_PRIVATE memory by default
+  - L2 connector enabled without consent/notice or ACL propagation
+  - current Jira task status promoted as long-lived memory
+  - temporary branch/worktree state promoted as memory
+  - model confidence auto-accepts PersonalMemoryCandidate
+  - correction overwrites old memory without supersession receipt
+  - stale memory returned without freshness warning
+  - role profile redefines core evidence identity
+  - AI Core folder layout treated as universal schema
+  - shared work context includes EMPLOYEE_PRIVATE material without redaction
+  - employee writes shared work context without private material redaction
+  - system writes shared work context without private material redaction
+  - manager promotes COMPANY_MANAGED_PERSONAL without employee notice
+  - manager promotes SHARED_WORK_CONTEXT without source ACL
+  - personal-to-company promotion bypasses review

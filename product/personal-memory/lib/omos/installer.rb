@@ -16,6 +16,7 @@
 require "json"
 require "time"
 require "digest"
+require "set"
 require "fileutils"
 require_relative "artifact"
 require_relative "contract"
@@ -172,8 +173,12 @@ module OMOS
 
         # 5. receipt
         write_receipt(hosts, schema_version, artifact_id, previous)
+
+        # 6. 歷史版本 GC。**只在交易成功後才做**——失敗路徑要回到舊版，
+        #    這時把舊版清掉就沒得回去了。
+        collect_garbage(keep: [artifact_id, previous && previous["artifact_id"]].compact)
       rescue StandardError
-        rollback(backups, store_created, activation)
+        abort_install(backups, store_created, activation)
         raise
       end
       { store_path: store_path, schema_version: schema_version, hosts: hosts,
@@ -202,6 +207,33 @@ module OMOS
     # 升級：命令路徑或 schema 可能變了，重跑安裝即可（install 本身 idempotent）。
     def upgrade(hosts: delivered_hosts)
       install(hosts: hosts)
+    end
+
+    # 回到上一個 artifact。
+    #
+    # Q7 裁決點 4：**只切 pointer，不重寫 Host 設定**——Host 認的是固定
+    # launcher，與版本無關，所以 rollback 完全不該碰使用者的設定檔。
+    # 也**不得**靠重新下載或猜 SHA：目標只能是 receipt 記下的
+    # previous_artifact_id，且那份 artifact 必須還在。
+    def rollback
+      data = receipt
+      raise Failed, "ROLLBACK_NO_RECEIPT" if data.nil?
+
+      target = data["previous_artifact_id"]
+      raise Failed, "ROLLBACK_NO_PREVIOUS_ARTIFACT" if target.nil? || target.empty?
+
+      target_dir = File.join(versions_dir, target)
+      raise Failed, "ROLLBACK_ARTIFACT_MISSING: #{target}" unless Dir.exist?(target_dir)
+
+      from = data["artifact_id"]
+      activate(target)
+      # 交換 current／previous，讓 rollback 可以再切回去；其餘欄位保持原樣，
+      # 因為 Host 註冊與 store 都沒有變動。
+      data["artifact_id"] = target
+      data["previous_artifact_id"] = from
+      data["rolled_back_at"] = Time.now.utc.iso8601
+      File.write(receipt_path, "#{JSON.pretty_generate(data)}\n")
+      { artifact_id: target, previous_artifact_id: from }
     end
 
     private
@@ -303,6 +335,25 @@ module OMOS
       end
     end
 
+    # 歷史版本 GC（Q7 裁決點 7 指定要明確定義）。
+    #
+    # 保留原則：**current ＋ previous**。rollback 的目標只能是 receipt 記的
+    # previous，所以那兩個是有用途的；再舊的版本沒有任何東西會指向它們，
+    # 留著只會讓 versions/ 無限長大（每版約 23 MB）。
+    #
+    # 刻意**不做**「保留 N 版」：N 是個沒有依據的數字，而「current 與可回退
+    # 的那一版」是由 rollback 語意直接決定的。
+    def collect_garbage(keep:)
+      return unless Dir.exist?(versions_dir)
+
+      protected_ids = keep.compact.to_set
+      Dir.children(versions_dir).each do |id|
+        next if protected_ids.include?(id)
+
+        FileUtils.rm_rf(File.join(versions_dir, id))
+      end
+    end
+
     # 卸載時移除 activation 的三層：launcher、current pointer、所有 artifact
     # 版本。**只刪這三樣**——`~/.omos/personal-memory/` 這個父目錄底下還有
     # Personal Store 與 session state，預設一律保留（Q7 裁決點 7）。
@@ -365,6 +416,19 @@ module OMOS
       end
     end
 
+    # 「上一版」指的是**上一個不同的 artifact**，不是「上一次安裝」。
+    # 重裝同內容時 artifact identity 不變（materialize 直接重用既有目錄），
+    # 若照抄 previous["artifact_id"] 會得到 previous == current，rollback
+    # 於是變成一個回報成功卻什麼都沒換的 no-op；真正能回退的那一版還會被
+    # collect_garbage 當成無人引用而刪掉。這時要沿用上一份 receipt 的
+    # previous_artifact_id。
+    def previous_artifact_id_for(artifact_id, previous)
+      return nil if previous.nil?
+
+      prior = previous["artifact_id"] || previous.dig("artifact", "id")
+      prior == artifact_id ? previous["previous_artifact_id"] : prior
+    end
+
     def write_receipt(hosts, schema_version, artifact_id, previous)
       data = {
         "installed_at" => Time.now.utc.iso8601,
@@ -372,8 +436,7 @@ module OMOS
         # 與 store 的 schema_version 是**兩件不同的事**，不得互相冒充。
         "artifact_id" => artifact_id,
         # rollback 要知道上一版是誰——不得靠重新下載或猜 SHA（Q7 裁決點 4）。
-        "previous_artifact_id" => previous && (previous["artifact_id"] ||
-                                               previous.dig("artifact", "id")),
+        "previous_artifact_id" => previous_artifact_id_for(artifact_id, previous),
         # 遷移用的精確證據：上一次實際寫進 Host 的 command **原文**
         # （receipt 的 commands 是 {command_ref => 具體命令}，要的是值不是鍵）。
         # 舊 hook 的辨識只能靠這個，不得用前綴或「看起來像 OMOS」去猜。
@@ -408,7 +471,13 @@ module OMOS
       end
     end
 
-    def rollback(backups, store_created, activation = nil)
+    # 安裝交易失敗時的「全部還原」。
+    #
+    # 刻意**不叫** rollback：那個名字已經是使用者可見的「切回上一版」語意
+    # （public #rollback）。兩者同名會讓後定義的這支覆蓋掉前者，CLI 的
+    # rollback 就會變成呼叫這支私有方法而爆 ArgumentError——這是 Ruby
+    # 沒有 overload 的直接後果，不是風格問題。
+    def abort_install(backups, store_created, activation = nil)
       restore_all(backups)
       restore_activation(activation)
       # 這次安裝才建立的 store 才刪；既有 store 一律不動。

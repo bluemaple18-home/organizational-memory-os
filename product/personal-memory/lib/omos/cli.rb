@@ -29,6 +29,7 @@ module OMOS
         install [--home DIR]    初始化 store 並註冊到已交付的 Host（v1：Claude Code）
         uninstall [--home DIR] [--remove-store]
                                 移除本產品註冊（預設保留 Personal Store）
+        rollback [--home DIR]   切回上一個 artifact（只切 pointer，不動 Host 設定）
         doctor [--home DIR]     對實物做健康檢查
         journal                 輸出 operation journal（證據，非保護）
 
@@ -55,6 +56,7 @@ module OMOS
       when "journal"  then cmd_journal(store_path, out)
       when "install"   then cmd_install(opts, out, err)
       when "uninstall" then cmd_uninstall(opts, out, err)
+      when "rollback"  then cmd_rollback(opts, out)
       when "doctor"    then cmd_doctor(opts, out)
       else
         err.puts "未知指令: #{command}"
@@ -192,6 +194,16 @@ module OMOS
       out.puts "UNINSTALLED hosts=#{result[:hosts].join(", ")}"
       out.puts(result[:store_removed] ? "  Personal Store 已移除。" :
                "  Personal Store 保留於 #{inst.store_path}（--remove-store 才會刪除）。")
+      0
+    end
+
+    def cmd_rollback(opts, out)
+      inst = installer_for(opts)
+      result = inst.rollback
+      out.puts "ROLLED BACK"
+      out.puts "  目前 artifact: #{result[:artifact_id]}"
+      out.puts "  可再切回:      #{result[:previous_artifact_id]}"
+      out.puts "  Host 設定未變動——Host 認的是固定 launcher，與版本無關。"
       0
     end
 
