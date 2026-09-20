@@ -136,3 +136,24 @@ per-session 單一進程、可見環境變數為空集合、整個 session 期�
    reviewer 認為需要更直接的偽造嘗試（例如經 tool args 塞 cwd／session_id
    類欄位、驗證 schema 確實擋掉），這是下一輪可以收的項目。
 3. §3 的 scope conflict 裁決本身。
+
+## 7. Reviewer 定點裁決（2026-09-20，回填）
+
+**repair-02 本身 GO**：P0=0／repair correctness P1=0／P2=0。父卡另有
+P1×1「產品範圍矛盾」，已升 Owner scope decision，見
+`.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md`。repair 線到此停止，
+**不再補第五種 session workaround**。
+
+reviewer 對 §1.4 第 5 項的裁決與措辭更正：該項**可接受，不需要再補一輪
+專門偽造測試**。但本產品能主張的精確範圍是——
+
+> `native_session_id` 的資料流封死在 server 端的 process env，MCP tool args
+> 不參與，`cwd` 也不再作 identity；因此 **MCP caller 無法自報 native session
+> identity**。
+
+這個主張**不**擴張成「模型在擁有任意 shell／filesystem 權限時絕對無法碰
+state」。取得同一使用者的 shell 或檔案系統寫入權後能做什麼，不在這條
+主張的範圍內，本輪也沒有宣稱過。
+
+reviewer 獨立重跑結果：3b 27/27、3c 45/45、39/39 validators PASS、
+`git diff --check 19f061a..756f005` clean。
