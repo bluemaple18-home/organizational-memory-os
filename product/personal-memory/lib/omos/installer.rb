@@ -124,6 +124,16 @@ module OMOS
       previous = receipt
       schema_version = nil
       artifact_id = nil
+      # repair-01 P1-1：activation 也是交易的一部分。失敗時必須把 current、
+      # receipt、launcher 一起還原——先前只還原 Host 設定，結果升級失敗後
+      # current 已經指向新版、舊 receipt 又被刪掉，違反 Q7 的 atomic
+      # activation/rollback。
+      activation = {
+        previous_current: File.symlink?(current_link) ? File.readlink(current_link) : nil,
+        previous_receipt: File.exist?(receipt_path) ? File.binread(receipt_path) : nil,
+        launchers_existed: LAUNCHER_NAMES.all? { |n| File.exist?(File.join(bin_dir, n)) },
+        created_artifact: nil
+      }
       begin
         # 0. 遷移前置：證據不足就當場停，不猜、不刪
         refuse_unknown_legacy!(hosts)
@@ -135,7 +145,8 @@ module OMOS
 
         # 2. artifact：stage → hash → rename。先算 id 再定目錄，否則 id 會
         #    參照到自己所在的路徑。
-        artifact_id = materialize_artifact
+        artifact_id, created = materialize_artifact
+        activation[:created_artifact] = created ? File.join(versions_dir, artifact_id) : nil
 
         # 3. 固定 launcher（Host identity）與 current pointer（activation）
         write_launchers
@@ -153,7 +164,7 @@ module OMOS
         # 5. receipt
         write_receipt(hosts, schema_version, artifact_id, previous)
       rescue StandardError
-        rollback(backups, store_created)
+        rollback(backups, store_created, activation)
         raise
       end
       { store_path: store_path, schema_version: schema_version, hosts: hosts,
@@ -207,12 +218,15 @@ module OMOS
 
         id = Artifact.identity(stage)
         target = File.join(versions_dir, id)
+        # 回傳 created：這次交易**新建**的版本才可以在失敗時刪掉。
+        # 若是重用既有版本（同內容重裝），它可能正被其他安裝引用，不得清除。
         if Dir.exist?(target)
           FileUtils.rm_rf(stage)
+          [id, false]
         else
           File.rename(stage, target)
+          [id, true]
         end
-        id
       rescue StandardError
         FileUtils.rm_rf(stage)
         raise
@@ -220,10 +234,15 @@ module OMOS
     end
 
     # 2 份 spec ＋ 7 支 evaluator 複製進 artifact，**byte-identical**。
-    # 來源是 repo 原件；artifact 內維持相同相對結構。
+    #
+    # repair-01 P1-2：來源是「**正在執行的這份程式自己的 governance closure**」
+    # （`Contract::GOVERNANCE_ROOT`），不是寫死的 repo。已安裝的 artifact 自帶
+    # governance/，它再去安裝／升級時就用自己那份；只有從 repo checkout 執行時
+    # 才會落到 repo 原件。寫死 REPO_ROOT 會讓 standalone artifact 一安裝就
+    # INSTALL_GOVERNANCE_SOURCE_MISSING——那等於「搬得出去但不能自我安裝」。
     def materialize_governance(stage)
       GOVERNANCE_FILES.each do |rel|
-        src = File.join(Contract::REPO_ROOT, rel)
+        src = File.join(Contract::GOVERNANCE_ROOT, rel)
         raise Failed, "INSTALL_GOVERNANCE_SOURCE_MISSING: #{rel}" unless File.file?(src)
 
         dst = File.join(stage, "governance", rel)
@@ -357,13 +376,48 @@ module OMOS
       end
     end
 
-    def rollback(backups, store_created)
+    def rollback(backups, store_created, activation = nil)
       restore_all(backups)
-      FileUtils.rm_f(receipt_path)
+      restore_activation(activation)
       # 這次安裝才建立的 store 才刪；既有 store 一律不動。
-      return unless store_created
+      if store_created
+        [store_path, "#{store_path}-wal", "#{store_path}-shm"].each { |f| FileUtils.rm_f(f) }
+      end
+      nil
+    end
 
-      [store_path, "#{store_path}-wal", "#{store_path}-shm"].each { |f| FileUtils.rm_f(f) }
+    # repair-01 P1-1：把 activation 還原到交易開始前的狀態。
+    #
+    # 三件事缺一不可：
+    #   1. current 切回原本指向的 artifact（原本沒有就移除）——先前只還原
+    #      Host 設定，結果升級失敗後 current 已指向新版。
+    #   2. receipt 還原成舊的那一份，而不是直接刪掉——刪掉會讓下一次安裝
+    #      失去遷移所需的精確證據。
+    #   3. 清掉這次交易**新建且沒有被引用**的 artifact（孤兒）。重用既有
+    #      版本時不得刪，它可能還是別人的 current。
+    def restore_activation(activation)
+      return FileUtils.rm_f(receipt_path) if activation.nil?
+
+      if activation[:previous_current]
+        tmp = "#{current_link}.restoring-#{Process.pid}"
+        FileUtils.rm_f(tmp)
+        File.symlink(activation[:previous_current], tmp)
+        File.rename(tmp, current_link)
+      else
+        FileUtils.rm_f(current_link)
+        # 這次才第一次建立 launcher 就一併移除，不留「有殼沒實體」的半套。
+        LAUNCHER_NAMES.each { |n| FileUtils.rm_f(File.join(bin_dir, n)) } unless activation[:launchers_existed]
+      end
+
+      if activation[:previous_receipt]
+        FileUtils.mkdir_p(File.dirname(receipt_path))
+        File.binwrite(receipt_path, activation[:previous_receipt])
+      else
+        FileUtils.rm_f(receipt_path)
+      end
+
+      orphan = activation[:created_artifact]
+      FileUtils.rm_rf(orphan) if orphan && orphan != activation[:previous_current]
     end
   end
 end

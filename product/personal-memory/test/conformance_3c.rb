@@ -279,6 +279,86 @@ Dir.mktmpdir("omos-3c-a-activation") do |dir|
         File.exist?(store))
 end
 
+# --- Slice A repair-01 P1-1：升級失敗必須把 activation 一起回滾 ---
+#
+# 先前只還原 Host 設定：升級失敗後 current 已指向新版、舊 receipt 還被刪掉，
+# 違反 Q7 的 atomic activation/rollback。這一組驗整筆交易。
+Dir.mktmpdir("omos-3c-a-rollback") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "p.db")
+  omos = File.join(home, ".omos/personal-memory")
+  settings = File.join(home, ".claude/settings.json")
+
+  first = OMOS::Installer.new(home: home, store_path: store).install
+  good_current = File.readlink(File.join(omos, "current"))
+  good_receipt = File.read(File.join(omos, "install-receipt.json"))
+  good_settings = File.read(settings)
+
+  # 造一份內容不同的 artifact 來源（多一個檔案 → 不同 artifact_id）
+  altered = File.join(dir, "altered-product")
+  FileUtils.mkdir_p(File.join(altered, "lib/omos"))
+  OMOS::Installer::PAYLOAD_ENTRIES.each do |entry|
+    src = File.join(OMOS::Contract::ARTIFACT_ROOT, entry)
+    next unless File.exist?(src)
+    next if entry == "lib"
+
+    File.symlink(src, File.join(altered, entry))
+  end
+  FileUtils.cp_r(File.join(OMOS::Contract::ARTIFACT_ROOT, "lib/."), File.join(altered, "lib"))
+  File.write(File.join(altered, "lib/omos/slice_a_marker.rb"), "# 僅用於改變 artifact 內容\n")
+
+  code = begin
+    OMOS::Installer.new(home: home, product_root: altered, store_path: store)
+                   .install(fail_after: "Claude Code")
+    nil
+  rescue OMOS::Installer::Failed => e
+    e.code
+  end
+  C.check("升級中途失敗被回報", code.to_s, code == "INSTALL_INJECTED_FAILURE")
+  C.check("失敗後 current 切回舊 artifact",
+        File.readlink(File.join(omos, "current")) == good_current ? "已還原" : "仍指向新版",
+        File.readlink(File.join(omos, "current")) == good_current)
+  C.check("失敗後 receipt 還原成舊那份（不是被刪掉）",
+        File.exist?(File.join(omos, "install-receipt.json")) ? "存在" : "不見了",
+        File.exist?(File.join(omos, "install-receipt.json")) &&
+        File.read(File.join(omos, "install-receipt.json")) == good_receipt)
+  C.check("失敗後 Host 設定完全還原", "", File.read(settings) == good_settings)
+  orphans = Dir.children(File.join(omos, "versions")) - [first[:artifact_id]]
+  C.check("失敗交易新建的孤兒 artifact 已清除", orphans.inspect, orphans.empty?)
+  C.check("舊 artifact 仍可用（current 指得到實體）", "",
+        File.directory?(File.readlink(File.join(omos, "current"))))
+end
+
+# --- Slice A repair-01 P1-2：已安裝的 artifact 必須能自我安裝／升級 ---
+#
+# governance 來源若寫死 repo，standalone artifact 一安裝就
+# INSTALL_GOVERNANCE_SOURCE_MISSING——那等於「搬得出去但不能當 artifact 用」。
+Dir.mktmpdir("omos-3c-a-selfhost") do |dir|
+  home_a = File.join(dir, "home-a")
+  home_b = File.join(dir, "home-b")
+  Support::FakeHome.seed(home_a)
+  Support::FakeHome.seed(home_b)
+
+  OMOS::Installer.new(home: home_a, store_path: File.join(dir, "a.db")).install
+  installed_cli = File.join(home_a, ".omos/personal-memory/current/exe/omos-personal-memory")
+
+  # 用**已安裝的 artifact**（不是 repo）對第二個乾淨 HOME 安裝
+  out, err, st = Open3.capture3({ "HOME" => home_b }, installed_cli, "install",
+                                "--store", File.join(dir, "b.db"))
+  C.check("已安裝的 artifact 可對另一個 HOME 執行 install（不依賴 repo）",
+        st.success? ? "exit=0" : (err + out)[0, 70], st.success?)
+
+  gov_b = File.join(home_b, ".omos/personal-memory/current/governance")
+  drifted = OMOS::Installer::GOVERNANCE_FILES.reject do |rel|
+    File.file?(File.join(gov_b, rel)) &&
+      Digest::SHA256.file(File.join(OMOS::Contract::REPO_ROOT, rel)).hexdigest ==
+        Digest::SHA256.file(File.join(gov_b, rel)).hexdigest
+  end
+  C.check("自我安裝產生的 artifact，9 個治理檔仍與原件 byte-identical",
+        drifted.inspect, drifted.empty?)
+end
+
 # --- Slice A：舊形狀（pre-launcher）安裝的遷移 ---
 Dir.mktmpdir("omos-3c-a-migration") do |dir|
   home = File.join(dir, "home")
