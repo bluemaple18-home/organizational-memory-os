@@ -18,9 +18,6 @@ module OMOS
   class HostConfig
     class DiscoveryError < StandardError; end
 
-    # normalized 快照的形狀，與切片 2 的 config_snapshot_contract 一致。
-    EMPTY = { "mcp_entries" => {}, "session_start_hooks" => [] }.freeze
-
     attr_reader :host, :discovery, :home
 
     # command_map：{具體命令 => 契約的 command_ref}。

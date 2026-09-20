@@ -54,7 +54,6 @@ module OMOS
     # 它不該被當成健康，也不該被當成失敗——healthy? 以「沒有 FAIL」為準，
     # WARN 由呼叫端另外列出。
     def failures(results = run) = results.select { |r| r.status == "FAIL" }
-    def warnings(results = run) = results.select { |r| r.status == "WARN" }
     def healthy?(results = run) = failures(results).empty?
 
     private

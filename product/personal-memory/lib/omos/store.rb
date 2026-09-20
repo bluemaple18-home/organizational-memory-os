@@ -19,7 +19,6 @@ require_relative "contract"
 
 module OMOS
   class Store
-    class ImmutabilityViolation < StandardError; end
     class VersionUnsafe < StandardError; end
 
     BUSY_TIMEOUT_MS = 5_000

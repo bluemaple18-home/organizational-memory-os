@@ -73,8 +73,6 @@ module OMOS
       runtime.dig("row_contract", "identity_fields", kind)
     end
 
-    def row_kinds = id_templates.keys
-
     # row id 形狀：沿用切片 A 既有的 template 展開（含 UUIDv7 version／variant
     # nibble），UUID 版本由上游 identifiers.omos_generated.algorithm 推導，
     # 產品端不寫死。

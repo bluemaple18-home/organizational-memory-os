@@ -65,8 +65,6 @@ module Support
 
     def link_id(suffix) = "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000#{suffix}"
     def record_id(suffix) = "urn:omos:personal-memory:record:01900000-0000-7000-8000-0000000000#{suffix}"
-    def candidate_id(suffix) = "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000#{suffix}"
-    def review_period(week) = "urn:omos:personal-memory:review-period:#{week}"
 
     def link_body(link_id, target)
       { "link_id" => link_id, "tenant_id" => "t-acme", "employee_owner_ref" => EMP,
