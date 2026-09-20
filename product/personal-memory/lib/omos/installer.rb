@@ -2,8 +2,8 @@
 #
 # omos-personal-memory installer。
 #
-# 責任：初始化本機 store、把 MCP 與 SessionStart 註冊寫進兩個 Host 的使用者
-# 設定、產出安裝 receipt；以及對應的 uninstall。
+# 責任：初始化本機 store、把 MCP 與 SessionStart 註冊寫進**已交付 Host** 的
+# 使用者設定、產出安裝 receipt；以及對應的 uninstall。
 #
 # 安全規則（主卡「安裝與復原」驗收組）：
 #   - 判定先於寫入：每個 Host 的 merge 合法性由切片 2 既有 evaluator 判定，
@@ -65,7 +65,20 @@ module OMOS
 
     # --- install ---------------------------------------------------------
 
-    def install(hosts: HostConfig.hosts, fail_after: nil)
+    # 預設只安裝**已交付**的 Host（repair-03 P2：v1 的 delivery scope 只有
+    # Claude Code，不該再往 Codex 寫一套必定不能使用的 MCP + hook）。
+    # Codex 的 profile 與設定面評估仍然保留——設定面認得它，不等於要交付它。
+    # 需要明確安裝某個 blocked host（例如用真 codex CLI 驗證我們寫出的形狀）
+    # 時，呼叫端要自己把它列進 hosts:，不會預設發生。
+    def delivered_hosts = Contract.supported_hosts
+
+    # 卸載預設依 install receipt 記錄的 hosts 清理；沒有 receipt 就掃過所有
+    # 契約認識的 Host——先前版本曾把 Codex 也裝進去，不掃就會留下殘件。
+    def installed_hosts
+      receipt&.fetch("hosts", nil)&.keys || HostConfig.hosts
+    end
+
+    def install(hosts: delivered_hosts, fail_after: nil)
       raise Failed, "INSTALL_MCP_COMMAND_MISSING" unless File.executable?(mcp_command)
       raise Failed, "INSTALL_HOOK_COMMAND_MISSING" unless File.executable?(hook_command)
 
@@ -96,7 +109,7 @@ module OMOS
       { store_path: store_path, schema_version: schema_version, hosts: hosts, receipt: receipt }
     end
 
-    def uninstall(hosts: HostConfig.hosts, remove_store: false)
+    def uninstall(hosts: installed_hosts, remove_store: false)
       backups = {}
       begin
         hosts.each do |host|
@@ -115,7 +128,7 @@ module OMOS
     end
 
     # 升級：命令路徑或 schema 可能變了，重跑安裝即可（install 本身 idempotent）。
-    def upgrade(hosts: HostConfig.hosts)
+    def upgrade(hosts: delivered_hosts)
       install(hosts: hosts)
     end
 

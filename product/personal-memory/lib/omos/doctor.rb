@@ -43,7 +43,11 @@ module OMOS
       checks.concat(env_checks)
       checks.concat(store_checks)
       checks.concat(process_checks)
-      HostConfig.hosts.each { |host| checks.concat(host_checks(host)) }
+      # repair-03 P2：只有**已交付**的 Host 才檢查安裝狀態。blocked host 依
+      # Owner 裁決本來就不該被安裝，把它的「沒裝」報成 FAIL 是誤報——使用者
+      # 會以為機器壞了。改成照實說明它為什麼不在交付範圍內。
+      Contract.supported_hosts.each { |host| checks.concat(host_checks(host)) }
+      checks.concat(blocked_host_checks)
       checks.concat(binding_checks)
       checks.concat(cycle_checks)
       checks << uninstall_metadata_check
@@ -148,6 +152,16 @@ module OMOS
     end
 
     # --- CONFIG_PRESENT 群：逐 Host 讀實際設定 ---------------------------
+
+    # blocked host：不檢查安裝狀態，只照實回報「這一版沒交付它、為什麼、
+    # 什麼條件下會解除」。這是已知狀態，不是故障。
+    def blocked_host_checks
+      blocked = Contract.runtime.fetch("blocked_hosts_v1", {})
+      blocked.map do |host, entry|
+        warn_("#{tag(host)}_not_delivered",
+              "#{entry["reason"]}：本版不交付此 Host，依裁決不安裝。解除條件：#{entry["unblock_condition"].to_s.strip}")
+      end
+    end
 
     def host_checks(host)
       config = HostConfig.new(host, home: @home, command_map: @installer.command_map)

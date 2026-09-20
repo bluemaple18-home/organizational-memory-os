@@ -55,10 +55,12 @@ module OMOS
     def self.produce(host:, native_session_id:, cwd:, project_ref:,
                      runtime_scope_mode:, project_visibility_scope: nil)
       b = bootstrap_bindings
-      # 「已交付」不在這裡判：produce 最後會把整個 bootstrap 交給切片 2 的
-      # evaluator 複核，HBV1_HOST_BLOCKED_UPSTREAM 由那一關統一吐出，產品與
-      # 契約 evaluator 才不會各判各的。
       raise Refused, "HBV1_HOST_NOT_SUPPORTED" unless b[:known_hosts].include?(host)
+      # repair-03 P1-1：這條不是多餘的。Runtime 的授權閘（Contract.binding_problem）
+      # 現在只認已交付的 Host，所以下面的 composition 檢查會先以切片 1 的
+      # PMR_ 碼擋下 blocked host；但契約層要回的是契約層的碼。兩層各自擋，
+      # 而且兩層都真的會擋——Runtime 那一層是給「不經 produce 的 binding」用的。
+      raise Refused, "HBV1_HOST_BLOCKED_UPSTREAM" unless b[:delivered_hosts].include?(host)
 
       bootstrap = {
         "native_session_id" => native_session_id, "cwd" => cwd, "project_ref" => project_ref,

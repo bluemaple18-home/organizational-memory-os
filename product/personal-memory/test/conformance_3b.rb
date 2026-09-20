@@ -188,9 +188,35 @@ Dir.mktmpdir("omos-3b") do |dir|
   rescue OMOS::Runtime::Rejected => e
     e.code
   end
-  rt_probe.store.close
   C.check("Runtime 層：MCP surface 無 binding 被拒", runtime_missing.to_s,
         runtime_missing == "PMR_MCP_OPERATION_MISSING_HOST_BINDING")
+
+  # repair-03 P1-1 的回歸測試：blocked host 不得繞過 bootstrap 直接被 Runtime
+  # 授權。這裡刻意**不經 SessionStart.produce**，手工遞一份逐欄合法的 Codex
+  # binding 給 Runtime——形狀完全正確，只有「這一版沒交付這個 Host」一項不對。
+  # 先前 Runtime 的授權閘與純形狀檢查共用同一份 bindings（認 known_hosts），
+  # 這份 binding 會被放行（reviewer 實測 runtime_read=ALLOWED）。
+  forged_codex_binding = {
+    "executor_ref" => "Codex", "executor_session_ref" => "codex-forged-001",
+    "cwd" => proj, "project_ref" => "urn:omos:project:a", "effective_scope" => "SELF_ONLY"
+  }
+  blocked_at_runtime = begin
+    rt_probe.read_rows(surface: OMOS::Runtime::SURFACES[:mcp], binding: forged_codex_binding)
+    nil
+  rescue OMOS::Runtime::Rejected => e
+    e.code
+  end
+  rt_probe.store.close
+  C.check("Runtime 層：blocked host 的合法形狀 binding 仍被拒（不得繞過 bootstrap）",
+          blocked_at_runtime.to_s,
+          blocked_at_runtime == "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST")
+
+  # 對照組：同一條路徑，已交付的 Host 必須通得過，否則上面那條是因為別的原因綠的。
+  delivered_binding = forged_codex_binding.merge("executor_ref" => "Claude Code",
+                                                 "executor_session_ref" => "claude-probe-001")
+  delivered_ok = OMOS::Contract.binding_problem(delivered_binding)
+  C.check("對照組：已交付 Host 的同形狀 binding 通過 Runtime 授權", delivered_ok.inspect,
+          delivered_ok.nil?)
 
   # --- 以獨立連線直接查資料庫確認（不信 server 的自我回報）---
   db = SQLite3::Database.new(store)

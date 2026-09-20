@@ -90,7 +90,22 @@ module OMOS
     end
 
     # HostSessionBinding 的形狀參數——與切片 1／2 的 validator 用同一組來源。
-    def binding_shape_bindings
+    #
+    # 這裡有兩個**不能共用**的 seam（repair-03 P1-1：共用會讓 blocked host
+    # 繞過 bootstrap 直接被 Runtime 授權）：
+    #
+    #   binding_shape_bindings        純形狀／composition 判定。問的是
+    #                                 「executor_ref 是不是契約認識的 Host」，
+    #                                 因此認 known_hosts（含 blocked）。
+    #   runtime_authorization_bindings Runtime 真正的授權閘。問的是
+    #                                 「這一版准不准這個 Host 動 store」，
+    #                                 只認 delivered（supported_hosts_v1）。
+    def binding_shape_bindings = binding_bindings_for(known_hosts)
+
+    # Runtime 授權用：blocked host 的 binding 到這裡一律擋下，不論它形狀多合法。
+    def runtime_authorization_bindings = binding_bindings_for(supported_hosts)
+
+    def binding_bindings_for(hosts)
       identity = spec.dig("runtime_policy", "portable_record_contract", "executor_provenance_fields")
       additional = runtime.dig("host_session_binding", "additional_fields")
       {
@@ -98,9 +113,7 @@ module OMOS
         additional_fields: additional,
         allowed_fields: identity + additional,
         forbidden_fields: runtime.dig("host_session_binding", "forbidden_fields"),
-        # 形狀檢查問的是「executor_ref 是不是已知 Host」；是否已交付由
-        # SessionStart.produce 在最後一關判定，不在這裡重複。
-        supported_hosts: known_hosts,
+        supported_hosts: hosts,
         visibility_scopes: (spec.dig("ownership_visibility_contract", "visibility_scopes") || {}).keys
       }
     end
@@ -128,8 +141,10 @@ module OMOS
       problems.empty? ? nil : problems
     end
 
+    # Runtime 的授權閘走這支——只認已交付的 Host。純形狀比對要用
+    # binding_shape_bindings，不要圖方便共用這一支。
     def binding_problem(binding)
-      BindingShape.binding_problem(binding, binding_shape_bindings)
+      BindingShape.binding_problem(binding, runtime_authorization_bindings)
     end
 
     # 事後 conformance 用：把 operation journal 交給切片 1 的 oracle 判定。

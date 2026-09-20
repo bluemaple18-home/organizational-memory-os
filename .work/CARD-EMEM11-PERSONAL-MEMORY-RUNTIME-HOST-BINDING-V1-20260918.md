@@ -41,14 +41,24 @@ SSP-323 已封的是 Personal Memory Core：
 - batch UX / closeout semantics
 
 EMEM-11 補的是第一版正式產品的 **local runtime + host integration layer**：
-把已驗收的 Personal Memory contract 變成 Codex / Claude Code 可以在每個受支援專案中穩定使用的本機能力。
+把已驗收的 Personal Memory contract 變成 Host 可以在每個受支援專案中穩定使用的本機能力。
 
-v1 正式支援範圍只包含：
+v1 正式交付範圍（`supported_hosts_v1`，Owner 裁決 2026-09-20 收斂）：
 
 ```text
-OpenAI Codex
 Anthropic Claude Code
 ```
+
+已知但**本版不交付**（`blocked_hosts_v1`）：
+
+```text
+OpenAI Codex — BLOCKED_UPSTREAM_IDENTITY_CHANNEL
+```
+
+Codex 仍是契約認識的 Host：host profile、設定探索、install／uninstall／shadow／
+health 的評估全部保留，但它產不出 `HostSessionBinding`（`HBV1_HOST_BLOCKED_UPSTREAM`）、
+Runtime 授權閘也不收它的 binding、installer 預設不交付它。解除條件與原本的
+cross-host 驗收見 `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`。
 
 其他 AI Host（ChatGPT app / Gemini / 其他）一律不列 v1 compatibility promise，不建立假抽象。
 
@@ -430,7 +440,8 @@ omos-personal-memory doctor
 3. Project A → Project B 不重新建 store、不重新定義 lifecycle。
 4. Project B 比 A 權限小時，只能少看，不能擴權。
 5. Host restart / resume / compact 不產生 duplicate weekly closeout / Promotion。
-6. 同一 review period 在兩 Host 間切換仍維持同一 identity。
+6. 同一 review period 在同一 Host 的並行 session 間切換仍維持同一 identity。
+   （原為「在兩 Host 間切換」——跨 Host 部分隨 Codex 一併移至 EMEM-11b。）
 7. MCP / hook broken 或 shadowed 時明確失敗，不 silent fallback。
 8. install → upgrade → uninstall → reinstall 不破壞 Personal Store truth。
 9. vendor-native memory on/off 不改 Personal Store canonical semantics。
@@ -441,13 +452,16 @@ omos-personal-memory doctor
 
 ### 0. 假設與目標確認
 
-- **目標**：把 EMEM-11 從「契約層」推到**可安裝、可診斷、可跨 Codex／Claude Code
-  實際使用的實物**。這一片要交出真的會開啟 SQLite、真的被兩個 Host 以 stdio 呼叫、
-  真的讀寫使用者設定檔的程式。
-- **邊界**：只做 Codex + Claude Code 兩個 Host；不新增 Jira 卡；不推翻切片 1／2 的
+- **目標**：把 EMEM-11 從「契約層」推到**可安裝、可診斷、可實際使用的實物**。
+  這一片要交出真的會開啟 SQLite、真的被 Host 以 stdio 呼叫、真的讀寫使用者
+  設定檔的程式。
+  （原文為「可跨 Codex／Claude Code 實際使用」「真的被兩個 Host 呼叫」——
+  Owner 裁決 2026-09-20 後 v1 交付 Host 只有 Claude Code。）
+- **邊界**：v1 交付 **Claude Code 單一 Host**；Codex 保留 profile 與設定面
+  評估但不交付（見 EMEM-11b）；不新增 Jira 卡；不推翻切片 1／2 的
   契約與已接受裁決；不碰同事的正式設定（安裝／卸載測試一律在隔離的 HOME）。
 - **驗收**：契約測資與實際操作證據**分欄計算**，不混算 PASS；三組驗收（安裝與復原／
-  Doctor 與失敗診斷／跨 Host 與跨專案）各自要有實物證據。
+  Doctor 與失敗診斷／並行 session、同一 Store 與跨專案）各自要有實物證據。
 - **前置決策**：產品實作語言與 runtime（見 §5），需 Owner 裁決後才動手。
 
 ### 1. 實體交付對照（開工前盤點，2026-09-20 實測）
@@ -516,7 +530,7 @@ v1 只驗 Claude Code（Owner 裁決 2026-09-20；Codex 為 known-but-not-delive
   治理層（`no direct DB access path`）。產出 operation journal。
 - **3b｜MCP server + Host 啟動整合**：stdio MCP server 暴露同一 runtime；
   SessionStart 產生 HostSessionBinding；實際讀寫 Codex／Claude Code 設定探索。
-- **3c｜Installer / Doctor / 跨 Host conformance**：三組驗收與證據收集。
+- **3c｜Installer / Doctor / 並行 session conformance**：三組驗收與證據收集。
 
 ### 5. 實作語言與 runtime — Owner 已裁決（2026-09-20）
 
@@ -614,7 +628,8 @@ Claude Code 以外的 Host、GUI、自動更新。
 
 **超出既有規範的說明（依指示先講，不完工才補）**：切片 1 約 913 行手寫、切片 2 約
 775 行，兩片都是**只交契約不交程式**才那麼小。切片 3 是 EMEM-11 第一片要交出可執行
-產品的切片，主卡本來就要求 installer、doctor、MCP executable 與跨 Host 實測，
+產品的切片，主卡本來就要求 installer、doctor、MCP executable 與實機實測（原文為「跨 Host 實測」，
+Owner 裁決 2026-09-20 後收斂為已交付 Host），
 這些責任在原卡、不是新增需求。切片 1「不按 store／surface 人工二分、只按真正共用接點
 抽取」的裁決保留——因此**不會**為了行數把這片拆成人工邊界，而是按 §4 的
 3a／3b／3c 實作順序推進，每階段可獨立回報與檢查。
@@ -662,10 +677,17 @@ EMEM-10 與 EMEM-11 可平行施工；SSP-295 full product pilot 必須等兩者
 
 EMEM-11 只有在以下全部成立才可進 SSP-295 full pilot：
 
+> **Owner 範圍裁決 2026-09-20（FP-1 A／FP-2 C／FP-3 A）後的 normative DoD。**
+> 原文要求「兩個 Host 都有真人實測」與「cross-host same-store 實證」；Codex
+> 已收斂為 known-but-not-delivered，該兩項連同 Codex 一併移至
+> `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`，**不再是本卡進 SSP-295 的條件**。
+
 - Slice 1/2/3 全部 machine-readable contract / fixtures / validators 或等價可重播驗證完成
 - installer / doctor 有 deterministic acceptance
-- Codex 與 Claude Code 兩個 Host 都有真人實測
-- cross-host same-store / permission-narrowing / review-period idempotency 實證通過
+- **已交付 Host（Claude Code）有真人實測**
+- **同一 Store 在並行 session 下** / permission-narrowing / review-period idempotency 實證通過
+- blocked host（Codex）在三個層級都真的擋得住：bootstrap 產不出 binding、
+  Runtime 授權閘拒收繞過 bootstrap 的 binding、installer 預設不交付
 - no direct DB access path
 - no second lifecycle / second Personal authority
 - repo regression 全綠

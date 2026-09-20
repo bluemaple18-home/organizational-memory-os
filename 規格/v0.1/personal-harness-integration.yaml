@@ -2121,10 +2121,14 @@ personal_memory_runtime:
     contract error, not a runtime feature.
   blocked_hosts_rule: >-
     blocked_hosts_v1 的每個 key 都必須有對應的 host profile，且不得同時出現在
-    supported_hosts_v1。標記 blocked 描述的是「這一版交不出來」，因此 runtime
-    對該 host 一律在契約邊界拒絕（HBV1_HOST_NOT_SUPPORTED），不是宣稱支援後
-    在更下游才失敗。每一筆都必須帶 reason、可查證的 evidence_ref 與
-    unblock_condition——沒有解除條件的 blocked 等於偷偷刪功能。
+    supported_hosts_v1。標記 blocked 描述的是「這一版交不出來」：該 host 產不出
+    HostSessionBinding（bootstrap 回 HBV1_HOST_BLOCKED_UPSTREAM，與「根本不認識
+    這個 Host」的 HBV1_HOST_NOT_SUPPORTED 分開），而且即使有人繞過 bootstrap
+    遞一份形狀合法的 binding，Runtime 的授權閘也只認 supported_hosts_v1，一律
+    回 PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST。設定面（install／uninstall／
+    shadow／health）仍照常評估——blocked 不等於不認識。每一筆都必須帶 reason、
+    可查證的 evidence_ref 與 unblock_condition——沒有解除條件的 blocked 等於
+    偷偷刪功能。
   host_session_binding:
     executor_identity_fields_ref: runtime_policy.portable_record_contract.executor_provenance_fields
     additional_fields:
@@ -2480,8 +2484,10 @@ personal_memory_host_binding_v1:
           簽 FP-1 A / FP-2 C / FP-3 A）：v1 收斂為 Claude Code，Codex 移入
           personal_memory_runtime.blocked_hosts_v1，理由
           BLOCKED_UPSTREAM_IDENTITY_CHANNEL。因此 Codex 現在是在契約邊界就被
-          拒絕（HBV1_HOST_NOT_SUPPORTED），而不是宣稱支援後才在 session
-          identity 這一層 fail closed。
+          拒絕（bootstrap 產不出 binding，回 HBV1_HOST_BLOCKED_UPSTREAM；
+          繞過 bootstrap 的 binding 則由 Runtime 授權閘以
+          PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST 擋下），而不是宣稱
+          支援後才在 session identity 這一層 fail closed。
     host_native_stdin_fields:
       # 切片 3 repair-01：真 Host 交給 SessionStart hook 的 stdin 欄位。
       # 先前實作期待 host / native_session_id / project_ref / runtime_scope_mode，

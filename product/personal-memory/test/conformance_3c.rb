@@ -42,10 +42,18 @@ Dir.mktmpdir("omos-3c-a") do |dir|
   inst = OMOS::Installer.new(home: home, store_path: store)
 
   inst.install
-  C.check("install 後兩個 Host 都判定未漂移", "",
-        OMOS::HostConfig.hosts.all? do |h|
+  C.check("install 後已交付 Host 判定未漂移", "",
+        OMOS::Contract.supported_hosts.all? do |h|
           OMOS::HostConfig.new(h, home: home, command_map: inst.command_map).own_registration_problem.nil?
         end)
+  # repair-03 P2：v1 的 delivery scope 只有 Claude Code，預設安裝不得再往
+  # blocked host 寫一套必定不能使用的 MCP + hook。
+  codex_cfg_after_install = File.read(File.join(home, ".codex/config.toml"))
+  C.check("install 預設不碰 blocked host（Codex 設定位元組不變）",
+        "#{before[:codex].bytesize}→#{codex_cfg_after_install.bytesize}",
+        codex_cfg_after_install == before[:codex])
+  C.check("receipt 只記錄已交付 Host", inst.receipt["hosts"].keys.inspect,
+        inst.receipt["hosts"].keys == OMOS::Contract.supported_hosts)
   C.check("install 保留使用者註解與他人 mcp", "",
         File.read(File.join(home, ".codex/config.toml")).include?("使用者自己的註解") &&
         File.read(File.join(home, ".codex/config.toml")).include?("[mcp_servers.foreign]"))
@@ -63,9 +71,11 @@ Dir.mktmpdir("omos-3c-a") do |dir|
   inst.install # reinstall（idempotent）
   inst.upgrade
   C.check("reinstall / upgrade 後仍未漂移", "",
-        OMOS::HostConfig.hosts.all? do |h|
+        OMOS::Contract.supported_hosts.all? do |h|
           OMOS::HostConfig.new(h, home: home, command_map: inst.command_map).own_registration_problem.nil?
         end)
+  C.check("upgrade 同樣不會把 blocked host 補裝回去", "",
+        File.read(File.join(home, ".codex/config.toml")) == before[:codex])
   db = SQLite3::Database.new(store)
   survived = db.get_first_value("SELECT COUNT(*) FROM memory_rows")
   db.close
@@ -83,23 +93,32 @@ Dir.mktmpdir("omos-3c-a") do |dir|
   #
   # 這一項回答 review 的核心質疑：post-write 複驗只能證明「我讀得回我寫的」，
   # 不能證明 Host 接受。這裡把假 HOME 交給實際安裝的 codex CLI 去解析。
+  # repair-03 P2：Codex 已非預設安裝對象，這裡**明確指名**才裝——保留「我們
+  # 寫出的形狀真的被 Host 解析得了」這項實證（EMEM-11b 解除時還要用），同時
+  # 不讓它偷偷變回預設交付。
   if system("command -v codex >/dev/null 2>&1")
-    OMOS::Installer.new(home: home, store_path: store).install
+    OMOS::Installer.new(home: home, store_path: store).install(hosts: ["Codex"])
     out, _err, st = Open3.capture3({ "HOME" => home }, "codex", "mcp", "get", "omos.personal-memory")
     parsed = out.include?("transport: stdio") && out.include?("omos-personal-memory-mcp")
     C.check("真的 codex CLI 解析我們寫出的 MCP 註冊", st.success? ? out.lines.grep(/transport/).first.to_s.strip : "失敗",
             st.success? && parsed)
     C.check("codex 自行判定 transport（我們不寫該欄位）", "",
             !File.read(File.join(home, ".codex/config.toml")).include?("transport ="))
+    # uninstall 依 receipt 的 hosts 清理——receipt 這時記的是 ["Codex"]，
+    # 所以殘件清得掉。這正是「先前版本曾裝過 Codex」的回收路徑。
     OMOS::Installer.new(home: home, store_path: store).uninstall
+    C.check("uninstall 依 receipt 清掉明確指名安裝的 blocked host，位元組復原", "",
+            File.read(File.join(home, ".codex/config.toml")) == before[:codex])
   else
     C.check("真的 codex CLI 解析我們寫出的 MCP 註冊", "本機無 codex CLI，略過", true)
   end
 
-  # 中途失敗必須完全復原
+  # 中途失敗必須完全復原。跨 Host 原子性要有兩個 Host 才驗得出來，而預設
+  # 交付只剩一個，所以這裡明確指名兩個 Host——驗的是 installer 的回復機制，
+  # 不是「Codex 是交付對象」。
   pre_fail = Support::FakeHome.read_all(home)
   code = begin
-    inst.install(fail_after: "Codex")
+    inst.install(hosts: OMOS::HostConfig.hosts, fail_after: "Codex")
     nil
   rescue OMOS::Installer::Failed => e
     e.code
@@ -170,10 +189,10 @@ Dir.mktmpdir("omos-3c-b") do |dir|
   # 未安裝：三種結果必須分得開
   pre = OMOS::Doctor.new(home: home, store_path: store, cwd: proj).run.to_h { |r| [r.id, r.status] }
   C.check("未安裝時：程序叫得起來（PROCESS_OK）", pre["mcp_handshake"], pre["mcp_handshake"] == "OK")
-  C.check("未安裝時：設定不存在（CONFIG 缺）", pre["codex_mcp_visible"], pre["codex_mcp_visible"] == "FAIL")
+  C.check("未安裝時：設定不存在（CONFIG 缺）", pre["claude_code_mcp_visible"], pre["claude_code_mcp_visible"] == "FAIL")
   C.check("未安裝時：store 不能用（STORE 缺）", pre["store_exists"], pre["store_exists"] == "FAIL")
   C.check("三者確實獨立（程序 OK 但另兩者 FAIL）", "",
-        pre["mcp_handshake"] == "OK" && pre["codex_mcp_visible"] == "FAIL" && pre["store_exists"] == "FAIL")
+        pre["mcp_handshake"] == "OK" && pre["claude_code_mcp_visible"] == "FAIL" && pre["store_exists"] == "FAIL")
 
   inst.install
   post = OMOS::Doctor.new(home: home, store_path: store, cwd: proj).run
@@ -183,8 +202,7 @@ Dir.mktmpdir("omos-3c-b") do |dir|
         "#{post.count(&:ok?)} OK / #{post_warn.size} WARN / #{post_fail.size} FAIL", post_fail.empty?)
   C.check("WARN 只出現在「無法觀測／未經 Host 驗證」這兩類，且照實回報",
         post_warn.map(&:id).sort.inspect,
-        post_warn.map(&:id).sort == ["claude_code_session_start_hook_present", "codex_no_shadow",
-                                     "codex_session_start_hook_present"])
+        post_warn.map(&:id).sort == ["claude_code_session_start_hook_present", "codex_not_delivered"])
 
   # 被同名專案設定遮蔽 → 必須明確失敗
   File.write(File.join(proj, ".mcp.json"),

@@ -38,7 +38,7 @@
           "committed": true
         },
         "host_session_binding": {
-          "executor_ref": "Codex",
+          "executor_ref": "Claude Code",
           "executor_session_ref": "sess-01",
           "cwd": "/Users/emp/proj",
           "project_ref": "proj-omos",
@@ -249,7 +249,7 @@
           }
         },
         "host_session_binding": {
-          "executor_ref": "Codex",
+          "executor_ref": "Claude Code",
           "executor_session_ref": "sess-01",
           "cwd": "/Users/emp/proj",
           "project_ref": "proj-omos",
@@ -418,7 +418,7 @@
           "committed": true
         },
         "host_session_binding": {
-          "executor_ref": "Codex",
+          "executor_ref": "Claude Code",
           "executor_session_ref": "sess-01",
           "cwd": "/Users/emp/proj",
           "project_ref": "proj-omos",
@@ -457,7 +457,7 @@
           "committed": true
         },
         "host_session_binding": {
-          "executor_ref": "Codex",
+          "executor_ref": "Claude Code",
           "executor_session_ref": "sess-01",
           "cwd": "/Users/emp/proj",
           "project_ref": "proj-omos",
@@ -779,7 +779,7 @@
       "mutate": {
         "set": {
           "operations/9/host_session_binding": {
-            "executor_ref": "Codex",
+            "executor_ref": "Claude Code",
             "executor_session_ref": "sess-01",
             "cwd": "/Users/emp/proj",
             "project_ref": "proj-omos",
@@ -795,7 +795,7 @@
       "expected_failure_code": "PMR_HOST_BINDING_NOT_MAP",
       "mutate": {
         "set": {
-          "operations/6/host_session_binding": "Codex"
+          "operations/6/host_session_binding": "Claude Code"
         }
       }
     },
