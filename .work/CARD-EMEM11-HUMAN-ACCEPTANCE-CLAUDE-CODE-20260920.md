@@ -100,39 +100,73 @@ reviewer 抓。這一步花幾分鐘，但它決定「整條交付路徑到底�
 探針本身不安裝本產品、不寫 `~/.omos`，只在正式設定裡暫時加一個會自己移除的
 MCP server 條目。
 
-1. 建立臨時探針（放 `/tmp`，驗完刪）：
+**比對對象說明**：Step 0 時本產品**還沒安裝**，所以沒有 hook 可比。這一步
+比的是「**MCP server 子程序**看到的 session id」與「**同一個 session 的
+Bash 子程序**看到的 session id」。hook 與 MCP 的比對留到 Step 3／4 自然發生。
+
+### 0-1 建立探針（一般終端機即可）
 
 ```sh
 mkdir -p /tmp/omos-probe && cat > /tmp/omos-probe/probe.sh <<'SH'
 #!/bin/sh
-# 只把自己看到的環境倒進檔案，然後靜靜待著（不實作 MCP，不需要握手成功）
+# 只把自己看到的環境倒進檔案。不實作 MCP，握手失敗是預期的——
+# 我們只要證明「這個子程序拿不拿得到 session id」。
 env | grep -E '^CLAUDE|SESSION' > /tmp/omos-probe/mcp-env.txt 2>/dev/null
 sleep 30
 SH
 chmod +x /tmp/omos-probe/probe.sh
 ```
 
-2. 把它註冊成隔離 HOME 的 user-scope MCP server，**開一個新的 Claude Code
-   session**（`export HOME=/Users/matt/omos-acceptance-home` 後用 `cc` 啟動，
-   首次需 `/login`），等十幾秒後結束該 session。
-3. 檢查：
+### 0-2 註冊到隔離 HOME 並開 session
+
+```sh
+export HOME=/Users/matt/omos-acceptance-home
+mkdir -p "$HOME"
+/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe \
+  mcp add -s user omos-probe -- /tmp/omos-probe/probe.sh
+
+cd /Users/matt/Documents/ChatGPT/知識庫 && cc      # 首次需 /login
+```
+
+Claude Code 在 **session 啟動時**就會去連 MCP server（不需要你呼叫任何
+tool），所以進去等十幾秒即可。在**該 session 裡**執行並記下：
+
+```sh
+echo "BASH_SEES=$CLAUDE_CODE_SESSION_ID"
+echo "CHILD=$CLAUDE_CODE_CHILD_SESSION"
+```
+
+然後結束該 session。
+
+### 0-3 判定
 
 ```sh
 cat /tmp/omos-probe/mcp-env.txt
 ```
 
-**判定**：
+| 觀察 | 判定 |
+|---|---|
+| 有 `CLAUDE_CODE_SESSION_ID=<UUID>`，且**等於** 0-2 記下的 `BASH_SEES` | **通過**，進 Step 1 |
+| 檔案不存在，或沒有該變數 | **整張卡 NO_GO，立刻停止、不要安裝** |
+| 有該變數但**與 `BASH_SEES` 不同** | **NO_GO**，並把兩個值都記進 packet |
 
-- 檔案裡有 `CLAUDE_CODE_SESSION_ID=<UUID>` → **通過**，記下該值，進 Step 1。
-- 檔案不存在、或沒有該變數 → **整張卡 NO_GO，立刻停止**。
-  意義：Claude Code 與 Codex 一樣，MCP server 無法獨立取得可信 native
-  session identity → v1 沒有任何可交付 Host，必須回 Owner 重開範圍裁決。
-  **不要繼續安裝。**
-- 有該變數但與同一 session 的 hook 所見不同 → 同樣 NO_GO，並記錄兩個值。
+NO_GO 的意義要講清楚：那代表 Claude Code 與 Codex 一樣，MCP server 無法獨立
+取得可信的 native session identity。v1 將沒有任何可交付 Host，必須回 Owner
+重開範圍裁決——這不是修一修就能過的事，**不要繼續往下做**。
 
-4. 順帶記錄：環境裡另有 `CLAUDE_CODE_CHILD_SESSION`，代表 subagent／child
-   session 可能有自己的 id。記下它在探針裡的值，供 Step 6 判讀。
-5. 移除探針註冊，`rm -rf /tmp/omos-probe`。
+順帶記下 `CLAUDE_CODE_CHILD_SESSION`：它暗示 subagent／child session 可能有
+自己的 id，Step 6 判讀「新 session 是否誤用舊 identity」時會用到。
+
+### 0-4 收掉探針
+
+```sh
+/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe \
+  mcp remove -s user omos-probe
+rm -rf /tmp/omos-probe
+```
+
+（`HOME` 仍須是隔離路徑才移得對。最後整個隔離 HOME 會被刪掉，所以這一步
+漏掉也不致命，但留著會干擾 Step 2 之後的判讀。）
 
 ---
 
