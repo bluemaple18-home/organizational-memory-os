@@ -20,6 +20,7 @@ require_relative "host_config"
 require_relative "installer"
 require_relative "store"
 require_relative "session_start"
+require_relative "version_guard"
 
 module OMOS
   class Doctor
@@ -39,6 +40,7 @@ module OMOS
 
     def run
       checks = []
+      checks.concat(env_checks)
       checks.concat(store_checks)
       checks.concat(process_checks)
       HostConfig.hosts.each { |host| checks.concat(host_checks(host)) }
@@ -62,6 +64,25 @@ module OMOS
     def warn_(id, detail) = Result.new(id: id, status: "WARN", detail: detail)
 
     def store_path = @installer.store_path
+
+    # --- 環境：鎖定的直譯器與相依是否到位 ---------------------------------
+    #
+    # 這兩項原本住在獨立的 preflight.rb。3a 的預檢任務已完成（結果記在卡片），
+    # 其餘 10 項都已被 doctor 與 conformance 覆蓋，只剩 gem 版本沒人看，
+    # 所以併進來、把那支腳本刪掉，不留一份會漂移的重複檢查。
+    def env_checks
+      results = [RUBY_VERSION == VersionGuard::REQUIRED ?
+                 ok("ruby_version", RUBY_VERSION) :
+                 bad("ruby_version", "#{RUBY_VERSION}（本產品鎖定 #{VersionGuard::REQUIRED}）")]
+      results << begin
+        require "sqlite3"
+        require "mcp"
+        ok("gems_loadable", "sqlite3 #{SQLite3::VERSION} / mcp #{MCP::VERSION}")
+      rescue LoadError => e
+        bad("gems_loadable", e.message[0, 80])
+      end
+      results
+    end
 
     # --- STORE_OK 群 -----------------------------------------------------
 

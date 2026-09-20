@@ -136,17 +136,20 @@ module OMOS
     end
 
     def journal_mode = @db.get_first_value("PRAGMA journal_mode")
-    def schema_version = @db.get_first_value("SELECT to_version FROM schema_migrations ORDER BY rowid DESC LIMIT 1")
+    def schema_version
+      return nil unless table?("schema_migrations")
+
+      @db.get_first_value("SELECT to_version FROM schema_migrations ORDER BY rowid DESC LIMIT 1")
+    end
 
     def migrate!(now: Time.now.utc.iso8601)
-      ensure_bootstrap!
       current = schema_version || Contract.genesis_version
       MIGRATIONS.each do |migration|
         next if migration_applied?(migration[:id])
         next unless migration[:from] == current
 
         transaction do
-          @db.execute_batch(migration[:sql]) unless migration[:id] == "0001-initial-store" && bootstrapped?
+          @db.execute_batch(migration[:sql])
           @db.execute(
             "INSERT INTO schema_migrations (migration_id, from_version, to_version, applied_at) VALUES (?,?,?,?)",
             [migration[:id], migration[:from], migration[:to], now]
@@ -226,15 +229,9 @@ module OMOS
       !@db.get_first_value("SELECT name FROM sqlite_master WHERE type='table' AND name=?", [name]).nil?
     end
 
-    def bootstrapped? = table?("memory_rows")
-
-    def ensure_bootstrap!
-      return if table?("schema_migrations")
-
-      @db.execute_batch(MIGRATIONS.first[:sql])
-    end
-
     def migration_applied?(id)
+      return false unless table?("schema_migrations")
+
       !@db.get_first_value("SELECT 1 FROM schema_migrations WHERE migration_id = ?", [id]).nil?
     end
 

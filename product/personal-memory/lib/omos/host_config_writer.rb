@@ -203,27 +203,24 @@ module OMOS
 
     # --- JSON：只改目標鍵 ------------------------------------------------
 
-    def json_write(path)
-      mutate_json(mcp_path) do |doc|
-        entries = doc[@config.discovery.fetch("mcp_entries_path")] ||= {}
-        entries[@config.own_mcp_id] = { "command" => @mcp_command, "transport" => "STDIO" }
-      end
-      mutate_json(hook_path) do |doc|
-        hooks = (doc["hooks"] ||= {})
-        list = (hooks["SessionStart"] ||= [])
-        list.reject! { |h| h.is_a?(Hash) && h["id"] == @config.own_hook_id }
-        list << { "id" => @config.own_hook_id, "command" => @hook_command }
-      end
-    end
+    # install 與 uninstall 只差「放進去」還是「拿掉」，走同一條路徑。
+    def json_write(_path) = mutate_registration(remove: false)
+    def json_remove(_path) = mutate_registration(remove: true)
 
-    def json_remove(path)
+    def mutate_registration(remove:)
       mutate_json(mcp_path) do |doc|
-        entries = doc[@config.discovery.fetch("mcp_entries_path")]
-        entries&.delete(@config.own_mcp_id)
+        key = @config.discovery.fetch("mcp_entries_path")
+        entries = (doc[key] ||= {})
+        if remove
+          entries.delete(@config.own_mcp_id)
+        else
+          entries[@config.own_mcp_id] = { "command" => @mcp_command, "transport" => "STDIO" }
+        end
       end
       mutate_json(hook_path) do |doc|
-        list = doc.dig("hooks", "SessionStart")
-        list&.reject! { |h| h.is_a?(Hash) && h["id"] == @config.own_hook_id }
+        list = ((doc["hooks"] ||= {})["SessionStart"] ||= [])
+        list.reject! { |h| h.is_a?(Hash) && h["id"] == @config.own_hook_id }
+        list << { "id" => @config.own_hook_id, "command" => @hook_command } unless remove
       end
     end
 
