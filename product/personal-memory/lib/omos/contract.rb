@@ -156,7 +156,11 @@ module OMOS
         surfaces: access_surfaces, forbidden_surfaces: forbidden_surfaces,
         supported_hosts: supported_hosts,
         identity_fields: spec.dig("runtime_policy", "portable_record_contract", "executor_provenance_fields"),
-        binding_shape: binding_shape_bindings,
+        # repair-04 P2：事後 oracle 判的是「這份 journal 記下來的操作當初該不該
+        # 被允許」，因此必須拿**與 Runtime 授權閘同一組** host set。用
+        # binding_shape_bindings（known_hosts）會讓一份 Codex 的 journal 被判
+        # 合法——真正的 Runtime 已經擋住了，但證據與授權會對不起來。
+        binding_shape: runtime_authorization_bindings,
         write_path: write_path, read_path: read_path,
         id_patterns: tmpl.keys.each_with_object({}) { |k, h| h[k] = id_pattern(k) },
         spec: spec, common_vocab: vocab,

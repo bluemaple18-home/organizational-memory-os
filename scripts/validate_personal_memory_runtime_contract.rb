@@ -72,6 +72,7 @@ EXPECTED_NEGATIVE_LABELS = [
   "a host session binding carrying a field outside the closed shape",
   "a host session binding carrying a shadow identity field",
   "a host session binding missing an upstream executor identity field",
+  "a host session binding naming a known host this version does not deliver",
   "a host session binding naming an executor that is not a supported host",
   "a host session binding whose effective_scope is an ownership mode, not a visibility scope",
   "a host session binding that is not a map",

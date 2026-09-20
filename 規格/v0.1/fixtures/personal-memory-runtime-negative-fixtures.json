@@ -868,6 +868,17 @@
       }
     },
     {
+      "case_id": "pmr-neg-25b",
+      "covers_negative_fixture": "a host session binding naming a known host this version does not deliver",
+      "expected": "deny",
+      "expected_failure_code": "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST",
+      "mutate": {
+        "set": {
+          "operations/6/host_session_binding/executor_ref": "Codex"
+        }
+      }
+    },
+    {
       "case_id": "pmr-neg-26",
       "covers_negative_fixture": "an operation path that is not an array of known steps",
       "expected": "deny",

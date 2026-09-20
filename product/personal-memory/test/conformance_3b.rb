@@ -223,6 +223,30 @@ Dir.mktmpdir("omos-3b") do |dir|
   landed = db.execute("SELECT row_id FROM memory_rows ORDER BY rowid").flatten
   surfaces = db.execute("SELECT DISTINCT surface FROM operation_journal").flatten.sort
   db.close
+  # repair-04 P2：事後 conformance oracle 必須與 Runtime 授權閘用**同一組**
+  # host set。先前 oracle 吃 known_hosts，於是把這份 journal 的 MCP binding
+  # 換成 blocked host 之後仍被判合法——真正的 Runtime 早就擋住了，但「證據」
+  # 與「授權」對不起來，事後看 journal 會得到錯的結論。
+  mcp_log = OMOS::Runtime.open(store)
+  real_log = mcp_log.operation_log
+  mcp_log.store.close
+  C.check("真實 MCP journal 通過事後 oracle", OMOS::Contract.runtime_log_problem(real_log).inspect,
+          OMOS::Contract.runtime_log_problem(real_log).nil?)
+
+  codex_log = JSON.parse(JSON.generate(real_log))
+  rewritten = 0
+  codex_log.fetch("operations").each do |op|
+    next unless op["host_session_binding"].is_a?(Hash)
+
+    op["host_session_binding"]["executor_ref"] = "Codex"
+    rewritten += 1
+  end
+  codex_log_problem = OMOS::Contract.runtime_log_problem(codex_log)
+  C.check("blocked host 的 journal 被事後 oracle 拒絕（與 Runtime 授權同一組 host set）",
+          "改寫 #{rewritten} 筆 binding → #{codex_log_problem.inspect}",
+          rewritten.positive? &&
+          codex_log_problem == "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST")
+
   C.check("獨立連線查資料表：合法那筆真的落地", landed.inspect, landed == [L1])
   C.check("被拒絕的那筆完全沒落地", landed.size, landed.size == 1)
   C.check("journal 記錄的 surface 為 LOCAL_STDIO_MCP", surfaces.inspect, surfaces == ["LOCAL_STDIO_MCP"])
