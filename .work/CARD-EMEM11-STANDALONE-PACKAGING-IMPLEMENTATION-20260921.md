@@ -1,6 +1,7 @@
 ---
 id: EMEM11-STANDALONE-PACKAGING-IMPLEMENTATION-20260921
-status: READY_SLICE_A_NOT_STARTED
+status: AWAITING_GO_SIGNATURE_SLICE_A_NOT_STARTED
+review_round_1: NO_GO（P1×1：A/B identity 邊界矛盾）→ 已修，見 Slice A「identity ownership」
 type: implementation
 tier: T2
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
@@ -8,7 +9,7 @@ research: CARD-EMEM11-STANDALONE-PACKAGING-RESEARCH-20260920（ACCEPTED_GO）
 architecture: CARD-EMEM11-Q7-ACTIVATION-RUNTIME-PROFILE-20260921（DECIDED_FROZEN）
 absorbs:
   - CARD-EMEM11-STALE-HOOK-RELOCATION-20260920 → Slice A
-  - CARD-EMEM11-RUBY-GUARD-CRITERION-20260921 → Slice B
+  - CARD-EMEM11-RUBY-GUARD-CRITERION-20260921 → Slice B（僅 guard；identity 在 A）
 pinned_baseline: fa0959a
 authority: organizational-memory-os
 ---
@@ -32,15 +33,17 @@ review diff。**
 
 - 兩者**共享架構但失敗型態不同**：A 壞了是「Host 設定裡留下垃圾」，
   B 壞了是「在不該跑的 runtime 上放行或誤拒」。混在一起會分不出哪一層壞掉。
-- **A 必須先於 B**：guard 要綁的 **artifact build identity 與 native
-  dependency manifest 是 packaging 本身才會建立的東西**。先做 B 等於先發明
-  一份臨時 identity，之後再改一次。
+- **A 必須先於 B，且 identity 的 ownership 在 A**：guard 要綁的 **artifact
+  build identity 與 native dependency manifest 是 packaging 本身才會建立的
+  東西**。第一版把 identity 放在 B，但 A 已經要產生 `versions/<artifact-id>`
+  ——那等於逼 A 先發明臨時 ID、B 再改一次，正是切片要避免的 provisional
+  identity（reviewer P1，已修）。
 
 ```
-Slice A  activation substrate ＋ stale-hook
-   ↓     （產生真實的 versions/<artifact-id> 結構）
-Slice B  artifact identity ＋ runtime profile guard
-   ↓     （guard 有真正的 identity 可綁）
+Slice A  activation substrate ＋ stale-hook ＋ **artifact identity**
+   ↓     （產生真實的 versions/<artifact-id> 與 identity/manifest）
+Slice B  runtime profile guard（消費 A 的 identity，不再定義）
+   ↓
 Slice C  standalone packaging closure
 ```
 
@@ -69,6 +72,8 @@ Slice C  standalone packaging closure
 
 ### 範圍
 
+- **定義最小 artifact／build identity**（見下方「identity ownership」）
+- **宣告 production native dependency manifest**
 - 建立固定 launcher：
   `~/.omos/personal-memory/bin/omos-personal-memory-mcp`、
   `…/bin/omos-personal-memory-session-start`
@@ -77,6 +82,21 @@ Slice C  standalone packaging closure
 - 修 relocation／upgrade／uninstall 的 zombie hook
 - atomic `current` switch
 
+### identity ownership（reviewer P1 修正，2026-09-21）
+
+**identity 由 Slice A 定義並產生；Slice B 只消費，不得再定義第二份。**
+
+原本把 identity 放在 B 是矛盾的：A 已經要產生 `versions/<artifact-id>`，
+卻不准定義 identity——那 A 只能先發明一個臨時 ID，B 再改一次，正是這次切片
+本來要避免的 provisional identity。
+
+**設計約束（避免同類問題在 C 重演）**：Slice C 才會把 2 份 spec ＋ 7 支
+evaluator 機械納入 artifact，因此 **A 當下的 artifact 並不包含那 9 個檔**。
+identity 的算法必須是對「**artifact 實際承載的內容**」取 digest，使得 C 把
+9 個檔 materialize 進來時 **identity 自然涵蓋它們、無須更動算法**。
+**不得**定義成「固定列舉這幾類檔案」——那會逼 C 再改一次定義，重蹈本次
+P1 的覆轍。
+
 ### 驗收
 
 1. **原缺陷重現案例歸零**：`install(A)` → 從 B `upgrade` → Host 內**只有
@@ -84,11 +104,18 @@ Slice C  standalone packaging closure
    **零殘留**。（原始重現：A→B upgrade 後 2 組並存、uninstall 後殘留 A。）
 2. **Host 設定內不得出現版本字樣**：安裝後機械檢查寫入的 `.claude.json` 與
    `.claude/settings.json`，**不得含 `versions/` 或任何 artifact-id**。
-3. **舊版安裝的遷移（本卡新增，先前無人提出）**：目前**已經存在**以舊形狀
-   安裝的環境——Host 設定直接指向 repo 內的 `exe/…`（例如真人驗收用的隔離
-   HOME `/Users/matt/omos-acceptance-home`）。Slice A 必須能**把這種
-   pre-launcher 安裝遷移成 launcher 形狀**，且不留下舊註冊。
+3. **舊版安裝的遷移**：目前**已經存在**以舊形狀安裝的環境——Host 設定直接
+   指向 repo 內的 `exe/…`（例如真人驗收用的隔離 HOME
+   `/Users/matt/omos-acceptance-home`）。Slice A 必須能**把這種 pre-launcher
+   安裝遷移成 launcher 形狀**，且不留下舊註冊。
    這不是假想情境：任何在本片之前裝過的人都是這個狀態。
+
+   **遷移的辨識 authority（reviewer 補充，硬性）**：舊 hook 的辨識**必須由
+   既有 receipt 或精確的 legacy command evidence 驅動**——
+   **不得**用模糊前綴比對，**不得**「掃到像 OMOS 的就刪」。
+   receipt 缺失或損壞時必須 **fail loud 或要求人工處理，不得用猜的**。
+   （repair-02 的 collision-adjacent 測試已鎖住「不誤刪第三方」；這一條進一步
+   鎖住「不靠猜測決定什麼是自己的」。）
 4. **argv 注入未被破壞**：遷移後 hook 仍收到 `--host` 與
    `--runtime-scope-mode`，SessionStart 仍能落地可信 session 記錄。
 5. **第三方 hook 不受影響**：沿用 repair-02 的 collision-adjacent 測試形狀
@@ -99,20 +126,20 @@ Slice C  standalone packaging closure
 
 ### 不做
 
-不定義 build identity（Slice B）、不做 digest gate（Slice C）、
-不改 `pinned-ruby.sh` 的判準（Slice B）。
+不做 guard 的判定邏輯（Slice B 消費本片產生的 identity）、不改
+`pinned-ruby.sh` 的判準（Slice B）、不做 spec／evaluator 的 materialize 與
+digest gate（Slice C）。
 
 ---
 
-## Slice B｜Artifact identity ＋ Runtime profile guard
+## Slice B｜Runtime profile guard（消費 A 的 identity）
 
 承接 `CARD-EMEM11-RUBY-GUARD-CRITERION-20260921`，判準見 Q7 §0.3。
 
 ### 範圍
 
-- 定義**最小 build identity**（能綁住 code ＋ 2 spec ＋ 7 evaluator ＋
-  dependency layout；**不得**拿 store `schema_version` 冒充）
-- 宣告 **production native dependencies** 清單（manifest）
+- **消費 Slice A 產生的 artifact identity 與 native dependency manifest**
+  （**不得重新定義第二份**；identity 的 ownership 在 A）
 - guard 改驗四項：選中的 Ruby executable／loader resolution／真實 load
   probe／qualified profile 比對
 - 取代現行的 `RUBY_VERSION == "3.4.10"` 判準
@@ -149,7 +176,7 @@ qualification 矩陣（Part 2）。
   byte 相同；**非** installer 執行時複製）
 - **source ↔ packaged digest drift gate（雙向）**：repo 改了原件而未重新
   產生 package，**CI 必須紅**；只驗「package 內副本有沒有被竄改」不足夠
-- receipt 綁 artifact identity（Slice B 定義的那一份）
+- receipt 綁 artifact identity（**Slice A** 定義的那一份）
 - **workspace B**、無 source checkout 的完整 standalone acceptance
 - upgrade／rollback／relocation E2E
 
