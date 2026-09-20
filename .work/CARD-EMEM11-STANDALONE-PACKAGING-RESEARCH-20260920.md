@@ -1,6 +1,7 @@
 ---
 id: EMEM11-STANDALONE-PACKAGING-RESEARCH-20260920
-status: RESEARCH_ONLY_AWAITING_GO_SIGNATURE
+status: ACCEPTED_GO
+signed_at: 2026-09-21
 type: research
 tier: T3
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
@@ -9,6 +10,8 @@ pinned_product_delivery: fa0959a
 review_round_1: NO_GO（P1×2 + P2×2）
 cc_response: .work/handoff/EMEM11-PACKAGING-REVIEW-RESPONSE-20260920.md
 review_round_2: GO after documentation correction（P0/P1/P2 = 0）
+review_round_3: GO（P2×1 metadata 已修）
+# 下一階段（packaging 實作）開卡前必須先處理的既存缺陷：
 implementation_prerequisite: CARD-EMEM11-STALE-HOOK-RELOCATION-20260920
 authority: organizational-memory-os
 ---

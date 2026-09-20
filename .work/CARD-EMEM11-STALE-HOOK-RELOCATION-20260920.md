@@ -4,7 +4,10 @@ status: CONFIRMED_DEFECT_NOT_SCHEDULED
 severity: P1
 type: product-defect
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
-prerequisite_for: CARD-EMEM11-STANDALONE-PACKAGING-RESEARCH-20260920
+discovered_via: CARD-EMEM11-STANDALONE-PACKAGING-RESEARCH-20260920
+# 本卡是 packaging **實作**的前置，不是那張 research card 的前置——research
+# 完成後才發現並建立本卡。implementation card 尚未建立；建立後在此指向它。
+prerequisite_for: PENDING_PACKAGING_IMPLEMENTATION_CARD
 found_in: fa0959a
 authority: organizational-memory-os
 ---
