@@ -1,8 +1,9 @@
 ---
 id: EMEM11-STANDALONE-PACKAGING-IMPLEMENTATION-20260921
-status: SLICE_A_IN_PROGRESS
+status: SLICE_A_ACCEPTED_GO_SLICE_B_IN_PROGRESS
 review_round_1: NO_GO（P1×1：A/B identity 邊界矛盾）→ 已修
 review_round_2: GO（2026-09-21，P2×1 非阻擋，已納入 Slice A 驗收第 8 項）
+slice_a: ACCEPTED_GO @ ce62092（repair-01 f9ba9e3、repair-02 943aec0、closeout ce62092）
 type: implementation
 tier: T2
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
@@ -178,6 +179,13 @@ digest gate（Slice C）。
 
 ### 驗收
 
+0. **manifest 的 `require` 欄位必須被真正使用**（reviewer P2，Slice A 收片時
+   發現並轉入本片）：每個 manifest entry 的 `require` 必須在**隔離的
+   production process** 中真實 require 成功，並解析到該 entry 宣告的 native
+   extension。
+   **拼錯的 require 不得被其他「實際已載入」的證據掩蓋**——reviewer 做過
+   mutation proof：把 `bigdecimal` 的 `require` 改成不存在的名稱，Slice A 既有
+   的 extension-name 斷言仍會通過。本片必須讓該 mutation 轉紅。
 1. **版本相同但 linkage 不符 → guard 當場擋下**，不得放行到載入原生擴充才
    `LoadError`。（可用 `install_name_tool` 改寫一份複本的 libruby load
    command 來構造，已實證該手法會產生明確 LoadError。）
