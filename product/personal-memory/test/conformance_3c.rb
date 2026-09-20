@@ -19,6 +19,8 @@ require "fileutils"
 require "open3"
 require "sqlite3"
 require "digest"
+require "shellwords"
+require "rbconfig"
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
 require "omos/version_guard"
 OMOS::VersionGuard.assert!
@@ -279,6 +281,60 @@ Dir.mktmpdir("omos-3c-a-activation") do |dir|
         File.exist?(store))
 end
 
+# --- Slice A：production native dependency manifest ---
+#
+# Slice B 的 runtime profile guard 要消費這份宣告（對「全部 production native
+# dependencies」驗 loader resolution、做真實 load probe）。宣告若與實況脫節，
+# guard 就會驗錯東西，因此這裡對**實際載入的結果**逐項比對。
+Dir.mktmpdir("omos-3c-a-manifest") do |dir|
+  root = OMOS::Contract::ARTIFACT_ROOT
+  manifest = JSON.parse(File.read(File.join(root, "native-dependencies.json")))
+  declared = manifest.fetch("production_native_dependencies")
+
+  # 在乾淨子行程裡載入 production 進入點，取實際載入的原生擴充
+  probe = <<~RUBY
+    require "omos/cli"; require "omos/runtime"; require "omos/mcp_server"
+    root = #{root.dump}
+    puts $LOADED_FEATURES.grep(/\\.bundle$/).select { |f| f.start_with?(root) }.sort.join("\\n")
+  RUBY
+  out, err, st = Open3.capture3({ "BUNDLE_GEMFILE" => File.join(root, "Gemfile") },
+                                RbConfig.ruby, "-rbundler/setup", "-I#{File.join(root, "lib")}",
+                                "-e", probe)
+  loaded = out.lines.map(&:strip).reject(&:empty?)
+  C.check("能取得 production 實際載入的原生擴充", st.success? ? "#{loaded.size} 個" : err[0, 60],
+          st.success? && !loaded.empty?)
+
+  actual_names = loaded.map { |p| File.basename(p, ".bundle") }.sort
+  C.check("manifest 宣告的 extension 與實際載入完全一致（不多不少）",
+        "宣告=#{declared.map { |e| e["extension"] }.sort.inspect} 實際=#{actual_names.inspect}",
+        declared.map { |e| e["extension"] }.sort == actual_names)
+
+  # 每一項宣告的 require 名稱必須真的能載入，且 non_system_libraries 與 otool 一致
+  mismatched = declared.reject do |entry|
+    abs = loaded.find { |p| File.basename(p, ".bundle") == entry["extension"] }
+    next false if abs.nil?
+
+    libs = `otool -L #{Shellwords.escape(abs)} 2>/dev/null`.lines.drop(1)
+           .map { |l| l.strip.sub(/ \(.*/, "") }.reject { |l| l.start_with?("/usr/lib/") }.sort
+    libs == entry["non_system_libraries"]
+  end
+  C.check("manifest 記錄的 non_system_libraries 與 otool 實況一致",
+        mismatched.map { |e| e["extension"] }.inspect, mismatched.empty?)
+
+  # Q6 Part 1 的結論要留在可執行的證據裡：只有 bigdecimal 依賴 libruby
+  libruby_dependents = declared.select { |e| e["non_system_libraries"].any? { |l| l.include?("libruby") } }
+  C.check("只有 bigdecimal 依賴 libruby（Q6 Part 1 的 ABI 邊界）",
+        libruby_dependents.map { |e| e["extension"] }.inspect,
+        libruby_dependents.map { |e| e["extension"] } == ["bigdecimal"])
+
+  # manifest 必須隨 artifact 一起配送，否則 Slice B 在已安裝的 artifact 上讀不到
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  OMOS::Installer.new(home: home, store_path: File.join(dir, "p.db")).install
+  C.check("manifest 隨 artifact 一起配送（已安裝的 artifact 讀得到）", "",
+        File.file?(File.join(home, ".omos/personal-memory/current/native-dependencies.json")))
+end
+
 # --- Slice A repair-01 P1-1：升級失敗必須把 activation 一起回滾 ---
 #
 # 先前只還原 Host 設定：升級失敗後 current 已指向新版、舊 receipt 還被刪掉，
@@ -313,8 +369,10 @@ Dir.mktmpdir("omos-3c-a-rollback") do |dir|
   # old current + old receipt + old Host config + NEW launcher 的半套狀態。
   launcher_paths = OMOS::Installer::LAUNCHER_NAMES.map { |n| File.join(omos, "bin", n) }
   launcher_paths.each { |p| File.write(p, "#!/bin/sh\n# previous-version launcher\nexec true\n") }
-  FileUtils.chmod(0o755, launcher_paths)
+  # 刻意用與新版不同的模式（0700 vs 0755），否則這條對 mode 沒有鑑別力
+  FileUtils.chmod(0o700, launcher_paths)
   good_launchers = launcher_paths.to_h { |p| [p, File.binread(p)] }
+  good_modes = launcher_paths.to_h { |p| [p, File.stat(p).mode & 0o7777] }
 
   code = begin
     OMOS::Installer.new(home: home, product_root: altered, store_path: store)
@@ -327,8 +385,9 @@ Dir.mktmpdir("omos-3c-a-rollback") do |dir|
   C.check("失敗後 launcher 還原成前一版的位元組（不是留下新版）",
         launcher_paths.all? { |p| File.binread(p) == good_launchers[p] } ? "byte-identical" : "被新版覆蓋",
         launcher_paths.all? { |p| File.binread(p) == good_launchers[p] })
-  C.check("失敗後 launcher 仍可執行（模式一併還原）", "",
-        launcher_paths.all? { |p| File.executable?(p) })
+  C.check("失敗後 launcher 的模式也精確還原（0700，非新版的 0755）",
+        launcher_paths.map { |p| format("%o", File.stat(p).mode & 0o7777) }.uniq.inspect,
+        launcher_paths.all? { |p| (File.stat(p).mode & 0o7777) == good_modes[p] })
   C.check("失敗後 current 切回舊 artifact",
         File.readlink(File.join(omos, "current")) == good_current ? "已還原" : "仍指向新版",
         File.readlink(File.join(omos, "current")) == good_current)

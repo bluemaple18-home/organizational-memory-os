@@ -1,0 +1,18 @@
+{
+  "schema": "omos.personal-memory/native-dependencies/v1",
+  "note": "由 Slice A 宣告、由 conformance 對實況驗證；Slice B 的 runtime profile guard 消費這份清單。extension 的實際檔案路徑含 Ruby ABI 目錄（例如 sqlite3/3.4/），會隨 Ruby 版本變動，因此這裡以 require 名稱宣告，路徑於執行時解析。",
+  "production_native_dependencies": [
+    {
+      "extension": "bigdecimal",
+      "require": "bigdecimal",
+      "non_system_libraries": [
+        "/opt/homebrew/opt/ruby@3.4/lib/libruby.3.4.dylib"
+      ]
+    },
+    {
+      "extension": "sqlite3_native",
+      "require": "sqlite3",
+      "non_system_libraries": []
+    }
+  ]
+}

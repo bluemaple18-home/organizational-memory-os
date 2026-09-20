@@ -83,7 +83,11 @@ module OMOS
     ].freeze
 
     # artifact payload：產品自己的檔案。governance/ 由 materialize 另外放進去。
-    PAYLOAD_ENTRIES = %w[lib exe bin vendor Gemfile Gemfile.lock .ruby-version .bundle].freeze
+    # native-dependencies.json 是 Slice A 宣告的 production native dependency
+    # manifest，Slice B 的 runtime profile guard 會消費它，因此必須隨 artifact
+    # 一起配送（也因此被納入 artifact identity）。
+    PAYLOAD_ENTRIES = %w[lib exe bin vendor Gemfile Gemfile.lock .ruby-version .bundle
+                         native-dependencies.json].freeze
 
     def receipt
       return nil unless File.exist?(receipt_path)
