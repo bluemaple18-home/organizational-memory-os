@@ -132,12 +132,27 @@ Dir.mktmpdir("omos-3b") do |dir|
 
   # repair-02 的產品裁決：Codex 目前沒有官方管道讓 MCP server 獨立得知
   # native session id，因此一律 fail closed，不退回 cwd 或任何代理鍵猜測。
+  # 三個 tool 都要驗，不能只驗 read——establish_binding! 是連線層級一次性判定，
+  # 但這是「目前的實作事實」，不是「不用驗」的理由。
   codex_client = Support::MCPClient.new(store, host: "Codex", cwd: proj, state_dir: state_dir)
-  codex_res = codex_client.read
+  codex_read = codex_client.read
+  _, codex_write = codex_client.call_tool("personal_memory_write",
+                                          { "kind" => "MemorySupportLink",
+                                            "resource" => F.link_body(
+                                              "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000bb",
+                                              R1), "idempotency_key" => "k-codex-write" })
+  codex_closeout = codex_client.closeout(F.closeout(
+                                            "urn:omos:personal-memory:review-period:2026-W37",
+                                            "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000cc",
+                                            "COMPLETE", "SCHEDULED"
+                                          ))
   codex_client.close
-  C.check("Codex 目前無可信 native session 管道，MCP 一律 fail closed",
-          codex_res.is_a?(Hash) ? codex_res["code"] : codex_res.to_s,
-          codex_res.is_a?(Hash) && codex_res["code"] == "MCP_NATIVE_SESSION_ID_UNAVAILABLE")
+  codex_all_refused = [codex_read, codex_write, codex_closeout].all? do |r|
+    r.is_a?(Hash) && r["status"] == "REFUSED" && r["code"] == "MCP_NATIVE_SESSION_ID_UNAVAILABLE"
+  end
+  C.check("Codex 目前無可信 native session 管道，read/write/closeout 三個 tool 全部 fail closed",
+          [codex_read, codex_write, codex_closeout].map { |r| r.is_a?(Hash) ? r["code"] : r.to_s }.inspect,
+          codex_all_refused)
 
   # Runtime 層的保證（不依賴 tool schema）：MCP surface 少了 binding 必須以
   # 契約錯誤碼拒絕。

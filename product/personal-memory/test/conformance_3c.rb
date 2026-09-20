@@ -6,7 +6,9 @@
 #                     保留非本產品設定與個人資料；中途失敗必須完全復原。
 #   B Doctor 與失敗診斷 讀實際設定、實際啟動目標、實際開 store；
 #                     「設定存在」「程序能啟動」「Store 能用」是三種不同結果。
-#   C 跨 Host 與跨專案  真的同時跑兩個 MCP 進程對同一個 store 往返；
+#   C 並行 session 與跨專案  真的同時跑兩個 MCP 進程對同一個 store 往返
+#                     （Codex 目前無官方 native session id 管道，一律 fail
+#                     closed，見 3b；這裡改測同 Host 兩個並行 session）；
 #                     切換專案不得擴權；retry／重啟不得產生第二筆。
 #
 # 全程不碰使用者的正式設定——所有操作都在 Dir.mktmpdir 的假 HOME 內。
@@ -106,6 +108,51 @@ Dir.mktmpdir("omos-3c-a") do |dir|
   C.check("注入的中途失敗被回報", code.to_s, code == "INSTALL_INJECTED_FAILURE")
   C.check("中途失敗後所有設定完全復原", "", post_fail == pre_fail)
   C.check("中途失敗後沒有留下 receipt", "", !File.exist?(inst.receipt_path))
+end
+
+# --- repair-02 P2：hook 辨識改精確相等，collision-adjacent 的第三方 hook 不得被誤認 ---
+#
+# reviewer 實測過的失敗模式：舊版用 start_with? 前綴命中，會把
+# "<本產品 hook 命令>-foreign ..." 誤判成自己的註冊，導致 install 少加一組、
+# uninstall 誤刪別人的 hook。這裡直接構造這種「以本產品命令當前綴」的第三方
+# hook，驗證 install/uninstall/doctor 都不會認錯。
+Dir.mktmpdir("omos-3c-a-hook-identity") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  proj = File.join(dir, "proj")
+  FileUtils.mkdir_p(proj)
+  store = File.join(dir, "p.db")
+  inst = OMOS::Installer.new(home: home, store_path: store)
+
+  foreign_command = "#{inst.hook_command}-foreign --host \"Claude Code\" --runtime-scope-mode EMPLOYEE_PRIVATE"
+  settings = JSON.parse(File.read(File.join(home, ".claude/settings.json")))
+  settings["hooks"] = { "SessionStart" => [{ "hooks" => [{ "type" => "command", "command" => foreign_command }] }] }
+  File.write(File.join(home, ".claude/settings.json"), "#{JSON.pretty_generate(settings)}\n")
+
+  inst.install
+  installed = JSON.parse(File.read(File.join(home, ".claude/settings.json")))
+  groups = installed.dig("hooks", "SessionStart") || []
+  commands = groups.flat_map { |g| Array(g["hooks"]).map { |h| h["command"] } }
+  C.check("install 後 collision-adjacent 第三方 hook 與本產品 hook 並存（沒被誤認合併）",
+        commands.inspect, commands.include?(foreign_command) && commands.size == 2)
+
+  inst.uninstall
+  uninstalled = JSON.parse(File.read(File.join(home, ".claude/settings.json")))
+  after_commands = (uninstalled.dig("hooks", "SessionStart") || []).flat_map do |g|
+    Array(g["hooks"]).map { |h| h["command"] }
+  end
+  C.check("uninstall 只移除本產品自己那組，collision-adjacent 第三方 hook 原樣保留",
+        after_commands.inspect, after_commands == [foreign_command])
+
+  inst.install
+  doctor_with_collision = OMOS::Doctor.new(home: home, store_path: store, cwd: proj).run
+                                      .find { |r| r.id == "claude_code_session_start_hook_present" }
+  # 這一項本來就是既有已知 WARN（見 3b：形狀寫對了，但尚未由真 Host 觸發過），
+  # collision 不該把它拖成 FAIL（=「以為 hook 沒寫入」，其實是把本產品的 hook
+  # 和第三方那組搞混、比對不到自己）。
+  C.check("doctor 在 collision-adjacent 第三方 hook 存在下仍認得出本產品自己的 hook（維持既有 WARN，不退化成 FAIL）",
+        "#{doctor_with_collision.status}: #{doctor_with_collision.detail}",
+        doctor_with_collision.status == "WARN" && doctor_with_collision.detail.include?("已依官方 schema 寫入"))
 end
 
 # ===========================================================================
@@ -235,6 +282,18 @@ Dir.mktmpdir("omos-3c-c") do |dir|
         seen_by_c1.is_a?(Array) && seen_by_c1.any? { |r| r["row_id"] == l2 })
   C.check("兩邊看到的是同一份資料，且各自 binding 沒被同 cwd 的另一個 session 覆蓋", "",
         seen_by_c1.map { |r| r["row_id"] }.sort == (seen_by_c2.map { |r| r["row_id"] } + [l2]).sort)
+
+  # 同一 cwd 換成第三個「從沒跑過 hook」的 session：不得誤讀到前兩個仍在跑的
+  # session 留下的任何一份 identity——沒有自己的記錄就是沒有，一律 fail closed
+  # （鍵是 (host, native_session_id)，不是 cwd，結構上就不會撿到別人的檔案；
+  # 這裡是明確驗證這一點）。
+  c3 = Support::MCPClient.new(store, host: "Claude Code", cwd: proj_a, state_dir: state_dir,
+                              session_id: "claude-c3-never-started")
+  c3_res = c3.read
+  c3.close
+  C.check("同 cwd 換成沒跑過 hook 的第三個 session，不會讀到其他 session 的 identity",
+        c3_res.is_a?(Hash) ? c3_res["code"] : c3_res.to_s,
+        c3_res.is_a?(Hash) && c3_res["code"] == "MCP_NO_SESSION_RECORD")
 
   # 跨專案：切到 projB 不得擴權
   widened = begin

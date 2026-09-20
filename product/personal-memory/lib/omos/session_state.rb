@@ -62,10 +62,5 @@ module OMOS
 
       record
     end
-
-    # session 結束時清除（SessionEnd hook 用；避免舊 state 無限期可用）。
-    def clear!(host, session_id, home: Dir.home)
-      FileUtils.rm_f(path_for(host, session_id, home: home))
-    end
   end
 end
