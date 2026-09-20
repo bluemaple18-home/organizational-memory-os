@@ -42,20 +42,42 @@ store、session state 全部落在隔離目錄，因此：
 - 該 HOME 的 MCP 清單是乾淨的，不會有其他 server 干擾判讀；
 - 驗完直接刪掉那個目錄就還原了。
 
+### 必要前置：把真實 Library 接回隔離 HOME
+
+**先做這一步，否則登入會卡住。** macOS 的 login keychain 路徑由 HOME 推導
+（`~/Library/Keychains/login.keychain-db`），隔離 HOME 底下沒有，OAuth 完成
+後會跳出「**找不到鑰匙圈**」對話框。
+
+```sh
+mkdir -p /Users/matt/omos-acceptance-home
+ln -sfn /Users/matt/Library /Users/matt/omos-acceptance-home/Library
+```
+
+接上之後**完全不需要重新登入**——實測（2026-09-20）換 HOME 啟動直接就是已
+登入狀態，憑證由真實 Keychain 提供。
+
+> 若還是跳出「找不到鑰匙圈」：按 **取消**，**不要按「重置為預設值」**。
+> 在 HOME 被改過的狀態下，那個按鈕會去建立／重設鑰匙圈，影響範圍不明確。
+> 先確認上面的 symlink 真的建好了再重試。
+
+> **為什麼不用 `CLAUDE_CONFIG_DIR`**：它確實能把設定搬離正式路徑（實測
+> `.claude.json` 會落在該目錄，且 `settings.json` 的 SessionStart hook 真的
+> 會燒），但它把 `.claude.json` 與 `settings.json` **壓平在同一層**，而本產品
+> 的契約寫的是標準兩層（`~/.claude.json` + `~/.claude/settings.json`）。
+> 用它等於在測一個實際不存在的佈局，驗了不算數。因此維持 HOME override。
+
 ### 開一個驗收用的終端機 session
 
 ```sh
 export HOME=/Users/matt/omos-acceptance-home
-mkdir -p "$HOME"
 cd /Users/matt/Documents/ChatGPT/知識庫
 cc
 ```
 
 **注意事項（都是實測過的）**：
 
-- **第一次會要求登入**：實測換 HOME 後會顯示 `Not logged in · Please run /login`
-  ——憑證雖在 macOS Keychain，但不會自動接上。在該 session 裡跑一次 `/login`
-  即可，這不影響你正式 HOME 的登入狀態。
+- **只要先做了上面的 Library symlink，就不必登入**。（沒做 symlink 時會顯示
+  `Not logged in · Please run /login`，且 OAuth 走完仍會因為存不進鑰匙圈而失敗。）
 - `cc` 是你 shell 的 function。若在改了 `HOME` 之後 `cc` 行為異常，直接用
   binary：`/opt/homebrew/lib/node_modules/@anthropic-ai/claude-code/bin/claude.exe`
   （**不要**用 `which claude` 查到的路徑——那是每個 session 專屬的暫時 shim，
@@ -72,9 +94,9 @@ cc
 | repo SHA | `6a33d12` |
 | 產品交付 SHA | `fa0959a` |
 | 產品根目錄 | `/Users/matt/Documents/ChatGPT/知識庫/product/personal-memory` |
-| Claude Code 版本 | ＿＿＿（`claude --version`） |
-| 實測時間（起／訖） | ＿＿＿ |
-| 實測機器 | ＿＿＿ |
+| Claude Code 版本 | `v2.1.278`（Step 0 實測值；後續步驟若跨版本要重填） |
+| 實測時間（起／訖） | 起 2026-09-20 19:04（Step 0）／訖 ＿＿＿ |
+| 實測機器 | guojiaweideMacBook-Air（macOS，arm64） |
 
 預設路徑（安裝後才會出現）：
 
@@ -86,7 +108,32 @@ install receipt ~/.omos/personal-memory/install-receipt.json
 
 ---
 
-## Step 0｜熔斷探針（硬停點，**在安裝之前**）
+## Step 0｜熔斷探針（硬停點，**在安裝之前**）— ✅ 已於 2026-09-20 通過
+
+> **結果：PASS。** 同一個 Claude Code session（v2.1.278，隔離 HOME）裡：
+>
+> ```
+> SessionStart hook 看到的 session_id   9e58993a-d008-412d-ac7f-c45b7c064f60
+> MCP server 子程序看到的               9e58993a-d008-412d-ac7f-c45b7c064f60
+> ```
+>
+> **兩者完全相同。** repair-02 整個設計押的假設成立：Claude Code 的 hook 與
+> MCP server 是同一個 session 的子程序，看得到同一個 native session identity
+> ——Codex 在這一點上失敗，Claude Code 通過。
+>
+> 同時確認 hook 拿到的 stdin 形狀與契約的 `host_native_stdin_fields` 一致：
+> `session_id` / `cwd` / `hook_event_name` / `source`（`source=startup`）。
+>
+> 原始證據：`/Users/matt/omos-acceptance-home/step0-evidence/`
+> （`mcp-env.txt`＝MCP 子程序環境、`hook-stdin.txt`＝hook 收到的 stdin）。
+> 探針與其註冊已移除，隔離 HOME 的 `mcpServers` 回到 `[]`、`settings.json`
+> 已清空，不會干擾 Step 2 之後的判讀。
+>
+> **比原設計更強的一點**：原本只打算比對「MCP 子程序 vs Bash 子程序」，
+> 實際做的是「MCP 子程序 vs **SessionStart hook**」——後者才是產品真正依賴
+> 的那一對，直接把 Step 3／4 要驗的 identity 一致性先證明了。
+>
+> 下面保留完整步驟，供重跑或換機器時使用。
 
 **要回答的問題**：Claude Code 生給 **MCP server 子程序**的環境裡，有沒有
 `CLAUDE_CODE_SESSION_ID`，而且與 **SessionStart hook** 看到的 session id
