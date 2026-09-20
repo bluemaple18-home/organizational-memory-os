@@ -9,6 +9,15 @@
 #
 # 因此版本解析必須發生在 Ruby 之外。這支只用 POSIX sh。
 
+# 清掉呼叫端的 bundler 環境——**必須在任何 candidate Ruby 被執行之前**。
+#
+# 本檔被三支 wrapper source，而下面的 omos_check 會實際啟動 candidate Ruby 做
+# ABI probe。若此時 caller 的 RUBYOPT=-rbundler/setup 或 BUNDLE_GEMFILE 還在，
+# probe 會在別人的 bundler 環境下啟動，可能得到假的 ABI 不符、或把 caller 的
+# gem 載進來。RUBYOPT 由 Ruby 在**啟動時**消化，等進到 Ruby 程式碼再刪已經太遲。
+unset RUBYOPT BUNDLE_GEMFILE BUNDLE_PATH BUNDLE_BIN_PATH BUNDLE_APP_CONFIG
+unset BUNDLER_VERSION BUNDLER_SETUP
+
 OMOS_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 OMOS_REQUIRED=$(cat "$OMOS_ROOT/.ruby-version" 2>/dev/null || echo "unknown")
 

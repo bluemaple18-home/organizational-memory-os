@@ -331,6 +331,23 @@ Dir.mktmpdir("omos-3b") do |dir|
 
   bad_out, bad_err, bad_st = Open3.capture3(clean.merge("OMOS_RUBY" => "/usr/bin/ruby"),
                                             cli_exe, "--help", unsetenv_others: true)
+  # Slice B repair-01：呼叫端的 bundler 環境不得影響 ABI probe。
+  #
+  # sanitization 原本放在 wrapper source pinned-ruby.sh **之後**，但 ABI probe
+  # 就在那支腳本裡執行——於是 caller 的 RUBYOPT=-rbundler/setup 與
+  # BUNDLE_GEMFILE 會讓 probe 在別人的 bundler 環境下啟動，產生**假的 ABI
+  # 不符**。修復前實測輸出正是「找不到 ABI 相容的 Ruby」。
+  hostile_dir = File.join(dir, "hostile-bundler")
+  FileUtils.mkdir_p(hostile_dir)
+  File.write(File.join(hostile_dir, "Gemfile"),
+             "source \"https://rubygems.org\"\ngem \"this_gem_does_not_exist_anywhere\"\n")
+  hostile_env = { "RUBYOPT" => "-rbundler/setup",
+                  "BUNDLE_GEMFILE" => File.join(hostile_dir, "Gemfile") }
+  h_out, h_err, h_st = Open3.capture3(hostile_env, cli_exe, "--help")
+  C.check("繼承的敵意 RUBYOPT／BUNDLE_GEMFILE 不影響 ABI probe 與執行",
+        h_st.success? ? "exit=0" : (h_err + h_out).lines.first.to_s.strip[0, 50],
+        h_st.success? && h_out.include?("用法"))
+
   # Slice B：判準由版本字串改為 ABI 相容，訊息也必須說明**實際**的不符原因，
   # 並帶出 artifact 需要的 ABI——只說「版本不對」對使用者沒有幫助。
   C.check("指定不合格的 OMOS_RUBY 會當場失敗，不靜默改用別的",

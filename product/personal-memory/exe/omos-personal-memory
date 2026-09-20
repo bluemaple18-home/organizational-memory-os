@@ -2,8 +2,4 @@
 # 由 Host／使用者直接呼叫的入口。版本解析在 Ruby 之外完成——見 bin/pinned-ruby.sh。
 set -e
 . "$(CDPATH= cd -- "$(dirname -- "$0")/../bin" && pwd)/pinned-ruby.sh"
-# 清掉呼叫端的 bundler 環境。RUBYOPT 由 Ruby 在**啟動時**消化，等進到
-# Ruby 程式碼再刪已經太遲——bundler 早就用繼承來的 Gemfile 啟動了。
-unset RUBYOPT BUNDLE_GEMFILE BUNDLE_PATH BUNDLE_BIN_PATH BUNDLE_APP_CONFIG
-unset BUNDLER_VERSION BUNDLER_SETUP
 exec "$OMOS_RUBY" "$OMOS_ROOT/lib/omos/entry/cli.rb" "$@"
