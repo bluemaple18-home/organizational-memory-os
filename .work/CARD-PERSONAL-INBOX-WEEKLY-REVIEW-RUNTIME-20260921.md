@@ -165,6 +165,10 @@ pipeline 也沒有自動更新，同事拿到的是一個 zip，所以下一版�
 與 receipt 的對應關係也可能改變），因此列入 Slice B 驗收第 13 項。
 本卡不因此建 release pipeline——只是讓驗收對準真正會走的那條路。
 
+同一個理由也適用於 macOS 的 quarantine：**驗收必須在帶 quarantine 的狀態下
+進行**（驗收第 14 項）。自製 zip 不帶這個標記，所以本機怎麼測都測不出來，
+2026-09-21 的首次實際交付就是這樣漏掉的。
+
 ## 5. Acceptance
 
 ### Slice A
@@ -194,12 +198,26 @@ pipeline 也沒有自動更新，同事拿到的是一個 zip，所以下一版�
     config 原樣保留、新 surface 可用，且不得殘留舊版檔案造成 drift gate 或
     `PACKAGED_GOVERNANCE_MISSING` 異常。覆蓋解壓若無法達成等價，必須在卡上
     明寫正確的升級步驟（例如先移除舊資料夾再解壓），不得讓使用者自己猜。
+14. **交付路徑必須在帶 quarantine 的狀態下驗收**。本機自製的 zip 不會被
+    標記 `com.apple.quarantine`，因此四輪本機驗證全部漏掉這個失敗模式；
+    2026-09-21 首次實際交付時，同事端被 Gatekeeper 連續攔截約 10 次
+    （artifact 內有 10 個未簽章的原生 `.bundle`，每個各擋一次），其中一個
+    對話框的選項是「丟到垃圾桶」——按下去會直接破壞 artifact。
+    因此驗收必須：
+    - 對解壓後的整包**實際寫入** `com.apple.quarantine` 再跑安裝，重現攔截；
+    - 確認文件記載的解除指令（`xattr -dr com.apple.quarantine <路徑>`）
+      執行後，所有 `.bundle` 的 quarantine 殘留數為 **0**，且安裝與 `doctor`
+      正常；
+    - 確認安裝說明明確警告**不得**按「丟到垃圾桶」。
+
+    本卡**不**因此導入簽章／notarization（需 Apple Developer 帳號，屬配送
+    形式決策，仍在範圍外）。這一項只要求「已知的攔截有被文件化且實測解得開」。
 
 ### Regression
 
-14. Personal Memory 3a / 3b / 3c conformance 全綠；既有 validators 全綠；
+15. Personal Memory 3a / 3b / 3c conformance 全綠；既有 validators 全綠；
     `git diff --check` clean。
-15. 新增至少兩個鑑別力反證：
+16. 新增至少兩個鑑別力反證：
     - 繞過 managed evidence snapshot、只引用原始路徑 → gate RED；
     - scheduler 偷做 `commit_closeout` 或 acceptance write → gate RED。
 
@@ -231,5 +249,6 @@ A1 evidence snapshot + import
 → B2 launchd schedule + notification
 → upgrade regression on already-installed shape
 → zip 覆蓋解壓的實際交付路徑 upgrade（驗收 13）
+→ 帶 quarantine 的交付路徑驗收（驗收 14）
 → targeted review
 ```
