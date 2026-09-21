@@ -14,7 +14,8 @@ depends_on:
 parallel_with:
   - SSP-324
 blocks:
-  - SSP-295_FULL_PRODUCT_PILOT
+  - SSP-295_FULL_PRODUCT_PILOT（進入條件已於 2026-09-21 全部成立，見 .work/CARD-SSP295-FULL-PRODUCT-PILOT-20260921.md）
+packaging: CARD-EMEM11-STANDALONE-PACKAGING-IMPLEMENTATION-20260921（ALL_SLICES_ACCEPTED_GO，Slice C repair-01 @ d652bee）
 scope_decision: .work/CARD-EMEM11-SCOPE-FREEZE-20260920.md
 supported_hosts_v1:
   - Claude Code
