@@ -1,7 +1,10 @@
 ---
 id: EMEM11-QUALIFICATION-KEY-FIX-20260921
-status: REPAIR_01_READY_FOR_REVIEW
+status: ACCEPTED_GO
+accepted_at: d771058（交付 06f6c6f、repair-01 d771058）
 review_round_1: NO_GO（2026-09-21，P1×2：artifact integrity 欄位缺失時 fail-open／驗收第 5 項與程式互相矛盾）→ repair-01 已修
+review_round_2: GO（2026-09-21，P0/P1/P2/P3 皆 0；.work/handoff/EMEM11-QUALIFICATION-KEY-FIX-REPAIR-01-REREVIEW-20260921.md）
+residual: 驗收第 6 項（同事機重跑後 UNQUALIFIED 消失）需新版 artifact 送達後才算實證
 type: product-fix
 severity: P2
 scope: bounded
@@ -101,6 +104,19 @@ Q7 §0.3 凍結的「runnable ≠ qualified」。
 
 測試因此分成兩組：metadata-only mismatch → `UNQUALIFIED`；
 physical／runtime incompatibility → `exit 78`。
+
+## 3.2 review round 2（2026-09-21）：GO
+
+P0/P1/P2/P3 皆 0，兩筆 P1 **CLOSED**。reviewer 未沿用交付方的破壞方式
+（改用「64 字元但含非 hex 的 `g`」），並獨立確認兩層分家的四個情境都符合
+裁決；另檢查 `verify!` 的順序為 live native probe → artifact integrity →
+qualification key，**未找到**「實際 runtime 已不相容卻只落到 UNQUALIFIED」
+的路徑。reviewer 自己的鑑別力反證（只改錯誤碼）只讓對應的不變式轉紅。
+verdict：`.work/handoff/EMEM11-QUALIFICATION-KEY-FIX-REPAIR-01-REREVIEW-20260921.md`。
+
+**驗收第 6 項尚未實證**：同事機目前裝的是舊版 artifact，`UNQUALIFIED` 是否
+真的消失，要等新版送到他手上才算數。本機以 `host_os=darwin24` 模擬的結果
+是 `QUALIFIED`，但模擬不等於實證，故列為 residual 而非通過。
 
 ## 4. 不做
 

@@ -1,6 +1,7 @@
 ---
 id: EMEM11-CLEAN-MACOS-QUALIFICATION-20260921
-status: READY_TO_IMPLEMENT
+status: MOSTLY_SATISFIED_PENDING_SECOND_MACHINE
+implemented_by: CARD-EMEM11-QUALIFICATION-KEY-FIX-20260921（ACCEPTED_GO @ d771058）
 owner_decision: 2026-09-21 Owner 裁決改判準——qualification key 改為
   darwin family + arm64 + ruby engine + ruby ABI + runtime live native probes；
   exact host_os 降為 observation。本卡改為驗證該判準跨 OS version 是否成立，
@@ -107,6 +108,26 @@ ACCEPTED_GO）。分號前那一半**在本機無從驗證**。
 7. **完全不相容的 Ruby（例如系統 2.6）**：當場失敗、不靜默改用別的。
 8. 每一項附鑑別力反證；跑不到的項目印 `N/A` 並指名由誰負責，**不得印
    PASS**。
+
+### 實作後的對照（2026-09-21，`d771058` ACCEPTED_GO）
+
+判準本身已由 `CARD-EMEM11-QUALIFICATION-KEY-FIX-20260921` 實作並通過 review。
+逐項對照本卡驗收：
+
+| # | 狀態 | 依據 |
+|---|---|---|
+| 1 判準跨 OS version 成立 | **部分** | `darwin25` 為本機實證；`darwin24` 目前只是本機模擬——同事機裝的仍是舊版 artifact |
+| 2 `host_os` 不參與判定 | **通過** | `darwin99`／reviewer 另用 `darwin4242`，判定結果不變 |
+| 3 linkage digest 不再機器判定 | **通過** | 已移出 `qualified_profiles`，改為 artifact integrity 欄位並 fail closed |
+| 4 live probe 才是守門人 | **通過** | 兩層分家的四個情境皆實測 |
+| 5 ABI 相容但版本字串不同不得誤拒 | **通過** | metadata-only mismatch → `UNQUALIFIED`，不阻擋 |
+| 6 版本相同但 linkage 不符當場擋下 | **通過** | `OMOS_NATIVE_DEPENDENCY_UNRESOLVED`，exit 78 |
+| 7 完全不相容的 Ruby 當場失敗 | **通過** | `OMOS_RUBY=/usr/bin/ruby` → exit 78 |
+| 8 每項附鑑別力反證 | **通過** | 交付方三筆、reviewer 兩筆 |
+
+**本卡因此不結案**：第 1 項需要第二台機器上的**實證**，不是模擬。條文不
+改寫——把「兩個不同 host_os 的真實觀測」降格成「本機模擬兩次」正是本產品
+一路在防的假成功。等新版 artifact 送到同事機、回報 `QUALIFIED` 後才收。
 
 ### 不在本卡
 
