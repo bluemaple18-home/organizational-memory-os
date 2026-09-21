@@ -1,11 +1,12 @@
 ---
 id: EMEM11-STANDALONE-PACKAGING-IMPLEMENTATION-20260921
-status: SLICE_C_READY_FOR_REVIEW
+status: SLICE_C_REPAIR_01_READY_FOR_REVIEW
 review_round_1: NO_GO（P1×1：A/B identity 邊界矛盾）→ 已修
 review_round_2: GO（2026-09-21，P2×1 非阻擋，已納入 Slice A 驗收第 8 項）
 slice_a: ACCEPTED_GO @ ce62092（repair-01 f9ba9e3、repair-02 943aec0、closeout ce62092）
 slice_b: ACCEPTED_GO @ e3e35ff（交付 d99cdcd、repair-01 e3e35ff）
-slice_c: READY_FOR_REVIEW（證據包 .work/handoff/EMEM11-SLICE-C-STANDALONE-PACKAGING-EVIDENCE-20260921.md）
+slice_c: REPAIR_01_READY_FOR_REVIEW（交付 46370a5；review NO_GO 2×P1；repair-01 證據包 .work/handoff/EMEM11-SLICE-C-REPAIR-01-EVIDENCE-20260921.md）
+slice_c_review_round_1: NO_GO（2026-09-21，P1×2：同內容重裝 GC 掉可回退版本／rollback receipt 寫失敗留下 pointer-receipt 分裂）→ repair-01 已修
 type: implementation
 tier: T2
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
@@ -238,6 +239,23 @@ qualification 矩陣（Part 2）。
 
 不決定配送格式、不建 release pipeline、不做跨平台、不做 clean-macOS
 Part 2 qualification（那在本卡之後）。
+
+### repair-01（2026-09-21）
+
+review round 1 判 **NO_GO**，2×P1，兩筆都已各自重播確認成立：
+
+| # | 缺陷 | 根因 | 修法 |
+|---|---|---|---|
+| P1-1 | 同內容重裝把真正能回退的那一版 GC 掉，隨後 rollback 撞 `ROLLBACK_ARTIFACT_MISSING` | GC 保留集另外推導一份狀態（上一次安裝時的 current），同內容重裝時塌成一個元素 | 新增 `rollback_reachable_ids`，保留集只讀剛寫好的 receipt 的 current ＋ previous |
+| P1-2 | rollback 在 receipt 寫失敗時留下 `current=A` 但 receipt 說 `current=B` 的分裂 | 先 activate 再寫 receipt，中間失敗沒有復原 | `#rollback` 成為交易：先存 pointer 與 receipt 位元組，失敗一起復原，不碰 Host 設定；receipt 一律 temp + rename |
+
+驗證：3a 26/26、3b 34/34、3c 134/134（新增 10 項）、validator 40/40；
+兩筆各做單點反轉的鑑別力反證（分別轉紅 3 項與 2 項，還原後全綠）；
+workspace B 重跑（3c 132/132 ＋ 3 N/A，四個交付面全可用）。
+證據包：`.work/handoff/EMEM11-SLICE-C-REPAIR-01-EVIDENCE-20260921.md`。
+
+**待裁定**：`Installer#rollback(fail_before_receipt:)` 這個測試注入接縫
+可不可以收——改成原子寫入後，該失敗情境無法從外部穩定製造。
 
 ---
 

@@ -176,7 +176,14 @@ module OMOS
 
         # 6. 歷史版本 GC。**只在交易成功後才做**——失敗路徑要回到舊版，
         #    這時把舊版清掉就沒得回去了。
-        collect_garbage(keep: [artifact_id, previous && previous["artifact_id"]].compact)
+        #
+        # 保留集直接讀**剛寫好的 receipt**，不另外推導一份。review P1-1：
+        # 原本傳 previous["artifact_id"]（上一次安裝時的 current），在同內容
+        # 重裝時它等於這次的 artifact_id，於是保留集塌成一個，真正能回退的
+        # 那一版被刪掉——receipt 說得出 previous、versions/ 裡卻沒有它。
+        # 狀態有兩份來源就會有第三種不一致；rollback 認 receipt，GC 就也只
+        # 能認 receipt。
+        collect_garbage(keep: rollback_reachable_ids)
       rescue StandardError
         abort_install(backups, store_created, activation)
         raise
@@ -215,7 +222,11 @@ module OMOS
     # launcher，與版本無關，所以 rollback 完全不該碰使用者的設定檔。
     # 也**不得**靠重新下載或猜 SHA：目標只能是 receipt 記下的
     # previous_artifact_id，且那份 artifact 必須還在。
-    def rollback
+    # fail_before_receipt 是注入的失敗點，與 install(fail_after:) 同一個用途：
+    # conformance 要能實測「receipt 寫不進去時不留半套」。真正的失敗原因
+    # （磁碟滿、目錄唯讀、行程被砍）沒辦法在測試裡穩定製造，而把 receipt 設成
+    # 唯讀也製造不出來——receipt 是 temp + rename 寫的，rename 看的是目錄權限。
+    def rollback(fail_before_receipt: false)
       data = receipt
       raise Failed, "ROLLBACK_NO_RECEIPT" if data.nil?
 
@@ -226,13 +237,31 @@ module OMOS
       raise Failed, "ROLLBACK_ARTIFACT_MISSING: #{target}" unless Dir.exist?(target_dir)
 
       from = data["artifact_id"]
-      activate(target)
-      # 交換 current／previous，讓 rollback 可以再切回去；其餘欄位保持原樣，
-      # 因為 Host 註冊與 store 都沒有變動。
-      data["artifact_id"] = target
-      data["previous_artifact_id"] = from
-      data["rolled_back_at"] = Time.now.utc.iso8601
-      File.write(receipt_path, "#{JSON.pretty_generate(data)}\n")
+
+      # rollback 自己也是一筆交易。review P1-2：原本先 activate 再寫 receipt，
+      # receipt 寫不進去（唯讀、磁碟滿、權限）時 pointer 已經切過去，留下
+      # 「current=A、receipt 說 current=B」的分裂狀態——而 receipt 正是下一次
+      # rollback 與 GC 的唯一依據，分裂之後兩邊都會做錯決定。
+      #
+      # 復原只碰 activation 自己的兩樣東西（pointer 與 receipt），**不碰 Host
+      # 設定**——rollback 本來就沒動過它。
+      previous_current = File.symlink?(current_link) ? File.readlink(current_link) : nil
+      previous_receipt = File.binread(receipt_path)
+      begin
+        activate(target)
+        raise Failed, "ROLLBACK_INJECTED_FAILURE" if fail_before_receipt
+
+        # 交換 current／previous，讓 rollback 可以再切回去；其餘欄位保持原樣，
+        # 因為 Host 註冊與 store 都沒有變動。
+        data["artifact_id"] = target
+        data["previous_artifact_id"] = from
+        data["rolled_back_at"] = Time.now.utc.iso8601
+        write_receipt_bytes("#{JSON.pretty_generate(data)}\n")
+      rescue StandardError
+        restore_pointer(previous_current)
+        write_receipt_bytes(previous_receipt)
+        raise
+      end
       { artifact_id: target, previous_artifact_id: from }
     end
 
@@ -343,6 +372,13 @@ module OMOS
     #
     # 刻意**不做**「保留 N 版」：N 是個沒有依據的數字，而「current 與可回退
     # 的那一版」是由 rollback 語意直接決定的。
+    # rollback 搆得到的 artifact：current 與 previous，兩者都只由 receipt 定義。
+    # 這是 GC 保留集的**唯一**來源。
+    def rollback_reachable_ids
+      data = receipt or return []
+      [data["artifact_id"], data["previous_artifact_id"]].compact
+    end
+
     def collect_garbage(keep:)
       return unless Dir.exist?(versions_dir)
 
@@ -456,8 +492,34 @@ module OMOS
           }
         end
       }
+      write_receipt_bytes("#{JSON.pretty_generate(data)}\n")
+    end
+
+    # receipt 一律 temp + rename 寫入。receipt 是卸載、遷移、rollback 與 GC 的
+    # 唯一依據，一份被截斷的 receipt 比沒有 receipt 更糟——沒有時我們會明確
+    # 失敗（見 refuse_unknown_legacy!），被截斷時 JSON.parse 會炸在不相干的
+    # 地方。rename(2) 保證讀到的不是舊的就是新的。
+    def write_receipt_bytes(bytes)
       FileUtils.mkdir_p(File.dirname(receipt_path))
-      File.write(receipt_path, "#{JSON.pretty_generate(data)}\n")
+      tmp = "#{receipt_path}.writing-#{Process.pid}"
+      begin
+        File.binwrite(tmp, bytes)
+        File.rename(tmp, receipt_path)
+      rescue StandardError
+        FileUtils.rm_f(tmp)
+        raise
+      end
+    end
+
+    # current 還原成指定的目標（nil 代表原本就沒有 current）。
+    # 與 activate 一樣走 temp + rename，不用 rm 再建——中間不留空窗。
+    def restore_pointer(target)
+      return FileUtils.rm_f(current_link) if target.nil?
+
+      tmp = "#{current_link}.restoring-#{Process.pid}"
+      FileUtils.rm_f(tmp)
+      File.symlink(target, tmp)
+      File.rename(tmp, current_link)
     end
 
     def restore_all(backups)
@@ -499,14 +561,7 @@ module OMOS
     def restore_activation(activation)
       return FileUtils.rm_f(receipt_path) if activation.nil?
 
-      if activation[:previous_current]
-        tmp = "#{current_link}.restoring-#{Process.pid}"
-        FileUtils.rm_f(tmp)
-        File.symlink(activation[:previous_current], tmp)
-        File.rename(tmp, current_link)
-      else
-        FileUtils.rm_f(current_link)
-      end
+      restore_pointer(activation[:previous_current])
 
       # launcher 逐支精確還原：原本存在就寫回原始位元組與模式，原本不存在
       # 才刪除。這與 current 的還原是**各自獨立**的——launcher 可能在
@@ -514,8 +569,7 @@ module OMOS
       restore_launchers(activation[:previous_launchers])
 
       if activation[:previous_receipt]
-        FileUtils.mkdir_p(File.dirname(receipt_path))
-        File.binwrite(receipt_path, activation[:previous_receipt])
+        write_receipt_bytes(activation[:previous_receipt])
       else
         FileUtils.rm_f(receipt_path)
       end

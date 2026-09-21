@@ -764,6 +764,95 @@ Dir.mktmpdir("omos-3c-a-rollback") do |dir|
           File.basename(File.readlink(File.join(home, ".omos/personal-memory/current"))) == v2[:artifact_id])
 end
 
+# --- Slice C repair-01 P1-1：同內容重裝不得把真正能回退的那一版 GC 掉 ---
+#
+# reviewer 實測重播：A → B → 再裝一次 B。receipt 正確寫著 current=B /
+# previous=A，但 GC 的保留集是另外推導的（上一份 receipt 的 artifact_id，
+# 同內容重裝時它就是 B），於是 A 被刪掉，隨後 rollback 撞 ARTIFACT_MISSING。
+# 根因是**狀態有兩份來源**；修法是讓 GC 只認 receipt。
+Dir.mktmpdir("omos-3c-a-gc-samecontent") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "p.db")
+  src_a = File.join(dir, "src-a")
+  src_b = File.join(dir, "src-b")
+  FileUtils.cp_r(OMOS::Contract::ARTIFACT_ROOT, src_a)
+  FileUtils.cp_r(src_a, src_b)
+  File.write(File.join(src_b, "lib/omos/.build-variant"), "b\n")
+
+  a = OMOS::Installer.new(home: home, product_root: src_a, store_path: store).install[:artifact_id]
+  inst_b = OMOS::Installer.new(home: home, product_root: src_b, store_path: store)
+  b = inst_b.install[:artifact_id]
+  inst_b.install   # 同內容重裝：artifact identity 不變
+
+  versions = Dir.children(File.join(home, ".omos/personal-memory/versions")).sort
+  C.check("同內容重裝後 receipt 仍指得出 previous", inst_b.receipt["previous_artifact_id"].to_s[0, 8],
+          inst_b.receipt["artifact_id"] == b && inst_b.receipt["previous_artifact_id"] == a)
+  C.check("同內容重裝不得把 receipt 指得出的 previous GC 掉", versions.map { |i| i[0, 8] }.inspect,
+          versions == [a, b].sort)
+  rolled = begin
+    inst_b.rollback
+  rescue OMOS::Installer::Failed => e
+    e.code
+  end
+  C.check("因此同內容重裝之後 rollback 仍然走得通",
+          rolled.is_a?(Hash) ? rolled[:artifact_id][0, 8] : rolled.to_s[0, 40],
+          rolled.is_a?(Hash) && rolled[:artifact_id] == a)
+
+  # rollback 之後再裝一次，同一個根因不得從另一條路復活
+  OMOS::Installer.new(home: home, product_root: src_b, store_path: store).install
+  after = Dir.children(File.join(home, ".omos/personal-memory/versions")).sort
+  C.check("rollback 後再重裝，保留集仍等於 receipt 的 current ＋ previous",
+          after.map { |i| i[0, 8] }.inspect, after == [a, b].sort)
+end
+
+# --- Slice C repair-01 P1-2：rollback 自身也是交易 ---
+#
+# reviewer 實測：先 activate 再寫 receipt，receipt 寫不進去時 pointer 已經
+# 切過去，留下 current=A 但 receipt 說 current=B 的分裂狀態——而 receipt 正是
+# 下一次 rollback 與 GC 的唯一依據。
+#
+# 失敗點用注入的（Installer#rollback 的 fail_before_receipt），與
+# install(fail_after:) 同一個做法：把 receipt 設成唯讀製造不出這個情境，
+# 因為 receipt 是 temp + rename 寫的，rename 看的是目錄權限。
+Dir.mktmpdir("omos-3c-a-rollback-txn") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "p.db")
+  src_a = File.join(dir, "src-a")
+  src_b = File.join(dir, "src-b")
+  FileUtils.cp_r(OMOS::Contract::ARTIFACT_ROOT, src_a)
+  FileUtils.cp_r(src_a, src_b)
+  File.write(File.join(src_b, "lib/omos/.build-variant"), "b\n")
+
+  a = OMOS::Installer.new(home: home, product_root: src_a, store_path: store).install[:artifact_id]
+  inst_b = OMOS::Installer.new(home: home, product_root: src_b, store_path: store)
+  b = inst_b.install[:artifact_id]
+
+  hosts_before = Support::FakeHome.read_all(home)
+  receipt_before = File.binread(inst_b.receipt_path)
+  code = begin
+    inst_b.rollback(fail_before_receipt: true)
+    nil
+  rescue OMOS::Installer::Failed => e
+    e.code
+  end
+  current = File.basename(File.readlink(File.join(home, ".omos/personal-memory/current")))
+
+  C.check("注入的 rollback 失敗確實發生", code.to_s, code == "ROLLBACK_INJECTED_FAILURE")
+  C.check("rollback 失敗後 current 復原成失敗前的那一版（不留半套）",
+          "#{current[0, 8]}（B=#{b[0, 8]} A=#{a[0, 8]}）", current == b)
+  C.check("rollback 失敗後 receipt 位元組不變", "",
+          File.binread(inst_b.receipt_path) == receipt_before)
+  C.check("rollback 失敗後 pointer 與 receipt 仍然一致", "",
+          current == inst_b.receipt["artifact_id"])
+  C.check("rollback 失敗也不碰 Host 設定", "", Support::FakeHome.read_all(home) == hosts_before)
+
+  # 復原後必須還能正常 rollback——復原不是把狀態弄壞後的遮羞布
+  ok = inst_b.rollback
+  C.check("復原後仍可正常 rollback", ok[:artifact_id][0, 8], ok[:artifact_id] == a)
+end
+
 # --- Slice C：rollback 的前提不足時一律明確失敗 ---
 Dir.mktmpdir("omos-3c-a-rollback-guard") do |dir|
   home = File.join(dir, "home")
