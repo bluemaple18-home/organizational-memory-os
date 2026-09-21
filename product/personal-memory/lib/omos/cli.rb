@@ -13,6 +13,7 @@ require_relative "installer"
 require_relative "host_config_writer"
 require_relative "doctor"
 require_relative "inbox"
+require_relative "review_queue"
 
 module OMOS
   class CLI
@@ -28,6 +29,7 @@ module OMOS
         import FILE [--memory-kind KIND]
                                 把一個 .md／.txt 匯入成 PersonalMemoryCandidate(PROPOSED)
         inbox list              列出已匯入的 evidence 與對應的 candidate
+        review due              列出本週期待 review 的 candidate（純讀，不做任何處置）
         read                    讀出所有列（權限檢查先於讀取）
         closeout --file FILE    提交一次 weekly closeout
         install [--home DIR] [--owner REF --tenant ID]
@@ -63,6 +65,7 @@ module OMOS
       when "write"    then cmd_write(store_path, opts, out)
       when "import"   then cmd_import(store_path, argv, opts, out, err)
       when "inbox"    then cmd_inbox(store_path, argv, out, err)
+      when "review"   then cmd_review(store_path, argv, out, err)
       when "read"     then cmd_read(store_path, out)
       when "closeout" then cmd_closeout(store_path, opts, out)
       when "journal"  then cmd_journal(store_path, out)
@@ -307,6 +310,34 @@ module OMOS
       with_runtime(path) do |rt|
         result = rt.commit_closeout(closeout: closeout, surface: surface)
         out.puts "COMMITTED #{result[:review_period_id]} terminal=#{result[:terminal]}"
+      end
+      0
+    end
+
+    # review due 只準備 queue 與回報。契約把 acceptance authority 封死在每個
+    # Candidate 自己的 gate 上，批次確認本身不能接受任何東西——所以這裡沒有
+    # 任何寫入路徑，連「標記已讀」都沒有。
+    def cmd_review(path, argv, out, err)
+      sub = argv.shift
+      unless sub == "due"
+        err.puts "用法: omos-personal-memory review due"
+        return 2
+      end
+
+      with_runtime(path) do |rt|
+        q = ReviewQueue.due(rt, surface: surface)
+        out.puts "review period: #{q[:id]}"
+        out.puts "  anchor:       #{q[:scheduled_anchor_at]}（起始 #{q[:scheduled_review_period_start]}）"
+        out.puts "  catch-up 截止: #{q[:catch_up_deadline_at]}#{q[:catch_up_deadline_passed] ? "（已過）" : ""}"
+        out.puts "  本期 terminal closeout: #{q[:terminal_closeout] ? "已提交" : "尚未提交"}"
+        if q[:items].empty?
+          out.puts "0 due items"
+        else
+          out.puts "本週有 #{q[:items].size} 筆待 review："
+          q[:items].each do |i|
+            out.puts "  #{i["candidate_id"].split(":").last[0, 8]}  #{i["memory_kind"]}  #{i["created_at"]}"
+          end
+        end
       end
       0
     end

@@ -1924,4 +1924,113 @@ Dir.mktmpdir("omos-3c-a-inbox-repair02") do |dir|
   C.group = nil
 end
 
+# --- Slice B1｜Weekly review queue 是 projection ---
+#
+# 契約最硬的一條：同一個排定週期的每一次嘗試都必須帶**同一個**
+# review_period_id，而且明文禁止「用工作實際發生在哪一天重新推導身分」。
+# 週五排定的週期，在下週一 catch-up 時今天的 ISO 週已經是下一週了——拿今天
+# 去算就會憑空生出新週期，把這一期的工作記到下一期頭上。
+Dir.mktmpdir("omos-3c-a-reviewqueue") do |dir|
+  C.group = "A"
+  require "omos/review_queue"
+  store = File.join(dir, "rq.db")
+  rt = OMOS::Runtime.open(store)
+  cli_surface = OMOS::Runtime::SURFACES[:cli]
+  owner = Support::Fixtures::EMP
+
+  # (1) 週期身分沿用既有資料的形狀，不新造
+  anchor_friday = Time.utc(2026, 9, 18, 16)
+  p38 = OMOS::ReviewQueue.period_for(anchor_friday)
+  C.check("review_period_id 沿用既有形狀（urn:…:review-period:<ISO 年週>）",
+          p38[:id],
+          p38[:id] == "urn:omos:personal-memory:review-period:2026-W38" &&
+          p38[:scheduled_review_period_start] == "2026-09-18")
+
+  # (2) anchor 之前仍屬上一期——這一期的 anchor 還沒到
+  C.check("週五 anchor 之前仍屬上一期",
+          OMOS::ReviewQueue.period_for(Time.utc(2026, 9, 18, 15))[:id].split(":").last,
+          OMOS::ReviewQueue.period_for(Time.utc(2026, 9, 18, 15))[:id].end_with?("2026-W37"))
+
+  # (3) **契約核心**：catch-up 當天算出來必須是同一個 id，不得變成下一期
+  [["週六", Time.utc(2026, 9, 19, 9)],
+   ["週日", Time.utc(2026, 9, 20, 9)],
+   ["週一（catch-up 日，ISO 週已跳到 W39）", Time.utc(2026, 9, 21, 9)],
+   ["週四", Time.utc(2026, 9, 24, 9)]].each do |label, t|
+    got = OMOS::ReviewQueue.period_for(t)
+    C.check("catch-up 不得重推身分：#{label} 仍是 W38", got[:id].split(":").last,
+            got[:id] == p38[:id] &&
+            got[:scheduled_review_period_start] == p38[:scheduled_review_period_start])
+  end
+  C.check("週一本身的 ISO 週確實已是 W39（證明上一條不是巧合）",
+          Date.new(2026, 9, 21).strftime("%G-W%V"),
+          Date.new(2026, 9, 21).strftime("%G-W%V") == "2026-W39")
+
+  # (4) catch-up 截止在下一個工作日
+  C.check("catch-up 截止落在下一個工作日（週一）", p38[:catch_up_deadline_at],
+          p38[:catch_up_deadline_at].start_with?("2026-09-21"))
+
+  # (5) 時間窗硬性：下一期的證據不得混進這一期
+  before_anchor = File.join(dir, "before.md")
+  after_anchor = File.join(dir, "after.md")
+  File.write(before_anchor, "# 本期\n\nanchor 之前匯入。\n")
+  File.write(after_anchor, "# 下一期\n\nanchor 之後匯入。\n")
+  r_before = OMOS::Inbox.import(rt, store, before_anchor, memory_kind: "DECISION",
+                                           owner_ref: owner, tenant_id: "t-acme",
+                                           surface: cli_surface, now: anchor_friday - 3600)
+  r_after = OMOS::Inbox.import(rt, store, after_anchor, memory_kind: "LESSON",
+                                          owner_ref: owner, tenant_id: "t-acme",
+                                          surface: cli_surface, now: anchor_friday + 3600)
+  q = OMOS::ReviewQueue.due(rt, now: Time.utc(2026, 9, 21, 9), surface: cli_surface)
+  ids = q[:items].map { |i| i["candidate_id"] }
+  C.check("anchor 之前的 candidate 進本期 queue", ids.size.to_s,
+          ids.include?(r_before[:candidate_id]))
+  C.check("anchor 之後的 candidate 不得混進本期 queue", ids.size.to_s,
+          !ids.include?(r_after[:candidate_id]))
+
+  # (6) review due 是純讀：不得寫入任何一列、不得產生 closeout
+  rows_before = rt.read_rows(surface: cli_surface).size
+  closeouts_before = rt.store.db.get_first_value("SELECT COUNT(*) FROM closeouts").to_i
+  3.times { OMOS::ReviewQueue.due(rt, now: Time.utc(2026, 9, 21, 9), surface: cli_surface) }
+  C.check("review due 不得寫入任何一列",
+          "#{rows_before}→#{rt.read_rows(surface: cli_surface).size}",
+          rt.read_rows(surface: cli_surface).size == rows_before)
+  C.check("review due 不得產生 closeout（排程不是 acceptance）",
+          rt.store.db.get_first_value("SELECT COUNT(*) FROM closeouts").to_s,
+          rt.store.db.get_first_value("SELECT COUNT(*) FROM closeouts").to_i == closeouts_before)
+  C.check("review due 不得宣稱本期已 terminal closeout", q[:terminal_closeout].to_s,
+          q[:terminal_closeout] == false)
+
+  # (7) queue 是 projection，不得新增 table
+  tables = rt.store.db.execute("SELECT name FROM sqlite_master WHERE type='table'").flatten
+  C.check("不得新增 review_queue table", tables.sort.inspect[0, 70],
+          tables.none? { |t| t.to_s.match?(/queue/i) })
+
+  # (8) 已在本期 closeout 裡被處置過的項目要退出 queue
+  disposed = OMOS::Inbox.import(
+    rt, store, File.join(dir, "disposed.md").tap { |f| File.write(f, "# 已處置\n\n本期已處理。\n") },
+    memory_kind: "RULE", owner_ref: owner, tenant_id: "t-acme",
+    surface: cli_surface, now: anchor_friday - 7200
+  )
+  in_queue_before = OMOS::ReviewQueue.due(rt, now: Time.utc(2026, 9, 21, 9), surface: cli_surface)[:items]
+                                     .map { |i| i["candidate_id"] }
+  rt.commit_closeout(closeout: Support::Fixtures.closeout(p38[:id], disposed[:candidate_id],
+                                                         "COMPLETE", "SCHEDULED"),
+                     surface: cli_surface)
+  in_queue_after = OMOS::ReviewQueue.due(rt, now: Time.utc(2026, 9, 21, 9), surface: cli_surface)[:items]
+                                    .map { |i| i["candidate_id"] }
+  C.check("已被本期 closeout 處置過的項目退出 queue",
+          "#{in_queue_before.size}→#{in_queue_after.size}",
+          in_queue_before.include?(disposed[:candidate_id]) &&
+          !in_queue_after.include?(disposed[:candidate_id]))
+
+  # (9) 0 due items 必須明確回報，不得偽造 terminal receipt
+  empty = OMOS::ReviewQueue.due(rt, now: Time.utc(2026, 1, 9, 17), surface: cli_surface)
+  C.check("0 due items 明確回 0，且不得偽造 terminal closeout",
+          "#{empty[:items].size}／terminal=#{empty[:terminal_closeout]}",
+          empty[:items].empty? && empty[:terminal_closeout] == false)
+
+  rt.store.close
+  C.group = nil
+end
+
 C.report!

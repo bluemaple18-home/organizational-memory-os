@@ -1,6 +1,6 @@
 ---
 id: PERSONAL-INBOX-SLICE-B-RESEARCH-20260921
-status: RESEARCH_DONE_READY_TO_IMPLEMENT
+status: B1_DONE_D1_D3_RESOLVED
 type: research
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 scope: Slice B（review due ＋ Friday trigger ＋ 提醒）
@@ -63,10 +63,30 @@ closeout、acceptance、Promotion——這不是本片的自我克制，是契�
 交付方傾向 **D1-a**，但**不自行決定**：既有 store 裡可能已有以其他規則產生的
 `review_period_id`，推導規則一旦定下就會影響既有資料的對齊。
 
+### D1／D3 已解（B1 實作時，2026-09-21）
+
+**D1 由既有資料回答，不需要新裁決。** store 與 fixture 裡的既有形狀是
+`urn:omos:personal-memory:review-period:2026-W38` 配
+`scheduled_review_period_start: 2026-09-18`（週五）——就是 **anchor 那個週五
+的 ISO 年週**。因此採 D1-a，且推導規則沿用既有形狀而不是新造，既有資料自然
+對齊。
+
+關鍵是**用 anchor 那天算，不是用今天算**：週五排定的週期，下週一 catch-up
+時今天的 ISO 週已經是 W39。實作與測試都把這一條當成主要不變式
+（「週一本身確實已是 W39」另有一條檢查，證明前一條不是巧合）。
+
+**D3 的選取條件**收斂成兩條，都由契約直接推得：Candidate 仍停在 `PROPOSED`；
+`chronology.created_at` 不晚於本期 anchor（契約明寫下一期證據不得混入）。
+另外排除已在本期 closeout 被處置過的項目。
+
 ### D2｜「下一個工作日」怎麼定義
 
-產品目前沒有任何行事曆概念。選項：週一到週五（不含國定假日）／可設定／
-只滾一天。契約只說 "next business day"，沒有給演算法。
+產品目前沒有任何行事曆概念。契約只說 "next business day"，沒有給演算法。
+
+**B1 暫採**：跳過週六、週日，**不含國定假日**——產品沒有行事曆，而假造一份
+比沒有更糟（它會在不同地區悄悄算錯）。這個限制寫在
+`ReviewQueue.catch_up_deadline` 的註解裡，不是藏在某個常數。
+**若要支援國定假日，需要 Owner 指定來源**，交付方不自行引入行事曆相依。
 
 ### D3｜queue 的選取條件
 
