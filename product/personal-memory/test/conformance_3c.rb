@@ -1939,7 +1939,9 @@ Dir.mktmpdir("omos-3c-a-reviewqueue") do |dir|
   owner = Support::Fixtures::EMP
 
   # (1) 週期身分沿用既有資料的形狀，不新造
-  anchor_friday = Time.utc(2026, 9, 18, 16)
+  # anchor 是**牆上時間**的概念，測試也必須用本機時間表達——用 Time.utc 會
+  # 在非 UTC 機器上表達出另一個時刻，那正是這次 P1 的同一種混淆。
+  anchor_friday = Time.new(2026, 9, 18, 16, 0, 0)
   p38 = OMOS::ReviewQueue.period_for(anchor_friday)
   C.check("review_period_id 沿用既有形狀（urn:…:review-period:<ISO 年週>）",
           p38[:id],
@@ -1948,14 +1950,14 @@ Dir.mktmpdir("omos-3c-a-reviewqueue") do |dir|
 
   # (2) anchor 之前仍屬上一期——這一期的 anchor 還沒到
   C.check("週五 anchor 之前仍屬上一期",
-          OMOS::ReviewQueue.period_for(Time.utc(2026, 9, 18, 15))[:id].split(":").last,
-          OMOS::ReviewQueue.period_for(Time.utc(2026, 9, 18, 15))[:id].end_with?("2026-W37"))
+          OMOS::ReviewQueue.period_for(Time.new(2026, 9, 18, 15, 0, 0))[:id].split(":").last,
+          OMOS::ReviewQueue.period_for(Time.new(2026, 9, 18, 15, 0, 0))[:id].end_with?("2026-W37"))
 
   # (3) **契約核心**：catch-up 當天算出來必須是同一個 id，不得變成下一期
-  [["週六", Time.utc(2026, 9, 19, 9)],
-   ["週日", Time.utc(2026, 9, 20, 9)],
-   ["週一（catch-up 日，ISO 週已跳到 W39）", Time.utc(2026, 9, 21, 9)],
-   ["週四", Time.utc(2026, 9, 24, 9)]].each do |label, t|
+  [["週六", Time.new(2026, 9, 19, 9, 0, 0)],
+   ["週日", Time.new(2026, 9, 20, 9, 0, 0)],
+   ["週一（catch-up 日，ISO 週已跳到 W39）", Time.new(2026, 9, 21, 9, 0, 0)],
+   ["週四", Time.new(2026, 9, 24, 9, 0, 0)]].each do |label, t|
     got = OMOS::ReviewQueue.period_for(t)
     C.check("catch-up 不得重推身分：#{label} 仍是 W38", got[:id].split(":").last,
             got[:id] == p38[:id] &&
@@ -1964,6 +1966,32 @@ Dir.mktmpdir("omos-3c-a-reviewqueue") do |dir|
   C.check("週一本身的 ISO 週確實已是 W39（證明上一條不是巧合）",
           Date.new(2026, 9, 21).strftime("%G-W%V"),
           Date.new(2026, 9, 21).strftime("%G-W%V") == "2026-W39")
+
+  # (3b) review P1（B1 repair）：週期推導必須以**本機時區**為準，與 launchd 的
+  #      Friday 16:00 同一個時鐘。台北的週五 16:00 local 是 08:00 UTC，原本
+  #      直接看傳進來的 Time 的 hour，於是 8 < 16 往回退一週算成 W37——
+  #      launchd 在週五 16:00 叫醒時會拿到錯的 review period。
+  #      跨時區必須在子行程驗，TZ 要在 Ruby 啟動前就設好。
+  tz_probe = <<~RUBY
+    require "omos/review_queue"
+    t = Time.new(2026, 9, 18, 16, 0, 0).utc
+    p_ = OMOS::ReviewQueue.period_for(t)
+    puts [p_[:id].split(":").last, p_[:scheduled_review_period_start],
+          p_[:scheduled_anchor_at]].join("|")
+  RUBY
+  { "Asia/Taipei" => "+08:00", "UTC" => "+00:00", "America/Los_Angeles" => "-07:00" }
+    .each do |tz, offset|
+    o, = Open3.capture3({ "BUNDLE_GEMFILE" => File.join(OMOS::Contract::ARTIFACT_ROOT, "Gemfile"),
+                          "TZ" => tz },
+                        RbConfig.ruby, "-rbundler/setup",
+                        "-I#{File.join(OMOS::Contract::ARTIFACT_ROOT, "lib")}", "-e", tz_probe)
+    week, start, anchor = o.strip.split("|")
+    C.check("本機時區 #{tz} 的週五 16:00 仍算成 W38（不得因 UTC 偏移退一週）",
+            "#{week} #{anchor}",
+            week == "2026-W38" && start == "2026-09-18")
+    C.check("#{tz} 的 anchor 序列化帶本機偏移 #{offset}", anchor.to_s,
+            anchor.to_s.end_with?(offset))
+  end
 
   # (4) catch-up 截止在下一個工作日
   C.check("catch-up 截止落在下一個工作日（週一）", p38[:catch_up_deadline_at],
@@ -1980,7 +2008,7 @@ Dir.mktmpdir("omos-3c-a-reviewqueue") do |dir|
   r_after = OMOS::Inbox.import(rt, store, after_anchor, memory_kind: "LESSON",
                                           owner_ref: owner, tenant_id: "t-acme",
                                           surface: cli_surface, now: anchor_friday + 3600)
-  q = OMOS::ReviewQueue.due(rt, now: Time.utc(2026, 9, 21, 9), surface: cli_surface)
+  q = OMOS::ReviewQueue.due(rt, now: Time.new(2026, 9, 21, 9, 0, 0), surface: cli_surface)
   ids = q[:items].map { |i| i["candidate_id"] }
   C.check("anchor 之前的 candidate 進本期 queue", ids.size.to_s,
           ids.include?(r_before[:candidate_id]))
@@ -1990,7 +2018,7 @@ Dir.mktmpdir("omos-3c-a-reviewqueue") do |dir|
   # (6) review due 是純讀：不得寫入任何一列、不得產生 closeout
   rows_before = rt.read_rows(surface: cli_surface).size
   closeouts_before = rt.store.db.get_first_value("SELECT COUNT(*) FROM closeouts").to_i
-  3.times { OMOS::ReviewQueue.due(rt, now: Time.utc(2026, 9, 21, 9), surface: cli_surface) }
+  3.times { OMOS::ReviewQueue.due(rt, now: Time.new(2026, 9, 21, 9, 0, 0), surface: cli_surface) }
   C.check("review due 不得寫入任何一列",
           "#{rows_before}→#{rt.read_rows(surface: cli_surface).size}",
           rt.read_rows(surface: cli_surface).size == rows_before)
@@ -2011,12 +2039,12 @@ Dir.mktmpdir("omos-3c-a-reviewqueue") do |dir|
     memory_kind: "RULE", owner_ref: owner, tenant_id: "t-acme",
     surface: cli_surface, now: anchor_friday - 7200
   )
-  in_queue_before = OMOS::ReviewQueue.due(rt, now: Time.utc(2026, 9, 21, 9), surface: cli_surface)[:items]
+  in_queue_before = OMOS::ReviewQueue.due(rt, now: Time.new(2026, 9, 21, 9, 0, 0), surface: cli_surface)[:items]
                                      .map { |i| i["candidate_id"] }
   rt.commit_closeout(closeout: Support::Fixtures.closeout(p38[:id], disposed[:candidate_id],
                                                          "COMPLETE", "SCHEDULED"),
                      surface: cli_surface)
-  in_queue_after = OMOS::ReviewQueue.due(rt, now: Time.utc(2026, 9, 21, 9), surface: cli_surface)[:items]
+  in_queue_after = OMOS::ReviewQueue.due(rt, now: Time.new(2026, 9, 21, 9, 0, 0), surface: cli_surface)[:items]
                                     .map { |i| i["candidate_id"] }
   C.check("已被本期 closeout 處置過的項目退出 queue",
           "#{in_queue_before.size}→#{in_queue_after.size}",
@@ -2024,7 +2052,7 @@ Dir.mktmpdir("omos-3c-a-reviewqueue") do |dir|
           !in_queue_after.include?(disposed[:candidate_id]))
 
   # (9) 0 due items 必須明確回報，不得偽造 terminal receipt
-  empty = OMOS::ReviewQueue.due(rt, now: Time.utc(2026, 1, 9, 17), surface: cli_surface)
+  empty = OMOS::ReviewQueue.due(rt, now: Time.new(2026, 1, 9, 17, 0, 0), surface: cli_surface)
   C.check("0 due items 明確回 0，且不得偽造 terminal closeout",
           "#{empty[:items].size}／terminal=#{empty[:terminal_closeout]}",
           empty[:items].empty? && empty[:terminal_closeout] == false)

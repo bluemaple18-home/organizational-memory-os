@@ -1,6 +1,6 @@
 ---
 id: PERSONAL-INBOX-SLICE-B-RESEARCH-20260921
-status: B1_DONE_D1_D3_RESOLVED
+status: B1_DONE_D1_D2_D3_D4_D5_RESOLVED
 type: research
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 scope: Slice B（review due ＋ Friday trigger ＋ 提醒）
@@ -94,16 +94,38 @@ closeout、acceptance、Promotion——這不是本片的自我克制，是契�
 本週期內新增的／加上 `NEEDS_ORG_FOLLOWUP` 延後的。契約規定「下一期的證據
 絕不混進這一期」，所以選取必須以**時間窗**為界，而時間窗又依賴 D1。
 
+### B1 repair（2026-09-21）：週期推導的時區
+
+reviewer 實測：台北週五 **16:00 local = 08:00 UTC**，原本會算成 **W37**，
+正確是 W38。原因是 `period_for` 直接看傳進來的 `Time` 的 `hour`，混著 UTC 與
+local 語意。launchd 在週五 16:00 叫醒時會拿到**錯的** review period。
+
+修法：週期推導全程以 **Mac 系統 local timezone** 為準，與 launchd 的
+Friday 16:00 同一個時鐘來源；caller 傳進來的任何 `Time` 進計算前一律
+`getlocal`。anchor 與 catch-up deadline 改用 `Time.new`（系統時區），
+序列化帶偏移。
+
+測試側同一個教訓：fixture 原本用 `Time.utc(...)` 表達「週五 16:00」，在
+UTC+8 的機器上那其實是另一個時刻——與 P1 是同一種混淆。改用 `Time.new`，
+並新增三個時區（Asia/Taipei／UTC／America/Los_Angeles）的子行程回歸。
+
 ### D4｜launchd 的 `RunAtLoad` 與 catch-up 的關係
 
-機器關機錯過週五 16:00 後，是靠 `RunAtLoad` 在下次登入時補，還是靠
-`StartCalendarInterval` 的下一次觸發？前者會在**任意時間**喚起，必須確保它
-帶的是原週期身分而不是當天推導的。
+**Owner 裁決（2026-09-21）**：`StartCalendarInterval` Friday 16:00
+**＋** `RunAtLoad`。`RunAtLoad` 只負責補喚醒，真正的 period identity 仍由原
+Friday anchor 算，所以週一登入也必須拿到原本的 W38。
+
+**超過 catch-up deadline 也不得自動 SKIPPED**，只能呈現逾期——terminal
+disposition 仍然是人的 closeout。
 
 ### D5｜提醒失敗的語意
 
-卡片已定「通知失敗不得影響 queue correctness」。待定的是：通知失敗要不要
-留下痕跡（journal），還是完全靜默。
+**Owner 裁決（2026-09-21）**：通知失敗不影響 queue，但**不可完全靜默**。
+寫 stderr ／ 明確的 `schedule status` 即可。
+
+**不**為 notification 另開 ledger，也**不**硬塞進現有 `operation_journal`
+——那份目前是 Store operation evidence，擴它的 kind 會碰到既有 runtime
+contract。
 
 ## 4. 實作順序（Slice A GO 後）
 

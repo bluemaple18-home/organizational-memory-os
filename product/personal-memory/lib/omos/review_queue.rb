@@ -47,16 +47,31 @@ module OMOS
     #
     # 規則：**最近一個已經到達的 anchor**。週五 anchor 之前仍屬於上一期——
     # 這一期的 anchor 還沒到，queue 自然還不該被喚起。
+    # 全程以**本機時區**計算，與 launchd 的 Friday 16:00 同一個時鐘來源。
+    #
+    # review P1：原本直接用傳進來的 Time 的 to_date／hour。台北的週五 16:00
+    # local 是 08:00 UTC，於是 caller 傳 UTC Time 時 hour 看到 8 < 16，往回
+    # 退一週算成 W37——launchd 在週五 16:00 叫醒時會拿到錯的 review period。
+    #
+    # 「週五下午」這個 anchor 本來就是**牆上時間**的概念；它與排程器看到的
+    # 是同一個時鐘，所以這裡把 caller 給的任何 Time 一律 getlocal 之後再算。
     def period_for(now, anchor_hour: DEFAULT_ANCHOR_HOUR)
-      d = now.to_date
+      local = now.getlocal
+      d = local.to_date
       back = (d.wday - FRIDAY) % 7
       friday = d - back
-      friday -= 7 if back.zero? && now.hour < anchor_hour
+      friday -= 7 if back.zero? && local.hour < anchor_hour
 
       { id: "#{REF_PREFIX}#{friday.strftime("%G-W%V")}",
         scheduled_review_period_start: friday.to_s,
-        scheduled_anchor_at: Time.utc(friday.year, friday.month, friday.day, anchor_hour).iso8601,
+        scheduled_anchor_at: local_anchor(friday, anchor_hour).iso8601,
         catch_up_deadline_at: catch_up_deadline(friday, anchor_hour) }
+    end
+
+    # 本機時區的 anchor 時刻。Time.new 不帶 utc_offset 時就是系統時區，
+    # iso8601 會把偏移一起寫出來，所以序列化之後仍然看得出它是哪個時鐘。
+    def local_anchor(date, anchor_hour)
+      Time.new(date.year, date.month, date.day, anchor_hour, 0, 0)
     end
 
     # catch-up 窗口到**下一個工作日**結束。契約只說 "next business day"，
@@ -66,7 +81,7 @@ module OMOS
     def catch_up_deadline(friday, anchor_hour)
       d = friday + 1
       d += 1 while [0, 6].include?(d.wday)   # 跳過週六、週日
-      Time.utc(d.year, d.month, d.day, anchor_hour).iso8601
+      local_anchor(d, anchor_hour).iso8601
     end
 
     # 這一期的 queue。
