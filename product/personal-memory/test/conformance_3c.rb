@@ -2203,9 +2203,17 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
   C.check("schedule install 重跑不產生第二份 LaunchAgent",
           "#{ours.size} 份／replaced=#{r2[:replaced]}",
           ours.size == 1 && r2[:replaced] == true)
+  # 重裝順序：bootout → bootstrap。中間夾著 print 是 repair-04 加的驗證
+  # （bootout 回 0 不代表真的停了），所以比對時把 print 濾掉——要鎖的是
+  # 「停掉再載入」這個順序，不是「中間不准有任何呼叫」。
+  mutating = calls.map(&:first).reject { |c| c == "print" }
   C.check("重裝先 bootout 再 bootstrap（launchd 不收同 Label 重複載入）",
-          calls.last(2).map(&:first).inspect,
-          calls.each_cons(2).any? { |a, b| a.first == "bootout" && b.first == "bootstrap" })
+          mutating.inspect,
+          mutating.each_cons(2).any? { |a, b| a == "bootout" && b == "bootstrap" })
+  C.check("repair-04：每次 bootout 之後都緊接一次 loaded? 複查",
+          calls.map(&:first).inspect,
+          calls.each_cons(2).select { |a, _| a.first == "bootout" }
+               .all? { |_, b| b.first == "print" })
 
   removed = OMOS::Schedule.remove(home: home, **lc)
   C.check("schedule remove 真的 bootout 並刪除自己的 plist",
@@ -2483,6 +2491,68 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
     C.check("P1 即使還原失敗，plist 位元組仍已寫回舊版",
             OMOS::Schedule.installed_anchor_hour(lpath).to_s,
             File.binread(lpath) == good)
+  end
+
+  # (8d) repair-04：bootout 回 0 **不代表 job 真的停了**。
+  #
+  # reviewer 重播的 split-brain：舊 16:00 的 job 還活著，bootout 回 ok、
+  # bootstrap 也回 ok 但沒換掉它，而 bootstrap 那側只問「這個 Label 是否
+  # loaded」——看到的是**舊 job 還在**，於是判成功。結果 install 正常 return、
+  # 磁碟 plist 是 15:00、真正 live 的 job 卻是 16:00。
+  Dir.mktmpdir("omos-3c-a-schedule-stuck") do |sdir|
+    shome = File.join(sdir, "home")
+    Support::FakeHome.seed(shome)
+    Open3.capture3({ "HOME" => shome }, exe, "install", "--home", shome,
+                   "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+    spath = OMOS::Schedule.plist_path(shome)
+
+    # 說謊的 bootout：回 0，但 job 繼續活著（而且仍是舊設定）。
+    sloaded = { on: false }
+    stuck = { bootout: false }
+    slctl = lambda do |*args|
+      case args.first
+      when "bootstrap" then sloaded[:on] = true; { ok: true, status: 0, out: "", err: "" }
+      when "bootout"
+        sloaded[:on] = false unless stuck[:bootout]
+        { ok: true, status: 0, out: "", err: "" }
+      when "print" then { ok: sloaded[:on], status: sloaded[:on] ? 0 : 113, out: "", err: "" }
+      else { ok: false, status: 1, out: "", err: "" }
+      end
+    end
+
+    OMOS::Schedule.install(home: shome, anchor_hour: 16, launchctl: slctl)
+    good16 = File.binread(spath)
+    stuck[:bootout] = true
+
+    code = begin
+      OMOS::Schedule.install(home: shome, anchor_hour: 15, launchctl: slctl)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e
+    end
+    C.check("P1 bootout 說謊（回 0 但仍 loaded）→ install 必須失敗，不得 split-brain",
+            code.is_a?(OMOS::Schedule::Failed) ? code.code : "（成功 return）",
+            code.is_a?(OMOS::Schedule::Failed) &&
+            code.code == "SCHEDULE_LAUNCHCTL_BOOTOUT_FAILED")
+    C.check("P1 錯誤訊息要說得出是「回報成功但仍在載入中」",
+            code.to_s[-30, 30].to_s, code.to_s.include?("仍在載入中"))
+    C.check("P1 失敗後磁碟 plist 還原成舊版 16:00（不得留下 15:00）",
+            OMOS::Schedule.installed_anchor_hour(spath).to_s,
+            File.binread(spath) == good16 &&
+            OMOS::Schedule.installed_anchor_hour(spath) == 16)
+    C.check("P1 舊 job 從未被停掉，因此仍 loaded——磁碟與 live 一致",
+            sloaded[:on].to_s, sloaded[:on] == true)
+
+    # remove 也走同一個判準
+    rcode = begin
+      OMOS::Schedule.remove(home: shome, launchctl: slctl)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("P1 remove 也用同一判準：bootout 說謊 → 保留 plist 並 fail loud",
+            "#{rcode}／plist=#{File.exist?(spath)}",
+            rcode == "SCHEDULE_BOOTOUT_FAILED" && File.exist?(spath))
   end
 
   # (9) 測試本身不得把 job 載進真實 session

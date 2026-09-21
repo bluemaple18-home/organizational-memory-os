@@ -125,7 +125,10 @@ module OMOS
       begin
         # 重裝要先 bootout 再 bootstrap，否則 launchd 會拒收同一個 Label。
         # 這裡的 bootout 失敗不是錯誤——本來就可能沒載入過。
-        launchctl.call("bootout", "#{domain}/#{LABEL}") if previous_loaded
+        if previous_loaded
+          out = bootout_and_verify(launchctl)
+          raise Failed.new("SCHEDULE_LAUNCHCTL_BOOTOUT_FAILED", out[:detail]) unless out[:ok]
+        end
         verdict = bootstrap_and_verify(path, launchctl)
         raise Failed.new("SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED", verdict[:detail]) unless verdict[:ok]
       rescue StandardError => e
@@ -155,12 +158,8 @@ module OMOS
       # loaded，而管理它的檔案已經不見了，留下一個誰都管不到的孤兒 job。
       # 卸載一個還在跑的東西，必須先真的把它停掉。
       if loaded?(launchctl: launchctl)
-        res = launchctl.call("bootout", "#{domain}/#{LABEL}")
-        if !res[:ok] || loaded?(launchctl: launchctl)
-          raise Failed.new("SCHEDULE_BOOTOUT_FAILED",
-                           "job 仍在載入中，plist 保留於 #{path}（exit=#{res[:status]} " \
-                           "#{res[:err].to_s.strip[0, 120]}）")
-        end
+        out = bootout_and_verify(launchctl)
+        raise Failed.new("SCHEDULE_BOOTOUT_FAILED", "#{out[:detail]}；plist 保留於 #{path}") unless out[:ok]
       end
 
       FileUtils.rm_f(path)
@@ -177,11 +176,39 @@ module OMOS
       end
 
       return true unless previous_loaded
+      # 舊 job 從來沒被成功停掉（bootout 失敗的那條路）→ 現在 live 的就是舊的，
+      # plist 也已寫回舊版，狀態已經一致，不要再多動一次。
+      # 原本這裡盲目 bootout 再 bootstrap，等於把一個好好的舊 job 停掉再賭一次。
+      return true if loaded?(launchctl: launchctl)
 
-      launchctl.call("bootout", "#{domain}/#{LABEL}")
       bootstrap_and_verify(path, launchctl)[:ok]
     rescue StandardError
       false
+    end
+
+    # **唯一**的 bootout 入口。install／rollback／remove 都走這裡。
+    #
+    # repair-04：`launchctl bootout` 回 0 **不代表 job 真的停了**。實測——
+    # 舊 16:00 的 job 還活著，bootout 回 ok、bootstrap 也回 ok 但沒換掉它，
+    # 而 bootstrap_and_verify 只問「這個 Label 是否 loaded」，看到的是**舊
+    # job 還在**，於是判成功：install 正常 return、磁碟 plist 是 15:00、
+    # 真正 live 的 job 卻是 16:00。又一次 split-brain。
+    #
+    # 判準因此是「exit 0 **而且** loaded? 為假」——與 bootstrap 那一側對稱。
+    # 這是同一個根因的第三次出現（bootstrap／bootout／provenance），所以一律
+    # 收成單一 seam，不在各自的呼叫點補檢查。
+    def bootout_and_verify(launchctl)
+      res = launchctl.call("bootout", "#{domain}/#{LABEL}")
+      unless res[:ok]
+        return { ok: false, detail: "exit=#{res[:status]} #{res[:err].to_s.strip[0, 120]}" }
+      end
+      if loaded?(launchctl: launchctl)
+        return { ok: false,
+                 detail: "launchctl bootout 回報成功（exit=#{res[:status]}），" \
+                         "但 #{domain}/#{LABEL} 仍在載入中" }
+      end
+
+      { ok: true, detail: nil }
     end
 
     # **唯一**的 bootstrap 入口。install 與 rollback 都走這裡。

@@ -1,6 +1,6 @@
 ---
 id: PERSONAL-INBOX-SLICE-B-RESEARCH-20260921
-status: B2_REPAIR_03_READY_FOR_REVIEW
+status: B2_REPAIR_04_READY_FOR_REVIEW
 type: research
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 scope: Slice B（review due ＋ Friday trigger ＋ 提醒）
@@ -211,6 +211,39 @@ conformance 全程注入替身，**沒有**真 launchd 的成功路徑實證；r
 **Slice B closeout 前必須在正常使用者 HOME 實跑一次**：
 `schedule install` → `launchctl print`（存在）→ `schedule remove` →
 `launchctl print`（不存在）。列為 closeout 的必要證據，不得以注入替身代替。
+
+## 3.9 B2 repair-04（2026-09-22）：bootout 成功也不等於已停止
+
+同一個根因的**第三次**出現。reviewer 重播的 split-brain：
+
+```text
+live job = 16:00
+upgrade 寫入 15:00
+bootout  回 ok=true，但舊 job 繼續活著
+bootstrap 回 ok=true，但沒換掉舊 job
+bootstrap_and_verify 只問「這個 Label 是否 loaded」→ 看到舊 job 還在 → 判成功
+結果：install 正常 return、磁碟 plist = 15:00、真正 live 的 job = 16:00
+```
+
+修法與 repair-03 對稱：抽出唯一的 `bootout_and_verify`，判準是
+**exit 0 且 `loaded?` 為假**；`install`／`remove`／rollback 全部走它。
+
+順手拿掉 `restore_previous` 裡那個**盲目的 bootout**：bootout 失敗的那條路上
+舊 job 從未被停掉，現在 live 的就是舊的、plist 也已寫回舊版，狀態本來就一致
+——原本卻會把一個好好的舊 job 停掉再賭一次 bootstrap。
+
+### 同根第三次，所以不在呼叫點補檢查
+
+`adopt_existing`（Slice A repair-02）、`bootstrap_and_verify`（repair-03）、
+`bootout_and_verify`（本輪）是同一個形狀：**判準只能有一份**。在各自的呼叫點
+補一段檢查，就是下一次只修好其中一條的原因。
+
+### 反證的獨立性
+
+反證 C（只讓 `remove` 繞過共用 seam）**只打紅 1 項**；A／B 各打紅 5／4 項。
+reviewer 上一輪觀察到自己的 rollback mutation 會連鎖（293/298），原因是失敗
+狀態會污染同一個區塊後面的斷言——本輪把各情境拆進獨立的 `mktmpdir`，
+所以連鎖被切斷了。
 
 ## 4. 實作順序（Slice A GO 後）
 
