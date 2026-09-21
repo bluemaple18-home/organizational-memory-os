@@ -1,0 +1,112 @@
+---
+id: PERSONAL-INBOX-SLICE-B-RESEARCH-20260921
+status: RESEARCH_DONE_READY_TO_IMPLEMENT
+type: research
+parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
+scope: Slice B（review due ＋ Friday trigger ＋ 提醒）
+blocked_by: Slice A review（產品碼待 Slice A GO 才動）
+authority: organizational-memory-os
+---
+
+# Slice B 研究｜Weekly Review Queue ＋ Friday Trigger
+
+👉 [假設與目標確認]
+- **目標**：在寫任何 Slice B 產品碼之前，先把**契約已經決定好的東西**查清楚，
+  避免實作時自己發明一套平行語意。
+- **邊界**：本卡只做研究與決策點盤點，**不含產品碼**（Owner 指示：等
+  Slice A GO）。
+- **範圍**：`review due`、launchd、提醒三者。
+
+## 1. 契約已經決定的（不得重新發明）
+
+來源：`governance/規格/v0.1/personal-harness-integration.yaml` §`weekly_review_cycle`。
+
+| 事項 | 契約怎麼說 |
+|---|---|
+| 身分 | `review_period_id` 是核心身分。**同一個排定週期的每一次嘗試**——準時、隔日 catch-up、失敗後 retry——都必須帶**同一個** id |
+| 身分不得重推 | 明文禁止「用工作實際發生在哪一天去重新推導身分」 |
+| catch-up | 錯過的週期滾到**下一個工作日**；catch-up 保留**原本的** `review_period_id` 與 `scheduled_review_period_start`，**絕不**併入下一期 |
+| 下一期的證據 | **絕不**混進這一期的 review |
+| SKIPPED | 是終局且明確的處置。**還在等 catch-up 窗口的週期不是 SKIPPED**；在 catch-up deadline 之前宣告 SKIPPED 會被**直接拒絕**，不是「不建議」 |
+| anchor | `default_anchor: FRIDAY_AFTERNOON`，`anchor_is_tenant_configurable: true`；改 anchor **不得**連帶改 `closeout_statuses`／`attempt_kinds`／receipt schema |
+| receipt | 是 **lightweight pointer record**：`selected_item_refs`／`item_dispositions` 只能是 bounded refs 與 enum 分類，**絕不**內嵌內容 |
+| receipt 禁用欄位 | `full_personal_store_ref`／`weekly_work_summary`／`personal_store_snapshot`／`candidate_status`／`record_status`／`verification_status`／`acceptance_status`／`conflict_resolution_status` |
+| 批次確認 | **本身不能接受任何東西**。唯一的 acceptance authority 仍是每個 Candidate 自己既有的 verification／acceptance gate |
+| disposition | `selected_item_refs` 與 `item_dispositions` 的鍵集合必須完全相同；`NEEDS_ORG_FOLLOWUP` 是唯一合法的「延後但不回答」，且**不得**帶 `record_ref`／`promotion_ref` |
+
+**結論**：Slice B 的 `review due` 只負責**準備 queue 與提醒**。它碰不到
+closeout、acceptance、Promotion——這不是本片的自我克制，是契約已經封死的。
+
+## 2. 產品現況（實查）
+
+- `review_period_id` 目前**完全由呼叫端提供**：`closeout --file FILE` 讀一份
+  JSON，`Runtime#commit_closeout` 直接取 `closeout["review_period_id"]`。
+  產品**沒有任何地方**推導過週期身分。
+- `closeouts` table 已存在，doctor 已檢查「同一 `review_period_id` 至多一次
+  terminal closeout」。
+- macOS 兩個原生工具都在：`/bin/launchctl`、`/usr/bin/osascript`
+  （`display notification` 不需要額外相依）。
+- `~/Library/LaunchAgents/` 已有其他第三方 plist——**install／remove 必須
+  只認自己那一支**，與 Slice A 的 Host hook 是同一類風險（collision-adjacent）。
+
+## 3. 待裁決的決策點（實作前必須定）
+
+### D1｜`review_period_id` 從哪裡來（**最關鍵**）
+
+契約禁止用「工作實際發生在哪一天」推導。因此只有兩條路：
+
+| 選項 | 說明 | 風險 |
+|---|---|---|
+| **D1-a 由 `scheduled_review_period_start` 決定** | id 是排定週期起始日的函數（例如該週五的日期），catch-up 當天算出來仍是同一個 | 需要定義「週期起始日」的推導規則，且要與既有已存在的 closeout 資料相容 |
+| D1-b 由呼叫端繼續提供 | 維持現狀，`review due` 只列 queue 不提身分 | scheduler 無法自動 catch-up，等於沒解決問題 |
+
+交付方傾向 **D1-a**，但**不自行決定**：既有 store 裡可能已有以其他規則產生的
+`review_period_id`，推導規則一旦定下就會影響既有資料的對齊。
+
+### D2｜「下一個工作日」怎麼定義
+
+產品目前沒有任何行事曆概念。選項：週一到週五（不含國定假日）／可設定／
+只滾一天。契約只說 "next business day"，沒有給演算法。
+
+### D3｜queue 的選取條件
+
+「本週 N 筆待 review」的 N 是什麼？候選：所有 `PROPOSED` 的 Candidate／
+本週期內新增的／加上 `NEEDS_ORG_FOLLOWUP` 延後的。契約規定「下一期的證據
+絕不混進這一期」，所以選取必須以**時間窗**為界，而時間窗又依賴 D1。
+
+### D4｜launchd 的 `RunAtLoad` 與 catch-up 的關係
+
+機器關機錯過週五 16:00 後，是靠 `RunAtLoad` 在下次登入時補，還是靠
+`StartCalendarInterval` 的下一次觸發？前者會在**任意時間**喚起，必須確保它
+帶的是原週期身分而不是當天推導的。
+
+### D5｜提醒失敗的語意
+
+卡片已定「通知失敗不得影響 queue correctness」。待定的是：通知失敗要不要
+留下痕跡（journal），還是完全靜默。
+
+## 4. 實作順序（Slice A GO 後）
+
+```text
+B1 review queue projection（純讀，不碰 schedule）
+   └ 先解 D1／D3，因為 queue 的正確性完全依賴週期身分
+→ B2 launchd schedule install/status/remove ＋ 通知
+   └ 解 D4／D5
+→ upgrade regression（含 Slice A 的 identity 保留）
+→ zip 覆蓋解壓的實際交付路徑 upgrade（主卡驗收 13）
+→ 帶 quarantine 的交付路徑驗收（主卡驗收 14）
+→ targeted review
+```
+
+## 5. 本卡不做
+
+不寫任何 Slice B 產品碼（Owner 指示）、不改 `weekly_review_cycle` 契約、
+不新增 queue table、不碰 Slice A 已送 review 的檔案。
+
+## 6. Minimum Sufficient
+
+- **why_not_less**：D1 沒定就寫 queue，等於自己發明一套週期身分，而契約對
+  這件事有明文；寫完才發現對不上是最貴的返工。
+- **why_not_more**：本卡只盤點契約與決策點，不預先設計 API、不畫 schema。
+- **do_not_absorb**：不吸收 closeout／acceptance／Promotion——契約已封死；
+  不吸收 Slice A 的 identity 議題（已在證據包 §5 交給 reviewer）。

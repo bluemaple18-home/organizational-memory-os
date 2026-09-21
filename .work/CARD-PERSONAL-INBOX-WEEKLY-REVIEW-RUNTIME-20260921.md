@@ -2,7 +2,7 @@
 id: PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 status: SLICE_A_READY_FOR_REVIEW
 slice_a: READY_FOR_REVIEW（8b49d16 匯入本體、8d1227a 身分解析；證據包 .work/handoff/PERSONAL-INBOX-SLICE-A-EVIDENCE-20260921.md）
-slice_b: NOT_STARTED（研究／切卡可先行，產品碼待 Slice A GO）
+slice_b: RESEARCH_DONE（.work/CARD-PERSONAL-INBOX-SLICE-B-RESEARCH-20260921.md；產品碼待 Slice A GO）
 type: bounded-product-capability
 priority: MVP
 related:
