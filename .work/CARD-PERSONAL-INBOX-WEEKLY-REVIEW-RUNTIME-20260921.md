@@ -1,8 +1,9 @@
 ---
 id: PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 status: SLICE_A_READY_FOR_REVIEW
-slice_a: REPAIR_01_READY_FOR_REVIEW（8b49d16 匯入本體、8d1227a 身分解析、repair-01；證據包 .work/handoff/PERSONAL-INBOX-SLICE-A-EVIDENCE-20260921.md）
+slice_a: REPAIR_02_READY_FOR_REVIEW（8b49d16 匯入本體、8d1227a 身分解析、d24ca37 repair-01、repair-02；證據包 .work/handoff/PERSONAL-INBOX-SLICE-A-EVIDENCE-20260921.md）
 slice_a_review_round_1: NO_GO（2026-09-21，P1×3：身分拼接＋格式未驗／跨時間重匯不冪等／content-only dedup 黏合 provenance；P2×1：identity validation 未下沉）→ repair-01 已修
+slice_a_review_round_2: NO_GO（2026-09-21，P1×2：owner ref 仍允許多段冒號／provenance conflict 在跨 process race 下可繞過；P2×1：tmp 目錄名只含 pid）→ repair-02 已修
 slice_b: RESEARCH_DONE（.work/CARD-PERSONAL-INBOX-SLICE-B-RESEARCH-20260921.md；產品碼待 Slice A GO）
 type: bounded-product-capability
 priority: MVP
@@ -128,6 +129,24 @@ receipt 身分時採用，且會在 stderr 出聲說明。
 - `tenant_id`：契約**沒有宣告任何 shape**（只有 `tenant_id_required: true`）。
   因此只驗「非空、不含空白與控制字元」，**不自行發明 tenant regex**。
   真正的 tenant 形狀應由契約決定——**這是一個 open gap，列在此處備查**。
+
+### 2.2.3 repair-02（2026-09-21）：review round 2 的 2×P1 ＋ 1×P2
+
+| # | 缺陷 | 修法 |
+|---|---|---|
+| P1-1 | `OWNER_REF` 後半是 `[^\s:][^\s]*`——只禁了**第一個**字元是冒號，`urn:omos:employee:alpha:extra` 照樣通過，不符合 repair-01 自己宣告的 `urn:omos:<kind>:<id>` 形狀 | id 整段改為 `[^\s:]+`。**不**擴張成 UUIDv7——契約沒有為 employee ref 宣告那個強度 |
+| P1-2 | provenance 檢查在**跨 process race** 下被繞過：兩個 process 同時第一次 capture，輸掉 `rename` 的一方直接回既有 envelope，**沒有重新驗 provenance**——P1-3 的併發版本 | 抽出 `adopt_existing`，早期路徑與 race 路徑走**同一個**入口。採用既有那份的前提永遠是 provenance 相同，不因為「我是輸的那一方」而放寬 |
+| P2 | tmp 目錄名只含 `Process.pid`，同 process 兩個 thread 拿到同一個 digest 會互相 `rm_rf`／`rename` | 加上 `SecureRandom.hex(8)`。CLI 目前單執行緒，但 `capture` 是 library seam |
+
+`capture(before_rename:)` 是注入的測試接縫，與既有 `install(fail_after:)`／
+`rollback(fail_before_receipt:)` 同一做法。理由：真實的跨 process race 無法在
+測試裡穩定製造，而那條路徑正是 P1-2 的缺陷所在。**待 reviewer 裁定可否收。**
+
+#### contract gap（reviewer 裁決：不阻塞 Slice A）
+
+`tenant_id` 上游確實沒有 shape；`employee_owner_ref` 的精確 employee identity
+形狀也沒有足夠一致的 normative 定義。**本片不自行發明更強的 schema**，
+只守住修法自己宣告的最低 URN 形狀。另登 P2 contract gap。
 
 ### 2.3 Idempotency / failure
 

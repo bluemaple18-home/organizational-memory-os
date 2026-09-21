@@ -16,6 +16,7 @@
 
 require "json"
 require "digest"
+require "securerandom"
 require "fileutils"
 require "time"
 
@@ -49,7 +50,12 @@ module OMOS
     #
     # 失敗一律 fail loud：不支援的副檔名、讀不到、不是合法 UTF-8、空檔。
     # 這些都在**寫任何東西之前**檢查完，所以失敗不會留下半套 snapshot。
-    def capture(store_path, source_path, owner_ref:, tenant_id:, now: Time.now.utc)
+    # before_rename 是注入的測試接縫，與既有 install(fail_after:)／
+    # rollback(fail_before_receipt:) 同一做法。用途：讓 conformance 能**確定性**
+    # 重現「兩個 process 同時第一次 capture」——真實的跨 process race 無法在
+    # 測試裡穩定製造，而這條路徑正是 review P1-2 的缺陷所在。
+    def capture(store_path, source_path, owner_ref:, tenant_id:, now: Time.now.utc,
+                before_rename: nil)
       ext = File.extname(source_path).downcase
       unless SUPPORTED_EXTENSIONS.include?(ext)
         raise Rejected.new("INBOX_UNSUPPORTED_FORMAT",
@@ -77,11 +83,8 @@ module OMOS
       # 不同 provenance 一律 fail closed，而且分開兩個錯誤碼：owner/tenant
       # 不同是身分問題（嚴重），source 路徑不同是來源問題（通常是改名）。
       # 兩者都不靜默採用第一份。
-      if File.file?(envelope_path)
-        existing = JSON.parse(File.read(envelope_path))
-        assert_same_provenance!(existing, owner_ref, tenant_id, source_path)
-        return [existing, true]
-      end
+      existing = adopt_existing(envelope_path, owner_ref, tenant_id, source_path)
+      return [existing, true] unless existing.nil?
 
       envelope = {
         "evidence_ref" => evidence_ref(digest),
@@ -107,23 +110,48 @@ module OMOS
       # 先寫進暫存目錄再 rename：中途失敗不會留下一個只有 raw.bin、沒有
       # envelope 的半套 digest 目錄，而那種半套正是重放時最難判斷的狀態。
       FileUtils.mkdir_p(root(store_path))
-      tmp = "#{dir}.writing-#{Process.pid}"
+      # tmp 名必須**真正唯一**（review P2）：只用 pid 的話，同一個 process 內
+      # 兩個 thread 拿到同一個 digest 就會共用同一個暫存目錄，互相 rm_rf／
+      # rename。目前 CLI 是單執行緒，但 capture 是 library seam。
+      tmp = "#{dir}.writing-#{Process.pid}-#{SecureRandom.hex(8)}"
       FileUtils.rm_rf(tmp)
       begin
         FileUtils.mkdir_p(tmp)
         File.binwrite(File.join(tmp, BYTES), bytes)
         File.binwrite(File.join(tmp, ENVELOPE), "#{JSON.pretty_generate(envelope)}\n")
+        before_rename&.call
         File.rename(tmp, dir)
       rescue Errno::ENOTEMPTY, Errno::EEXIST
-        # 競態：別人剛好也寫好了同一個 digest。內容相同，採既有那份。
+        # 競態：別人剛好也在寫同一個 digest，而且贏了 rename。
+        #
+        # review P1-2：原本這裡直接 `return [JSON.parse(...), true]`，**沒有
+        # 重新驗 provenance**——於是兩個 process 同時第一次 capture 時，輸掉
+        # rename 的一方會靜默採用對方的 envelope 並回報 replay=true。這正是
+        # P1-3 的併發版本：同一個缺陷，只是走另一條路進來。
+        #
+        # 正確做法是走**同一個** adopt_existing——採用既有那份的前提永遠是
+        # provenance 相同，不因為「我是輸的那一方」而放寬。
         FileUtils.rm_rf(tmp)
-        return [JSON.parse(File.read(envelope_path)), true]
+        adopted = adopt_existing(envelope_path, owner_ref, tenant_id, source_path)
+        raise Rejected.new("INBOX_EVIDENCE_RACE_UNRESOLVED", dir) if adopted.nil?
+
+        return [adopted, true]
       rescue StandardError
         FileUtils.rm_rf(tmp)
         raise
       end
 
       [envelope, false]
+    end
+
+    # 採用既有 snapshot 的**唯一**入口。存在且 provenance 相同才算重放；
+    # provenance 不同一律 raise；不存在回 nil 讓呼叫端自己決定。
+    def adopt_existing(envelope_path, owner_ref, tenant_id, source_path)
+      return nil unless File.file?(envelope_path)
+
+      existing = JSON.parse(File.read(envelope_path))
+      assert_same_provenance!(existing, owner_ref, tenant_id, source_path)
+      existing
     end
 
     def assert_same_provenance!(existing, owner_ref, tenant_id, source_path)

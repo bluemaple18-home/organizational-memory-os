@@ -1796,4 +1796,108 @@ Dir.mktmpdir("omos-3c-a-identity-splice") do |dir|
   C.group = nil
 end
 
+# --- Slice A repair-02｜收 reviewer 的 2×P1 ＋ 1×P2 ---
+Dir.mktmpdir("omos-3c-a-inbox-repair02") do |dir|
+  C.group = "A"
+  store = File.join(dir, "r2.db")
+  rt = OMOS::Runtime.open(store)
+  cli_surface = OMOS::Runtime::SURFACES[:cli]
+  owner = "urn:omos:employee:emp-A"
+
+  caught = lambda do |&blk|
+    blk.call
+    nil
+  rescue OMOS::EvidenceSnapshot::Rejected => e
+    e.code
+  rescue StandardError => e
+    "#{e.class}: #{e.message[0, 40]}"
+  end
+  snap_count = lambda do
+    root = OMOS::EvidenceSnapshot.root(store)
+    Dir.exist?(root) ? Dir.children(root).reject { |c| c.include?(".writing-") }.size : 0
+  end
+
+  # P1-1：id 整段不得含冒號。reviewer 用的是 urn:omos:employee:alpha:extra。
+  src = File.join(dir, "a.md")
+  File.write(src, "# a\n\n內容 a。\n")
+  [["多一段冒號", "urn:omos:employee:alpha:extra"],
+   ["結尾冒號", "urn:omos:employee:alpha:"],
+   ["只有 kind 沒有 id", "urn:omos:employee:"],
+   ["kind 段是空的", "urn:omos::alpha"]].each do |label, bad|
+    before = snap_count.call
+    code = caught.call do
+      OMOS::Inbox.import(rt, store, src, memory_kind: "DECISION",
+                                         owner_ref: bad, tenant_id: "t-A", surface: cli_surface)
+    end
+    C.check("P1-1 owner_ref #{label} → 擋下（#{bad}）", code.to_s,
+            code == "INBOX_OWNER_REF_MALFORMED")
+    C.check("P1-1 owner_ref #{label} 不得留下 snapshot", snap_count.call.to_s,
+            snap_count.call == before)
+  end
+  C.check("P1-1 合法的 urn:omos:<kind>:<id> 仍可通過", "",
+          caught.call do
+            OMOS::Inbox.import(rt, store, src, memory_kind: "DECISION",
+                                               owner_ref: owner, tenant_id: "t-A",
+                                               surface: cli_surface)
+          end.nil?)
+
+  # P1-2：跨 process race 的併發版本。
+  #
+  # 用注入接縫確定性重現：B 在 A 執行 rename **之前**把同一個 digest 的目錄
+  # 寫好（不同 owner/tenant/來源），A 於是輸掉 rename 走 rescue。輸的一方
+  # 絕不能靜默採用對方的 envelope。
+  raced_src = File.join(dir, "raced.md")
+  File.write(raced_src, "# raced\n\n兩個 process 同時第一次 capture。\n")
+  rival_src = File.join(dir, "rival.md")
+  File.write(rival_src, File.read(raced_src))
+
+  planted = lambda do
+    OMOS::EvidenceSnapshot.capture(store, rival_src,
+                                   owner_ref: "urn:omos:employee:emp-B", tenant_id: "t-B")
+  end
+  race_code = caught.call do
+    OMOS::EvidenceSnapshot.capture(store, raced_src, owner_ref: owner, tenant_id: "t-A",
+                                                     before_rename: planted)
+  end
+  C.check("P1-2 輸掉 rename 的一方不得靜默採用對方的 envelope", race_code.to_s,
+          race_code == "INBOX_EVIDENCE_OWNER_CONFLICT")
+
+  landed = JSON.parse(File.read(File.join(
+    OMOS::EvidenceSnapshot.dir_for(store, OMOS::EvidenceSnapshot.digest_of(File.binread(raced_src))),
+    "envelope.json"
+  )))
+  C.check("P1-2 先寫入的那一份 provenance 完好，未被輸家覆寫",
+          landed["employee_owner_ref"].to_s,
+          landed["employee_owner_ref"] == "urn:omos:employee:emp-B" &&
+          landed["tenant_id"] == "t-B")
+  C.check("P1-2 race 後不得留下 .writing- 暫存目錄",
+          Dir.children(OMOS::EvidenceSnapshot.root(store)).grep(/\.writing-/).inspect,
+          Dir.children(OMOS::EvidenceSnapshot.root(store)).grep(/\.writing-/).empty?)
+
+  # 同 provenance 的 race 才是真重放
+  same_code = caught.call do
+    OMOS::EvidenceSnapshot.capture(store, rival_src, owner_ref: "urn:omos:employee:emp-B",
+                                                     tenant_id: "t-B")
+  end
+  C.check("P1-2 同 provenance 的既有 snapshot 仍正常重放", same_code.to_s, same_code.nil?)
+
+  # P2：tmp 名必須真正唯一，同 process 併發不得共用暫存目錄
+  tmp_src = File.join(dir, "tmp.md")
+  File.write(tmp_src, "# tmp\n\n併發暫存目錄。\n")
+  seen = []
+  10.times do
+    OMOS::EvidenceSnapshot.capture(store, tmp_src, owner_ref: owner, tenant_id: "t-A",
+                                                   before_rename: -> { seen << Dir.children(OMOS::EvidenceSnapshot.root(store)).grep(/\.writing-/) })
+  rescue OMOS::EvidenceSnapshot::Rejected
+    nil
+  end
+  names = seen.flatten.uniq
+  C.check("P2 tmp 目錄名不只含 pid（同 process 併發不會共用）",
+          names.first.to_s[-20, 20].to_s,
+          names.all? { |n| n.match?(/\.writing-\d+-[0-9a-f]{16}\z/) })
+
+  rt.store.close
+  C.group = nil
+end
+
 C.report!

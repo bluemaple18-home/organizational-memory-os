@@ -48,7 +48,11 @@ module OMOS
     #                       tenant_id_required: true）。因此這裡只驗「非空、
     #                       不含空白與控制字元」，**不自行發明 tenant regex**。
     #                       真正的 tenant 形狀該由契約決定，見 repair-01 回報。
-    OWNER_REF = %r{\Aurn:omos:[a-z0-9][a-z0-9-]*:[^\s:][^\s]*\z}
+    # review P1-1：後半原本是 [^\s:][^\s]* ——只禁了**第一個**字元是冒號，
+    # 於是 urn:omos:employee:alpha:extra 照樣通過，不符合這條修法自己宣告的
+    # urn:omos:<kind>:<id> 形狀。id 整段都不得含冒號。
+    # 仍**不**擴張成 UUIDv7：契約沒有為 employee ref 宣告那個強度。
+    OWNER_REF = %r{\Aurn:omos:[a-z0-9][a-z0-9-]*:[^\s:]+\z}
     TENANT_ID = /\A[^\s[:cntrl:]]+\z/
 
     MEMORY_KINDS = %w[
