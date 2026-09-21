@@ -28,6 +28,28 @@ module OMOS
     # 身分缺失與「內容有問題」是兩種失敗：前者是呼叫端沒給夠，後者是檔案
     # 本身不合格。分開才能給出對的修法提示。
     class IdentityRequired < StandardError; end
+    class IdentityIncomplete < StandardError; end
+
+    # resolved identity tuple 的形狀驗證。
+    #
+    # review P2 裁決：receipt lookup 留在 CLI（explicit > receipt > env），
+    # 但**驗證下沉到這裡**——未來 MCP 或其他 caller 直接呼叫 Inbox.import
+    # 時，不會各寫一套，也不會完全不驗。
+    #
+    # 驗到什麼程度，以**契約實際宣告的**為準，不自行發明：
+    #
+    #   employee_owner_ref  common-vocabulary 的 identifiers.omos_generated
+    #                       宣告 ref_template "urn:omos:{resource-kind}:{uuid}"，
+    #                       所以至少必須是 urn:omos: 開頭、有 kind 與 id 兩段
+    #                       的 ref。**不**強制 UUIDv7——既有資料與 fixture 用
+    #                       的是 urn:omos:employee:emp-001，強制會把既有安裝
+    #                       打掛，而那不是本次 repair 的授權範圍。
+    #   tenant_id           契約**沒有**宣告任何 shape（只有
+    #                       tenant_id_required: true）。因此這裡只驗「非空、
+    #                       不含空白與控制字元」，**不自行發明 tenant regex**。
+    #                       真正的 tenant 形狀該由契約決定，見 repair-01 回報。
+    OWNER_REF = %r{\Aurn:omos:[a-z0-9][a-z0-9-]*:[^\s:][^\s]*\z}
+    TENANT_ID = /\A[^\s[:cntrl:]]+\z/
 
     MEMORY_KINDS = %w[
       WORK_PREFERENCE WORKING_STYLE DOMAIN_FACT DEFINITION RULE DECISION
@@ -49,11 +71,25 @@ module OMOS
 
     module_function
 
+    def validate_identity!(owner_ref, tenant_id)
+      unless owner_ref.is_a?(String) && OWNER_REF.match?(owner_ref)
+        raise EvidenceSnapshot::Rejected.new(
+          "INBOX_OWNER_REF_MALFORMED",
+          "#{owner_ref.inspect}；須為 urn:omos:<kind>:<id> 形式（契約 ref_template）"
+        )
+      end
+      return if tenant_id.is_a?(String) && TENANT_ID.match?(tenant_id)
+
+      raise EvidenceSnapshot::Rejected.new("INBOX_TENANT_ID_MALFORMED", tenant_id.inspect)
+    end
+
     def import(runtime, store_path, source_path, memory_kind: nil, owner_ref:, tenant_id:,
                surface: Runtime::SURFACES[:cli], now: Time.now.utc)
-      # kind 的檢查在 capture **之前**：打錯字或夾帶一個預設不長存的 kind，
+      # 身分與 kind 的檢查都在 capture **之前**：打錯字或夾帶一個預設不長存的 kind，
       # 都不該讓內容先被收進來。缺 kind（還沒決定）與 kind 錯誤（決定錯了）
       # 是兩回事——前者保留 snapshot 等使用者補，後者連收都不收。
+      validate_identity!(owner_ref, tenant_id)
+
       kind = memory_kind.nil? ? nil : memory_kind.to_s.strip.upcase
       unless kind.nil? || kind.empty?
         if REFUSED_KINDS.include?(kind)
@@ -87,7 +123,7 @@ module OMOS
                                idempotency_key: "inbox-link-#{digest}", surface: surface)
       cand = runtime.write_row(kind: "PersonalMemoryCandidate",
                                resource: candidate_body(candidate_id, link_id, envelope,
-                                                        kind, store_path, now),
+                                                        kind, store_path),
                                idempotency_key: "inbox-candidate-#{digest}", surface: surface)
 
       { status: "CANDIDATE_PROPOSED", candidate_id: candidate_id, link_id: link_id,
@@ -110,7 +146,13 @@ module OMOS
                           "created_at" => envelope.fetch("captured_at") } }
     end
 
-    def candidate_body(candidate_id, link_id, envelope, memory_kind, store_path, now)
+    # review P1-2：chronology.created_at 原本吃呼叫端當下的 now，於是同一份
+    # 內容隔幾秒再匯入就算出不同的 canonical，撞上 PMR_IN_PLACE_ROW_OVERWRITE。
+    # 原本的「連跑 3 次」全落在同一秒，所以假綠。
+    #
+    # 正確的時間是**第一次 capture 的時間**，它存在 envelope 裡而且重放時
+    # 直接沿用——與 id 一樣，同樣的輸入本來就該算出同樣的東西。
+    def candidate_body(candidate_id, link_id, envelope, memory_kind, store_path)
       { "candidate_id" => candidate_id,
         "tenant_id" => envelope.fetch("tenant_id"),
         "employee_owner_ref" => envelope.fetch("employee_owner_ref"),
@@ -130,7 +172,7 @@ module OMOS
                           "acl_ref" => "urn:omos:acl:employee-private",
                           "verification_status" => "NOT_RUN",
                           "acceptance_status" => "PENDING" },
-        "chronology" => { "created_at" => now.utc.iso8601 },
+        "chronology" => { "created_at" => envelope.fetch("captured_at") },
         "candidate_status" => "PROPOSED" }
     end
 

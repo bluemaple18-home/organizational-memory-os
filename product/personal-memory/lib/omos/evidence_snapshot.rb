@@ -67,8 +67,21 @@ module OMOS
       dir = dir_for(store_path, digest)
       envelope_path = File.join(dir, ENVELOPE)
 
-      # 已經有同一份內容 → 重放。回既有 envelope，**不重寫**。
-      return [JSON.parse(File.read(envelope_path)), true] if File.file?(envelope_path)
+      # 已經有同一份內容 → 可能是重放。但**只有 bytes 相同還不夠**。
+      #
+      # review P1-3：原本只看 digest，於是 emp-A 先匯入、emp-B 再匯入相同
+      # bytes 時，第二次回報「重放成功」，snapshot 與 Candidate 卻仍掛在
+      # emp-A 身上——兩個人的 provenance 被靜默黏在一起。卡片寫的是
+      # 「同一 bytes **＋ 同一 owner/source**」才算重放。
+      #
+      # 不同 provenance 一律 fail closed，而且分開兩個錯誤碼：owner/tenant
+      # 不同是身分問題（嚴重），source 路徑不同是來源問題（通常是改名）。
+      # 兩者都不靜默採用第一份。
+      if File.file?(envelope_path)
+        existing = JSON.parse(File.read(envelope_path))
+        assert_same_provenance!(existing, owner_ref, tenant_id, source_path)
+        return [existing, true]
+      end
 
       envelope = {
         "evidence_ref" => evidence_ref(digest),
@@ -111,6 +124,25 @@ module OMOS
       end
 
       [envelope, false]
+    end
+
+    def assert_same_provenance!(existing, owner_ref, tenant_id, source_path)
+      if existing["employee_owner_ref"] != owner_ref || existing["tenant_id"] != tenant_id
+        raise Rejected.new(
+          "INBOX_EVIDENCE_OWNER_CONFLICT",
+          "相同內容已由 #{existing["employee_owner_ref"]}／#{existing["tenant_id"]} 匯入；" \
+          "不得以 #{owner_ref}／#{tenant_id} 的身分沿用同一份 evidence"
+        )
+      end
+
+      expected = File.expand_path(source_path)
+      return if existing.dig("origin", "original_path") == expected
+
+      raise Rejected.new(
+        "INBOX_EVIDENCE_SOURCE_CONFLICT",
+        "相同內容已由 #{existing.dig("origin", "original_path")} 匯入；" \
+        "本次來源是 #{expected}"
+      )
     end
 
     # snapshot 仍在、且 bytes 仍與 digest 相符。原始來源檔被移走也不影響。

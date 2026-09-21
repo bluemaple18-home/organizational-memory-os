@@ -1,7 +1,8 @@
 ---
 id: PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 status: SLICE_A_READY_FOR_REVIEW
-slice_a: READY_FOR_REVIEW（8b49d16 匯入本體、8d1227a 身分解析；證據包 .work/handoff/PERSONAL-INBOX-SLICE-A-EVIDENCE-20260921.md）
+slice_a: REPAIR_01_READY_FOR_REVIEW（8b49d16 匯入本體、8d1227a 身分解析、repair-01；證據包 .work/handoff/PERSONAL-INBOX-SLICE-A-EVIDENCE-20260921.md）
+slice_a_review_round_1: NO_GO（2026-09-21，P1×3：身分拼接＋格式未驗／跨時間重匯不冪等／content-only dedup 黏合 provenance；P2×1：identity validation 未下沉）→ repair-01 已修
 slice_b: RESEARCH_DONE（.work/CARD-PERSONAL-INBOX-SLICE-B-RESEARCH-20260921.md；產品碼待 Slice A GO）
 type: bounded-product-capability
 priority: MVP
@@ -105,6 +106,28 @@ Candidate 的 `tenant_id` 與 `employee_owner_ref` 是必填，但產品原本**
 
 環境變數不作為正式預設來源——它太容易隨 shell／session 漂移；只在沒有
 receipt 身分時採用，且會在 stderr 出聲說明。
+
+### 2.2.2 repair-01（2026-09-21）：review round 1 的 3×P1 ＋ 1×P2
+
+| # | 缺陷 | 修法 |
+|---|---|---|
+| P1-1 | 身分逐欄 fallback 會**拼接**：receipt=`emp-A/t-A` 時 `import --owner emp-B` 得到 `emp-B/t-A`，rc=0 靜默寫入；且 owner/tenant 格式**完全沒驗**（`NOT-A-URN` 照收） | 身分是一組 **tuple**：明確參數必須兩個一起給，否則 `INBOX_OWNER_IDENTITY_INCOMPLETE`，不往下一個來源補。格式驗證移到 capture **之前** |
+| P1-2 | 跨時間重匯不冪等：`chronology.created_at`（以及 link 的 `provenance.created_at`、`validity_interval.effective_from`）吃呼叫端當下的 `now`，隔幾秒 canonical 就變，撞 `PMR_IN_PLACE_ROW_OVERWRITE`。原本「連跑 3 次」落在同一秒，**假綠** | 三個時間欄位全部改取 envelope 的 `captured_at`——第一次 capture 的時間，重放時沿用 |
+| P1-3 | content-only dedup：`emp-A` 先匯入、`emp-B` 再匯入相同 bytes，第二次回報「重放成功」但 provenance 仍是 `emp-A` | digest 已存在但 owner/tenant 或來源路徑不同 → **fail closed**，兩個分開的錯誤碼，不靜默沿用第一份 |
+| P2 | `Inbox.import` 直接吃 caller 傳來的身分 | 裁決採納：receipt lookup 留在 CLI，**驗證下沉到 `Inbox`**，在寫 snapshot 前驗 resolved tuple |
+
+#### 身分格式驗到什麼程度
+
+以**契約實際宣告的**為準，不自行發明：
+
+- `employee_owner_ref`：common-vocabulary 的
+  `identifiers.omos_generated.ref_template` 是
+  `urn:omos:{resource-kind}:{uuid}`，因此至少必須是 `urn:omos:<kind>:<id>`。
+  **不**強制 UUIDv7——既有資料與 fixture 用的是
+  `urn:omos:employee:emp-001`，強制會把既有安裝打掛。
+- `tenant_id`：契約**沒有宣告任何 shape**（只有 `tenant_id_required: true`）。
+  因此只驗「非空、不含空白與控制字元」，**不自行發明 tenant regex**。
+  真正的 tenant 形狀應由契約決定——**這是一個 open gap，列在此處備查**。
 
 ### 2.3 Idempotency / failure
 

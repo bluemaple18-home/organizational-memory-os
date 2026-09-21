@@ -1535,7 +1535,7 @@ Dir.mktmpdir("omos-3c-a-inbox") do |dir|
   #      少了它，把 governance 改成 PASS/ACCEPTED 只會讓測試整個炸掉，
   #      而不是某一項轉紅。
   forged = OMOS::Inbox.candidate_body(
-    OMOS::EvidenceSnapshot.candidate_ref("e" * 64), r1[:link_id], env, "DECISION", store, Time.now.utc
+    OMOS::EvidenceSnapshot.candidate_ref("e" * 64), r1[:link_id], env, "DECISION", store
   )
   forged["governance"] = forged["governance"].merge("verification_status" => "PASS",
                                                     "acceptance_status" => "ACCEPTED")
@@ -1657,6 +1657,142 @@ Dir.mktmpdir("omos-3c-a-identity-missing") do |dir|
   C.check("環境變數可作為暫時來源但必須出聲說明", err8.strip[0, 40],
           st8.success? && out8.include?("CANDIDATE_PROPOSED") &&
           err8.include?("環境變數") && err8.include?("install --owner"))
+  C.group = nil
+end
+
+# --- Slice A repair-01｜收 reviewer 的 3×P1 ＋ 1×P2 ---
+#
+# 三筆都是既有 suite 沒打到的缺口，不是回歸。
+Dir.mktmpdir("omos-3c-a-inbox-repair01") do |dir|
+  C.group = "A"
+  store = File.join(dir, "r1.db")
+  rt = OMOS::Runtime.open(store)
+  cli_surface = OMOS::Runtime::SURFACES[:cli]
+  a_owner = "urn:omos:employee:emp-A"
+  b_owner = "urn:omos:employee:emp-B"
+  src = File.join(dir, "note.md")
+  File.write(src, "# 決策\n\n用 WAL。\n")
+
+  imp = lambda do |path, owner, tenant, at: Time.now.utc|
+    OMOS::Inbox.import(rt, store, path, memory_kind: "DECISION",
+                                        owner_ref: owner, tenant_id: tenant,
+                                        surface: cli_surface, now: at)
+  end
+  # 廣捕而不是只捕 Rejected：少了一道保護時，往下走可能撞出別的例外，
+  # 那應該讓對應那一項**轉紅**，而不是讓整包測試炸掉——炸掉的反證等於沒有
+  # 鑑別力，因為看不出是哪一個不變式壞了。
+  caught = lambda do |&blk|
+    blk.call
+    nil
+  rescue OMOS::EvidenceSnapshot::Rejected => e
+    e.code
+  rescue StandardError => e
+    "#{e.class}: #{e.message[0, 40]}"
+  end
+  snap_count = -> { Dir.exist?(OMOS::EvidenceSnapshot.root(store)) ? Dir.children(OMOS::EvidenceSnapshot.root(store)).size : 0 }
+
+  # P1-1（下半）：身分格式必須在 capture 之前驗，且驗證下沉到 Inbox（P2）
+  before = snap_count.call
+  C.check("P1-1 owner_ref 不是 urn 形式 → 在 capture 前擋下",
+          caught.call { imp.call(src, "NOT-A-URN", "t-A") }.to_s,
+          caught.call { imp.call(src, "NOT-A-URN", "t-A") } == "INBOX_OWNER_REF_MALFORMED")
+  C.check("P1-1 owner_ref 格式錯時不得留下 snapshot", snap_count.call.to_s,
+          snap_count.call == before)
+  C.check("P1-1 tenant_id 含空白 → 擋下",
+          caught.call { imp.call(src, a_owner, "t A") }.to_s,
+          caught.call { imp.call(src, a_owner, "t A") } == "INBOX_TENANT_ID_MALFORMED")
+  C.check("P2 身分驗證下沉到 Inbox（不經 CLI 也擋得住）", "",
+          caught.call { imp.call(src, "", "t-A") } == "INBOX_OWNER_REF_MALFORMED")
+
+  # P1-2：同一份內容在**不同時間**重匯，必須仍是冪等重放。
+  #       原本 chronology.created_at 吃當下的 now，隔幾秒 canonical 就變了，
+  #       撞 PMR_IN_PLACE_ROW_OVERWRITE。舊測試三次都落在同一秒，所以假綠。
+  # 用自己的檔案：前面那些格式錯的嘗試若因為少了某道保護而意外成功，
+  # 不該把這一組的前提污染掉。每個不變式要能被獨立觀察。
+  t0 = Time.utc(2026, 9, 21, 10, 0, 0)
+  src2 = File.join(dir, "idempotent.md")
+  File.write(src2, "# 冪等\n\n這份專供跨時間重匯測試。\n")
+  first = imp.call(src2, a_owner, "t-A", at: t0)
+  rows_after_first = rt.read_rows(surface: cli_surface).size
+  replay_code = caught.call { imp.call(src2, a_owner, "t-A", at: t0 + 3600) }
+  second = imp.call(src2, a_owner, "t-A", at: t0 + 86_400)
+  C.check("P1-2 跨時間重匯不得撞 PMR_IN_PLACE_ROW_OVERWRITE",
+          replay_code.to_s, replay_code.nil?)
+  C.check("P1-2 跨時間重匯仍是重放（不新增 row）",
+          "#{rows_after_first}→#{rt.read_rows(surface: cli_surface).size}",
+          rt.read_rows(surface: cli_surface).size == rows_after_first)
+  # 牆上時鐘**完全不得**進入任何一列的 canonical。只斷言「重放不新增 row」
+  # 不夠——兩次匯入若落在同一秒，漏掉的 Time.now 也測不出來（reviewer 正是
+  # 靠等 2 秒才撞到）。所以直接斷言每個時間欄位都等於第一次 capture 的時間，
+  # 而那是一個固定的過去時刻，與執行當下無關。
+  first_rows = rt.read_rows(surface: cli_surface)
+  first_cand = first_rows.find { |r| r[:row_id] == first[:candidate_id] }[:resource]
+  first_link = first_rows.find { |r| r[:row_id] == first[:link_id] }[:resource]
+  C.check("P1-2 link.provenance.created_at 取自第一次 capture",
+          first_link.dig("provenance", "created_at").to_s,
+          first_link.dig("provenance", "created_at") == t0.iso8601)
+  C.check("P1-2 candidate.validity_interval.effective_from 取自第一次 capture",
+          first_cand.dig("validity_interval", "effective_from").to_s,
+          first_cand.dig("validity_interval", "effective_from") == t0.iso8601)
+  C.check("P1-2 chronology.created_at 取自第一次 capture，不隨重匯漂移",
+          rt.read_rows(surface: cli_surface)
+            .find { |r| r[:row_id] == first[:candidate_id] }[:resource]
+            .dig("chronology", "created_at").to_s,
+          rt.read_rows(surface: cli_surface)
+            .find { |r| r[:row_id] == first[:candidate_id] }[:resource]
+            .dig("chronology", "created_at") == t0.iso8601 &&
+          second[:candidate_id] == first[:candidate_id])
+
+  # P1-3：相同 bytes、不同 provenance 不是重放。不得靜默沿用第一份。
+  rows_before = rt.read_rows(surface: cli_surface).size
+  owner_conflict = caught.call { imp.call(src2, b_owner, "t-B") }
+  C.check("P1-3 相同 bytes 不同 owner/tenant → fail closed",
+          owner_conflict.to_s, owner_conflict == "INBOX_EVIDENCE_OWNER_CONFLICT")
+
+  renamed = File.join(dir, "renamed.md")
+  FileUtils.cp(src2, renamed)
+  source_conflict = caught.call { imp.call(renamed, a_owner, "t-A") }
+  C.check("P1-3 相同 bytes 不同來源路徑 → fail closed（錯誤碼分開）",
+          source_conflict.to_s, source_conflict == "INBOX_EVIDENCE_SOURCE_CONFLICT")
+  C.check("P1-3 衝突時 snapshot 的 provenance 未被覆寫",
+          JSON.parse(File.read(File.join(
+            OMOS::EvidenceSnapshot.dir_for(store, first[:content_sha256]), "envelope.json"
+          )))["employee_owner_ref"].to_s,
+          JSON.parse(File.read(File.join(
+            OMOS::EvidenceSnapshot.dir_for(store, first[:content_sha256]), "envelope.json"
+          )))["employee_owner_ref"] == a_owner)
+  C.check("P1-3 衝突時不得寫入任何一列",
+          "#{rows_before}→#{rt.read_rows(surface: cli_surface).size}",
+          rt.read_rows(surface: cli_surface).size == rows_before)
+
+  rt.store.close
+  C.group = nil
+end
+
+# P1-1（上半）：身分是一組 tuple，明確參數不得與 receipt 拼接
+Dir.mktmpdir("omos-3c-a-identity-splice") do |dir|
+  C.group = "A"
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
+  note = File.join(dir, "note.md")
+  File.write(note, "# 決策\n\n用 WAL。\n")
+  Open3.capture3({ "HOME" => home }, exe, "install", "--home", home,
+                 "--owner", "urn:omos:employee:emp-A", "--tenant", "t-A")
+
+  _, err, st = Open3.capture3({ "HOME" => home }, exe, "import", note,
+                              "--memory-kind", "DECISION",
+                              "--owner", "urn:omos:employee:emp-B")
+  store = File.join(home, ".omos/personal-memory/personal.db")
+  rt = OMOS::Runtime.open(store)
+  owners = rt.read_rows(surface: OMOS::Runtime::SURFACES[:cli])
+             .select { |r| r[:kind] == "PersonalMemoryCandidate" }
+             .map { |r| [r[:resource]["employee_owner_ref"], r[:resource]["tenant_id"]] }
+  rt.store.close
+  C.check("P1-1 只覆寫 --owner → 拒絕，不得與 receipt 的 tenant 拼接",
+          err.strip[0, 50],
+          !st.success? && err.include?("INBOX_OWNER_IDENTITY_INCOMPLETE"))
+  C.check("P1-1 拼接被拒後不得寫入任何 Candidate", owners.inspect, owners.empty?)
   C.group = nil
 end
 

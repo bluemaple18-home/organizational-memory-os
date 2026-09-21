@@ -135,28 +135,37 @@ module OMOS
     # 環境變數排在 receipt 之後且只在沒有 receipt 身分時才採用，並且會出聲：
     # 它太容易隨 shell／session 漂移，適合測試或暫時相容，不適合當長期來源。
     # 三者都沒有就當場失敗——猜一個 owner 會讓整條 evidence 鏈掛在錯的人身上。
+    # review P1-1：原本逐欄 fallback，於是 receipt=emp-A/t-A 時
+    # `import --owner emp-B` 會拼出 **emp-B / t-A**——一個從來不存在的身分組合，
+    # 而且 rc=0 靜默寫進 Candidate。
+    #
+    # 身分是一個 **tuple**，不是兩個獨立欄位：整組取自同一個來源，或整組不取。
+    # 只給一半視為輸入錯誤，不往下一個來源補。
     def import_identity(opts, err)
-      owner = presence(opts[:owner])
-      tenant = presence(opts[:tenant])
-      return [owner, tenant] if owner && tenant
+      explicit_owner = presence(opts[:owner])
+      explicit_tenant = presence(opts[:tenant])
+      if explicit_owner || explicit_tenant
+        if explicit_owner.nil? || explicit_tenant.nil?
+          raise Inbox::IdentityIncomplete,
+                "--owner 與 --tenant 必須一起給（身分是一組，不能只覆寫一半）"
+        end
+        return [explicit_owner, explicit_tenant]
+      end
 
       stored = installed_identity
-      owner ||= presence(stored["employee_owner_ref"])
-      tenant ||= presence(stored["tenant_id"])
-      return [owner, tenant] if owner && tenant
+      s_owner = presence(stored["employee_owner_ref"])
+      s_tenant = presence(stored["tenant_id"])
+      return [s_owner, s_tenant] if s_owner && s_tenant
 
       env_owner = presence(ENV["OMOS_EMPLOYEE_REF"])
       env_tenant = presence(ENV["OMOS_TENANT_ID"])
-      if owner.nil? && tenant.nil? && env_owner && env_tenant
+      if env_owner && env_tenant
         err.puts "[omos-personal-memory] 身分取自環境變數（測試／暫時相容用）。" \
                  "長期請用 install --owner/--tenant 寫進 receipt。"
         return [env_owner, env_tenant]
       end
 
-      missing = []
-      missing << "employee_owner_ref" if owner.nil?
-      missing << "tenant_id" if tenant.nil?
-      raise Inbox::IdentityRequired, missing.join("、")
+      raise Inbox::IdentityRequired, "employee_owner_ref、tenant_id"
     end
 
     def presence(v) = v.is_a?(String) && !v.strip.empty? ? v.strip : nil
@@ -197,6 +206,9 @@ module OMOS
         end
       end
       0
+    rescue Inbox::IdentityIncomplete => e
+      err.puts "INBOX_OWNER_IDENTITY_INCOMPLETE: #{e.message}"
+      2
     rescue Inbox::IdentityRequired => e
       err.puts "INBOX_OWNER_IDENTITY_REQUIRED: 缺 #{e.message}"
       err.puts "  設定一次即可： omos-personal-memory install --owner urn:omos:employee:… --tenant t-…"
