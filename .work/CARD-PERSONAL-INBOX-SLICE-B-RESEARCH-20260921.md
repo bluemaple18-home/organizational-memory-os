@@ -1,6 +1,6 @@
 ---
 id: PERSONAL-INBOX-SLICE-B-RESEARCH-20260921
-status: B1_B2_DONE_READY_FOR_REVIEW
+status: B2_REPAIR_01_READY_FOR_REVIEW
 type: research
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 scope: Slice B（review due ＋ Friday trigger ＋ 提醒）
@@ -137,6 +137,26 @@ contract。
 | plist 寫入 | temp + rename。被截斷的 plist 比沒有更糟：launchd 拒載，而使用者只會發現「週五沒有提醒」 |
 | 逾期 | 只呈現 `overdue`，**不得**自動 SKIPPED。狀態物件裡連這個詞都沒有 |
 | 通知失敗 | 寫 stderr，失敗原因分「例外」與「回非零」兩種；**不**另開 ledger、**不**擴 `operation_journal` |
+
+## 3.6 B2 repair-01（2026-09-21）：review round 1 的 3×P1
+
+B1 無 blocker；三筆都是 B2 的實際行為缺口，不是測試覆蓋問題。
+
+| # | 缺陷 | 修法 |
+|---|---|---|
+| P1-1 | `install`／`remove` **沒有真的管理 launchd job**——只寫／刪 plist，程式裡沒有 `launchctl`，CLI 還印一行叫使用者自己跑 `launchctl load`。`status` 看到檔案存在就報「已安裝」，會把「plist 在、job 沒載入」當成功 | `install` 走 `bootout`（若已存在）＋ `bootstrap`，`remove` 走 `bootout` ＋ 刪檔，`loaded?` 用 `launchctl print` 查實際載入。`installed` 的定義改成「plist 是我們的 **且** job 真的載入」 |
+| P1-2 | 自訂 `--anchor-hour` **split-brain**：plist 可裝成 15:00，但啟動的仍是沒帶 anchor 的 `review due`，`status` 也固定用預設 16:00——15:00 的排程在週五 15:00 被叫醒時 trigger 認為 W38、status 卻算成 W37 | anchor 同時寫進 `StartCalendarInterval.Hour` **與** `ProgramArguments` 的 `--anchor-hour`；`status` 從已安裝 plist **讀回**，兩個來源不一致就回 `nil` 退回預設並顯示，不猜。`review due` 也接 `--anchor-hour` |
+| P1-3 | ownership 看**檔名**（`File.basename == "#{LABEL}.plist"`），同檔名但內部 `Label` 是 `com.foreign.job` 的 plist 仍被刪掉 | 解析 plist 讀內部 `Label`，完全相等才算自己的。解析失敗一律視為「不是我們的」——看不懂的東西不刪。`install` 也拒絕覆寫我們路徑上的第三方 plist |
+
+### 測試側：launchctl 一律注入替身
+
+交付方在實作 repair-01 時**真的踩到**：改用真 `launchctl` 之後整包測試跑完，
+`launchctl print gui/<uid>/com.omos.personal-memory.weekly-review` 確實存在
+——測試把一個指向 tmpdir（且該目錄隨即消失）的 job 載進了執行者的 session。
+已 `bootout` 清除，並改為全程注入假 launchctl，另加一條檢查斷言本組只用替身。
+
+`install` 的 ownership 檢查移到 launcher 檢查**之前**：我們路徑上躺著別人的
+plist 時，那是比「本地安裝不完整」更該先講的事實。
 
 ## 4. 實作順序（Slice A GO 後）
 

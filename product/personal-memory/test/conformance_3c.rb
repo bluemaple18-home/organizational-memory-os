@@ -2066,7 +2066,12 @@ end
 #
 # 這一組最重要的不變式是「排程不是 acceptance」：週五有跑 job 不等於這週
 # review 已完成，逾期也不等於 SKIPPED。契約把 terminal disposition 留給人的
-# closeout，所以這裡任何一條自動化路徑都不得產生 closeout／Record／Promotion。
+# closeout，所以任何一條自動化路徑都不得產生 closeout／Record／Promotion。
+#
+# **launchctl 一律注入替身。** 用真的 launchctl 會把 job 載進執行測試那個人
+# 的 session，而且指向 tmpdir 裡馬上就會消失的路徑——那是會留在機器上的外部
+# 副作用。交付方在 repair-01 實作時就真的踩到過一次：整包測試跑完之後，
+# `launchctl print gui/<uid>/com.omos.personal-memory.weekly-review` 確實存在。
 Dir.mktmpdir("omos-3c-a-schedule") do |dir|
   C.group = "A"
   require "omos/schedule"
@@ -2077,68 +2082,142 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
   Open3.capture3({ "HOME" => home }, exe, "install", "--home", home,
                  "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
 
+  # 假的 launchctl：記錄呼叫、以內部狀態模擬 loaded/not loaded。
+  calls = []
+  loaded = { on: false }
+  fake_launchctl = lambda do |*args|
+    calls << args
+    case args.first
+    when "bootstrap" then loaded[:on] = true; { ok: true, status: 0, out: "", err: "" }
+    when "bootout"   then was = loaded[:on]; loaded[:on] = false
+                          { ok: was, status: was ? 0 : 3, out: "", err: "" }
+    when "print"     then { ok: loaded[:on], status: loaded[:on] ? 0 : 113, out: "", err: "" }
+    else { ok: false, status: 1, out: "", err: "unknown" }
+    end
+  end
+  lc = { launchctl: fake_launchctl }
+
   agents = File.join(home, "Library/LaunchAgents")
   FileUtils.mkdir_p(agents)
   foreign = File.join(agents, "com.someoneelse.weekly-review.plist")
   File.write(foreign, "<plist><dict/></plist>")
   foreign_bytes = File.binread(foreign)
 
-  # (1) plist 是合法的 plist，且帶 Friday 16:00 ＋ RunAtLoad（D4 裁決）
-  # install 失敗要讓對應項目**轉紅**，不是讓整包炸掉——炸掉的反證看不出是哪
-  # 一個不變式壞了（Slice A repair-01 已經踩過同一件事）。所有 install 都走
-  # 這個 helper，漏掉任何一處，那一處就會變成整包中斷。
-  try_install = lambda do
-    OMOS::Schedule.install(home: home)
+  try_install = lambda do |**kw|
+    OMOS::Schedule.install(home: home, **lc, **kw)
   rescue StandardError => e
-    { plist: File.join(home, "Library/LaunchAgents/#{OMOS::Schedule::LABEL}.plist"),
-      replaced: nil, error: "#{e.class}: #{e.message[0, 60]}" }
+    { plist: OMOS::Schedule.plist_path(home), replaced: nil, loaded: nil,
+      error: "#{e.class}: #{e.message[0, 60]}" }
   end
+
+  # (1) plist 合法，且帶 Friday 16:00 ＋ RunAtLoad（D4 裁決）
   r = try_install.call
-  C.check("schedule install 成功", r[:error].to_s, r[:error].nil?)
   plist = r[:plist]
+  C.check("schedule install 成功", r[:error].to_s, r[:error].nil?)
   lint_out, _, lint_st = Open3.capture3("/usr/bin/plutil", "-lint", plist)
   C.check("產生的是合法 plist（plutil -lint）", lint_out.strip[-6, 6].to_s, lint_st.success?)
-  parsed, = Open3.capture3("/usr/bin/plutil", "-convert", "json", "-o", "-", plist)
-  doc = begin
-    JSON.parse(parsed)
-  rescue JSON::ParserError
-    {}
-  end
-  C.check("StartCalendarInterval 是週五 16:00",
-          doc["StartCalendarInterval"].inspect,
+  doc = OMOS::Schedule.plutil_json(plist) || {}
+  C.check("StartCalendarInterval 是週五 16:00", doc["StartCalendarInterval"].inspect,
           doc.dig("StartCalendarInterval", "Weekday") == 5 &&
           doc.dig("StartCalendarInterval", "Hour") == 16)
   C.check("RunAtLoad 為 true（錯過後在下次登入補喚醒）", doc["RunAtLoad"].to_s,
           doc["RunAtLoad"] == true)
 
-  # (2) 呼叫穩定 launcher，不得 pin artifact-id
   args = doc["ProgramArguments"] || []
-  # 一律走 to_s：plist 沒產生（或欄位被改掉）時 args 會是空的，
-  # 這裡必須轉紅而不是 NoMethodError 把整包打斷。
   C.check("LaunchAgent 走 current/，不得 pin artifact-id", args.first.to_s[-40, 40].to_s,
           args.first.to_s.include?("/.omos/personal-memory/current/") &&
           !args.first.to_s.match?(%r{/versions/[0-9a-f]+}))
   C.check("LaunchAgent 呼叫的是 review due（不是任何會寫入的指令）", args.inspect,
           args[1].to_s == "review" && args[2].to_s == "due")
 
-  # (3) 重跑不得產生第二份
+  # (2) repair-01 P1-1：install 必須真的 bootstrap，status 要反映實際載入狀態
+  C.check("P1-1 install 真的呼叫 launchctl bootstrap",
+          calls.map(&:first).inspect,
+          calls.any? { |c| c.first == "bootstrap" && c.last == plist })
+  C.check("P1-1 install 回報實際載入狀態", r[:loaded].to_s, r[:loaded] == true)
+  st_loaded = OMOS::Schedule.status(home: home, **lc)
+  C.check("P1-1 status 反映 job 已載入", st_loaded[:installed].to_s,
+          st_loaded[:installed] == true && st_loaded[:loaded] == true)
+
+  # plist 在、但 job 沒載入 → 不得報「已安裝」
+  loaded[:on] = false
+  st_unloaded = OMOS::Schedule.status(home: home, **lc)
+  C.check("P1-1 plist 在但 job 未載入 → 不得當成已安裝",
+          "present=#{st_unloaded[:plist_present]} loaded=#{st_unloaded[:loaded]} installed=#{st_unloaded[:installed]}",
+          st_unloaded[:plist_present] == true && st_unloaded[:loaded] == false &&
+          st_unloaded[:installed] == false)
+  loaded[:on] = true
+
+  # (3) repair-01 P1-2：自訂 anchor 必須完整傳遞，不得 split-brain
+  r15 = try_install.call(anchor_hour: 15)
+  doc15 = OMOS::Schedule.plutil_json(plist) || {}
+  args15 = doc15["ProgramArguments"] || []
+  ai = args15.index("--anchor-hour")
+  C.check("P1-2 anchor 同時進 StartCalendarInterval 與 ProgramArguments",
+          "cal=#{doc15.dig("StartCalendarInterval", "Hour")} args=#{ai && args15[ai + 1]}",
+          doc15.dig("StartCalendarInterval", "Hour") == 15 &&
+          ai && args15[ai + 1].to_s == "15" && r15[:anchor_hour] == 15)
+  st15 = OMOS::Schedule.status(home: home, now: Time.new(2026, 9, 18, 15, 30, 0), **lc)
+  C.check("P1-2 status 讀回已安裝的 anchor，15:00 的排程在週五 15:30 算成 W38",
+          "#{st15[:anchor_hour]}／#{st15[:period].split(":").last}",
+          st15[:anchor_hour] == 15 && st15[:period].end_with?("2026-W38"))
+  st16 = OMOS::Schedule.status(home: home, now: Time.new(2026, 9, 18, 15, 30, 0),
+                               **lc).tap { try_install.call(anchor_hour: 16) }
+  st16b = OMOS::Schedule.status(home: home, now: Time.new(2026, 9, 18, 15, 30, 0), **lc)
+  C.check("P1-2 換回 16:00 後，同一時刻改算成 W37（證明 anchor 真的生效）",
+          "#{st16b[:anchor_hour]}／#{st16b[:period].split(":").last}",
+          st16b[:anchor_hour] == 16 && st16b[:period].end_with?("2026-W37"))
+  C.check("P1-2 非法 anchor 一律拒絕", try_install.call(anchor_hour: 99)[:error].to_s[0, 40],
+          try_install.call(anchor_hour: 99)[:error].to_s.include?("SCHEDULE_ANCHOR_HOUR_INVALID"))
+
+  # (4) repair-01 P1-3：ownership 看 plist 內部 Label，不是檔名
+  impostor_dir = File.join(dir, "impostor")
+  FileUtils.mkdir_p(File.join(impostor_dir, "Library/LaunchAgents"))
+  impostor = File.join(impostor_dir, "Library/LaunchAgents/#{OMOS::Schedule::LABEL}.plist")
+  File.write(impostor, <<~XML)
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0"><dict><key>Label</key><string>com.foreign.job</string></dict></plist>
+  XML
+  impostor_bytes = File.binread(impostor)
+  rm_impostor = OMOS::Schedule.remove(home: impostor_dir, **lc)
+  C.check("P1-3 同檔名但 plist 內 Label 是別人的 → 不得刪除",
+          "#{rm_impostor[:removed]}／#{rm_impostor[:reason]}／#{rm_impostor[:found_label]}",
+          rm_impostor[:removed] == false && rm_impostor[:reason] == "NOT_OURS" &&
+          rm_impostor[:found_label] == "com.foreign.job")
+  C.check("P1-3 冒名 plist 逐位元組不受影響", "",
+          File.file?(impostor) && File.binread(impostor) == impostor_bytes)
+  impostor_install = begin
+    OMOS::Schedule.install(home: impostor_dir, **lc)
+    nil
+  rescue OMOS::Schedule::Failed => e
+    e.code
+  end
+  C.check("P1-3 install 不得覆寫我們路徑上的第三方 plist", impostor_install.to_s,
+          impostor_install == "SCHEDULE_FOREIGN_PLIST_AT_OUR_PATH" &&
+          File.binread(impostor) == impostor_bytes)
+
+  # (5) 重跑不得產生第二份；remove 要 bootout ＋ 刪檔，且不碰第三方
   r2 = try_install.call
   ours = Dir.children(agents).select { |f| f.include?("omos") }
   C.check("schedule install 重跑不產生第二份 LaunchAgent",
           "#{ours.size} 份／replaced=#{r2[:replaced]}",
           ours.size == 1 && r2[:replaced] == true)
+  C.check("重裝先 bootout 再 bootstrap（launchd 不收同 Label 重複載入）",
+          calls.last(2).map(&:first).inspect,
+          calls.each_cons(2).any? { |a, b| a.first == "bootout" && b.first == "bootstrap" })
 
-  # (4) collision-adjacent：只移除自己那一支
-  removed = OMOS::Schedule.remove(home: home)
-  C.check("schedule remove 只移除本產品自己的 job", removed[:removed].to_s,
-          removed[:removed] == true && !File.exist?(plist))
+  removed = OMOS::Schedule.remove(home: home, **lc)
+  C.check("schedule remove 真的 bootout 並刪除自己的 plist",
+          "#{removed[:removed]}／loaded=#{removed[:loaded]}",
+          removed[:removed] == true && !File.exist?(plist) && removed[:loaded] == false)
   C.check("第三方 LaunchAgent 逐位元組不受影響", "",
           File.file?(foreign) && File.binread(foreign) == foreign_bytes)
   C.check("未安裝時 remove 明確回 NOT_INSTALLED，不誤刪別人",
-          OMOS::Schedule.remove(home: home)[:removed].to_s,
-          OMOS::Schedule.remove(home: home)[:removed] == false && File.file?(foreign))
+          OMOS::Schedule.remove(home: home, **lc)[:reason].to_s,
+          OMOS::Schedule.remove(home: home, **lc)[:reason] == "NOT_INSTALLED" && File.file?(foreign))
 
-  # (5) 逾期只是狀態，**不得**自動 SKIPPED，也不得產生 closeout
+  # (6) 逾期只是狀態，不得自動 SKIPPED，也不得產生 closeout
   try_install.call
   rt = OMOS::Runtime.open(store)
   cli_surface = OMOS::Runtime::SURFACES[:cli]
@@ -2146,7 +2225,8 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
   closeouts_before = rt.store.db.get_first_value("SELECT COUNT(*) FROM closeouts").to_i
 
   overdue_now = Time.new(2026, 9, 22, 9, 0, 0)      # 週二：catch-up 截止已過
-  st = OMOS::Schedule.status(home: home, now: overdue_now, runtime: rt, surface: cli_surface)
+  st = OMOS::Schedule.status(home: home, now: overdue_now, runtime: rt,
+                             surface: cli_surface, **lc)
   C.check("超過 catch-up 截止 → 呈現逾期", st[:overdue].to_s, st[:overdue] == true)
   C.check("逾期不得自動變成 SKIPPED（狀態裡沒有這個詞）", st.inspect[0, 60],
           !st.to_s.include?("SKIPPED"))
@@ -2159,13 +2239,15 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
           rt.store.db.get_first_value("SELECT COUNT(*) FROM closeouts").to_s,
           rt.store.db.get_first_value("SELECT COUNT(*) FROM closeouts").to_i == closeouts_before)
 
-  # (6) 通知：失敗不影響 queue，但不得完全靜默（D5 裁決）
+  # (7) 通知：失敗不影響 queue，但不得完全靜默（D5 裁決）
   err_io = StringIO.new
   failing = ->(_msg) { raise Errno::ENOENT, "osascript" }
   res = OMOS::Schedule.notify(3, io: err_io, runner: failing)
   C.check("通知失敗不得影響 queue（不拋出）", res[:notified].to_s, res[:notified] == false)
   C.check("通知失敗必須出聲（不得完全靜默）", err_io.string.strip[0, 40],
           err_io.string.include?("通知失敗") && err_io.string.include?("不影響 queue"))
+  C.check("通知失敗只印一行（失敗出口必須唯一）", err_io.string.lines.size.to_s,
+          err_io.string.lines.size == 1)
   C.check("通知失敗的原因要說得出是哪一種（例外 vs 回非零）", res[:reason].to_s[0, 30],
           res[:reason].to_s.start_with?("Errno::ENOENT"))
 
@@ -2173,7 +2255,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
   nonzero = OMOS::Schedule.notify(1, io: nonzero_io, runner: ->(_m) { false })
   C.check("osascript 回非零也必須出聲，且原因不同於例外", nonzero[:reason].to_s,
           nonzero[:notified] == false && nonzero[:reason] == "osascript 回非零" &&
-          nonzero_io.string.include?("通知失敗"))
+          nonzero_io.string.lines.size == 1)
 
   quiet = StringIO.new
   none = OMOS::Schedule.notify(0, io: quiet, runner: ->(_m) { raise "不該被呼叫" })
@@ -2186,10 +2268,15 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
   C.check("有待 review 時送出「本週有 N 筆待 review」", sent.first.to_s,
           ok[:notified] == true && sent.first == "Personal Memory：本週有 2 筆待 review")
 
-  # (7) 不新增任何 ledger／table 給 notification
+  # (8) 不新增任何 ledger／table 給 notification
   tables = rt.store.db.execute("SELECT name FROM sqlite_master WHERE type='table'").flatten
   C.check("不得為 notification 另開 table／ledger", tables.sort.inspect[0, 70],
           tables.none? { |t| t.to_s.match?(/notif|schedule|queue/i) })
+
+  # (9) 測試本身不得把 job 載進真實 session
+  C.check("本組測試全程未呼叫真實 launchctl（只用注入替身）",
+          "#{calls.size} 次注入呼叫",
+          calls.size.positive?)
 
   rt.store.close
   C.group = nil

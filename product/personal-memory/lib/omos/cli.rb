@@ -30,7 +30,8 @@ module OMOS
         import FILE [--memory-kind KIND]
                                 把一個 .md／.txt 匯入成 PersonalMemoryCandidate(PROPOSED)
         inbox list              列出已匯入的 evidence 與對應的 candidate
-        review due [--notify]   列出本週期待 review 的 candidate（純讀，不做任何處置）
+        review due [--notify] [--anchor-hour H]
+                                列出本週期待 review 的 candidate（純讀，不做任何處置）
         schedule install [--home DIR] [--anchor-hour H]
                                 安裝週五提醒（macOS launchd LaunchAgent）
         schedule status [--home DIR]
@@ -333,7 +334,8 @@ module OMOS
       end
 
       with_runtime(path) do |rt|
-        q = ReviewQueue.due(rt, surface: surface)
+        anchor = opts[:anchor_hour] || ReviewQueue::DEFAULT_ANCHOR_HOUR
+        q = ReviewQueue.due(rt, anchor_hour: anchor, surface: surface)
         notified = opts[:notify] ? Schedule.notify(q[:items].size, io: err) : nil
         out.puts "review period: #{q[:id]}"
         out.puts "  anchor:       #{q[:scheduled_anchor_at]}（起始 #{q[:scheduled_review_period_start]}）"
@@ -358,18 +360,22 @@ module OMOS
       home = opts[:home] || Dir.home
       case sub
       when "install"
-        r = Schedule.install(home: home, anchor_hour: opts[:anchor_hour] || ReviewQueue::DEFAULT_ANCHOR_HOUR)
+        r = Schedule.install(home: home,
+                             anchor_hour: opts[:anchor_hour] || ReviewQueue::DEFAULT_ANCHOR_HOUR)
         out.puts(r[:replaced] ? "SCHEDULE_REPLACED" : "SCHEDULE_INSTALLED")
-        out.puts "  label: #{r[:label]}"
-        out.puts "  plist: #{r[:plist]}"
-        out.puts "  週五 #{r[:anchor_hour]}:00（本機時區）＋ RunAtLoad 補喚醒"
-        out.puts "  載入： launchctl load -w #{r[:plist]}"
+        out.puts "  label:  #{r[:label]}"
+        out.puts "  plist:  #{r[:plist]}"
+        out.puts "  觸發:   每週五 #{r[:anchor_hour]}:00（本機時區）＋ RunAtLoad 補喚醒"
+        out.puts "  已載入: #{r[:loaded] ? "是" : "否"}"
       when "status"
         with_runtime(path) do |rt|
           st = Schedule.status(home: home, runtime: rt, surface: surface)
-          out.puts "schedule: #{st[:installed] ? "已安裝" : "未安裝"}（#{st[:label]}）"
+          out.puts "schedule: #{st[:installed] ? "已安裝且已載入" : "未安裝"}（#{st[:label]}）"
+          out.puts "  plist:         #{st[:plist_present] ? (st[:plist_is_ours] ? "存在（本產品）" : "存在但不是本產品的") : "不存在"}"
+          out.puts "  launchd job:   #{st[:loaded] ? "已載入" : "未載入"}"
+          out.puts "  anchor:        每週五 #{st[:effective_anchor_hour]}:00#{st[:anchor_hour].nil? ? "（plist 未宣告或不一致，採預設）" : ""}"
           out.puts "  period:        #{st[:period]}"
-          out.puts "  anchor:        #{st[:scheduled_anchor_at]}"
+          out.puts "  排定於:        #{st[:scheduled_anchor_at]}"
           out.puts "  catch-up 截止: #{st[:catch_up_deadline_at]}#{st[:overdue] ? "（逾期）" : ""}"
           out.puts "  待 review:     #{st[:due_count]} 筆"
           out.puts "  本期 terminal closeout: #{st[:terminal_closeout] ? "已提交" : "尚未提交"}"
@@ -377,7 +383,12 @@ module OMOS
         end
       when "remove"
         r = Schedule.remove(home: home)
-        out.puts(r[:removed] ? "SCHEDULE_REMOVED" : "SCHEDULE_NOT_INSTALLED")
+        if r[:removed]
+          out.puts "SCHEDULE_REMOVED"
+        else
+          out.puts "SCHEDULE_NOT_REMOVED（#{r[:reason]}）"
+          out.puts "  該路徑的 plist 內部 Label 是 #{r[:found_label].inspect}，不是本產品的，未動。" if r[:reason] == "NOT_OURS"
+        end
       else
         err.puts "用法: omos-personal-memory schedule install|status|remove"
         return 2
