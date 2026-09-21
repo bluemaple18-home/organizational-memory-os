@@ -1,6 +1,6 @@
 ---
 id: PERSONAL-INBOX-SLICE-B-RESEARCH-20260921
-status: B1_DONE_D1_D2_D3_D4_D5_RESOLVED
+status: B1_B2_DONE_READY_FOR_REVIEW
 type: research
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 scope: Slice B（review due ＋ Friday trigger ＋ 提醒）
@@ -126,6 +126,17 @@ disposition 仍然是人的 closeout。
 **不**為 notification 另開 ledger，也**不**硬塞進現有 `operation_journal`
 ——那份目前是 Store operation evidence，擴它的 kind 會碰到既有 runtime
 contract。
+
+## 3.5 B2 實作結果（2026-09-21）
+
+| 事項 | 做法 |
+|---|---|
+| Label | `com.omos.personal-memory.weekly-review`，**完全相等**才算自己的——與 Host hook 同一類 collision 風險，不得用前綴或「看起來像 OMOS」去猜 |
+| 觸發 | `StartCalendarInterval` Weekday=5 Hour=16 ＋ `RunAtLoad`（D4 裁決） |
+| 呼叫目標 | `~/.omos/personal-memory/current/exe/omos-personal-memory review due --notify`——走穩定 launcher，**不 pin artifact-id**（Q7 §0.1） |
+| plist 寫入 | temp + rename。被截斷的 plist 比沒有更糟：launchd 拒載，而使用者只會發現「週五沒有提醒」 |
+| 逾期 | 只呈現 `overdue`，**不得**自動 SKIPPED。狀態物件裡連這個詞都沒有 |
+| 通知失敗 | 寫 stderr，失敗原因分「例外」與「回非零」兩種；**不**另開 ledger、**不**擴 `operation_journal` |
 
 ## 4. 實作順序（Slice A GO 後）
 

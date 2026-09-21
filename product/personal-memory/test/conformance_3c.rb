@@ -14,6 +14,7 @@
 # 全程不碰使用者的正式設定——所有操作都在 Dir.mktmpdir 的假 HOME 內。
 
 require "json"
+require "stringio"
 require "tmpdir"
 require "fileutils"
 require "open3"
@@ -2056,6 +2057,139 @@ Dir.mktmpdir("omos-3c-a-reviewqueue") do |dir|
   C.check("0 due items 明確回 0，且不得偽造 terminal closeout",
           "#{empty[:items].size}／terminal=#{empty[:terminal_closeout]}",
           empty[:items].empty? && empty[:terminal_closeout] == false)
+
+  rt.store.close
+  C.group = nil
+end
+
+# --- Slice B2｜Friday trigger（launchd）＋ 提醒 ---
+#
+# 這一組最重要的不變式是「排程不是 acceptance」：週五有跑 job 不等於這週
+# review 已完成，逾期也不等於 SKIPPED。契約把 terminal disposition 留給人的
+# closeout，所以這裡任何一條自動化路徑都不得產生 closeout／Record／Promotion。
+Dir.mktmpdir("omos-3c-a-schedule") do |dir|
+  C.group = "A"
+  require "omos/schedule"
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(home, ".omos/personal-memory/personal.db")
+  exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
+  Open3.capture3({ "HOME" => home }, exe, "install", "--home", home,
+                 "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+
+  agents = File.join(home, "Library/LaunchAgents")
+  FileUtils.mkdir_p(agents)
+  foreign = File.join(agents, "com.someoneelse.weekly-review.plist")
+  File.write(foreign, "<plist><dict/></plist>")
+  foreign_bytes = File.binread(foreign)
+
+  # (1) plist 是合法的 plist，且帶 Friday 16:00 ＋ RunAtLoad（D4 裁決）
+  # install 失敗要讓對應項目**轉紅**，不是讓整包炸掉——炸掉的反證看不出是哪
+  # 一個不變式壞了（Slice A repair-01 已經踩過同一件事）。所有 install 都走
+  # 這個 helper，漏掉任何一處，那一處就會變成整包中斷。
+  try_install = lambda do
+    OMOS::Schedule.install(home: home)
+  rescue StandardError => e
+    { plist: File.join(home, "Library/LaunchAgents/#{OMOS::Schedule::LABEL}.plist"),
+      replaced: nil, error: "#{e.class}: #{e.message[0, 60]}" }
+  end
+  r = try_install.call
+  C.check("schedule install 成功", r[:error].to_s, r[:error].nil?)
+  plist = r[:plist]
+  lint_out, _, lint_st = Open3.capture3("/usr/bin/plutil", "-lint", plist)
+  C.check("產生的是合法 plist（plutil -lint）", lint_out.strip[-6, 6].to_s, lint_st.success?)
+  parsed, = Open3.capture3("/usr/bin/plutil", "-convert", "json", "-o", "-", plist)
+  doc = begin
+    JSON.parse(parsed)
+  rescue JSON::ParserError
+    {}
+  end
+  C.check("StartCalendarInterval 是週五 16:00",
+          doc["StartCalendarInterval"].inspect,
+          doc.dig("StartCalendarInterval", "Weekday") == 5 &&
+          doc.dig("StartCalendarInterval", "Hour") == 16)
+  C.check("RunAtLoad 為 true（錯過後在下次登入補喚醒）", doc["RunAtLoad"].to_s,
+          doc["RunAtLoad"] == true)
+
+  # (2) 呼叫穩定 launcher，不得 pin artifact-id
+  args = doc["ProgramArguments"] || []
+  # 一律走 to_s：plist 沒產生（或欄位被改掉）時 args 會是空的，
+  # 這裡必須轉紅而不是 NoMethodError 把整包打斷。
+  C.check("LaunchAgent 走 current/，不得 pin artifact-id", args.first.to_s[-40, 40].to_s,
+          args.first.to_s.include?("/.omos/personal-memory/current/") &&
+          !args.first.to_s.match?(%r{/versions/[0-9a-f]+}))
+  C.check("LaunchAgent 呼叫的是 review due（不是任何會寫入的指令）", args.inspect,
+          args[1].to_s == "review" && args[2].to_s == "due")
+
+  # (3) 重跑不得產生第二份
+  r2 = try_install.call
+  ours = Dir.children(agents).select { |f| f.include?("omos") }
+  C.check("schedule install 重跑不產生第二份 LaunchAgent",
+          "#{ours.size} 份／replaced=#{r2[:replaced]}",
+          ours.size == 1 && r2[:replaced] == true)
+
+  # (4) collision-adjacent：只移除自己那一支
+  removed = OMOS::Schedule.remove(home: home)
+  C.check("schedule remove 只移除本產品自己的 job", removed[:removed].to_s,
+          removed[:removed] == true && !File.exist?(plist))
+  C.check("第三方 LaunchAgent 逐位元組不受影響", "",
+          File.file?(foreign) && File.binread(foreign) == foreign_bytes)
+  C.check("未安裝時 remove 明確回 NOT_INSTALLED，不誤刪別人",
+          OMOS::Schedule.remove(home: home)[:removed].to_s,
+          OMOS::Schedule.remove(home: home)[:removed] == false && File.file?(foreign))
+
+  # (5) 逾期只是狀態，**不得**自動 SKIPPED，也不得產生 closeout
+  try_install.call
+  rt = OMOS::Runtime.open(store)
+  cli_surface = OMOS::Runtime::SURFACES[:cli]
+  rows_before = rt.read_rows(surface: cli_surface).size
+  closeouts_before = rt.store.db.get_first_value("SELECT COUNT(*) FROM closeouts").to_i
+
+  overdue_now = Time.new(2026, 9, 22, 9, 0, 0)      # 週二：catch-up 截止已過
+  st = OMOS::Schedule.status(home: home, now: overdue_now, runtime: rt, surface: cli_surface)
+  C.check("超過 catch-up 截止 → 呈現逾期", st[:overdue].to_s, st[:overdue] == true)
+  C.check("逾期不得自動變成 SKIPPED（狀態裡沒有這個詞）", st.inspect[0, 60],
+          !st.to_s.include?("SKIPPED"))
+  C.check("逾期時本期仍未 terminal closeout", st[:terminal_closeout].to_s,
+          st[:terminal_closeout] == false)
+  C.check("schedule status 不得寫入任何一列",
+          "#{rows_before}→#{rt.read_rows(surface: cli_surface).size}",
+          rt.read_rows(surface: cli_surface).size == rows_before)
+  C.check("schedule 全程不得產生 closeout（排程不是 acceptance）",
+          rt.store.db.get_first_value("SELECT COUNT(*) FROM closeouts").to_s,
+          rt.store.db.get_first_value("SELECT COUNT(*) FROM closeouts").to_i == closeouts_before)
+
+  # (6) 通知：失敗不影響 queue，但不得完全靜默（D5 裁決）
+  err_io = StringIO.new
+  failing = ->(_msg) { raise Errno::ENOENT, "osascript" }
+  res = OMOS::Schedule.notify(3, io: err_io, runner: failing)
+  C.check("通知失敗不得影響 queue（不拋出）", res[:notified].to_s, res[:notified] == false)
+  C.check("通知失敗必須出聲（不得完全靜默）", err_io.string.strip[0, 40],
+          err_io.string.include?("通知失敗") && err_io.string.include?("不影響 queue"))
+  C.check("通知失敗的原因要說得出是哪一種（例外 vs 回非零）", res[:reason].to_s[0, 30],
+          res[:reason].to_s.start_with?("Errno::ENOENT"))
+
+  nonzero_io = StringIO.new
+  nonzero = OMOS::Schedule.notify(1, io: nonzero_io, runner: ->(_m) { false })
+  C.check("osascript 回非零也必須出聲，且原因不同於例外", nonzero[:reason].to_s,
+          nonzero[:notified] == false && nonzero[:reason] == "osascript 回非零" &&
+          nonzero_io.string.include?("通知失敗"))
+
+  quiet = StringIO.new
+  none = OMOS::Schedule.notify(0, io: quiet, runner: ->(_m) { raise "不該被呼叫" })
+  C.check("0 due items 不送通知，也不製造假完成", none[:reason].to_s,
+          none[:notified] == false && none[:reason] == "NO_DUE_ITEMS" && quiet.string.empty?)
+
+  ok_io = StringIO.new
+  sent = []
+  ok = OMOS::Schedule.notify(2, io: ok_io, runner: ->(m) { sent << m; true })
+  C.check("有待 review 時送出「本週有 N 筆待 review」", sent.first.to_s,
+          ok[:notified] == true && sent.first == "Personal Memory：本週有 2 筆待 review")
+
+  # (7) 不新增任何 ledger／table 給 notification
+  tables = rt.store.db.execute("SELECT name FROM sqlite_master WHERE type='table'").flatten
+  C.check("不得為 notification 另開 table／ledger", tables.sort.inspect[0, 70],
+          tables.none? { |t| t.to_s.match?(/notif|schedule|queue/i) })
 
   rt.store.close
   C.group = nil

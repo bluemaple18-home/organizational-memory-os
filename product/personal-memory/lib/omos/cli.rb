@@ -14,6 +14,7 @@ require_relative "host_config_writer"
 require_relative "doctor"
 require_relative "inbox"
 require_relative "review_queue"
+require_relative "schedule"
 
 module OMOS
   class CLI
@@ -29,7 +30,11 @@ module OMOS
         import FILE [--memory-kind KIND]
                                 把一個 .md／.txt 匯入成 PersonalMemoryCandidate(PROPOSED)
         inbox list              列出已匯入的 evidence 與對應的 candidate
-        review due              列出本週期待 review 的 candidate（純讀，不做任何處置）
+        review due [--notify]   列出本週期待 review 的 candidate（純讀，不做任何處置）
+        schedule install [--home DIR] [--anchor-hour H]
+                                安裝週五提醒（macOS launchd LaunchAgent）
+        schedule status [--home DIR]
+        schedule remove [--home DIR]
         read                    讀出所有列（權限檢查先於讀取）
         closeout --file FILE    提交一次 weekly closeout
         install [--home DIR] [--owner REF --tenant ID]
@@ -65,7 +70,8 @@ module OMOS
       when "write"    then cmd_write(store_path, opts, out)
       when "import"   then cmd_import(store_path, argv, opts, out, err)
       when "inbox"    then cmd_inbox(store_path, argv, out, err)
-      when "review"   then cmd_review(store_path, argv, out, err)
+      when "review"   then cmd_review(store_path, argv, opts, out, err)
+      when "schedule" then cmd_schedule(store_path, argv, opts, out, err)
       when "read"     then cmd_read(store_path, out)
       when "closeout" then cmd_closeout(store_path, opts, out)
       when "journal"  then cmd_journal(store_path, out)
@@ -112,6 +118,8 @@ module OMOS
         o.on("--memory-kind KIND") { |v| opts[:memory_kind] = v }
         o.on("--owner REF") { |v| opts[:owner] = v }
         o.on("--tenant ID") { |v| opts[:tenant] = v }
+        o.on("--notify") { opts[:notify] = true }
+        o.on("--anchor-hour H", Integer) { |v| opts[:anchor_hour] = v }
       end.parse!(argv)
       opts
     end
@@ -317,7 +325,7 @@ module OMOS
     # review due 只準備 queue 與回報。契約把 acceptance authority 封死在每個
     # Candidate 自己的 gate 上，批次確認本身不能接受任何東西——所以這裡沒有
     # 任何寫入路徑，連「標記已讀」都沒有。
-    def cmd_review(path, argv, out, err)
+    def cmd_review(path, argv, opts, out, err)
       sub = argv.shift
       unless sub == "due"
         err.puts "用法: omos-personal-memory review due"
@@ -326,6 +334,7 @@ module OMOS
 
       with_runtime(path) do |rt|
         q = ReviewQueue.due(rt, surface: surface)
+        notified = opts[:notify] ? Schedule.notify(q[:items].size, io: err) : nil
         out.puts "review period: #{q[:id]}"
         out.puts "  anchor:       #{q[:scheduled_anchor_at]}（起始 #{q[:scheduled_review_period_start]}）"
         out.puts "  catch-up 截止: #{q[:catch_up_deadline_at]}#{q[:catch_up_deadline_passed] ? "（已過）" : ""}"
@@ -338,8 +347,46 @@ module OMOS
             out.puts "  #{i["candidate_id"].split(":").last[0, 8]}  #{i["memory_kind"]}  #{i["created_at"]}"
           end
         end
+        out.puts "  通知: #{notified[:notified] ? "已送出" : "未送出（#{notified[:reason] || "失敗"}）"}" if notified
       end
       0
+    end
+
+    # schedule 只碰 launchd 與自己那一支 plist，不碰 store。
+    def cmd_schedule(path, argv, opts, out, err)
+      sub = argv.shift
+      home = opts[:home] || Dir.home
+      case sub
+      when "install"
+        r = Schedule.install(home: home, anchor_hour: opts[:anchor_hour] || ReviewQueue::DEFAULT_ANCHOR_HOUR)
+        out.puts(r[:replaced] ? "SCHEDULE_REPLACED" : "SCHEDULE_INSTALLED")
+        out.puts "  label: #{r[:label]}"
+        out.puts "  plist: #{r[:plist]}"
+        out.puts "  週五 #{r[:anchor_hour]}:00（本機時區）＋ RunAtLoad 補喚醒"
+        out.puts "  載入： launchctl load -w #{r[:plist]}"
+      when "status"
+        with_runtime(path) do |rt|
+          st = Schedule.status(home: home, runtime: rt, surface: surface)
+          out.puts "schedule: #{st[:installed] ? "已安裝" : "未安裝"}（#{st[:label]}）"
+          out.puts "  period:        #{st[:period]}"
+          out.puts "  anchor:        #{st[:scheduled_anchor_at]}"
+          out.puts "  catch-up 截止: #{st[:catch_up_deadline_at]}#{st[:overdue] ? "（逾期）" : ""}"
+          out.puts "  待 review:     #{st[:due_count]} 筆"
+          out.puts "  本期 terminal closeout: #{st[:terminal_closeout] ? "已提交" : "尚未提交"}"
+          out.puts "  逾期不等於 SKIPPED——terminal disposition 仍須人工 closeout。" if st[:overdue]
+        end
+      when "remove"
+        r = Schedule.remove(home: home)
+        out.puts(r[:removed] ? "SCHEDULE_REMOVED" : "SCHEDULE_NOT_INSTALLED")
+      else
+        err.puts "用法: omos-personal-memory schedule install|status|remove"
+        return 2
+      end
+      0
+    rescue Schedule::Failed => e
+      err.puts e.code
+      err.puts "  #{e.message}"
+      2
     end
 
     def installer_for(opts)
