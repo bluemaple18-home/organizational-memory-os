@@ -126,11 +126,8 @@ module OMOS
         # 重裝要先 bootout 再 bootstrap，否則 launchd 會拒收同一個 Label。
         # 這裡的 bootout 失敗不是錯誤——本來就可能沒載入過。
         launchctl.call("bootout", "#{domain}/#{LABEL}") if previous_loaded
-        res = launchctl.call("bootstrap", domain, path)
-        unless res[:ok]
-          raise Failed.new("SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED",
-                           "exit=#{res[:status]} #{res[:err].to_s.strip[0, 120]}")
-        end
+        verdict = bootstrap_and_verify(path, launchctl)
+        raise Failed.new("SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED", verdict[:detail]) unless verdict[:ok]
       rescue StandardError => e
         restored = restore_previous(path, previous_bytes, previous_loaded, launchctl)
         raise e if restored
@@ -182,9 +179,32 @@ module OMOS
       return true unless previous_loaded
 
       launchctl.call("bootout", "#{domain}/#{LABEL}")
-      launchctl.call("bootstrap", domain, path)[:ok] == true
+      bootstrap_and_verify(path, launchctl)[:ok]
     rescue StandardError
       false
+    end
+
+    # **唯一**的 bootstrap 入口。install 與 rollback 都走這裡。
+    #
+    # repair-03：`launchctl bootstrap` 回 0 **不代表 job 真的載入**——實測
+    # 回報成功但 `launchctl print` 查不到。只信 exit status 會產生兩種假成功：
+    # install 留下一份 plist 卻沒有 job（假安裝），rollback 以為舊排程回來了
+    # 卻沒有（假還原，而且錯誤碼不會升級，使用者不知道要手動處理）。
+    #
+    # 判準因此是「exit 0 **而且** loaded? 為真」，兩條路共用同一個判準——
+    # 各寫一次就是下一次只修好其中一條的原因。
+    def bootstrap_and_verify(path, launchctl)
+      res = launchctl.call("bootstrap", domain, path)
+      unless res[:ok]
+        return { ok: false, detail: "exit=#{res[:status]} #{res[:err].to_s.strip[0, 120]}" }
+      end
+      unless loaded?(launchctl: launchctl)
+        return { ok: false,
+                 detail: "launchctl bootstrap 回報成功（exit=#{res[:status]}），" \
+                         "但 #{domain}/#{LABEL} 實際未載入" }
+      end
+
+      { ok: true, detail: nil }
     end
 
     # job 是否**真的載入**，不是「檔案在不在」。

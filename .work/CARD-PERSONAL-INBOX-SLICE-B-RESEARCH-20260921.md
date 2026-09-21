@@ -1,6 +1,6 @@
 ---
 id: PERSONAL-INBOX-SLICE-B-RESEARCH-20260921
-status: B2_REPAIR_02_READY_FOR_REVIEW
+status: B2_REPAIR_03_READY_FOR_REVIEW
 type: research
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 scope: Slice B（review due ＋ Friday trigger ＋ 提醒）
@@ -181,6 +181,37 @@ repair-01 的 P1-2（anchor）與 P1-3（ownership）已關閉。剩下的是 `i
 `bootstrap_fails_once`（新設定被拒、舊設定仍載得回來）才是升級失敗的常見
 形狀；全域壞掉那種另立一組。
 
+## 3.8 B2 repair-03（2026-09-22）：bootstrap 成功不等於已載入
+
+repair-02 的兩條路都關了，但**同根**還有殘留：`restore_previous` 只相信
+`bootstrap[:ok]`，沒有再用 `loaded?` 複查。reviewer 重播兩種假成功：
+
+| 情境 | 原本行為 |
+|---|---|
+| 首次 install：bootstrap 回 `ok=true` 但 `launchctl print` 查不到 | install **正常 return**、留下 plist，只是 `loaded=false`——又一種假安裝 |
+| rollback：還原舊版時 bootstrap 回 `ok=true` 但實際未載入 | 錯誤碼仍是 `SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED`，**沒有**升成 `NOT_RESTORED`，使用者不知道要手動處理 |
+
+**根因是判準各寫一次。** 修法不是在 rollback 補一段複查，而是抽出唯一的
+`bootstrap_and_verify`，install 與 rollback 共用：判準為
+**exit 0 且 `loaded?` 為真**。各寫一次就是下一次只修好其中一條的原因
+（Slice A repair-02 的 `adopt_existing` 是同一個形狀）。
+
+錯誤訊息區分兩種失敗：`exit=<n>` 與「回報成功但實際未載入」。
+
+### 反證的獨立性
+
+反證 B（只讓 rollback 繞過共用入口）只打紅 rollback 那一項，
+反證 A／C 各打紅 4 項——證明兩條路是**各自被覆蓋**的，不是互相遮蔽。
+
+### Acceptance #8 的 residual（reviewer 指定，不阻塞本 repair）
+
+conformance 全程注入替身，**沒有**真 launchd 的成功路徑實證；reviewer 在本機
+實跑也撞到 `Bootstrap failed: 5: Input/output error`。
+
+**Slice B closeout 前必須在正常使用者 HOME 實跑一次**：
+`schedule install` → `launchctl print`（存在）→ `schedule remove` →
+`launchctl print`（不存在）。列為 closeout 的必要證據，不得以注入替身代替。
+
 ## 4. 實作順序（Slice A GO 後）
 
 ```text
@@ -189,6 +220,7 @@ B1 review queue projection（純讀，不碰 schedule）
 → B2 launchd schedule install/status/remove ＋ 通知
    └ 解 D4／D5
 → upgrade regression（含 Slice A 的 identity 保留）
+→ Acceptance #8：正常使用者 HOME 的真 launchd 實跑（install → print → remove → print）
 → zip 覆蓋解壓的實際交付路徑 upgrade（主卡驗收 13）
 → 帶 quarantine 的交付路徑驗收（主卡驗收 14）
 → targeted review

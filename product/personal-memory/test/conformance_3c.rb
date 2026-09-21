@@ -2424,6 +2424,67 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
             ok_remove[:removed] == true && !File.exist?(tpath) && tloaded[:on] == false)
   end
 
+  # (8c) repair-03：bootstrap 回 0 **不代表 job 真的載入**。
+  #
+  # 只信 exit status 會產生兩種假成功：install 留下一份 plist 卻沒有 job；
+  # rollback 以為舊排程回來了卻沒有，而且錯誤碼不會升級，使用者不知道要手動
+  # 處理。兩條路共用同一個判準：exit 0 **而且** loaded? 為真。
+  Dir.mktmpdir("omos-3c-a-schedule-lying") do |ldir|
+    lhome = File.join(ldir, "home")
+    Support::FakeHome.seed(lhome)
+    Open3.capture3({ "HOME" => lhome }, exe, "install", "--home", lhome,
+                   "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+    lpath = OMOS::Schedule.plist_path(lhome)
+
+    # 說謊的 launchctl：bootstrap 一律回 0，但 job 從來沒有真的載入。
+    lying_loaded = { on: false }
+    lie = { bootstrap: false }
+    lying = lambda do |*args|
+      case args.first
+      when "bootstrap"
+        lying_loaded[:on] = true unless lie[:bootstrap]
+        { ok: true, status: 0, out: "", err: "" }
+      when "bootout" then was = lying_loaded[:on]; lying_loaded[:on] = false
+                          { ok: was, status: was ? 0 : 3, out: "", err: "" }
+      when "print" then { ok: lying_loaded[:on], status: lying_loaded[:on] ? 0 : 113, out: "", err: "" }
+      else { ok: false, status: 1, out: "", err: "" }
+      end
+    end
+
+    # (a) 首次 install：bootstrap 回 0 但沒載入 → 不得回報成功、不得留 plist
+    lie[:bootstrap] = true
+    acode = begin
+      OMOS::Schedule.install(home: lhome, launchctl: lying)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e
+    end
+    C.check("P1 首次 install：bootstrap 說謊 → 明確失敗，不得假安裝",
+            "#{acode&.code}／plist=#{File.exist?(lpath)}",
+            acode.is_a?(OMOS::Schedule::Failed) &&
+            acode.code == "SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED" && !File.exist?(lpath))
+    C.check("P1 錯誤訊息要說得出是「回報成功但實際未載入」",
+            acode.to_s[-40, 40].to_s,
+            acode.to_s.include?("實際未載入"))
+
+    # (b) rollback 的 bootstrap 也說謊 → 必須升級成 NOT_RESTORED
+    lie[:bootstrap] = false
+    OMOS::Schedule.install(home: lhome, anchor_hour: 16, launchctl: lying)
+    good = File.binread(lpath)
+    lie[:bootstrap] = true      # 之後所有 bootstrap 都只是嘴上成功
+    bcode = begin
+      OMOS::Schedule.install(home: lhome, anchor_hour: 15, launchctl: lying)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("P1 rollback 的 bootstrap 說謊 → 升級成 NOT_RESTORED", bcode.to_s,
+            bcode == "SCHEDULE_INSTALL_FAILED_AND_NOT_RESTORED")
+    C.check("P1 即使還原失敗，plist 位元組仍已寫回舊版",
+            OMOS::Schedule.installed_anchor_hour(lpath).to_s,
+            File.binread(lpath) == good)
+  end
+
   # (9) 測試本身不得把 job 載進真實 session
   C.check("本組測試全程未呼叫真實 launchctl（只用注入替身）",
           "#{calls.size} 次注入呼叫",
