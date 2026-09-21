@@ -49,25 +49,67 @@ module OMOS
         @manifest ||= load_json(MANIFEST_PATH, "MANIFEST").fetch("production_native_dependencies")
       end
 
-      def qualified_profiles
-        @qualified_profiles ||= load_json(PROFILE_PATH, "PROFILE").fetch("qualified_profiles")
+      def profile_document
+        @profile_document ||= load_json(PROFILE_PATH, "PROFILE")
       end
 
-      # 目前這個 runtime 的身分。刻意**不含版本字串**——ABI 目錄才是原生擴充
-      # 的相容邊界（3.4 系列共用 "3.4.0"）。
-      def current
+      def qualified_profiles
+        @qualified_profiles ||= profile_document.fetch("qualified_profiles")
+      end
+
+      # qualification 的比對 key。刻意**不含任何版本字串**——ABI 目錄才是原生
+      # 擴充的相容邊界（3.4 系列共用 "3.4.0"），OS 的 build 版本不是。
+      #
+      # 為什麼 host_os 不在這裡（Owner 裁決 2026-09-21）：`RbConfig` 的
+      # `host_os` 是**編這顆 Ruby 的那台機器**的 darwin build 版本，Homebrew
+      # 每個 macOS 版本各出一份 bottle，於是它會隨使用者而異（實測：本機
+      # darwin25、同事機 darwin24，同一包 artifact、probe 都過）。把它放進
+      # 比對，等於「一個 macOS build 一列」，永遠列不完；而它與「我們的原生
+      # 擴充載不載得動」沒有因果關係。這正是 Q6 Part 1 否掉的那個錯——
+      # 用版本字串當判準——只是高了一層。
+      #
+      # `native_linkage_digest` 同樣不在這裡：它由 artifact 自己的 manifest
+      # 算出，對同一包 artifact 在任何機器上恆為同值，**零機器鑑別力**。
+      # 它改去驗 artifact integrity，見 assert_artifact_integrity!。
+      def qualification_key
         {
-          "host_os" => RbConfig::CONFIG["host_os"],
+          "os_family" => os_family,
           "host_cpu" => RbConfig::CONFIG["host_cpu"],
           "ruby_engine" => RUBY_ENGINE,
-          "ruby_abi" => RbConfig::CONFIG["ruby_version"],
+          "ruby_abi" => RbConfig::CONFIG["ruby_version"]
+        }
+      end
+
+      # 記錄下來但**不參與判定**的觀測值。診斷、回報與日後要重新檢視判準時
+      # 需要它們；參與判定的話就會變回逐版本矩陣。
+      def observation
+        {
+          "host_os" => RbConfig::CONFIG["host_os"],
           "native_linkage_digest" => linkage_digest
         }
+      end
+
+      # `darwin25` → `darwin`。只取前導字母，不做版本比較——一旦開始比較
+      # 版本大小，就又回到版本字串判準了。
+      def os_family
+        RbConfig::CONFIG["host_os"][/\A[A-Za-z]+/] || RbConfig::CONFIG["host_os"]
       end
 
       def linkage_digest
         pairs = manifest.map { |e| [e.fetch("extension"), e.fetch("non_system_libraries")] }.sort
         Digest::SHA256.hexdigest(JSON.generate(pairs))
+      end
+
+      # artifact integrity：manifest 是否仍是當初被 qualification 的那一份。
+      # 這**不是**機器判定——它在每台機器上的答案都一樣。不符代表 artifact
+      # 被改過或打包錯了，屬於 fail closed。
+      def assert_artifact_integrity!
+        declared = profile_document["artifact_native_linkage_digest"]
+        return if declared.nil? || declared == linkage_digest
+
+        raise Unsupported.new("OMOS_ARTIFACT_LINKAGE_DIGEST_MISMATCH",
+                              "native-dependencies.json 與 runtime-profile.json 宣告的不符" \
+                              "（宣告 #{declared[0, 12]}…／實際 #{linkage_digest[0, 12]}…）")
       end
 
       # 實際選中的 Ruby。診斷時要能回答「到底是哪一支跑起來的」。
@@ -108,8 +150,12 @@ module OMOS
                                 "#{extension} 需要的函式庫在本機不存在：#{missing.join(", ")}")
         end
 
-        # (4) qualification 比對——與「能不能跑」分開。
-        qualified_profiles.include?(current) ? QUALIFIED : UNQUALIFIED
+        # (4) artifact integrity——與機器無關，不符即 fail closed。
+        assert_artifact_integrity!
+
+        # (5) qualification 比對——與「能不能跑」分開。比的是 qualification_key，
+        #     observation 不參與。
+        qualified_profiles.include?(qualification_key) ? QUALIFIED : UNQUALIFIED
       end
 
       # 入口用的包裝：fail closed 時印出**實際缺什麼**再以非零退出；
@@ -119,9 +165,11 @@ module OMOS
         status = verify!
         if status == UNQUALIFIED
           ENV["OMOS_RUNTIME_PROFILE_STATUS"] = UNQUALIFIED
+          k = qualification_key
           io.puts("[omos-personal-memory] #{UNQUALIFIED}：此 runtime 組合載得動但不在已" \
-                  "qualification 的清單內（#{current["host_os"]}/#{current["host_cpu"]} " \
-                  "#{current["ruby_engine"]} ABI #{current["ruby_abi"]}）。" \
+                  "qualification 的清單內（#{k["os_family"]}/#{k["host_cpu"]} " \
+                  "#{k["ruby_engine"]} ABI #{k["ruby_abi"]}；" \
+                  "觀測 host_os=#{observation["host_os"]}）。" \
                   "能執行不等於我們承諾支援。")
         else
           ENV["OMOS_RUNTIME_PROFILE_STATUS"] = QUALIFIED

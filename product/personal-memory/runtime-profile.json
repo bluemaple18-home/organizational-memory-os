@@ -1,13 +1,16 @@
 {
   "schema": "omos.personal-memory/runtime-profile/v1",
-  "note": "已 qualification 的 runtime 組合。artifact build identity 由「本檔位於該 artifact 內」隱含綁定，故不重複記錄 id（會自我引用）。probe 成功代表「這台機器跑得起來」；列在這裡才代表「我們承諾支援」——兩者不同，見 Q7 §0.3。",
+  "note": "已 qualification 的 runtime 組合。比對 key 刻意不含任何版本字串：OS 的 build 版本（host_os）與 artifact 自身的 linkage digest 都不參與機器判定——前者隨使用者的 Homebrew bottle 而異、與相容性無因果關係，後者對同一包 artifact 恆為同值。真正的守門人是開機路徑上的 live native probe。見 Q7 §0.3 與 CARD-EMEM11-QUALIFICATION-KEY-FIX-20260921。",
+  "artifact_native_linkage_digest": "b98ef1f165311d0d23045f5ab64f646c6896e7764b32fd26cb312549e2a9fe4c",
+  "observation_fields": [
+    "host_os"
+  ],
   "qualified_profiles": [
     {
-      "host_os": "darwin25",
+      "os_family": "darwin",
       "host_cpu": "arm64",
       "ruby_engine": "ruby",
-      "ruby_abi": "3.4.0",
-      "native_linkage_digest": "b98ef1f165311d0d23045f5ab64f646c6896e7764b32fd26cb312549e2a9fe4c"
+      "ruby_abi": "3.4.0"
     }
   ]
 }

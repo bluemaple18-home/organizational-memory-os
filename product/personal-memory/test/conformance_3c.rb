@@ -1226,4 +1226,99 @@ Dir.mktmpdir("omos-3c-c") do |dir|
         rows_final == rows_after_restart && terminal_final == terminal_after)
 end
 
+
+# --- qualification key 修正（CARD-EMEM11-QUALIFICATION-KEY-FIX-20260921）---
+#
+# 實測觸發：同事機 darwin24、本機 darwin25，同一包 artifact、live probe 都過，
+# 但同事端每次執行都印 UNQUALIFIED_RUNTIME_PROFILE。host_os 是「編這顆 Ruby
+# 的機器」的 darwin build 版本，隨 Homebrew bottle 而異，與我們的原生擴充載
+# 不載得動沒有因果關係。把它放進比對等於「一個 macOS build 一列」。
+#
+# Owner 2026-09-21 裁決：比對 key = os_family + host_cpu + ruby_engine +
+# ruby_abi + live native probes；host_os 降為 observation；
+# native_linkage_digest 改驗 artifact integrity，不參與機器判定。
+Dir.mktmpdir("omos-3c-a-qualkey") do |dir|
+  root = OMOS::Contract::ARTIFACT_ROOT
+
+  run = lambda do |src|
+    o, e, st = Open3.capture3({ "BUNDLE_GEMFILE" => File.join(root, "Gemfile") },
+                              RbConfig.ruby, "-rbundler/setup",
+                              "-I#{File.join(root, "lib")}", "-e", src)
+    [o.strip, e.strip, st]
+  end
+
+  # (1) host_os 不在比對 key 內；它仍被記錄為 observation
+  out, = run.call(<<~RUBY)
+    require "omos/runtime_profile"
+    k = OMOS::RuntimeProfile.qualification_key
+    o = OMOS::RuntimeProfile.observation
+    puts [k.keys.sort.join(","), o.keys.sort.join(",")].join("|")
+  RUBY
+  keys, obs = out.split("|", 2)
+  C.check("qualification key 不含 host_os 與 linkage digest", keys.to_s,
+          keys == "host_cpu,os_family,ruby_abi,ruby_engine")
+  C.check("host_os 與 linkage digest 降為 observation", obs.to_s,
+          obs == "host_os,native_linkage_digest")
+
+  # (2) darwin99 mutation：只改 OS version，判定結果不得改變。
+  #     這是本次修正的主要鑑別力反證——舊實作會在這裡轉成 UNQUALIFIED。
+  mutated = <<~RUBY
+    require "rbconfig"
+    RbConfig::CONFIG["host_os"] = "darwin99"
+    require "omos/runtime_profile"
+    puts OMOS::RuntimeProfile.assert_supported!
+  RUBY
+  out2, err2, st2 = run.call(mutated)
+  C.check("host_os 換成從未見過的 darwin99，仍判為 QUALIFIED", out2.to_s,
+          st2.success? && out2 == "QUALIFIED" && !err2.include?("UNQUALIFIED"))
+
+  # (3) 但 os_family 真的不同（非 darwin）就不該再宣稱 qualified
+  out3, = run.call(<<~RUBY)
+    require "rbconfig"
+    RbConfig::CONFIG["host_os"] = "linux-gnu"
+    require "omos/runtime_profile"
+    puts OMOS::RuntimeProfile.assert_supported!
+  RUBY
+  C.check("os_family 真的不同（linux）→ 不得宣稱 qualified", out3.to_s,
+          out3 == "UNQUALIFIED_RUNTIME_PROFILE")
+
+  # (4) linkage digest 對同一包 artifact 恆為同值 → 零機器鑑別力，
+  #     因此它只能驗 artifact integrity
+  declared = JSON.parse(File.read(File.join(root, "runtime-profile.json")))
+  C.check("linkage digest 已移出 qualified_profiles", "",
+          declared.fetch("qualified_profiles").none? { |p| p.key?("native_linkage_digest") })
+  C.check("linkage digest 改列為 artifact integrity 欄位",
+          declared["artifact_native_linkage_digest"].to_s[0, 12],
+          declared["artifact_native_linkage_digest"].to_s.length == 64)
+
+  # (5) artifact integrity 不符 → fail closed（不是降級成 UNQUALIFIED）
+  bad = File.join(dir, "bad-profile.json")
+  File.write(bad, JSON.generate(declared.merge("artifact_native_linkage_digest" => "0" * 64)))
+  out5, err5, st5 = run.call(<<~RUBY)
+    require "omos/runtime_profile"
+    OMOS::RuntimeProfile.define_singleton_method(:profile_document) do
+      JSON.parse(File.read(#{bad.dump}))
+    end
+    puts OMOS::RuntimeProfile.assert_supported!
+  RUBY
+  C.check("artifact linkage digest 不符 → fail closed（exit 78）",
+          "exit=#{st5.exitstatus}", st5.exitstatus == 78)
+  C.check("且指出是 artifact 完整性問題，不是機器不符",
+          (out5 + err5)[0, 60],
+          (out5 + err5).include?("OMOS_ARTIFACT_LINKAGE_DIGEST_MISMATCH"))
+
+  # (6) 移除 host_os 沒有削弱真正的守門人：live probe 仍然 fail closed
+  out6, err6, st6 = run.call(<<~RUBY)
+    require "omos/runtime_profile"
+    OMOS::RuntimeProfile.define_singleton_method(:manifest) do
+      [{ "extension" => "bigdecimal", "require" => "bigdecimal",
+         "non_system_libraries" => ["/nonexistent/libruby.3.4.dylib"] }]
+    end
+    puts OMOS::RuntimeProfile.assert_supported!
+  RUBY
+  C.check("live linkage 真的不符 → 仍 fail closed", "exit=#{st6.exitstatus}",
+          st6.exitstatus == 78 &&
+          (out6 + err6).include?("OMOS_NATIVE_DEPENDENCY_UNRESOLVED"))
+end
+
 C.report!
