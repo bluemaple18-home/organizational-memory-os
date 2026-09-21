@@ -12,6 +12,7 @@ require_relative "runtime"
 require_relative "installer"
 require_relative "host_config_writer"
 require_relative "doctor"
+require_relative "inbox"
 
 module OMOS
   class CLI
@@ -24,6 +25,9 @@ module OMOS
         status                  顯示 store 路徑、SQLite 版本、schema 版本、列數
         write --kind K --resource FILE --key KEY [--supersedes REF]
                                 寫入一列（寫入前由既有治理 evaluator 判定）
+        import FILE [--memory-kind KIND]
+                                把一個 .md／.txt 匯入成 PersonalMemoryCandidate(PROPOSED)
+        inbox list              列出已匯入的 evidence 與對應的 candidate
         read                    讀出所有列（權限檢查先於讀取）
         closeout --file FILE    提交一次 weekly closeout
         install [--home DIR]    初始化 store 並註冊到已交付的 Host（v1：Claude Code）
@@ -35,6 +39,10 @@ module OMOS
 
       共用選項:
         --store PATH            store 檔案路徑（預設 #{DEFAULT_STORE}）
+
+      匯入身分（import 需要，flag 優先於環境變數）:
+        --owner REF             urn:omos:employee:...（或 OMOS_EMPLOYEE_REF）
+        --tenant ID             tenant_id（或 OMOS_TENANT_ID）
     TXT
 
     def self.run(argv, out: $stdout, err: $stderr)
@@ -51,6 +59,8 @@ module OMOS
       when "init"     then cmd_init(store_path, out)
       when "status"   then cmd_status(store_path, out)
       when "write"    then cmd_write(store_path, opts, out)
+      when "import"   then cmd_import(store_path, argv, opts, out, err)
+      when "inbox"    then cmd_inbox(store_path, argv, out, err)
       when "read"     then cmd_read(store_path, out)
       when "closeout" then cmd_closeout(store_path, opts, out)
       when "journal"  then cmd_journal(store_path, out)
@@ -94,6 +104,9 @@ module OMOS
         o.on("--file FILE") { |v| opts[:file] = v }
         o.on("--home DIR") { |v| opts[:home] = v }
         o.on("--remove-store") { opts[:remove_store] = true }
+        o.on("--memory-kind KIND") { |v| opts[:memory_kind] = v }
+        o.on("--owner REF") { |v| opts[:owner] = v }
+        o.on("--tenant ID") { |v| opts[:tenant] = v }
       end.parse!(argv)
       opts
     end
@@ -104,6 +117,81 @@ module OMOS
     end
 
     def surface = Runtime::SURFACES[:cli]
+
+    # 匯入身分：flag 優先，其次環境變數。
+    #
+    # 刻意**不**新增第二套身分資料：契約明寫綁定 Host 時要沿用既有的 executor
+    # identity，不得另立 identity vocabulary。產品目前沒有任何地方存過員工
+    # 身分（write 的 tenant_id／employee_owner_ref 一直都由呼叫端的 resource
+    # JSON 自己帶），所以這裡也不偷偷開一份 identity 檔——缺就當場失敗，
+    # 並說清楚要補什麼。猜一個 owner 會讓整條 evidence 鏈掛在錯的人身上。
+    def import_identity(opts)
+      owner = opts[:owner] || ENV["OMOS_EMPLOYEE_REF"]
+      tenant = opts[:tenant] || ENV["OMOS_TENANT_ID"]
+      missing = []
+      missing << "--owner（或 OMOS_EMPLOYEE_REF）" if owner.nil? || owner.strip.empty?
+      missing << "--tenant（或 OMOS_TENANT_ID）" if tenant.nil? || tenant.strip.empty?
+      return [owner, tenant] if missing.empty?
+
+      raise Inbox::IdentityRequired, missing.join("、")
+    end
+
+    def cmd_import(path, argv, opts, out, err)
+      source = argv.shift
+      if source.nil?
+        err.puts "import 需要一個檔案路徑"
+        return 2
+      end
+
+      owner, tenant = import_identity(opts)
+      with_runtime(path) do |rt|
+        result = Inbox.import(rt, path, source, memory_kind: opts[:memory_kind],
+                                                owner_ref: owner, tenant_id: tenant,
+                                                surface: surface)
+        out.puts result[:status]
+        out.puts "  evidence:  #{result[:evidence_ref]}"
+        out.puts "  sha256:    #{result[:content_sha256]}"
+        if result[:status] == "CANDIDATE_PROPOSED"
+          out.puts "  candidate: #{result[:candidate_id]}（PROPOSED）"
+          out.puts "  link:      #{result[:link_id]}"
+          out.puts "  （重放，未新增任何一列）" if result[:replayed]
+        else
+          out.puts "  #{result[:detail]}"
+        end
+      end
+      0
+    rescue Inbox::IdentityRequired => e
+      err.puts "INBOX_OWNER_IDENTITY_REQUIRED: 缺 #{e.message}"
+      2
+    rescue EvidenceSnapshot::Rejected => e
+      err.puts e.code
+      err.puts "  #{e.detail}" if e.detail
+      2
+    end
+
+    def cmd_inbox(path, argv, out, err)
+      sub = argv.shift
+      unless sub == "list"
+        err.puts "用法: omos-personal-memory inbox list"
+        return 2
+      end
+
+      with_runtime(path) do |rt|
+        entries = Inbox.entries(rt, path, surface: surface)
+        if entries.empty?
+          out.puts "inbox 是空的（尚未匯入任何檔案）"
+        else
+          entries.each do |e|
+            out.puts "#{e["content_sha256"][0, 12]}  #{e["candidate_status"]}"
+            out.puts "  檔案:     #{e["original_filename"]}（#{e["captured_at"]}）"
+            out.puts "  memory_kind: #{e["memory_kind"] || "—"}"
+            out.puts "  evidence 可驗證: #{e["evidence_verifiable"] ? "是" : "否"}"
+          end
+          out.puts "\n共 #{entries.size} 筆"
+        end
+      end
+      0
+    end
 
     def with_runtime(path)
       rt = Runtime.open(path)

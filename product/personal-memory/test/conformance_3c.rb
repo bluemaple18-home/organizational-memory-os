@@ -1411,4 +1411,151 @@ Dir.mktmpdir("omos-3c-a-qualkey") do |dir|
           (out6 + err6).include?("OMOS_NATIVE_DEPENDENCY_UNRESOLVED"))
 end
 
+# --- Slice A｜Personal Inbox / manual capture ---
+#
+# 契約早就宣告 manual_capture，缺的是使用面：`write` 只收組好的 resource JSON，
+# 一般人手上是一個 .md。這一組驗的是「檔案 → 既有治理物件鏈」這條翻譯，
+# 以及它在重放、失敗與來源檔消失時的行為。
+Dir.mktmpdir("omos-3c-a-inbox") do |dir|
+  C.group = "A"
+  require "omos/inbox"
+
+  cli_surface = OMOS::Runtime::SURFACES[:cli]
+  store = File.join(dir, "inbox.db")
+  owner = Support::Fixtures::EMP
+  src = File.join(dir, "note.md")
+  File.write(src, "# WAL 決策\n\n改用 WAL 模式以支援並行讀取。\n")
+
+  rt = OMOS::Runtime.open(store)
+  imp = lambda do |path, kind|
+    OMOS::Inbox.import(rt, store, path, memory_kind: kind, owner_ref: owner, tenant_id: "t-acme")
+  end
+
+  # (1) content-addressed snapshot，且追得到 Evidence / SourceAnchor ref
+  r1 = imp.call(src, "DECISION")
+  digest = r1[:content_sha256]
+  snap = OMOS::EvidenceSnapshot.dir_for(store, digest)
+  env = JSON.parse(File.read(File.join(snap, "envelope.json")))
+  C.check("匯入產生 content-addressed evidence snapshot", digest[0, 12],
+          Dir.exist?(snap) && Digest::SHA256.hexdigest(File.binread(File.join(snap, "raw.bin"))) == digest)
+  C.check("snapshot 保留原始檔名、capture time 與 admission metadata",
+          env.dig("origin", "original_filename").to_s,
+          env.dig("origin", "original_filename") == "note.md" &&
+          !env["captured_at"].to_s.empty? && env.dig("admission", "capture_scope") == "EMPLOYEE_PRIVATE")
+  C.check("candidate 的 support 追得到 Evidence 與 SourceAnchor ref", "",
+          env["evidence_ref"].start_with?("urn:omos:evidence:") &&
+          env["source_anchor_ref"].start_with?("urn:omos:source-anchor:"))
+
+  # (2) 走既有 evaluator 寫成 SupportLink + Candidate(PROPOSED)，沒有 acceptance authority
+  rows = rt.read_rows(surface: cli_surface)
+  cand = rows.find { |r| r[:row_id] == r1[:candidate_id] }[:resource]
+  link = rows.find { |r| r[:row_id] == r1[:link_id] }[:resource]
+  C.check("匯入產生 MemorySupportLink ＋ PersonalMemoryCandidate", r1[:status],
+          r1[:status] == "CANDIDATE_PROPOSED" && !cand.nil? && !link.nil?)
+  C.check("candidate 初始狀態是 PROPOSED", cand["candidate_status"],
+          cand["candidate_status"] == "PROPOSED")
+  C.check("匯入不得自帶 verification／acceptance 權威",
+          "#{cand.dig("governance", "verification_status")}／#{cand.dig("governance", "acceptance_status")}",
+          cand.dig("governance", "verification_status") == "NOT_RUN" &&
+          cand.dig("governance", "acceptance_status") == "PENDING")
+  C.check("匯入不得建立 PersonalMemoryRecord", "",
+          rows.none? { |r| r[:kind] == "PersonalMemoryRecord" })
+  C.check("support link 的 target_ref 指回 candidate", link["target_ref"].to_s[-12, 12].to_s,
+          link["target_ref"] == r1[:candidate_id])
+
+  # (3) 原始來源檔被移走，support 仍可由 managed snapshot 驗證
+  FileUtils.rm_f(src)
+  C.check("原始檔移走後 evidence 仍可驗證", "",
+          !File.exist?(src) && OMOS::EvidenceSnapshot.verifiable?(store, digest))
+  C.check("原始檔移走後 candidate 仍在且 support 未失效", "",
+          rt.read_rows(surface: cli_surface).any? { |r| r[:row_id] == r1[:candidate_id] })
+
+  # (4) 重放三次不得增生
+  File.write(src, "# WAL 決策\n\n改用 WAL 模式以支援並行讀取。\n")
+  before = rt.read_rows(surface: cli_surface).size
+  3.times { imp.call(src, "DECISION") }
+  after = rt.read_rows(surface: cli_surface).size
+  snaps = Dir.children(OMOS::EvidenceSnapshot.root(store))
+  C.check("同內容重放 3 次不得新增 row", "#{before}→#{after}", before == after)
+  C.check("同內容重放 3 次不得新增 snapshot", snaps.size.to_s, snaps.size == 1)
+
+  # (5) 失敗一律 fail loud，且不得留下半套
+  [["不支援的格式", File.join(dir, "x.pdf"), "DECISION", "INBOX_UNSUPPORTED_FORMAT"],
+   ["讀不到的檔", File.join(dir, "missing.md"), "DECISION", "INBOX_SOURCE_UNREADABLE"],
+   ["空檔", File.join(dir, "empty.md"), "DECISION", "INBOX_SOURCE_EMPTY"],
+   ["非 UTF-8", File.join(dir, "bad.txt"), "DECISION", "INBOX_SOURCE_NOT_UTF8"],
+   ["預設不長存的 kind", File.join(dir, "ok.md"), "CURRENT_TASK_STATUS",
+    "INBOX_MEMORY_KIND_NOT_LONG_LIVED"],
+   ["不存在的 kind", File.join(dir, "ok.md"), "NOPE", "INBOX_MEMORY_KIND_UNKNOWN"]].each do |label, path, kind, code|
+    File.write(File.join(dir, "x.pdf"), "%PDF-1.4\n")
+    File.write(File.join(dir, "empty.md"), "")
+    File.binwrite(File.join(dir, "bad.txt"), "\xff\xfe\x00bad".b)
+    File.write(File.join(dir, "ok.md"), "# ok\n")
+    rows_before = rt.read_rows(surface: cli_surface).size
+    actual = begin
+      imp.call(path, kind)
+      nil
+    rescue OMOS::EvidenceSnapshot::Rejected => e
+      e.code
+    end
+    rows_after = rt.read_rows(surface: cli_surface).size
+    snaps_before = Dir.children(OMOS::EvidenceSnapshot.root(store)).size
+    C.check("匯入失敗：#{label} → #{code}，且不留半套", actual.to_s,
+            actual == code && rows_before == rows_after)
+    C.check("匯入失敗：#{label} 不得收進未分類的 snapshot", snaps_before.to_s,
+            snaps_before == 1)
+  end
+
+  # (6) 缺 memory_kind：保留 snapshot、明確回 NEEDS_CANDIDATE_INPUT，不得猜著補成 Record
+  pending_src = File.join(dir, "pending.md")
+  File.write(pending_src, "# 尚未分類\n\n這段還沒決定 memory_kind。\n")
+  before2 = rt.read_rows(surface: cli_surface).size
+  r2 = imp.call(pending_src, nil)
+  C.check("缺 memory_kind → NEEDS_CANDIDATE_INPUT", r2[:status],
+          r2[:status] == "NEEDS_CANDIDATE_INPUT")
+  C.check("缺 memory_kind 時 snapshot 仍保留", "",
+          OMOS::EvidenceSnapshot.verifiable?(store, r2[:content_sha256]))
+  C.check("缺 memory_kind 時不得寫入任何一列", "#{before2}→#{rt.read_rows(surface: cli_surface).size}",
+          rt.read_rows(surface: cli_surface).size == before2)
+
+  # (7) 鑑別力反證（卡片 Regression 第 16 項第一條）：
+  #     繞過 managed snapshot、只引用原始路徑的 support 必須被 gate 擋下。
+  bypass = OMOS::Inbox.link_body(
+    OMOS::EvidenceSnapshot.link_ref("f" * 64), Support::Fixtures::CAND,
+    env.merge("evidence_ref" => "file://#{File.expand_path(pending_src)}")
+  )
+  C.expect_rejected("繞過 managed snapshot、只引用原始路徑 → gate 擋下",
+                    "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT", rt.store) do
+    rt.write_row(kind: "MemorySupportLink", resource: bypass,
+                 idempotency_key: "bypass-1", surface: cli_surface)
+  end
+
+  # (7b) 匯入若偷帶 acceptance 權威，既有 evaluator 必須當場擋下。
+  #      這條讓「匯入不得自帶 verification／acceptance」成為**可反證**的斷言：
+  #      少了它，把 governance 改成 PASS/ACCEPTED 只會讓測試整個炸掉，
+  #      而不是某一項轉紅。
+  forged = OMOS::Inbox.candidate_body(
+    OMOS::EvidenceSnapshot.candidate_ref("e" * 64), r1[:link_id], env, "DECISION", store, Time.now.utc
+  )
+  forged["governance"] = forged["governance"].merge("verification_status" => "PASS",
+                                                    "acceptance_status" => "ACCEPTED")
+  C.expect_rejected("匯入偷帶 acceptance 權威 → evaluator 當場擋下",
+                    "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT", rt.store) do
+    rt.write_row(kind: "PersonalMemoryCandidate", resource: forged,
+                 idempotency_key: "forged-1", surface: cli_surface)
+  end
+
+  # (8) inbox list 由既有事實重算，不新增 table
+  entries = OMOS::Inbox.entries(rt, store, surface: cli_surface)
+  tables = rt.store.db.execute("SELECT name FROM sqlite_master WHERE type='table'").flatten
+  C.check("inbox list 同時列出已成案與待補的匯入", entries.size.to_s,
+          entries.size == 2 &&
+          entries.map { |e| e["candidate_status"] }.sort == %w[NEEDS_CANDIDATE_INPUT PROPOSED])
+  C.check("不得新增 inbox／queue table", tables.sort.inspect[0, 60],
+          tables.none? { |t| t.to_s.match?(/inbox|queue/i) })
+
+  rt.store.close
+  C.group = nil
+end
+
 C.report!
