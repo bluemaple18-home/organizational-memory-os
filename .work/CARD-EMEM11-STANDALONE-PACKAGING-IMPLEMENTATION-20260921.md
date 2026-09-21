@@ -238,9 +238,9 @@ qualification 矩陣（Part 2）。
 
 ### 不做
 
-不決定配送格式、不建 release pipeline、不做跨平台、不做 clean-macOS
-Part 2 qualification（`CARD-EMEM11-CLEAN-MACOS-QUALIFICATION-20260921`，
-`BLOCKED_ENVIRONMENT`）。
+不決定配送格式、不建 release pipeline、不做跨平台、不做 runtime
+qualification 判準（`CARD-EMEM11-CLEAN-MACOS-QUALIFICATION-20260921`；
+2026-09-21 Owner 改判準後為 `READY_TO_IMPLEMENT`）。
 
 ### repair-01（2026-09-21）
 
@@ -282,9 +282,11 @@ clean-macOS Part 2 qualification 仍在本卡之外。
 - `CARD-EMEM11-RUBY-GUARD-CRITERION-20260921` → `ABSORBED_ACCEPTED_GO`
   （Slice B @ e3e35ff）
 - Slice B 驗收第 2 項的不可驗半段（ABI 相容但版本字串不同 → 不得誤拒）
-  另開 `CARD-EMEM11-CLEAN-MACOS-QUALIFICATION-20260921`，狀態
-  `BLOCKED_ENVIRONMENT`。**條文未改寫**——可驗的半段留在 Slice B 且已收，
-  不可驗的半段整條搬走並標阻塞。
+  另開 `CARD-EMEM11-CLEAN-MACOS-QUALIFICATION-20260921`。開卡時條文未改寫，
+  可驗的半段留在 Slice B 且已收，不可驗的半段整條搬走並標
+  `BLOCKED_ENVIRONMENT`。**2026-09-21 Owner 改判準**後該卡不再需要乾淨
+  機器，轉為 `READY_TO_IMPLEMENT`；條文的更動是 Owner 裁決，不是為了
+  遷就本機測得到的東西。
 
 ---
 

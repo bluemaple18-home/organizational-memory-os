@@ -215,11 +215,21 @@ closure 仍不成立——而且會讓**契約來源變成可由使用者指定*
    `*-darwin` 預編譯；Bundler 拒絕 `path` 與 system gems 並用）。因此支援
    宣稱改以 **native linkage path ＋ ABI 目錄**為準，不以版本字串為準。
    另已實證：缺 linkage path 時是明確 LoadError、非靜默失敗。
-   **Part 2（Clean macOS runtime-profile matrix）需要一台沒有
-   `/opt/homebrew/opt/ruby@3.4` 的 macOS 環境**才有判定力——在本機裝第二個
+   **Part 2 原定為 Clean macOS runtime-profile matrix**，需要一台沒有
+   `/opt/homebrew/opt/ruby@3.4` 的 macOS 環境才有判定力——在本機裝第二個
    Ruby 會被既存的 Homebrew dylib 路徑污染（dyld 可能把 Homebrew libruby
    載進 alternate Ruby 的程序），結果不等價於乾淨機器。Part 2 因此移入
    packaging acceptance，**不阻塞 Q7**。
+
+   **2026-09-21 Owner 改判準，Part 2 不再是矩陣。** 同事機回報 `darwin24`、
+   本機為 `darwin25`，暴露出 `qualified_profiles` 只有 `host_os` 會因人而異，
+   等於「一個 macOS build 一列」且永遠列不完；而 `darwin24` 這個版本字串
+   本來就不是相容性判準——與 Q6 Part 1 否掉的那個錯相同，只是高了一層。
+   新判準為 **darwin family ＋ arm64 ＋ ruby engine ＋ ruby ABI ＋ runtime
+   live native probes**；`native_linkage_digest` 是 artifact-derived constant，
+   **不得**充當 machine qualification key；exact `host_os` 降為 observation。
+   Part 2 改為**驗證此判準跨 OS version 是否成立**，見
+   `CARD-EMEM11-CLEAN-MACOS-QUALIFICATION-20260921`。產品實作另送 review。
    `pinned-ruby.sh` guard 判準錯誤另立卡待裁。
 7. **（新）Installation root／activation identity**：Host command 要綁
    **stable launcher**，還是 versioned artifact path ＋ receipt 驅動的遷移？

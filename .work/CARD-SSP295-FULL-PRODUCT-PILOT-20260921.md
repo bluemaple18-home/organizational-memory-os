@@ -49,7 +49,7 @@ authority: organizational-memory-os
 
 | 項目 | 狀態 | 卡 |
 |---|---|---|
-| clean-macOS runtime-profile qualification | `BLOCKED_ENVIRONMENT` | `CARD-EMEM11-CLEAN-MACOS-QUALIFICATION-20260921` |
+| runtime qualification 判準（原 clean-macOS 矩陣） | `READY_TO_IMPLEMENT`（2026-09-21 Owner 改判準） | `CARD-EMEM11-CLEAN-MACOS-QUALIFICATION-20260921` |
 | doctor session-hook 證據 | `BACKLOG_NOT_SCHEDULED` | `CARD-DOCTOR-SESSION-HOOK-EVIDENCE-20260920` |
 | Codex cross-host | `BLOCKED_UPSTREAM_IDENTITY_CHANNEL` | `CARD-EMEM11B-CODEX-CROSS-HOST-20260920` |
 
