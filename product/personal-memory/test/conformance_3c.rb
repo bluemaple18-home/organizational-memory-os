@@ -2273,6 +2273,157 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
   C.check("不得為 notification 另開 table／ledger", tables.sort.inspect[0, 70],
           tables.none? { |t| t.to_s.match?(/notif|schedule|queue/i) })
 
+  # (8b) repair-02：install／remove 是交易。
+  #
+  # 兩個 failure state 都是「現場看起來檔案都在，但東西已經壞了」：
+  #   升級 bootstrap 失敗卻不還原 → 舊排程被打壞，使用者下週五收不到提醒
+  #   remove 的 bootout 失敗卻照刪 → 留下沒有管理檔案的孤兒 launchd job
+  #
+  # 失敗一律用注入的 launchctl 製造，不碰真實 session。
+  Dir.mktmpdir("omos-3c-a-schedule-txn") do |tdir|
+    thome = File.join(tdir, "home")
+    Support::FakeHome.seed(thome)
+    Open3.capture3({ "HOME" => thome }, exe, "install", "--home", thome,
+                   "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+    tpath = OMOS::Schedule.plist_path(thome)
+
+    tloaded = { on: false }
+    # bootstrap_fails_once 模擬「新設定被 launchd 拒絕，但舊設定仍載得回來」
+    # ——這才是升級失敗的常見形狀。全域性的 bootstrap 壞掉是另一種現場，
+    # 由 (a2) 單獨涵蓋。
+    fail_modes = { bootstrap_fails_once: false, bootout: false }
+    tcalls = []
+    lctl = lambda do |*args|
+      tcalls << args
+      case args.first
+      when "bootstrap"
+        if fail_modes[:bootstrap_fails_once]
+          fail_modes[:bootstrap_fails_once] = false
+          { ok: false, status: 5, out: "", err: "Bootstrap failed: 5: Input/output error" }
+        else
+          tloaded[:on] = true
+          { ok: true, status: 0, out: "", err: "" }
+        end
+      when "bootout"
+        if fail_modes[:bootout]
+          { ok: false, status: 5, out: "", err: "Boot-out failed" }
+        else
+          was = tloaded[:on]
+          tloaded[:on] = false
+          { ok: was, status: was ? 0 : 3, out: "", err: "" }
+        end
+      when "print" then { ok: tloaded[:on], status: tloaded[:on] ? 0 : 113, out: "", err: "" }
+      else { ok: false, status: 1, out: "", err: "" }
+      end
+    end
+
+    # 先裝一個正常運作的 16:00 排程
+    OMOS::Schedule.install(home: thome, anchor_hour: 16, launchctl: lctl)
+    good_bytes = File.binread(tpath)
+    C.check("交易前提：舊排程正常運作", tloaded[:on].to_s, tloaded[:on] == true)
+
+    # (a) 升級到 15:00 但 bootstrap 失敗 → 必須完整還原
+    fail_modes[:bootstrap_fails_once] = true
+    code = begin
+      OMOS::Schedule.install(home: thome, anchor_hour: 15, launchctl: lctl)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("P1-1 升級 bootstrap 失敗 → 明確失敗", code.to_s,
+            code == "SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED")
+    C.check("P1-1 升級失敗後舊 plist 位元組完全還原（anchor 仍是 16:00）",
+            OMOS::Schedule.installed_anchor_hour(tpath).to_s,
+            File.binread(tpath) == good_bytes &&
+            OMOS::Schedule.installed_anchor_hour(tpath) == 16)
+    C.check("P1-1 升級失敗後原本的 loaded 狀態也還原", tloaded[:on].to_s,
+            tloaded[:on] == true && OMOS::Schedule.loaded?(launchctl: lctl) == true)
+
+    # (a2) 還原**也**失敗時，必須自己講出來——不得讓使用者以為舊排程還在。
+    #      這與 (a) 是兩種不同的現場，錯誤碼必須分得開。
+    Dir.mktmpdir("omos-3c-a-schedule-norestore") do |ndir|
+      nhome = File.join(ndir, "home")
+      Support::FakeHome.seed(nhome)
+      Open3.capture3({ "HOME" => nhome }, exe, "install", "--home", nhome,
+                     "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+      nloaded = { on: false }
+      dead = { all: false }
+      nlctl = lambda do |*args|
+        case args.first
+        when "bootstrap"
+          next { ok: false, status: 5, out: "", err: "Bootstrap failed: 5" } if dead[:all]
+
+          nloaded[:on] = true
+          { ok: true, status: 0, out: "", err: "" }
+        when "bootout" then was = nloaded[:on]; nloaded[:on] = false
+                            { ok: was, status: was ? 0 : 3, out: "", err: "" }
+        when "print" then { ok: nloaded[:on], status: nloaded[:on] ? 0 : 113, out: "", err: "" }
+        else { ok: false, status: 1, out: "", err: "" }
+        end
+      end
+      OMOS::Schedule.install(home: nhome, anchor_hour: 16, launchctl: nlctl)
+      dead[:all] = true
+      ncode = begin
+        OMOS::Schedule.install(home: nhome, anchor_hour: 15, launchctl: nlctl)
+        nil
+      rescue OMOS::Schedule::Failed => e
+        e.code
+      end
+      C.check("P1-1 還原也失敗時必須用不同的錯誤碼講出來", ncode.to_s,
+              ncode == "SCHEDULE_INSTALL_FAILED_AND_NOT_RESTORED")
+      C.check("P1-1 還原失敗時 plist 位元組仍已寫回舊版",
+              OMOS::Schedule.installed_anchor_hour(OMOS::Schedule.plist_path(nhome)).to_s,
+              OMOS::Schedule.installed_anchor_hour(OMOS::Schedule.plist_path(nhome)) == 16)
+    end
+
+    # (b) 首次安裝 bootstrap 失敗 → 不得留下假安裝的 plist
+    Dir.mktmpdir("omos-3c-a-schedule-first") do |fdir|
+      fhome = File.join(fdir, "home")
+      Support::FakeHome.seed(fhome)
+      Open3.capture3({ "HOME" => fhome }, exe, "install", "--home", fhome,
+                     "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+      fpath = OMOS::Schedule.plist_path(fhome)
+      floaded = { on: false }
+      flctl = lambda do |*args|
+        case args.first
+        when "bootstrap" then { ok: false, status: 5, out: "", err: "Bootstrap failed: 5" }
+        when "print" then { ok: floaded[:on], status: 113, out: "", err: "" }
+        else { ok: false, status: 3, out: "", err: "" }
+        end
+      end
+      fcode = begin
+        OMOS::Schedule.install(home: fhome, launchctl: flctl)
+        nil
+      rescue OMOS::Schedule::Failed => e
+        e.code
+      end
+      C.check("P1-1 首次安裝 bootstrap 失敗 → 不得留下假安裝的 plist",
+              "#{fcode}／plist=#{File.exist?(fpath)}",
+              fcode == "SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED" && !File.exist?(fpath))
+    end
+
+    # (c) remove 時 bootout 失敗 → 保留 plist 並 fail loud，不得留下孤兒 job
+    fail_modes[:bootout] = true
+    rcode = begin
+      OMOS::Schedule.remove(home: thome, launchctl: lctl)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    fail_modes[:bootout] = false
+    C.check("P1-1 remove 的 bootout 失敗 → fail loud", rcode.to_s,
+            rcode == "SCHEDULE_BOOTOUT_FAILED")
+    C.check("P1-1 remove 失敗時必須保留 plist（不得留下孤兒 job）",
+            "plist=#{File.exist?(tpath)}／loaded=#{tloaded[:on]}",
+            File.exist?(tpath) && tloaded[:on] == true)
+
+    # (d) bootout 恢復正常後，remove 應該正常完成
+    ok_remove = OMOS::Schedule.remove(home: thome, launchctl: lctl)
+    C.check("P1-1 bootout 恢復後 remove 正常完成，且 job 真的停了",
+            "#{ok_remove[:removed]}／loaded=#{tloaded[:on]}",
+            ok_remove[:removed] == true && !File.exist?(tpath) && tloaded[:on] == false)
+  end
+
   # (9) 測試本身不得把 job 載進真實 session
   C.check("本組測試全程未呼叫真實 launchctl（只用注入替身）",
           "#{calls.size} 次注入呼叫",

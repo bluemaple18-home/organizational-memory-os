@@ -108,16 +108,37 @@ module OMOS
       launcher = launcher_path(home)
       raise Failed.new("SCHEDULE_LAUNCHER_MISSING", launcher) unless File.exist?(launcher)
 
+      # install 是一筆交易（repair-02）。
+      #
+      # 原本先覆寫 plist、再 bootout、最後 bootstrap，bootstrap 失敗時什麼都
+      # 不還原——於是一次失敗的升級會把**原本正常運作的排程**打壞：新 plist
+      # 留著、舊 job 已被 bootout、anchor 變成新版的。使用者下週五不會收到
+      # 提醒，而現場看起來「檔案都在」。
+      #
+      # 所以先把舊狀態完整存下來（plist 位元組 ＋ 是否真的載入），失敗就整組
+      # 還原：plist 位元組相同地寫回，原本有載入的就重新 bootstrap 回去。
       FileUtils.mkdir_p(agents_dir(home))
-      write_atomic(path, plist(home, anchor_hour.to_i))
+      previous_bytes = existing ? File.binread(path) : nil
+      previous_loaded = loaded?(launchctl: launchctl)
 
-      # 重裝要先 bootout 再 bootstrap，否則 launchd 會拒收同一個 Label。
-      # bootout 失敗不是錯誤——本來就可能沒載入過。
-      launchctl.call("bootout", "#{domain}/#{LABEL}") if existing
-      res = launchctl.call("bootstrap", domain, path)
-      unless res[:ok]
-        raise Failed.new("SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED",
-                         "exit=#{res[:status]} #{res[:err].to_s.strip[0, 120]}")
+      write_atomic(path, plist(home, anchor_hour.to_i))
+      begin
+        # 重裝要先 bootout 再 bootstrap，否則 launchd 會拒收同一個 Label。
+        # 這裡的 bootout 失敗不是錯誤——本來就可能沒載入過。
+        launchctl.call("bootout", "#{domain}/#{LABEL}") if previous_loaded
+        res = launchctl.call("bootstrap", domain, path)
+        unless res[:ok]
+          raise Failed.new("SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED",
+                           "exit=#{res[:status]} #{res[:err].to_s.strip[0, 120]}")
+        end
+      rescue StandardError => e
+        restored = restore_previous(path, previous_bytes, previous_loaded, launchctl)
+        raise e if restored
+
+        # 還原也失敗：**不得**假裝升級只是沒成功。這種狀態必須自己講出來，
+        # 否則使用者會以為舊排程還在。
+        raise Failed.new("SCHEDULE_INSTALL_FAILED_AND_NOT_RESTORED",
+                         "#{e.message}；舊 plist／loaded 狀態未能完整還原，請手動檢查 #{path}")
       end
 
       { label: LABEL, plist: path, replaced: existing, anchor_hour: anchor_hour.to_i,
@@ -133,9 +154,37 @@ module OMOS
                  found_label: plist_label(path, plutil: plutil) }
       end
 
-      launchctl.call("bootout", "#{domain}/#{LABEL}")
+      # repair-02：原本忽略 bootout 成敗就刪 plist——bootout 失敗時 job 仍然
+      # loaded，而管理它的檔案已經不見了，留下一個誰都管不到的孤兒 job。
+      # 卸載一個還在跑的東西，必須先真的把它停掉。
+      if loaded?(launchctl: launchctl)
+        res = launchctl.call("bootout", "#{domain}/#{LABEL}")
+        if !res[:ok] || loaded?(launchctl: launchctl)
+          raise Failed.new("SCHEDULE_BOOTOUT_FAILED",
+                           "job 仍在載入中，plist 保留於 #{path}（exit=#{res[:status]} " \
+                           "#{res[:err].to_s.strip[0, 120]}）")
+        end
+      end
+
       FileUtils.rm_f(path)
       { label: LABEL, removed: true, loaded: loaded?(launchctl: launchctl) }
+    end
+
+    # 把 plist 與載入狀態一起還原。任何一步失敗就回 false，讓呼叫端據實回報
+    # ——「還原失敗」與「升級失敗」是兩種不同的現場，不能混為一談。
+    def restore_previous(path, previous_bytes, previous_loaded, launchctl)
+      if previous_bytes.nil?
+        FileUtils.rm_f(path)
+      else
+        write_atomic(path, previous_bytes)
+      end
+
+      return true unless previous_loaded
+
+      launchctl.call("bootout", "#{domain}/#{LABEL}")
+      launchctl.call("bootstrap", domain, path)[:ok] == true
+    rescue StandardError
+      false
     end
 
     # job 是否**真的載入**，不是「檔案在不在」。

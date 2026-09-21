@@ -1,6 +1,6 @@
 ---
 id: PERSONAL-INBOX-SLICE-B-RESEARCH-20260921
-status: B2_REPAIR_01_READY_FOR_REVIEW
+status: B2_REPAIR_02_READY_FOR_REVIEW
 type: research
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 scope: Slice B（review due ＋ Friday trigger ＋ 提醒）
@@ -157,6 +157,29 @@ B1 無 blocker；三筆都是 B2 的實際行為缺口，不是測試覆蓋問�
 
 `install` 的 ownership 檢查移到 launcher 檢查**之前**：我們路徑上躺著別人的
 plist 時，那是比「本地安裝不完整」更該先講的事實。
+
+## 3.7 B2 repair-02（2026-09-22）：P1-1 的 lifecycle transaction residual
+
+repair-01 的 P1-2（anchor）與 P1-3（ownership）已關閉。剩下的是 `install`／
+`remove` **不是交易**，兩個 failure state 都屬於「現場看起來檔案都在，但東西
+已經壞了」：
+
+| 缺陷 | 實測結果 | 修法 |
+|---|---|---|
+| `install` 先覆寫 plist、再 bootout 舊 job、最後 bootstrap，失敗不 rollback | 舊排程原本正常 → 新版 bootstrap 失敗後：`loaded=false`、舊 plist 未還原、anchor 停在新版 15:00。**一次失敗的升級把原本可用的排程打壞** | 先存下舊 plist 位元組與**是否真的載入**；失敗就整組還原（位元組相同寫回 ＋ 原本有載入就重新 bootstrap 回去） |
+| `remove` 忽略 bootout 成敗就刪 plist | bootout 失敗後：`removed=true`、plist 已消失、job **仍 loaded**。**留下沒有管理檔案的孤兒 job** | 只有在 job 未載入、或 bootout 確實成功且複查已停之後才刪檔；否則保留 plist 並 fail loud |
+| 首次安裝 bootstrap 失敗 | 會留下一份假安裝的 plist | 還原路徑把它刪掉（`previous_bytes` 為 `nil` 即代表本來就沒有） |
+
+### 還原也失敗是**另一種**現場
+
+若連舊狀態都回不去，回 `SCHEDULE_INSTALL_FAILED_AND_NOT_RESTORED` 而不是
+原本的 bootstrap 失敗碼——不得讓使用者以為舊排程還在。兩個錯誤碼分開，
+各有測試。
+
+測試側同一個教訓：第一版的假 launchctl 讓**所有** bootstrap 都失敗，於是
+還原必然失敗，測出來的是「還原也失敗」而不是「升級失敗但已還原」。改成
+`bootstrap_fails_once`（新設定被拒、舊設定仍載得回來）才是升級失敗的常見
+形狀；全域壞掉那種另立一組。
 
 ## 4. 實作順序（Slice A GO 後）
 
