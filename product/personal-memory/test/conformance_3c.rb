@@ -1558,4 +1558,106 @@ Dir.mktmpdir("omos-3c-a-inbox") do |dir|
   C.group = nil
 end
 
+# --- Slice A｜個人身分解析（Owner 裁決 2026-09-21）---
+#
+#   明確參數 > install receipt 保存的 > （測試／暫時相容）環境變數 > fail closed
+#
+# 為什麼不從 SessionStart 推：HostSessionBinding 只有 executor_ref／
+# executor_session_ref／cwd／project_ref／effective_scope，沒有
+# employee_owner_ref 與 tenant_id。從那裡硬推等於造一份假的 mapping。
+Dir.mktmpdir("omos-3c-a-identity") do |dir|
+  C.group = "A"
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
+  note = File.join(dir, "note.md")
+  File.write(note, "# 決策\n\n改用 WAL。\n")
+  receipt = File.join(home, ".omos/personal-memory/install-receipt.json")
+
+  cli = lambda do |args, env = {}|
+    o, e, st = Open3.capture3({ "HOME" => home }.merge(env), exe, *args)
+    [o, e, st]
+  end
+  identity = -> { (JSON.parse(File.read(receipt))["personal_identity"] || {}) }
+
+  # (1) install 帶身分 → 寫進 receipt
+  cli.call(["install", "--home", home, "--owner", Support::Fixtures::EMP, "--tenant", "t-acme"])
+  C.check("install --owner/--tenant 寫進 receipt 的 personal_identity",
+          identity.call["employee_owner_ref"].to_s,
+          identity.call == { "employee_owner_ref" => Support::Fixtures::EMP,
+                             "tenant_id" => "t-acme" })
+
+  # (2) 之後裸跑 import 不必再輸入身分
+  out2, _, st2 = cli.call(["import", note, "--memory-kind", "DECISION"])
+  C.check("設定過身分後 `import FILE` 裸跑即可", out2.lines.first.to_s.strip,
+          st2.success? && out2.include?("CANDIDATE_PROPOSED"))
+
+  # (3) upgrade 不得洗掉身分
+  cli.call(["install", "--home", home])
+  C.check("upgrade（install 不帶身分）必須原樣保留 identity", identity.call["tenant_id"].to_s,
+          identity.call["employee_owner_ref"] == Support::Fixtures::EMP &&
+          identity.call["tenant_id"] == "t-acme")
+
+  # (4) 明確參數覆寫 receipt
+  other = File.join(dir, "other.md")
+  File.write(other, "# 另一份\n\n由別人匯入。\n")
+  out4, _, = cli.call(["import", other, "--memory-kind", "LESSON",
+                       "--owner", "urn:omos:employee:emp-777", "--tenant", "t-other"])
+  store = File.join(home, ".omos/personal-memory/personal.db")
+  rt4 = OMOS::Runtime.open(store)
+  owners = rt4.read_rows(surface: OMOS::Runtime::SURFACES[:cli])
+               .select { |r| r[:kind] == "PersonalMemoryCandidate" }
+               .map { |r| r[:resource]["employee_owner_ref"] }.uniq.sort
+  rt4.store.close
+  C.check("import 的明確參數覆寫 receipt 身分", owners.inspect,
+          out4.include?("CANDIDATE_PROPOSED") &&
+          owners == [Support::Fixtures::EMP, "urn:omos:employee:emp-777"].sort)
+
+  # (5) 明確重新綁定才覆寫 receipt
+  cli.call(["install", "--home", home, "--owner", "urn:omos:employee:emp-999", "--tenant", "t-new"])
+  C.check("明確重新指定才覆寫 receipt 身分", identity.call["employee_owner_ref"].to_s,
+          identity.call["employee_owner_ref"] == "urn:omos:employee:emp-999")
+
+  # (6) 只給一半是輸入錯誤，不得寫進半組身分
+  before6 = identity.call
+  _, err6, st6 = cli.call(["install", "--home", home, "--owner", "urn:omos:employee:emp-half"])
+  C.check("install 只給 --owner → INSTALL_IDENTITY_INCOMPLETE 且不改 receipt",
+          err6.strip[0, 40],
+          !st6.success? && err6.include?("INSTALL_IDENTITY_INCOMPLETE") &&
+          identity.call == before6)
+end
+
+Dir.mktmpdir("omos-3c-a-identity-missing") do |dir|
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
+  note = File.join(dir, "note.md")
+  File.write(note, "# 無身分\n\n沒有設定過身分。\n")
+
+  # (7) 完全沒有身分來源 → fail closed，且不得寫入任何東西
+  Open3.capture3({ "HOME" => home }, exe, "install", "--home", home)
+  out7, err7, st7 = Open3.capture3(
+    { "HOME" => home, "OMOS_EMPLOYEE_REF" => "", "OMOS_TENANT_ID" => "" },
+    exe, "import", note, "--memory-kind", "DECISION"
+  )
+  evidence_root = File.join(home, ".omos/personal-memory/evidence")
+  C.check("沒有任何身分來源 → INBOX_OWNER_IDENTITY_REQUIRED",
+          err7.lines.first.to_s.strip[0, 50],
+          !st7.success? && err7.include?("INBOX_OWNER_IDENTITY_REQUIRED"))
+  C.check("身分缺失時不得留下 evidence snapshot", "",
+          !Dir.exist?(evidence_root) || Dir.children(evidence_root).empty?)
+  C.check("身分缺失的錯誤訊息要說得出怎麼補", out7.to_s[0, 20],
+          err7.include?("install --owner") && err7.include?("--tenant"))
+
+  # (8) 環境變數只在沒有 receipt 身分時採用，且必須出聲
+  out8, err8, st8 = Open3.capture3(
+    { "HOME" => home, "OMOS_EMPLOYEE_REF" => Support::Fixtures::EMP, "OMOS_TENANT_ID" => "t-env" },
+    exe, "import", note, "--memory-kind", "DECISION"
+  )
+  C.check("環境變數可作為暫時來源但必須出聲說明", err8.strip[0, 40],
+          st8.success? && out8.include?("CANDIDATE_PROPOSED") &&
+          err8.include?("環境變數") && err8.include?("install --owner"))
+  C.group = nil
+end
+
 C.report!

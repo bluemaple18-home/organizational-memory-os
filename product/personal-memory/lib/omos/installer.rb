@@ -41,11 +41,13 @@ module OMOS
     attr_reader :home, :product_root
 
     def initialize(home: Dir.home, product_root: File.expand_path("../..", __dir__),
-                   store_path: nil, runtime_scope_mode: "EMPLOYEE_PRIVATE")
+                   store_path: nil, runtime_scope_mode: "EMPLOYEE_PRIVATE",
+                   personal_identity: nil)
       @home = home
       @product_root = product_root
       @store_path = store_path
       @runtime_scope_mode = runtime_scope_mode
+      @personal_identity = personal_identity
     end
 
     def store_path = @store_path || expand(DEFAULT_STORE)
@@ -465,6 +467,24 @@ module OMOS
       prior == artifact_id ? previous["previous_artifact_id"] : prior
     end
 
+    # explicit（這次 install 帶的）> 上一份 receipt 保留的 > nil。
+    # nil 是合法狀態：沒設定過就是沒設定過，import 會當場要求補上，不會猜。
+    def personal_identity_for(previous)
+      return normalized_identity(@personal_identity) unless @personal_identity.nil?
+
+      previous && previous["personal_identity"]
+    end
+
+    def normalized_identity(identity)
+      owner = identity[:employee_owner_ref] || identity["employee_owner_ref"]
+      tenant = identity[:tenant_id] || identity["tenant_id"]
+      raise Failed, "INSTALL_IDENTITY_INCOMPLETE" if blank?(owner) || blank?(tenant)
+
+      { "employee_owner_ref" => owner.strip, "tenant_id" => tenant.strip }
+    end
+
+    def blank?(v) = !v.is_a?(String) || v.strip.empty?
+
     def write_receipt(hosts, schema_version, artifact_id, previous)
       data = {
         "installed_at" => Time.now.utc.iso8601,
@@ -482,6 +502,18 @@ module OMOS
         "store_path" => store_path,
         "schema_version" => schema_version,
         "commands" => command_map.invert,
+        # 安裝時**明確設定過**的個人身分。
+        #
+        # 這裡只是保存值，**不是 identity authority**，也沒有新增第二套
+        # identity vocabulary——欄位名沿用 portable record contract 既有的
+        # employee_owner_ref／tenant_id。產品其他地方仍然由呼叫端自己帶身分，
+        # 這份只給 import 這種「使用者不該每次重打一遍」的本機操作讀。
+        #
+        # upgrade 必須原樣保留：新版 install 沒帶 --owner/--tenant 時沿用上一份
+        # receipt 的值，否則升級會把使用者的身分洗掉，而洗掉的徵狀是下一次
+        # import 才會出現的 INBOX_OWNER_IDENTITY_REQUIRED——離原因很遠。
+        # 只有明確重新指定才覆寫。
+        "personal_identity" => personal_identity_for(previous),
         "hosts" => hosts.each_with_object({}) do |host, acc|
           config = HostConfig.new(host, home: @home)
           acc[host] = {

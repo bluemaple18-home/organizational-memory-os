@@ -72,6 +72,38 @@ FILE
   evidence snapshot 並明確回 `NEEDS_CANDIDATE_INPUT`；**不得用猜的欄位偷偷補成
   accepted Record**。
 
+### 2.2.1 個人身分的來源（Owner 裁決 2026-09-21）
+
+Candidate 的 `tenant_id` 與 `employee_owner_ref` 是必填，但產品原本**沒有任何
+地方存過員工身分**——`write` 一直由呼叫端在 resource JSON 自己帶。`import`
+不能每次都要使用者重打一遍，也不能猜。
+
+裁決的解析順序：
+
+```text
+明確參數（--owner/--tenant）
+  > install receipt 的 personal_identity
+  > （測試／暫時相容）環境變數
+  > fail closed（INBOX_OWNER_IDENTITY_REQUIRED）
+```
+
+三條硬規則：
+
+1. **receipt 只保存「已明確設定過」的 identity value**，不是 identity
+   authority，也不新增 vocabulary——欄位名沿用既有的
+   `employee_owner_ref`／`tenant_id`。
+2. **upgrade 必須原樣保留 identity**，新版 install 不得洗掉；只有明確重新
+   指定才覆寫。
+3. `import --owner/--tenant` 保留作明確 override／測試／首次 migration；
+   裸跑 `import note.md` 預設讀 receipt。缺就 fail closed，**絕對不猜**。
+
+**不從 SessionStart 推**：HostSessionBinding 只有 `executor_ref`／
+`executor_session_ref`／`cwd`／`project_ref`／`effective_scope`，沒有
+`employee_owner_ref` 與 `tenant_id`。從那裡硬推等於造一份假的 mapping。
+
+環境變數不作為正式預設來源——它太容易隨 shell／session 漂移；只在沒有
+receipt 身分時採用，且會在 stderr 出聲說明。
+
 ### 2.3 Idempotency / failure
 
 - 同一 bytes + 同一 owner/source 再匯入：重放，不產第二份 evidence snapshot／

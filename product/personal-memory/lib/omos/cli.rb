@@ -30,7 +30,9 @@ module OMOS
         inbox list              列出已匯入的 evidence 與對應的 candidate
         read                    讀出所有列（權限檢查先於讀取）
         closeout --file FILE    提交一次 weekly closeout
-        install [--home DIR]    初始化 store 並註冊到已交付的 Host（v1：Claude Code）
+        install [--home DIR] [--owner REF --tenant ID]
+                                初始化 store 並註冊到已交付的 Host（v1：Claude Code）
+                                身分只需設定一次，之後 import 自動沿用；升級不會洗掉
         uninstall [--home DIR] [--remove-store]
                                 移除本產品註冊（預設保留 Personal Store）
         rollback [--home DIR]   切回上一個 artifact（只切 pointer，不動 Host 設定）
@@ -40,9 +42,9 @@ module OMOS
       共用選項:
         --store PATH            store 檔案路徑（預設 #{DEFAULT_STORE}）
 
-      匯入身分（import 需要，flag 優先於環境變數）:
-        --owner REF             urn:omos:employee:...（或 OMOS_EMPLOYEE_REF）
-        --tenant ID             tenant_id（或 OMOS_TENANT_ID）
+      個人身分（install 設定一次；import 可明確覆寫）:
+        --owner REF             urn:omos:employee:...
+        --tenant ID             tenant_id
     TXT
 
     def self.run(argv, out: $stdout, err: $stderr)
@@ -118,22 +120,57 @@ module OMOS
 
     def surface = Runtime::SURFACES[:cli]
 
-    # 匯入身分：flag 優先，其次環境變數。
+    # 匯入身分的解析順序（Owner 裁決 2026-09-21）：
     #
-    # 刻意**不**新增第二套身分資料：契約明寫綁定 Host 時要沿用既有的 executor
-    # identity，不得另立 identity vocabulary。產品目前沒有任何地方存過員工
-    # 身分（write 的 tenant_id／employee_owner_ref 一直都由呼叫端的 resource
-    # JSON 自己帶），所以這裡也不偷偷開一份 identity 檔——缺就當場失敗，
-    # 並說清楚要補什麼。猜一個 owner 會讓整條 evidence 鏈掛在錯的人身上。
-    def import_identity(opts)
-      owner = opts[:owner] || ENV["OMOS_EMPLOYEE_REF"]
-      tenant = opts[:tenant] || ENV["OMOS_TENANT_ID"]
-      missing = []
-      missing << "--owner（或 OMOS_EMPLOYEE_REF）" if owner.nil? || owner.strip.empty?
-      missing << "--tenant（或 OMOS_TENANT_ID）" if tenant.nil? || tenant.strip.empty?
-      return [owner, tenant] if missing.empty?
+    #   明確參數 > install receipt 保存的 > （測試／暫時相容）環境變數 > fail closed
+    #
+    # 不新增 identity 檔、不新增第二套 vocabulary：receipt 只是保存**使用者
+    # 在 install 時明確設定過**的值，欄位名沿用既有的 employee_owner_ref／
+    # tenant_id。它不是 identity authority。
+    #
+    # 為什麼不從 SessionStart 推：HostSessionBinding 只有 executor_ref／
+    # executor_session_ref／cwd／project_ref／effective_scope，**沒有**
+    # employee_owner_ref 與 tenant_id。從那裡硬推等於造一份假的 mapping。
+    #
+    # 環境變數排在 receipt 之後且只在沒有 receipt 身分時才採用，並且會出聲：
+    # 它太容易隨 shell／session 漂移，適合測試或暫時相容，不適合當長期來源。
+    # 三者都沒有就當場失敗——猜一個 owner 會讓整條 evidence 鏈掛在錯的人身上。
+    def import_identity(opts, err)
+      owner = presence(opts[:owner])
+      tenant = presence(opts[:tenant])
+      return [owner, tenant] if owner && tenant
 
+      stored = installed_identity
+      owner ||= presence(stored["employee_owner_ref"])
+      tenant ||= presence(stored["tenant_id"])
+      return [owner, tenant] if owner && tenant
+
+      env_owner = presence(ENV["OMOS_EMPLOYEE_REF"])
+      env_tenant = presence(ENV["OMOS_TENANT_ID"])
+      if owner.nil? && tenant.nil? && env_owner && env_tenant
+        err.puts "[omos-personal-memory] 身分取自環境變數（測試／暫時相容用）。" \
+                 "長期請用 install --owner/--tenant 寫進 receipt。"
+        return [env_owner, env_tenant]
+      end
+
+      missing = []
+      missing << "employee_owner_ref" if owner.nil?
+      missing << "tenant_id" if tenant.nil?
       raise Inbox::IdentityRequired, missing.join("、")
+    end
+
+    def presence(v) = v.is_a?(String) && !v.strip.empty? ? v.strip : nil
+
+    def installed_identity(path = File.expand_path(Installer::RECEIPT_PATH))
+      installed_identity_at(path)
+    end
+
+    def installed_identity_at(path)
+      return {} unless File.file?(path)
+
+      (JSON.parse(File.read(path))["personal_identity"] || {})
+    rescue JSON::ParserError
+      {}
     end
 
     def cmd_import(path, argv, opts, out, err)
@@ -143,7 +180,7 @@ module OMOS
         return 2
       end
 
-      owner, tenant = import_identity(opts)
+      owner, tenant = import_identity(opts, err)
       with_runtime(path) do |rt|
         result = Inbox.import(rt, path, source, memory_kind: opts[:memory_kind],
                                                 owner_ref: owner, tenant_id: tenant,
@@ -162,6 +199,8 @@ module OMOS
       0
     rescue Inbox::IdentityRequired => e
       err.puts "INBOX_OWNER_IDENTITY_REQUIRED: 缺 #{e.message}"
+      err.puts "  設定一次即可： omos-personal-memory install --owner urn:omos:employee:… --tenant t-…"
+      err.puts "  或這次明確指定： import FILE --owner … --tenant …"
       2
     rescue EvidenceSnapshot::Rejected => e
       err.puts e.code
@@ -262,16 +301,32 @@ module OMOS
 
     def installer_for(opts)
       home = opts[:home] || Dir.home
-      Installer.new(home: home, store_path: opts[:store])
+      # 只有兩個都給才算「這次明確設定身分」。給一半是輸入錯誤，不是部分更新
+      # ——半組身分寫進 receipt 之後，import 會拿到一個永遠湊不齊的來源。
+      identity = if presence(opts[:owner]) && presence(opts[:tenant])
+                   { "employee_owner_ref" => opts[:owner].strip, "tenant_id" => opts[:tenant].strip }
+                 end
+      Installer.new(home: home, store_path: opts[:store], personal_identity: identity)
     end
 
     def cmd_install(opts, out, err)
+      if presence(opts[:owner]).nil? ^ presence(opts[:tenant]).nil?
+        err.puts "INSTALL_IDENTITY_INCOMPLETE: --owner 與 --tenant 必須一起給"
+        return 2
+      end
+
       inst = installer_for(opts)
       result = inst.install
       out.puts "INSTALLED"
       out.puts "  store:   #{result[:store_path]} (schema #{result[:schema_version]})"
       out.puts "  hosts:   #{result[:hosts].join(", ")}"
       out.puts "  receipt: #{inst.receipt_path}"
+      ident = installed_identity_at(inst.receipt_path)
+      if ident["employee_owner_ref"]
+        out.puts "  身分:    #{ident["employee_owner_ref"]} / #{ident["tenant_id"]}"
+      else
+        out.puts "  身分:    尚未設定（import 時再補 --owner/--tenant，或重跑 install 帶上）"
+      end
       out.puts "接著執行 `omos-personal-memory doctor` 確認。"
       0
     end
