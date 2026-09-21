@@ -5,7 +5,8 @@ slice_a: ACCEPTED_GO @ 77e11e0（8b49d16 匯入本體、8d1227a 身分解析、d
 slice_a_review_round_3: GO（2026-09-21，P1 皆 0；P2×1 residual 已於收片時一併收；.work/handoff/PERSONAL-INBOX-SLICE-A-REPAIR-02-REREVIEW-20260921.md）
 slice_a_review_round_1: NO_GO（2026-09-21，P1×3：身分拼接＋格式未驗／跨時間重匯不冪等／content-only dedup 黏合 provenance；P2×1：identity validation 未下沉）→ repair-01 已修
 slice_a_review_round_2: NO_GO（2026-09-21，P1×2：owner ref 仍允許多段冒號／provenance conflict 在跨 process race 下可繞過；P2×1：tmp 目錄名只含 pid）→ repair-02 已修
-slice_b: IN_PROGRESS（.work/CARD-PERSONAL-INBOX-SLICE-B-RESEARCH-20260921.md；Slice A 已 GO，B1 開工）
+slice_b: B1_B2_READY_FOR_REVIEW（d6fce24 B1、86a5103 B1 repair、22c8ab9 B2；證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-B1B2-EVIDENCE-20260921.md）
+slice_b_remaining: upgrade regression → zip 覆蓋解壓 upgrade（驗收 13）→ quarantine E2E（驗收 14）→ closeout review；三步若只補測試與證據、不改產品邏輯，closeout 時只審新增的 delivery-path 證據
 type: bounded-product-capability
 priority: MVP
 related:
