@@ -239,7 +239,8 @@ qualification 矩陣（Part 2）。
 ### 不做
 
 不決定配送格式、不建 release pipeline、不做跨平台、不做 clean-macOS
-Part 2 qualification（那在本卡之後）。
+Part 2 qualification（`CARD-EMEM11-CLEAN-MACOS-QUALIFICATION-20260921`，
+`BLOCKED_ENVIRONMENT`）。
 
 ### repair-01（2026-09-21）
 
@@ -273,6 +274,17 @@ verdict：`.work/handoff/EMEM11-SLICE-C-REPAIR-01-REREVIEW-20260921.md`。
 **Slice A／B／C 至此全部 ACCEPTED_GO，本卡三片交付完成。**
 卡上「不做」的範圍不變：配送格式、release pipeline、跨平台、
 clean-macOS Part 2 qualification 仍在本卡之外。
+
+收片時一併處理的卡面（2026-09-21）：
+
+- `CARD-EMEM11-STALE-HOOK-RELOCATION-20260920` → `ABSORBED_ACCEPTED_GO`
+  （Slice A @ ce62092）
+- `CARD-EMEM11-RUBY-GUARD-CRITERION-20260921` → `ABSORBED_ACCEPTED_GO`
+  （Slice B @ e3e35ff）
+- Slice B 驗收第 2 項的不可驗半段（ABI 相容但版本字串不同 → 不得誤拒）
+  另開 `CARD-EMEM11-CLEAN-MACOS-QUALIFICATION-20260921`，狀態
+  `BLOCKED_ENVIRONMENT`。**條文未改寫**——可驗的半段留在 Slice B 且已收，
+  不可驗的半段整條搬走並標阻塞。
 
 ---
 
