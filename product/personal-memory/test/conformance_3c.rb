@@ -1881,20 +1881,44 @@ Dir.mktmpdir("omos-3c-a-inbox-repair02") do |dir|
   end
   C.check("P1-2 同 provenance 的既有 snapshot 仍正常重放", same_code.to_s, same_code.nil?)
 
-  # P2：tmp 名必須真正唯一，同 process 併發不得共用暫存目錄
+  # P2（repair-02 re-review residual）：不能只驗 tmp **名字的形狀**——那對
+  # 「同 process 併發」幾乎沒有鑑別力。改成真正開兩個 thread，用 barrier 讓
+  # 它們同時進入 capture，然後斷言兩邊都得到一致的結果、且沒有任何一邊因為
+  # 共用暫存目錄而炸掉。
   tmp_src = File.join(dir, "tmp.md")
   File.write(tmp_src, "# tmp\n\n併發暫存目錄。\n")
-  seen = []
-  10.times do
-    OMOS::EvidenceSnapshot.capture(store, tmp_src, owner_ref: owner, tenant_id: "t-A",
-                                                   before_rename: -> { seen << Dir.children(OMOS::EvidenceSnapshot.root(store)).grep(/\.writing-/) })
-  rescue OMOS::EvidenceSnapshot::Rejected
-    nil
+
+  barrier = Queue.new
+  results = Queue.new
+  threads = 2.times.map do
+    Thread.new do
+      barrier.pop                       # 兩條都就位才一起衝
+      results << begin
+        env, replayed = OMOS::EvidenceSnapshot.capture(
+          store, tmp_src, owner_ref: owner, tenant_id: "t-A"
+        )
+        [:ok, env["content_sha256"], replayed]
+      rescue StandardError => e
+        [:error, "#{e.class}: #{e.message[0, 60]}", nil]
+      end
+    end
   end
-  names = seen.flatten.uniq
-  C.check("P2 tmp 目錄名不只含 pid（同 process 併發不會共用）",
-          names.first.to_s[-20, 20].to_s,
-          names.all? { |n| n.match?(/\.writing-\d+-[0-9a-f]{16}\z/) })
+  2.times { barrier << :go }
+  threads.each(&:join)
+  outcomes = 2.times.map { results.pop }
+
+  C.check("P2 同 process 兩 thread 併發 capture：兩邊都不得失敗",
+          outcomes.map { |o| o[0] == :ok ? "ok" : o[1] }.inspect,
+          outcomes.all? { |o| o[0] == :ok })
+  C.check("P2 兩 thread 得到同一個 digest（不得各寫一份）",
+          outcomes.map { |o| o[1].to_s[0, 12] }.uniq.inspect,
+          outcomes.map { |o| o[1] }.uniq.size == 1)
+  C.check("P2 併發後恰好一份 snapshot，且無 .writing- 殘骸",
+          Dir.children(OMOS::EvidenceSnapshot.root(store)).grep(/\.writing-/).inspect,
+          Dir.children(OMOS::EvidenceSnapshot.root(store)).grep(/\.writing-/).empty? &&
+          Dir.exist?(OMOS::EvidenceSnapshot.dir_for(
+            store, OMOS::EvidenceSnapshot.digest_of(File.binread(tmp_src))
+          )))
 
   rt.store.close
   C.group = nil

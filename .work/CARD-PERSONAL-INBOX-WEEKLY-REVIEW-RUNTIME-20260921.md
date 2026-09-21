@@ -1,10 +1,11 @@
 ---
 id: PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
-status: SLICE_A_READY_FOR_REVIEW
-slice_a: REPAIR_02_READY_FOR_REVIEW（8b49d16 匯入本體、8d1227a 身分解析、d24ca37 repair-01、repair-02；證據包 .work/handoff/PERSONAL-INBOX-SLICE-A-EVIDENCE-20260921.md）
+status: SLICE_A_ACCEPTED_GO_SLICE_B_IN_PROGRESS
+slice_a: ACCEPTED_GO @ 77e11e0（8b49d16 匯入本體、8d1227a 身分解析、d24ca37 repair-01、77e11e0 repair-02）
+slice_a_review_round_3: GO（2026-09-21，P1 皆 0；P2×1 residual 已於收片時一併收；.work/handoff/PERSONAL-INBOX-SLICE-A-REPAIR-02-REREVIEW-20260921.md）
 slice_a_review_round_1: NO_GO（2026-09-21，P1×3：身分拼接＋格式未驗／跨時間重匯不冪等／content-only dedup 黏合 provenance；P2×1：identity validation 未下沉）→ repair-01 已修
 slice_a_review_round_2: NO_GO（2026-09-21，P1×2：owner ref 仍允許多段冒號／provenance conflict 在跨 process race 下可繞過；P2×1：tmp 目錄名只含 pid）→ repair-02 已修
-slice_b: RESEARCH_DONE（.work/CARD-PERSONAL-INBOX-SLICE-B-RESEARCH-20260921.md；產品碼待 Slice A GO）
+slice_b: IN_PROGRESS（.work/CARD-PERSONAL-INBOX-SLICE-B-RESEARCH-20260921.md；Slice A 已 GO，B1 開工）
 type: bounded-product-capability
 priority: MVP
 related:
@@ -147,6 +148,19 @@ receipt 身分時採用，且會在 stderr 出聲說明。
 `tenant_id` 上游確實沒有 shape；`employee_owner_ref` 的精確 employee identity
 形狀也沒有足夠一致的 normative 定義。**本片不自行發明更強的 schema**，
 只守住修法自己宣告的最低 URN 形狀。另登 P2 contract gap。
+
+#### review round 3（2026-09-21）：GO
+
+P1 皆 0。`capture(before_rename:)` 測試接縫**收**——bounded deterministic
+race injection，形狀與已接受的 `rollback(fail_before_receipt:)` 一致，
+production caller 未使用。reviewer 另以真實兩個 process 重播 race、並單獨
+撤掉 `adopt_existing` 的 provenance 驗證，確認兩個修法**彼此獨立**、不是
+互相遮蔽——這正是交付方主動揭露的疑點。
+
+reviewer 留下一筆 P2 residual（不阻塞）：tmp uniqueness 的常設 regression
+只驗名字形狀，對「同 process 併發」鑑別力弱。**收片時一併收掉**，改成真正的
+兩-thread barrier 測試；退回固定 tmp 名時連續三次都重現 `Errno::ENOENT`，
+不是 flaky。
 
 ### 2.3 Idempotency / failure
 
