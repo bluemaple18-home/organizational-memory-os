@@ -103,9 +103,30 @@ module OMOS
       # artifact integrity：manifest 是否仍是當初被 qualification 的那一份。
       # 這**不是**機器判定——它在每台機器上的答案都一樣。不符代表 artifact
       # 被改過或打包錯了，屬於 fail closed。
+      #
+      # review P1-1：原本 `return if declared.nil?`，於是**把宣告整個刪掉就能
+      # 關掉這道 guard**——實測回 PASSED_WITHOUT_DECLARATION。一道「刪掉就會
+      # 消失」的保護不是保護。缺欄位、格式不對、digest 不符，三者一律 fail
+      # closed；缺宣告甚至比不符更可疑，因為它連「當初被 qualification 的是
+      # 哪一份」都答不出來。
+      DIGEST_SHAPE = /\A[0-9a-f]{64}\z/
+
       def assert_artifact_integrity!
         declared = profile_document["artifact_native_linkage_digest"]
-        return if declared.nil? || declared == linkage_digest
+
+        if declared.nil?
+          raise Unsupported.new("OMOS_ARTIFACT_LINKAGE_DIGEST_MISSING",
+                                "runtime-profile.json 沒有宣告 artifact_native_linkage_digest；" \
+                                "無法確認這份 artifact 是否就是當初被 qualification 的那一份")
+        end
+
+        unless declared.is_a?(String) && DIGEST_SHAPE.match?(declared)
+          raise Unsupported.new("OMOS_ARTIFACT_LINKAGE_DIGEST_MALFORMED",
+                                "artifact_native_linkage_digest 不是 64 位小寫十六進位字串" \
+                                "（#{declared.inspect[0, 40]}）")
+        end
+
+        return if declared == linkage_digest
 
         raise Unsupported.new("OMOS_ARTIFACT_LINKAGE_DIGEST_MISMATCH",
                               "native-dependencies.json 與 runtime-profile.json 宣告的不符" \

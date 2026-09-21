@@ -1,6 +1,7 @@
 ---
 id: EMEM11-QUALIFICATION-KEY-FIX-20260921
-status: READY_FOR_REVIEW
+status: REPAIR_01_READY_FOR_REVIEW
+review_round_1: NO_GO（2026-09-21，P1×2：artifact integrity 欄位缺失時 fail-open／驗收第 5 項與程式互相矛盾）→ repair-01 已修
 type: product-fix
 severity: P2
 scope: bounded
@@ -51,7 +52,11 @@ linkage digest 改放為獨立的 artifact integrity 欄位。
    live native probes`。
 3. `native_linkage_digest` 只驗 artifact integrity，不拿來區分機器。
 4. **`darwin99` mutation**：只改 OS version，結果仍須 `QUALIFIED`。
-5. ABI／CPU／live linkage 任一真的不符，仍必須 **fail closed**。
+5. **實際 runtime incompatibility 必須 fail closed。** 包含 candidate Ruby
+   ABI 與 artifact vendor ABI 不符、native extension 無法載入、或宣告的
+   native linkage 無法解析。
+   單純 qualification key／觀測 metadata 不匹配，但實際 live native probes
+   全部成功時，應回 `UNQUALIFIED_RUNTIME_PROFILE`，**不得誤當成執行不相容**。
 6. 用同事那台重跑後，`UNQUALIFIED_RUNTIME_PROFILE` 應消失。
 
 ### Regression
@@ -59,10 +64,49 @@ linkage digest 改放為獨立的 artifact integrity 欄位。
 7. 3a／3b／3c 全綠；40 支 validator 全綠；`git diff --check` clean。
 8. 每一項附鑑別力反證。
 
+## 3.1 repair-01（2026-09-21）
+
+review round 1 判 **NO_GO**，2×P1：
+
+| # | 缺陷 | 修法 |
+|---|---|---|
+| P1-1 | `assert_artifact_integrity!` 在宣告缺失時 `return`，等於**刪掉宣告就能關掉這道 guard**（實測 `PASSED_WITHOUT_DECLARATION`） | 缺欄位／格式錯／digest 不符三者一律 fail closed，各有專屬錯誤碼；缺宣告比不符更可疑，因為連「當初被 qualification 的是哪一份」都答不出來 |
+| P1-2 | 驗收第 5 項與程式互相矛盾：卡說 CPU／ABI 不符要 fail closed，程式回 UNQUALIFIED | **Owner 裁決：維持 UNQUALIFIED**，改清楚驗收第 5 項 |
+
+### P1-2 的裁決理由（Owner 2026-09-21）
+
+這裡其實是兩層，不能混在一起：
+
+```text
+Compatibility / Safety gate          → fail closed
+├─ candidate Ruby ABI 與 artifact vendor ABI 不符（pinned-ruby.sh，進 Ruby 前）
+├─ native extension 真的載不動（live probe）
+└─ 宣告的 native linkage 真的解析不到（live probe）
+
+Qualification policy                 → UNQUALIFIED，不阻擋
+├─ os_family 不在支援組合
+├─ CPU metadata 不在已 qualification 組合
+└─ ABI metadata 不在已 qualification 組合
+```
+
+reviewer 把 `RbConfig["host_cpu"] = "x86_64"` 與 `ruby_version = "9.9.9"`
+當成「真的不相容」，測法不夠準：那只改了**回報 metadata**，底下仍是原本
+那支 Ruby、原本那些 arm64 extension，所以 live probe 當然照樣成功。
+
+**不採 hard allowlist**（CPU／ABI key 不符即 fail closed）——那會重新違反
+Q7 §0.3 凍結的「runnable ≠ qualified」。
+**不加第三道 self-check**（比對回報值與 artifact vendor 佈局）——除非找到
+實際 exploit 證明「metadata 與 artifact layout 不一致、live probe 卻成功」
+會造成錯誤行為，否則只是重複的 guard。
+
+測試因此分成兩組：metadata-only mismatch → `UNQUALIFIED`；
+physical／runtime incompatibility → `exit 78`。
+
 ## 4. 不做
 
 不改 probe 實作、不改 `pinned-ruby.sh` 的候選搜尋、不新增平台、
-不導入簽章／notarization、不重打已出貨的 zip（驗收第 6 項待下一版）。
+不導入簽章／notarization、不重打已出貨的 zip（驗收第 6 項待下一版）、
+**不新增第三道 self-check**（repair-01 裁決）。
 
 ## 5. Minimum Sufficient
 

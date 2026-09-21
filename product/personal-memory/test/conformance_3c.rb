@@ -1307,6 +1307,96 @@ Dir.mktmpdir("omos-3c-a-qualkey") do |dir|
           (out5 + err5)[0, 60],
           (out5 + err5).include?("OMOS_ARTIFACT_LINKAGE_DIGEST_MISMATCH"))
 
+  # (5b) review P1-1：宣告缺失／格式錯也必須 fail closed。
+  #      原本 `return if declared.nil?`，於是把宣告刪掉就能關掉這道 guard。
+  [["宣告整個刪掉", declared.reject { |k, _| k == "artifact_native_linkage_digest" },
+    "OMOS_ARTIFACT_LINKAGE_DIGEST_MISSING"],
+   ["宣告是空字串", declared.merge("artifact_native_linkage_digest" => ""),
+    "OMOS_ARTIFACT_LINKAGE_DIGEST_MALFORMED"],
+   ["宣告長度不足", declared.merge("artifact_native_linkage_digest" => "abc123"),
+    "OMOS_ARTIFACT_LINKAGE_DIGEST_MALFORMED"],
+   ["宣告含大寫", declared.merge("artifact_native_linkage_digest" => "A" * 64),
+    "OMOS_ARTIFACT_LINKAGE_DIGEST_MALFORMED"],
+   ["宣告不是字串", declared.merge("artifact_native_linkage_digest" => 12_345),
+    "OMOS_ARTIFACT_LINKAGE_DIGEST_MALFORMED"]].each_with_index do |(label, doc, code), i|
+    f = File.join(dir, "integrity-#{i}.json")
+    File.write(f, JSON.generate(doc))
+    o, e, st = run.call(<<~RUBY)
+      require "omos/runtime_profile"
+      OMOS::RuntimeProfile.define_singleton_method(:profile_document) do
+        JSON.parse(File.read(#{f.dump}))
+      end
+      puts OMOS::RuntimeProfile.assert_supported!
+    RUBY
+    C.check("artifact integrity #{label} → fail closed（#{code}）",
+            "exit=#{st.exitstatus}",
+            st.exitstatus == 78 && (o + e).include?(code))
+  end
+
+  # (5c) review P1-2 裁決（Owner 2026-09-21）：兩層要分清楚。
+  #
+  #   Compatibility / Safety gate —— 實際執行不相容 → fail closed
+  #     candidate Ruby ABI 與 artifact vendor ABI 不符／native extension 載不動／
+  #     宣告的 native linkage 解析不到
+  #
+  #   Qualification policy —— key／觀測 metadata 不匹配但 live probe 全過
+  #     → UNQUALIFIED_RUNTIME_PROFILE，不阻擋
+  #
+  # reviewer 前一輪把 RbConfig 的 host_cpu／ruby_version 改掉當成「真的不相容」，
+  # 測法不夠準：那只改了回報 metadata，底下仍是原本那支 Ruby、原本那些 arm64
+  # extension，所以 live probe 當然照樣成功。兩組各自測。
+
+  # 第一組：metadata-only mismatch → UNQUALIFIED（不得誤當成執行不相容）
+  [["host_cpu 回報值不符", 'RbConfig::CONFIG["host_cpu"] = "x86_64"'],
+   ["ruby_abi 回報值不符", 'RbConfig::CONFIG["ruby_version"] = "9.9.9"'],
+   ["兩者同時不符", 'RbConfig::CONFIG["host_cpu"] = "x86_64"; RbConfig::CONFIG["ruby_version"] = "9.9.9"']]
+    .each do |label, mutation|
+    o, _, st = run.call(<<~RUBY)
+      require "rbconfig"
+      #{mutation}
+      require "omos/runtime_profile"
+      puts OMOS::RuntimeProfile.assert_supported!
+    RUBY
+    C.check("metadata-only：#{label} → UNQUALIFIED 而非 fail closed", o.to_s,
+            st.success? && o == "UNQUALIFIED_RUNTIME_PROFILE")
+  end
+
+  # 第二組：實際 runtime incompatibility → exit 78
+  #
+  # (a) candidate Ruby 的 ABI 與 artifact vendor ABI 不符——由 pinned-ruby.sh
+  #     在**進 Ruby 之前**擋下，這才是真正的 ABI 不相容
+  abi_out, abi_err, abi_st = Open3.capture3(
+    { "OMOS_RUBY" => "/usr/bin/ruby" },
+    File.join(root, "exe/omos-personal-memory"), "status"
+  )
+  C.check("實際不相容：candidate Ruby ABI 與 artifact vendor ABI 不符 → exit 78",
+          "exit=#{abi_st.exitstatus}",
+          abi_st.exitstatus == 78 && (abi_out + abi_err).include?("ABI"))
+
+  # (b) native extension 真的載不動
+  o_b, e_b, st_b = run.call(<<~RUBY)
+    require "omos/runtime_profile"
+    OMOS::RuntimeProfile.define_singleton_method(:manifest) do
+      [{ "extension" => "bigdecimal", "require" => "omos_no_such_extension",
+         "non_system_libraries" => [] }]
+    end
+    puts OMOS::RuntimeProfile.assert_supported!
+  RUBY
+  C.check("實際不相容：native extension 載不動 → exit 78", "exit=#{st_b.exitstatus}",
+          st_b.exitstatus == 78 && (o_b + e_b).include?("OMOS_NATIVE_REQUIRE_FAILED"))
+
+  # (c) 宣告的 native linkage 解析不到（與 (6) 同一類，這裡是分組後的對照）
+  o_c, e_c, st_c = run.call(<<~RUBY)
+    require "omos/runtime_profile"
+    OMOS::RuntimeProfile.define_singleton_method(:manifest) do
+      [{ "extension" => "bigdecimal", "require" => "bigdecimal",
+         "non_system_libraries" => ["/nonexistent/libruby.3.4.dylib"] }]
+    end
+    puts OMOS::RuntimeProfile.assert_supported!
+  RUBY
+  C.check("實際不相容：宣告的 native linkage 解析不到 → exit 78", "exit=#{st_c.exitstatus}",
+          st_c.exitstatus == 78 && (o_c + e_c).include?("OMOS_NATIVE_DEPENDENCY_UNRESOLVED"))
+
   # (6) 移除 host_os 沒有削弱真正的守門人：live probe 仍然 fail closed
   out6, err6, st6 = run.call(<<~RUBY)
     require "omos/runtime_profile"
