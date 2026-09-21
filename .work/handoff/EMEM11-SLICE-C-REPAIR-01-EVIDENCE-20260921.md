@@ -10,7 +10,8 @@ base: 46370a5
 
 # Slice C repair-01 證據包｜兩筆 P1 的修法與反證
 
-回應 `EMEM11-SLICE-C-STANDALONE-PACKAGING-REVIEW-20260921`（NO_GO、2×P1）。
+回應 Slice C review round 1（NO_GO、2×P1；verdict 與重播細節見
+`.work/handoff/EMEM11-SLICE-C-REPAIR-01-REREVIEW-20260921.md` §1）。
 本包只記錄**本 session 實際跑出來**的結果。每一項都附鑑別力反證——
 沒有反證過的測試不算證據。
 

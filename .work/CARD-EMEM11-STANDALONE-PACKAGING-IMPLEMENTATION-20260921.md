@@ -1,12 +1,13 @@
 ---
 id: EMEM11-STANDALONE-PACKAGING-IMPLEMENTATION-20260921
-status: SLICE_C_REPAIR_01_READY_FOR_REVIEW
+status: ALL_SLICES_ACCEPTED_GO
 review_round_1: NO_GO（P1×1：A/B identity 邊界矛盾）→ 已修
 review_round_2: GO（2026-09-21，P2×1 非阻擋，已納入 Slice A 驗收第 8 項）
 slice_a: ACCEPTED_GO @ ce62092（repair-01 f9ba9e3、repair-02 943aec0、closeout ce62092）
 slice_b: ACCEPTED_GO @ e3e35ff（交付 d99cdcd、repair-01 e3e35ff）
-slice_c: REPAIR_01_READY_FOR_REVIEW（交付 46370a5；review NO_GO 2×P1；repair-01 證據包 .work/handoff/EMEM11-SLICE-C-REPAIR-01-EVIDENCE-20260921.md）
+slice_c: ACCEPTED_GO @ d652bee（交付 46370a5、repair-01 d652bee）
 slice_c_review_round_1: NO_GO（2026-09-21，P1×2：同內容重裝 GC 掉可回退版本／rollback receipt 寫失敗留下 pointer-receipt 分裂）→ repair-01 已修
+slice_c_review_round_2: GO（2026-09-21，P0/P1/P2/P3 皆 0；.work/handoff/EMEM11-SLICE-C-REPAIR-01-REREVIEW-20260921.md）
 type: implementation
 tier: T2
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
@@ -254,8 +255,24 @@ review round 1 判 **NO_GO**，2×P1，兩筆都已各自重播確認成立：
 workspace B 重跑（3c 132/132 ＋ 3 N/A，四個交付面全可用）。
 證據包：`.work/handoff/EMEM11-SLICE-C-REPAIR-01-EVIDENCE-20260921.md`。
 
-**待裁定**：`Installer#rollback(fail_before_receipt:)` 這個測試注入接縫
-可不可以收——改成原子寫入後，該失敗情境無法從外部穩定製造。
+**裁定結果**：`Installer#rollback(fail_before_receipt:)` **接受保留**
+（review round 2）。它與既有 `install(fail_after:)` 是同級 deterministic
+failure seam；為了這一個 failure path 再抽一層 writer injection 反而增加
+不必要結構。用途明確、預設不啟用。
+
+### review round 2（2026-09-21）：GO
+
+P0/P1/P2/P3 皆 0，兩筆 P1 **CLOSED**。reviewer 獨立重播 `A → B → B`
+與注入失敗路徑，並**未沿用交付方的反轉點**另做一次鑑別力反證
+（`rollback_reachable_ids` 只回 current），確認保護不是假綠；
+`receipt chmod 0444` 的舊 exploit 在 temp + rename 之後也不再造成 split。
+確認狀態來源未重新分裂：rollback 與 GC 都只認 receipt、upgrade 走
+install、uninstall 移除 activation ＋ receipt。
+verdict：`.work/handoff/EMEM11-SLICE-C-REPAIR-01-REREVIEW-20260921.md`。
+
+**Slice A／B／C 至此全部 ACCEPTED_GO，本卡三片交付完成。**
+卡上「不做」的範圍不變：配送格式、release pipeline、跨平台、
+clean-macOS Part 2 qualification 仍在本卡之外。
 
 ---
 
