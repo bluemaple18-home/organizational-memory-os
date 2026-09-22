@@ -1,10 +1,11 @@
 ---
 id: LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922
-status: AWAITING_OWNER_SIGNATURE
+status: OWNER_SIGNED
 signature_round_1: OWNER_SIGNED 2026-09-22（瞬時模型）→ 因 Acceptance 8 真機證據失效，見 §1.0
 contract_review_round_4: NO_GO（2026-09-22，P1×1：§1.0 未把 launchctl print 的「觀測失敗」與「not loaded」分開）→ 已補 §1.0.1
 contract_review_round_5: NO_GO（2026-09-22，P1×2：rollback 在 observation_error 下仍可能 restore／驗收 15 鎖不住「不終止輪詢」）→ 已補
-contract_review_round_6: GO（2026-09-22，P0/P1/P2/P3 皆 0）——**待 Owner 重新簽署新版 freeze，簽完才開 bounded-convergence 實作**
+contract_review_round_6: GO（2026-09-22，P0/P1/P2/P3 皆 0）
+owner_signed_at: 2026-09-22（第二版，含 §1.0 bounded convergence 與 §1.0.1 觀測三態）
 gap_source: CONTRACT_GAP_FROM_REAL_RUNTIME_EVIDENCE（.work/handoff/PERSONAL-INBOX-ACCEPTANCE-8-REAL-LAUNCHD-20260922.md）
 contract_review_round_1: NO_GO（2026-09-22，P1×2：rollback 順序未凍死／缺 transaction 單一寫入者；P2×1：未明寫 failure boundary）→ 已補
 contract_review_round_2: NO_GO（2026-09-22，P1×1：forward upgrade 的 plist 發布順序未凍死，仍可留下 disk=new／live=old）→ 已補

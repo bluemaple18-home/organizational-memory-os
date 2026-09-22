@@ -1,6 +1,7 @@
 ---
 id: LAUNCHD-LIFECYCLE-IMPLEMENTATION-20260922
-status: CONTRACT_GAP_FROM_REAL_RUNTIME_EVIDENCE
+status: BOUNDED_CONVERGENCE_READY_FOR_REVIEW
+contract_version: freeze 第二版（OWNER_SIGNED 2026-09-22，含 §1.0／§1.0.1／§1.0.1.1）
 note: 10f2add 對**瞬時模型**是 GO，但 Acceptance 8 真機證據證明 freeze 本身少了時間維度。
   順序改為：補完 freeze（§1.0 狀態收斂語意）→ 契約 review → 實作 → 重跑 Acceptance 8。
 accepted_at: 10f2add（重做 dfc9e75、repair-01 10f2add）
@@ -127,6 +128,39 @@ seam。** 這個不變式本質上就是「authoritative read 必須位於 lock 
 可選的後續（非要求）：要把 deterministic replay 常設化，可只利用既有的
 `launchctl` 注入，在第一個 transaction 持鎖時用 barrier 卡住再啟第二個
 thread，無須往產品碼新增 hook。
+
+## 3.3 bounded convergence 實作（2026-09-22）
+
+依 freeze 第二版重做觀測與收斂。
+
+| 契約 | 實作 |
+|---|---|
+| §1.0.1 三態 | `observe` 回 `:loaded`／`:not_loaded`／`:observation_error`。**`launchctl print` 對明確不存在的 service 回 113（本機實測）**；其餘非零一律 `observation_error`（壞 domain 64、別人的 uid 112 都實測過） |
+| §1.0 有界收斂 | `converge_to`：先立即查一次，之後每 100ms，最長 5 秒；看到目標立刻結束；command 只呼叫一次不 retry；`Process.clock_gettime(CLOCK_MONOTONIC)` |
+| §1.0 四象限 | `bootstrap_and_verify`／`bootout_and_verify` 的成功與否只看**有沒有收斂到目標**，exit code 只決定失敗時的說法 |
+| §1.0.1 三分類 | `classify` 回 `:all_unobservable`／`:no_convergence`／`:mixed_observation`，三種訊息用語不同 |
+| §1.0.1.1 restore gate | `settled == :not_loaded` 才准進 `RESTORE_OLD_IF_NEEDED`；否則 `SCHEDULE_RESTORE_BLOCKED_UNOBSERVABLE` |
+| 錯誤碼分家 | 「知道清不掉」`SCHEDULE_PARTIAL_ACTIVATION_NOT_CLEANED` vs「不知道」`SCHEDULE_CLEANUP_STATE_UNOBSERVABLE` |
+| lock 持有 | 收斂全程在 `with_lifecycle_lock` 內（polling 不釋放） |
+
+### 時間注入（驗收 12）
+
+`clock`／`sleeper` 是 keyword，production 走預設。測試在 `test/support.rb`
+提供 `Support::TSEAM`：clock 讀假的 monotonic 值、sleeper 不睡只推進讀數。
+
+**實測效果**：導入收斂後若用真 `sleep`，3c 從 ~40 秒變成 **101 秒**；注入假
+時鐘後回到 **37 秒**。這不只是速度問題——驗收 12 的四條邊界（立即／300ms／
+4.9s／逾時）靠真 sleep 會變成看運氣的 flaky 測試。
+
+### 行數 delta
+
+| 檔案 | +/- |
+|---|---|
+| `lib/omos/schedule.rb` | +168 / −63 |
+| `test/conformance_3c.rb` | +237 / −46 |
+| `test/support.rb` | +11 |
+
+3c 檢查數 329 → **346**。
 
 ## 4. 不做
 

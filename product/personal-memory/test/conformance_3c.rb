@@ -2095,7 +2095,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
     else { ok: false, status: 1, out: "", err: "unknown" }
     end
   end
-  lc = { launchctl: fake_launchctl }
+  lc = { launchctl: fake_launchctl, **Support::TSEAM }
 
   agents = File.join(home, "Library/LaunchAgents")
   FileUtils.mkdir_p(agents)
@@ -2135,13 +2135,13 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
           calls.map(&:first).inspect,
           calls.any? { |c| c.first == "bootstrap" && c.last == plist })
   C.check("P1-1 install 回報實際載入狀態", r[:loaded].to_s, r[:loaded] == true)
-  st_loaded = OMOS::Schedule.status(home: home, **lc)
+  st_loaded = OMOS::Schedule.status(home: home, **lc, **Support::TSEAM)
   C.check("P1-1 status 反映 job 已載入", st_loaded[:installed].to_s,
           st_loaded[:installed] == true && st_loaded[:loaded] == true)
 
   # plist 在、但 job 沒載入 → 不得報「已安裝」
   loaded[:on] = false
-  st_unloaded = OMOS::Schedule.status(home: home, **lc)
+  st_unloaded = OMOS::Schedule.status(home: home, **lc, **Support::TSEAM)
   C.check("P1-1 plist 在但 job 未載入 → 不得當成已安裝",
           "present=#{st_unloaded[:plist_present]} loaded=#{st_unloaded[:loaded]} installed=#{st_unloaded[:installed]}",
           st_unloaded[:plist_present] == true && st_unloaded[:loaded] == false &&
@@ -2157,13 +2157,13 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
           "cal=#{doc15.dig("StartCalendarInterval", "Hour")} args=#{ai && args15[ai + 1]}",
           doc15.dig("StartCalendarInterval", "Hour") == 15 &&
           ai && args15[ai + 1].to_s == "15" && r15[:anchor_hour] == 15)
-  st15 = OMOS::Schedule.status(home: home, now: Time.new(2026, 9, 18, 15, 30, 0), **lc)
+  st15 = OMOS::Schedule.status(home: home, now: Time.new(2026, 9, 18, 15, 30, 0), **lc, **Support::TSEAM)
   C.check("P1-2 status 讀回已安裝的 anchor，15:00 的排程在週五 15:30 算成 W38",
           "#{st15[:anchor_hour]}／#{st15[:period].split(":").last}",
           st15[:anchor_hour] == 15 && st15[:period].end_with?("2026-W38"))
   st16 = OMOS::Schedule.status(home: home, now: Time.new(2026, 9, 18, 15, 30, 0),
-                               **lc).tap { try_install.call(anchor_hour: 16) }
-  st16b = OMOS::Schedule.status(home: home, now: Time.new(2026, 9, 18, 15, 30, 0), **lc)
+                               **lc, **Support::TSEAM).tap { try_install.call(anchor_hour: 16) }
+  st16b = OMOS::Schedule.status(home: home, now: Time.new(2026, 9, 18, 15, 30, 0), **lc, **Support::TSEAM)
   C.check("P1-2 換回 16:00 後，同一時刻改算成 W37（證明 anchor 真的生效）",
           "#{st16b[:anchor_hour]}／#{st16b[:period].split(":").last}",
           st16b[:anchor_hour] == 16 && st16b[:period].end_with?("2026-W37"))
@@ -2180,7 +2180,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
     <plist version="1.0"><dict><key>Label</key><string>com.foreign.job</string></dict></plist>
   XML
   impostor_bytes = File.binread(impostor)
-  rm_impostor = OMOS::Schedule.remove(home: impostor_dir, **lc)
+  rm_impostor = OMOS::Schedule.remove(home: impostor_dir, **lc, **Support::TSEAM)
   C.check("P1-3 同檔名但 plist 內 Label 是別人的 → 不得刪除",
           "#{rm_impostor[:removed]}／#{rm_impostor[:reason]}／#{rm_impostor[:found_label]}",
           rm_impostor[:removed] == false && rm_impostor[:reason] == "NOT_OURS" &&
@@ -2188,7 +2188,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
   C.check("P1-3 冒名 plist 逐位元組不受影響", "",
           File.file?(impostor) && File.binread(impostor) == impostor_bytes)
   impostor_install = begin
-    OMOS::Schedule.install(home: impostor_dir, **lc)
+    OMOS::Schedule.install(home: impostor_dir, **lc, **Support::TSEAM)
     nil
   rescue OMOS::Schedule::Failed => e
     e.code
@@ -2215,15 +2215,15 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
           calls.each_cons(2).select { |a, _| a.first == "bootout" }
                .all? { |_, b| b.first == "print" })
 
-  removed = OMOS::Schedule.remove(home: home, **lc)
+  removed = OMOS::Schedule.remove(home: home, **lc, **Support::TSEAM)
   C.check("schedule remove 真的 bootout 並刪除自己的 plist",
           "#{removed[:removed]}／loaded=#{removed[:loaded]}",
           removed[:removed] == true && !File.exist?(plist) && removed[:loaded] == false)
   C.check("第三方 LaunchAgent 逐位元組不受影響", "",
           File.file?(foreign) && File.binread(foreign) == foreign_bytes)
   C.check("未安裝時 remove 明確回 NOT_INSTALLED，不誤刪別人",
-          OMOS::Schedule.remove(home: home, **lc)[:reason].to_s,
-          OMOS::Schedule.remove(home: home, **lc)[:reason] == "NOT_INSTALLED" && File.file?(foreign))
+          OMOS::Schedule.remove(home: home, **lc, **Support::TSEAM)[:reason].to_s,
+          OMOS::Schedule.remove(home: home, **lc, **Support::TSEAM)[:reason] == "NOT_INSTALLED" && File.file?(foreign))
 
   # (6) 逾期只是狀態，不得自動 SKIPPED，也不得產生 closeout
   try_install.call
@@ -2234,7 +2234,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
 
   overdue_now = Time.new(2026, 9, 22, 9, 0, 0)      # 週二：catch-up 截止已過
   st = OMOS::Schedule.status(home: home, now: overdue_now, runtime: rt,
-                             surface: cli_surface, **lc)
+                             surface: cli_surface, **lc, **Support::TSEAM)
   C.check("超過 catch-up 截止 → 呈現逾期", st[:overdue].to_s, st[:overdue] == true)
   C.check("逾期不得自動變成 SKIPPED（狀態裡沒有這個詞）", st.inspect[0, 60],
           !st.to_s.include?("SKIPPED"))
@@ -2326,14 +2326,14 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
     end
 
     # 先裝一個正常運作的 16:00 排程
-    OMOS::Schedule.install(home: thome, anchor_hour: 16, launchctl: lctl)
+    OMOS::Schedule.install(home: thome, anchor_hour: 16, launchctl: lctl, **Support::TSEAM)
     good_bytes = File.binread(tpath)
     C.check("交易前提：舊排程正常運作", tloaded[:on].to_s, tloaded[:on] == true)
 
     # (a) 升級到 15:00 但 bootstrap 失敗 → 必須完整還原
     fail_modes[:bootstrap_fails_once] = true
     code = begin
-      OMOS::Schedule.install(home: thome, anchor_hour: 15, launchctl: lctl)
+      OMOS::Schedule.install(home: thome, anchor_hour: 15, launchctl: lctl, **Support::TSEAM)
       nil
     rescue OMOS::Schedule::Failed => e
       e.code
@@ -2345,7 +2345,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
             File.binread(tpath) == good_bytes &&
             OMOS::Schedule.installed_anchor_hour(tpath) == 16)
     C.check("P1-1 升級失敗後原本的 loaded 狀態也還原", tloaded[:on].to_s,
-            tloaded[:on] == true && OMOS::Schedule.loaded?(launchctl: lctl) == true)
+            tloaded[:on] == true && OMOS::Schedule.loaded?(launchctl: lctl, **Support::TSEAM) == true)
 
     # (a2) 還原**也**失敗時，必須自己講出來——不得讓使用者以為舊排程還在。
     #      這與 (a) 是兩種不同的現場，錯誤碼必須分得開。
@@ -2369,10 +2369,10 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
         else { ok: false, status: 1, out: "", err: "" }
         end
       end
-      OMOS::Schedule.install(home: nhome, anchor_hour: 16, launchctl: nlctl)
+      OMOS::Schedule.install(home: nhome, anchor_hour: 16, launchctl: nlctl, **Support::TSEAM)
       dead[:all] = true
       ncode = begin
-        OMOS::Schedule.install(home: nhome, anchor_hour: 15, launchctl: nlctl)
+        OMOS::Schedule.install(home: nhome, anchor_hour: 15, launchctl: nlctl, **Support::TSEAM)
         nil
       rescue OMOS::Schedule::Failed => e
         e.code
@@ -2400,7 +2400,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
         end
       end
       fcode = begin
-        OMOS::Schedule.install(home: fhome, launchctl: flctl)
+        OMOS::Schedule.install(home: fhome, launchctl: flctl, **Support::TSEAM)
         nil
       rescue OMOS::Schedule::Failed => e
         e.code
@@ -2413,7 +2413,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
     # (c) remove 時 bootout 失敗 → 保留 plist 並 fail loud，不得留下孤兒 job
     fail_modes[:bootout] = true
     rcode = begin
-      OMOS::Schedule.remove(home: thome, launchctl: lctl)
+      OMOS::Schedule.remove(home: thome, launchctl: lctl, **Support::TSEAM)
       nil
     rescue OMOS::Schedule::Failed => e
       e.code
@@ -2426,7 +2426,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
             File.exist?(tpath) && tloaded[:on] == true)
 
     # (d) bootout 恢復正常後，remove 應該正常完成
-    ok_remove = OMOS::Schedule.remove(home: thome, launchctl: lctl)
+    ok_remove = OMOS::Schedule.remove(home: thome, launchctl: lctl, **Support::TSEAM)
     C.check("P1-1 bootout 恢復後 remove 正常完成，且 job 真的停了",
             "#{ok_remove[:removed]}／loaded=#{tloaded[:on]}",
             ok_remove[:removed] == true && !File.exist?(tpath) && tloaded[:on] == false)
@@ -2462,7 +2462,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
     # (a) 首次 install：bootstrap 回 0 但沒載入 → 不得回報成功、不得留 plist
     lie[:bootstrap] = true
     acode = begin
-      OMOS::Schedule.install(home: lhome, launchctl: lying)
+      OMOS::Schedule.install(home: lhome, launchctl: lying, **Support::TSEAM)
       nil
     rescue OMOS::Schedule::Failed => e
       e
@@ -2471,17 +2471,17 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
             "#{acode&.code}／plist=#{File.exist?(lpath)}",
             acode.is_a?(OMOS::Schedule::Failed) &&
             acode.code == "SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED" && !File.exist?(lpath))
-    C.check("P1 錯誤訊息要說得出是「回報成功但實際未載入」",
+    C.check("P1 錯誤訊息要說得出是「回報成功但未收斂」",
             acode.to_s[-40, 40].to_s,
-            acode.to_s.include?("實際未載入"))
+            acode.to_s.include?("回報成功") && acode.to_s.include?("未在"))
 
     # (b) rollback 的 bootstrap 也說謊 → 必須升級成 NOT_RESTORED
     lie[:bootstrap] = false
-    OMOS::Schedule.install(home: lhome, anchor_hour: 16, launchctl: lying)
+    OMOS::Schedule.install(home: lhome, anchor_hour: 16, launchctl: lying, **Support::TSEAM)
     good = File.binread(lpath)
     lie[:bootstrap] = true      # 之後所有 bootstrap 都只是嘴上成功
     bcode = begin
-      OMOS::Schedule.install(home: lhome, anchor_hour: 15, launchctl: lying)
+      OMOS::Schedule.install(home: lhome, anchor_hour: 15, launchctl: lying, **Support::TSEAM)
       nil
     rescue OMOS::Schedule::Failed => e
       e.code
@@ -2520,12 +2520,12 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
       end
     end
 
-    OMOS::Schedule.install(home: shome, anchor_hour: 16, launchctl: slctl)
+    OMOS::Schedule.install(home: shome, anchor_hour: 16, launchctl: slctl, **Support::TSEAM)
     good16 = File.binread(spath)
     stuck[:bootout] = true
 
     code = begin
-      OMOS::Schedule.install(home: shome, anchor_hour: 15, launchctl: slctl)
+      OMOS::Schedule.install(home: shome, anchor_hour: 15, launchctl: slctl, **Support::TSEAM)
       nil
     rescue OMOS::Schedule::Failed => e
       e
@@ -2534,8 +2534,9 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
             code.is_a?(OMOS::Schedule::Failed) ? code.code : "（成功 return）",
             code.is_a?(OMOS::Schedule::Failed) &&
             code.code == "SCHEDULE_LAUNCHCTL_BOOTOUT_FAILED")
-    C.check("P1 錯誤訊息要說得出是「回報成功但仍在載入中」",
-            code.to_s[-30, 30].to_s, code.to_s.include?("仍在載入中"))
+    C.check("P1 錯誤訊息要說得出是「回報成功但未收斂」",
+            code.to_s[-30, 30].to_s,
+            code.to_s.include?("回報成功") && code.to_s.include?("未在"))
     C.check("P1 失敗後磁碟 plist 還原成舊版 16:00（不得留下 15:00）",
             OMOS::Schedule.installed_anchor_hour(spath).to_s,
             File.binread(spath) == good16 &&
@@ -2545,7 +2546,7 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
 
     # remove 也走同一個判準
     rcode = begin
-      OMOS::Schedule.remove(home: shome, launchctl: slctl)
+      OMOS::Schedule.remove(home: shome, launchctl: slctl, **Support::TSEAM)
       nil
     rescue OMOS::Schedule::Failed => e
       e.code
@@ -2611,9 +2612,9 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
 
   # ── §1.3.3 正向 upgrade：全路徑不得出現 disk=new / live=old ────────────
   lc, live, trace = make.call
-  OMOS::Schedule.install(home: home, anchor_hour: 16, launchctl: lc)
+  OMOS::Schedule.install(home: home, anchor_hour: 16, launchctl: lc, **Support::TSEAM)
   base_trace_len = trace.size
-  OMOS::Schedule.install(home: home, anchor_hour: 15, launchctl: lc)
+  OMOS::Schedule.install(home: home, anchor_hour: 15, launchctl: lc, **Support::TSEAM)
   upgrade_trace = trace[base_trace_len..]
   split = upgrade_trace.select { |_, disk, livehour| disk == 15 && livehour == 16 }
   C.check("§1.3.3 upgrade 全路徑不得出現 disk=new／live=old",
@@ -2627,9 +2628,9 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
 
   # 舊 job 停不掉 → 不得發布新 plist，磁碟維持舊版
   lc2, live2, = make.call(behaviour: { bootout: :stuck })
-  OMOS::Schedule.install(home: home, anchor_hour: 16, launchctl: lc2)
+  OMOS::Schedule.install(home: home, anchor_hour: 16, launchctl: lc2, **Support::TSEAM)
   code = begin
-    OMOS::Schedule.install(home: home, anchor_hour: 15, launchctl: lc2)
+    OMOS::Schedule.install(home: home, anchor_hour: 15, launchctl: lc2, **Support::TSEAM)
     nil
   rescue OMOS::Schedule::Failed => e
     e.code
@@ -2672,7 +2673,7 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
     # (a) 首次安裝 partial activation：清得掉 → 乾淨失敗、不留 plist、不留 job
     pmode[:partial] = true
     acode = begin
-      OMOS::Schedule.install(home: phome, launchctl: plc)
+      OMOS::Schedule.install(home: phome, launchctl: plc, **Support::TSEAM)
       nil
     rescue OMOS::Schedule::Failed => e
       e.code
@@ -2684,10 +2685,10 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
 
     # (b) 升級 partial activation：清得掉 → 還原舊版並恢復 live
     pmode[:partial] = false
-    OMOS::Schedule.install(home: phome, anchor_hour: 16, launchctl: plc)
+    OMOS::Schedule.install(home: phome, anchor_hour: 16, launchctl: plc, **Support::TSEAM)
     pmode[:partial] = true
     bcode = begin
-      OMOS::Schedule.install(home: phome, anchor_hour: 15, launchctl: plc)
+      OMOS::Schedule.install(home: phome, anchor_hour: 15, launchctl: plc, **Support::TSEAM)
       nil
     rescue OMOS::Schedule::Failed => e
       e.code
@@ -2701,7 +2702,7 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
     pmode[:cleanup_stuck] = true
     pmode[:boots] = 0
     ccode = begin
-      OMOS::Schedule.install(home: phome, anchor_hour: 15, launchctl: plc)
+      OMOS::Schedule.install(home: phome, anchor_hour: 15, launchctl: plc, **Support::TSEAM)
       nil
     rescue OMOS::Schedule::Failed => e
       e.code
@@ -2730,9 +2731,9 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
       else { ok: false, status: 1, out: "", err: "" }
       end
     end
-    OMOS::Schedule.install(home: bhome, anchor_hour: 16, launchctl: blc)
+    OMOS::Schedule.install(home: bhome, anchor_hour: 16, launchctl: blc, **Support::TSEAM)
     up = begin
-      OMOS::Schedule.install(home: bhome, anchor_hour: 15, launchctl: blc)
+      OMOS::Schedule.install(home: bhome, anchor_hour: 15, launchctl: blc, **Support::TSEAM)
     rescue OMOS::Schedule::Failed => e
       e.code
     end
@@ -2768,7 +2769,7 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
       else { ok: false, status: 1, out: "", err: "" }
       end
     end
-    OMOS::Schedule.install(home: khome, anchor_hour: 16, launchctl: klc)
+    OMOS::Schedule.install(home: khome, anchor_hour: 16, launchctl: klc, **Support::TSEAM)
     C.check("§1.4 交易進行中的第二個 install 必須明確失敗（不得兩個都成功）",
             inner[:code].to_s, inner[:code] == "SCHEDULE_LIFECYCLE_BUSY")
     C.check("§1.4 被拒的第二個 install 不得改動磁碟",
@@ -2805,7 +2806,7 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
       end
     end
 
-    OMOS::Schedule.install(home: rhome, anchor_hour: 16, launchctl: rlc)
+    OMOS::Schedule.install(home: rhome, anchor_hour: 16, launchctl: rlc, **Support::TSEAM)
 
     # (a) install ↔ remove 真併發：不得出現 ENOENT 之類的過期快照錯誤
     8.times do
@@ -2815,7 +2816,7 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
         Thread.new do
           gate.pop
           results << begin
-            [:install, OMOS::Schedule.install(home: rhome, anchor_hour: 15, launchctl: rlc)]
+            [:install, OMOS::Schedule.install(home: rhome, anchor_hour: 15, launchctl: rlc, **Support::TSEAM)]
           rescue StandardError => e
             [:install, "#{e.class}: #{e.message[0, 40]}"]
           end
@@ -2823,7 +2824,7 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
         Thread.new do
           gate.pop
           results << begin
-            [:remove, OMOS::Schedule.remove(home: rhome, launchctl: rlc)]
+            [:remove, OMOS::Schedule.remove(home: rhome, launchctl: rlc, **Support::TSEAM)]
           rescue StandardError => e
             [:remove, "#{e.class}: #{e.message[0, 40]}"]
           end
@@ -2838,11 +2839,11 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
 
       # 收斂：把狀態重設成「有一份 16:00 且 live」再跑下一輪
       begin
-        OMOS::Schedule.remove(home: rhome, launchctl: rlc)
+        OMOS::Schedule.remove(home: rhome, launchctl: rlc, **Support::TSEAM)
       rescue StandardError
         nil
       end
-      OMOS::Schedule.install(home: rhome, anchor_hour: 16, launchctl: rlc)
+      OMOS::Schedule.install(home: rhome, anchor_hour: 16, launchctl: rlc, **Support::TSEAM)
     end
 
     # (b) 併發後磁碟與 live 必須一致
@@ -2876,6 +2877,196 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
           !restore_code.include?("loaded?"))
   C.check("§1.3 restore_previous 已不存在（改為只依 SNAPSHOT_OLD 動作）", "",
           !src.include?("def restore_previous"))
+
+  C.group = nil
+end
+
+# --- Launchd lifecycle：bounded convergence（契約 §1.0／§1.0.1／§1.0.1.1）---
+#
+# Acceptance 8 真機證據：`launchctl` 的 post-condition 是 eventual，不是瞬時。
+# 這一組驗有界收斂、觀測三態，以及 rollback 的觀測前提。
+#
+# 時間一律注入：驗收 12 明文要求 deterministic 的時間邊界測試，且**不得真的
+# sleep 5 秒**。
+Dir.mktmpdir("omos-3c-a-converge") do |dir|
+  C.group = "A"
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
+  Open3.capture3({ "HOME" => home }, exe, "install", "--home", home,
+                 "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+  path = OMOS::Schedule.plist_path(home)
+
+  # 可編排觀測序列的替身：每次 print 依序回傳下一個結果。
+  # :loaded / :absent（113）/ :error（其他非零，代表無法判定）
+  scripted = lambda do |script, bootstrap_exit: 0, bootout_exit: 0|
+    seq = script.dup
+    last = { v: script.last }
+    lambda do |*args|
+      case args.first
+      when "bootstrap" then { ok: bootstrap_exit.zero?, status: bootstrap_exit, out: "", err: "" }
+      when "bootout" then { ok: bootout_exit.zero?, status: bootout_exit, out: "", err: "" }
+      when "print"
+        v = seq.empty? ? last[:v] : (last[:v] = seq.shift)
+        case v
+        when :loaded then { ok: true, status: 0, out: "", err: "" }
+        when :absent then { ok: false, status: 113, out: "", err: "Could not find service" }
+        else { ok: false, status: 112, out: "", err: "Could not find domain" }
+        end
+      else { ok: false, status: 1, out: "", err: "" }
+      end
+    end
+  end
+  # 有狀態的替身：給「把環境擺好」用的。scripted 是固定序列，拿來做 setup
+  # 會在第一個 bootout 就卡住收斂窗口。
+  stateful = lambda do
+    live = { on: false }
+    lambda do |*args|
+      case args.first
+      when "bootstrap" then live[:on] = true; { ok: true, status: 0, out: "", err: "" }
+      when "bootout" then live[:on] = false; { ok: true, status: 0, out: "", err: "" }
+      when "print"
+        live[:on] ? { ok: true, status: 0, out: "", err: "" }
+                  : { ok: false, status: 113, out: "", err: "Could not find service" }
+      else { ok: false, status: 1, out: "", err: "" }
+      end
+    end
+  end
+
+  # 每個案例自己的假時鐘，方便斷言耗掉多少窗口時間
+  seam = lambda do
+    t = { now: 0.0 }
+    [{ clock: -> { t[:now] }, sleeper: ->(d) { t[:now] += d } }, t]
+  end
+
+  # ── 驗收 12：時間邊界 ────────────────────────────────────────────────
+  # (a) 立即收斂
+  sm, t = seam.call
+  r = OMOS::Schedule.bootstrap_and_verify(path, scripted.call([:loaded]), **sm)
+  C.check("驗收12 立即收斂 → 成功，且不浪費窗口時間",
+          "ok=#{r[:ok]} elapsed=#{t[:now]}", r[:ok] == true && t[:now] == 0.0)
+
+  # (b) 100–500ms 後收斂（前幾次是非目標的**明確**觀測）
+  sm, t = seam.call
+  r = OMOS::Schedule.bootstrap_and_verify(path, scripted.call(%i[absent absent absent loaded]), **sm)
+  C.check("驗收12 300ms 後收斂 → 成功",
+          "ok=#{r[:ok]} elapsed=#{t[:now].round(2)}",
+          r[:ok] == true && (t[:now] - 0.3).abs < 0.001)
+
+  # (c) 4.9 秒收斂仍算成功
+  sm, t = seam.call
+  late = ([:absent] * 49) + [:loaded]
+  r = OMOS::Schedule.bootstrap_and_verify(path, scripted.call(late), **sm)
+  C.check("驗收12 4.9 秒收斂 → 仍成功",
+          "ok=#{r[:ok]} elapsed=#{t[:now].round(2)}",
+          r[:ok] == true && (t[:now] - 4.9).abs < 0.001)
+
+  # (d) 超過 5 秒 → timeout
+  sm, t = seam.call
+  r = OMOS::Schedule.bootstrap_and_verify(path, scripted.call([:absent]), **sm)
+  C.check("驗收12 超過 5 秒未收斂 → timeout failure",
+          "ok=#{r[:ok]} elapsed=#{t[:now].round(2)} cause=#{r[:cause]}",
+          r[:ok] == false && t[:now] >= 5.0 && r[:cause] == :no_convergence)
+  C.check("驗收12 測試不得真的 sleep 5 秒（時間為注入）", "elapsed=#{t[:now].round(2)}",
+          t[:now] >= 5.0)
+
+  # bootout 側對稱
+  sm, = seam.call
+  r = OMOS::Schedule.bootout_and_verify(scripted.call(%i[loaded loaded absent]), **sm)
+  C.check("驗收12 bootout 側同樣走有界收斂", "ok=#{r[:ok]}", r[:ok] == true)
+
+  # ── 驗收 15：觀測三態 ───────────────────────────────────────────────
+  # (d) error → error → target 必須成功（鎖住「不終止輪詢」）
+  sm, = seam.call
+  r = OMOS::Schedule.bootout_and_verify(scripted.call(%i[error error absent]), **sm)
+  C.check("驗收15(d) observation_error→error→目標 仍在窗口內 → 必須成功",
+          "ok=#{r[:ok]}", r[:ok] == true)
+  sm, = seam.call
+  r = OMOS::Schedule.bootstrap_and_verify(path, scripted.call(%i[error error loaded]), **sm)
+  C.check("驗收15(d) bootstrap 側同樣不得因第一個 error 放棄",
+          "ok=#{r[:ok]}", r[:ok] == true)
+
+  # (c) 三種成因分得開
+  sm, = seam.call
+  all_err = OMOS::Schedule.bootout_and_verify(scripted.call([:error]), **sm)
+  sm, = seam.call
+  no_conv = OMOS::Schedule.bootout_and_verify(scripted.call([:loaded]), **sm)
+  sm, = seam.call
+  mixed = OMOS::Schedule.bootout_and_verify(scripted.call(%i[loaded error loaded error]), **sm)
+  C.check("驗收15(c) 三種成因分得開",
+          [all_err[:cause], no_conv[:cause], mixed[:cause]].inspect,
+          all_err[:cause] == :all_unobservable && no_conv[:cause] == :no_convergence &&
+          mixed[:cause] == :mixed_observation)
+  C.check("驗收15(c) 三種成因的訊息用語不同",
+          [all_err[:detail], no_conv[:detail], mixed[:detail]].map { |d| d.to_s[-12, 12] }.inspect,
+          [all_err[:detail], no_conv[:detail], mixed[:detail]].uniq.size == 3)
+
+  # (a) observation_error 不得被壓成 not_loaded（否則 bootout 會假成功）
+  C.check("驗收15(a) 全程 observation_error → 不得判成收斂成功",
+          "ok=#{all_err[:ok]} observed=#{all_err[:observed]}",
+          all_err[:ok] == false && all_err[:observed] == :unknown)
+  C.check("驗收15 mixed observation 也不得視為已確認停止",
+          "observed=#{mixed[:observed]}", mixed[:observed] == :unknown)
+
+  # (b) bootout 路徑：無法判定時不得刪 plist
+  Dir.mktmpdir("omos-3c-a-converge-rm") do |rmdir|
+    rh = File.join(rmdir, "home")
+    Support::FakeHome.seed(rh)
+    Open3.capture3({ "HOME" => rh }, exe, "install", "--home", rh,
+                   "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+    rp = OMOS::Schedule.plist_path(rh)
+    sm, = seam.call
+    OMOS::Schedule.install(home: rh, launchctl: stateful.call, **sm)
+    sm, = seam.call
+    code = begin
+      OMOS::Schedule.remove(home: rh, launchctl: scripted.call([:error]), **sm)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("驗收15(b)／13 bootout 無法判定 → 不刪 plist，fail loud",
+            "#{code}／plist=#{File.exist?(rp)}",
+            code == "SCHEDULE_BOOTOUT_FAILED" && File.exist?(rp))
+  end
+
+  # ── 驗收 16：rollback 的觀測前提（§1.0.1.1）──────────────────────────
+  Dir.mktmpdir("omos-3c-a-converge-restore") do |sdir|
+    sh = File.join(sdir, "home")
+    Support::FakeHome.seed(sh)
+    Open3.capture3({ "HOME" => sh }, exe, "install", "--home", sh,
+                   "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+    sp = OMOS::Schedule.plist_path(sh)
+    anchor_of = -> { OMOS::Schedule.installed_anchor_hour(sp) }
+
+    sm, = seam.call
+    OMOS::Schedule.install(home: sh, anchor_hour: 16, launchctl: stateful.call, **sm)
+    C.check("驗收16 前提：已有 16:00 的安裝", anchor_of.call.to_s, anchor_of.call == 16)
+
+    # 新 job partial activation（bootstrap exit 非 0 但 loaded），
+    # 清理時觀測變成無法判定 → 不得 restore old
+    sm, = seam.call
+    # print 的呼叫順序：
+    #   1 SNAPSHOT_OLD 的 loaded?          → :loaded（確實有舊 job）
+    #   2 OLD_STOP_VERIFIED 收斂           → :absent
+    #   3 NEW_ACTIVATION 收斂（partial）   → :loaded（bootstrap exit=5 但活了）
+    #   4 CLEANUP 收斂                     → 一路 :error，永遠判不出來
+    seq = %i[loaded absent loaded] + [:error] * 60
+    code = begin
+      OMOS::Schedule.install(home: sh, anchor_hour: 15,
+                             launchctl: scripted.call(seq, bootstrap_exit: 5), **sm)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("驗收16 清理後仍無法判定 → 不得 restore old，停在 dirty failure",
+            "#{code}／disk=#{anchor_of.call}",
+            %w[SCHEDULE_CLEANUP_STATE_UNOBSERVABLE
+               SCHEDULE_RESTORE_BLOCKED_UNOBSERVABLE].include?(code.to_s))
+    C.check("驗收16 磁碟**不得**被寫回舊版（避免 disk=old／live=new）",
+            "disk=#{anchor_of.call}", anchor_of.call == 15)
+    C.check("驗收16 「不知道」與「知道清不掉」錯誤碼分得開", code.to_s,
+            code.to_s.include?("UNOBSERVABLE"))
+  end
 
   C.group = nil
 end

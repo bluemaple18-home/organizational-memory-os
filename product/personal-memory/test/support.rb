@@ -11,6 +11,17 @@ require "open3"
 require "fileutils"
 
 module Support
+  # --- 假時間 ---------------------------------------------------------
+  #
+  # 契約驗收 12 要求收斂的時間邊界要有 deterministic 測試，而且**不得真的
+  # sleep 5 秒**。所以 Schedule 的 clock／sleeper 一律注入：clock 讀假的
+  # monotonic 值，sleeper 不睡、只把它往前推。
+  #
+  # 共用一個累加的讀數是安全的：converge_to 每次呼叫都自己記 started，
+  # 只看差值，所以單調遞增就夠。
+  FAKE_NOW = { t: 0.0 }
+  TSEAM = { clock: -> { FAKE_NOW[:t] }, sleeper: ->(d) { FAKE_NOW[:t] += d } }.freeze
+
   # --- 檢查收集與輸出 --------------------------------------------------
 
   class Checks
