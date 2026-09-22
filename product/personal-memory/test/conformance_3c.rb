@@ -2975,6 +2975,78 @@ Dir.mktmpdir("omos-3c-a-converge") do |dir|
   r = OMOS::Schedule.bootout_and_verify(scripted.call(%i[loaded loaded absent]), **sm)
   C.check("驗收12 bootout 側同樣走有界收斂", "ok=#{r[:ok]}", r[:ok] == true)
 
+  # ── review P1-2：deadline 是硬的，不得被 overshoot 穿過 ─────────────
+  #
+  # reviewer 重播：sleeper 每次推進 110ms，target 在 5.06 秒才出現，原本
+  # 「先 observe 再檢查時間」仍會接受它。契約寫的是「最長 5 秒」。
+  over_seam = lambda do |step|
+    t = { now: 0.0 }
+    [{ clock: -> { t[:now] }, sleeper: ->(_) { t[:now] += step } }, t]
+  end
+  sm, t = over_seam.call(0.11)
+  late_target = ([:absent] * 46) + [:loaded]     # 第 47 次觀測 ≈ 5.06 秒
+  r = OMOS::Schedule.bootstrap_and_verify(path, scripted.call(late_target), **sm)
+  C.check("P1-2 超過 5 秒才出現的 target **不得**算成功",
+          "ok=#{r[:ok]} elapsed=#{t[:now].round(2)}",
+          r[:ok] == false && t[:now] > 5.0)
+
+  # 邊界另一側：恰好在窗口內仍必須成功
+  sm, t = over_seam.call(0.11)
+  in_time = ([:absent] * 44) + [:loaded]         # 第 45 次觀測 ≈ 4.84 秒
+  r = OMOS::Schedule.bootstrap_and_verify(path, scripted.call(in_time), **sm)
+  C.check("P1-2 窗口內（4.84 秒）出現的 target 仍必須成功",
+          "ok=#{r[:ok]} elapsed=#{t[:now].round(2)}",
+          r[:ok] == true && t[:now] <= 5.0)
+
+  # 時鐘大跳：逾時就停，不得繼續等
+  jump = { n: 0 }
+  jm = { clock: -> { jump[:n] += 1; jump[:n] > 1 ? 99.0 : 0.0 },
+         sleeper: ->(_) {} }
+  r = OMOS::Schedule.bootstrap_and_verify(path, scripted.call([:absent]), **jm)
+  C.check("P1-2 時鐘大跳（超出窗口）→ 立刻 timeout，不繼續等",
+          "ok=#{r[:ok]} cause=#{r[:cause]}", r[:ok] == false)
+
+  # ── review P1-1：SNAPSHOT_OLD 不得把 observation_error 壓成「沒載入」──
+  Dir.mktmpdir("omos-3c-a-converge-snapshot") do |ndir|
+    nh = File.join(ndir, "home")
+    Support::FakeHome.seed(nh)
+    Open3.capture3({ "HOME" => nh }, exe, "install", "--home", nh,
+                   "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+    np = OMOS::Schedule.plist_path(nh)
+    nanchor = -> { OMOS::Schedule.installed_anchor_hour(np) }
+
+    sm, = seam.call
+    OMOS::Schedule.install(home: nh, anchor_hour: 16, launchctl: stateful.call, **sm)
+    C.check("P1-1 前提：已有 16:00 的安裝且 live", nanchor.call.to_s, nanchor.call == 16)
+
+    # 升級時 SNAPSHOT_OLD 一路無法判定 → 不得發布新 plist
+    sm, = seam.call
+    code = begin
+      OMOS::Schedule.install(home: nh, anchor_hour: 15,
+                             launchctl: scripted.call([:error]), **sm)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("P1-1 SNAPSHOT_OLD 無法判定 → 明確失敗，不得當成「沒載入」",
+            code.to_s, code == "SCHEDULE_OLD_STATE_UNOBSERVABLE")
+    C.check("P1-1 因此磁碟維持舊版 16:00（不得 disk=new／live=old）",
+            "disk=#{nanchor.call}", nanchor.call == 16)
+
+    # 暫時性錯誤之後拿到明確答案 → 應正常往下走
+    sm, = seam.call
+    ok = begin
+      OMOS::Schedule.install(home: nh, anchor_hour: 15,
+                             launchctl: scripted.call(%i[error error loaded absent loaded]),
+                             **sm)
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("P1-1 SNAPSHOT_OLD 的暫時性 error 之後拿到明確答案 → 正常升級",
+            ok.is_a?(Hash) ? "anchor=#{ok[:anchor_hour]}" : ok.to_s,
+            ok.is_a?(Hash) && ok[:anchor_hour] == 15 && nanchor.call == 15)
+  end
+
   # ── 驗收 15：觀測三態 ───────────────────────────────────────────────
   # (d) error → error → target 必須成功（鎖住「不終止輪詢」）
   sm, = seam.call

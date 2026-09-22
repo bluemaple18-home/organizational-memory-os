@@ -157,8 +157,23 @@ module OMOS
         # ── SNAPSHOT_OLD ────────────────────────────────────────────────
         # 必須在停舊 job **之前**：停掉之後才想留位元組就來不及了。
         # 也必須在 lock 之內：lock 外讀到的 bytes 可能已被別人換掉。
+        #
+        # review P1：原本寫 `loaded: loaded?(...)`，把 `:observation_error`
+        # 壓成 `false`——於是觀測失敗時會**跳過 OLD_STOP**，直接把 plist 寫成
+        # 新版，而舊 job 其實還活著，當場就是 disk=new／live=old。
+        # 契約 §1.0.1 明文禁止第三態被壓成 false。
+        #
+        # 在明確知道舊 job 是 loaded 還是 not_loaded 之前，**不得發布新 plist**。
+        snapshot = converge_definite(launchctl: launchctl, clock: clock, sleeper: sleeper)
+        unless snapshot[:ok]
+          raise Failed.new("SCHEDULE_OLD_STATE_UNOBSERVABLE",
+                           "無法判定 #{domain}/#{LABEL} 目前是否載入" \
+                           "（#{cause_text(snapshot[:cause])}），因此不發布新版 plist。" \
+                           "磁碟維持原狀。")
+        end
+
         old = { bytes: existing ? File.binread(path) : nil,
-                loaded: loaded?(launchctl: launchctl) }
+                loaded: snapshot[:observed] == :loaded }
 
         # ── OLD_STOP_VERIFIED ───────────────────────────────────────────
         # 舊 job 停不掉就**不得**發布新 plist：磁碟維持舊版、與 live 的舊 job
@@ -394,20 +409,47 @@ module OMOS
     #
     # clock／sleeper 可注入：驗收要求 deterministic 的時間邊界測試，而測試
     # 不得真的 sleep 5 秒。這是 test seam，production 走預設值。
-    def converge_to(target, launchctl:, clock: method(:monotonic), sleeper: method(:sleep))
+    # 單一的輪詢迴圈。`accept` 決定什麼算「到了」——收斂到某個狀態，或只是
+    # 「拿到一個明確的答案」。判斷只寫一份；兩個包裝共用它。
+    #
+    # **deadline 是硬的**：每一輪先算 elapsed，逾時就**連這次觀測都不做**。
+    # review P1：原本先 observe 再檢查時間，於是 sleeper 每次推進 110ms 時，
+    # 在 5.06 秒才出現的 target 仍會被接受——契約寫的是「最長 5 秒」。
+    def converge(launchctl:, clock: method(:monotonic), sleeper: method(:sleep), &accept)
       started = clock.call
       seen = []
       loop do
+        elapsed = clock.call - started
+        break if elapsed > CONVERGENCE_WINDOW_SECONDS
+
         observed = observe(launchctl: launchctl)
         seen << observed
-        return { ok: true, observed: observed, seen: seen } if observed == target
-        break if clock.call - started >= CONVERGENCE_WINDOW_SECONDS
+        return { ok: true, observed: observed, seen: seen } if accept.call(observed)
+        break if elapsed >= CONVERGENCE_WINDOW_SECONDS
 
         sleeper.call(POLL_INTERVAL_SECONDS)
       end
 
-      { ok: false, observed: settled_observation(seen, target), seen: seen,
-        cause: classify(seen) }
+      { ok: false, seen: seen, cause: classify(seen) }
+    end
+
+    # 收斂到指定狀態。
+    def converge_to(target, launchctl:, clock: method(:monotonic), sleeper: method(:sleep))
+      r = converge(launchctl: launchctl, clock: clock, sleeper: sleeper) { |o| o == target }
+      return r if r[:ok]
+
+      r.merge(observed: settled_observation(r[:seen], target))
+    end
+
+    # 只要一個**明確**的答案（`:loaded` 或 `:not_loaded`），不管是哪一個。
+    # SNAPSHOT_OLD 用它：在知道舊 job 到底在不在之前，不准發布新 plist。
+    def converge_definite(launchctl:, clock: method(:monotonic), sleeper: method(:sleep))
+      r = converge(launchctl: launchctl, clock: clock, sleeper: sleeper) do |o|
+        o != :observation_error
+      end
+      return r if r[:ok]
+
+      r.merge(observed: :unknown)
     end
 
     def monotonic = Process.clock_gettime(Process::CLOCK_MONOTONIC)

@@ -1,6 +1,7 @@
 ---
 id: LAUNCHD-LIFECYCLE-IMPLEMENTATION-20260922
-status: BOUNDED_CONVERGENCE_READY_FOR_REVIEW
+status: BOUNDED_CONVERGENCE_REPAIR_01_READY_FOR_REVIEW
+bc_review_round_1: NO_GO（2026-09-22，P1×2：SNAPSHOT_OLD 把 observation_error 壓成「沒載入」／5 秒 deadline 可被 overshoot 穿過）→ repair-01 已修
 contract_version: freeze 第二版（OWNER_SIGNED 2026-09-22，含 §1.0／§1.0.1／§1.0.1.1）
 note: 10f2add 對**瞬時模型**是 GO，但 Acceptance 8 真機證據證明 freeze 本身少了時間維度。
   順序改為：補完 freeze（§1.0 狀態收斂語意）→ 契約 review → 實作 → 重跑 Acceptance 8。
@@ -161,6 +162,45 @@ thread，無須往產品碼新增 hook。
 | `test/support.rb` | +11 |
 
 3c 檢查數 329 → **346**。
+
+### 鑑別力反證（bounded convergence 本體，5 筆）
+
+| 反轉 | 結果 |
+|---|---|
+| `observation_error` 壓成 `not_loaded` | 3c 341/346（5 項） |
+| 第一個 error 就放棄輪詢 | 3c 344/346（15(d) 兩側） |
+| restore gate 接受 `unknown` | 3c 341/346（5 項） |
+| mixed observation 當成已確認 | 3c 345/346 |
+| 拿掉 5 秒窗口上限 | 3c 341/346（5 項） |
+
+（上一輪派工誤稱「見 §3.3」但未列出，reviewer 因此無法原樣抽驗——已補。）
+
+## 3.4 bounded convergence repair-01（2026-09-22）
+
+reviewer 以兩個獨立 adversarial replay 各抓到一個 P1。
+
+| # | 缺陷 | 修法 |
+|---|---|---|
+| P1-1 | `SNAPSHOT_OLD` 寫 `loaded: loaded?(...)`，把 `:observation_error` **壓成 `false`**。觀測失敗時會跳過 `OLD_STOP`、直接把 plist 寫成新版，而舊 job 還活著——當場 `disk=new / live=old` | 新增 `converge_definite`：在拿到**明確**的 `:loaded` 或 `:not_loaded` 之前不得發布新 plist；窗口內始終無法判定則回 `SCHEDULE_OLD_STATE_UNOBSERVABLE`，磁碟維持原狀 |
+| P1-2 | `converge_to` 先 observe 再檢查時間，於是 sleeper 每次推進 110ms 時，**5.06 秒**才出現的 target 仍被接受。契約寫的是「最長 5 秒」 | deadline 改成**硬的**：每一輪先算 elapsed，逾時就連這次觀測都不做 |
+
+### 收斂迴圈只留一份
+
+`converge_to`（收斂到某狀態）與 `converge_definite`（只要一個明確答案）
+共用同一個 `converge`，差別只在傳進去的 `accept`。**判斷只寫一份**——
+這正是 Hard Stop 那四輪的教訓：同一個判準寫兩份，下一次就只會修好其中一份。
+
+### repair-01 的鑑別力反證（3 筆）
+
+| 反轉 | 結果 |
+|---|---|
+| `SNAPSHOT_OLD` 改回 `loaded?`（壓成布林） | 3c **351/353**，重現 reviewer 的 `disk=15 / live=16` |
+| deadline 改回「先 observe 再檢查時間」 | 3c **352/353**，重現 5.06 秒被接受 |
+| `converge_definite` 也接受 `observation_error` | 3c **351/353** |
+
+### repair-01 行數 delta
+
+`schedule.rb` +48 / −6、`conformance_3c.rb` +72。3c 檢查數 346 → **353**。
 
 ## 4. 不做
 
