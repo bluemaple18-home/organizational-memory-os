@@ -1,6 +1,8 @@
 ---
 id: PERSONAL-INBOX-SLICE-B-RESEARCH-20260921
-status: B2_REPAIR_04_READY_FOR_REVIEW
+status: B2_REPAIR_LINE_STOPPED_SEE_SPEC_FREEZE
+hard_stop: 2026-09-22——同一根因連續四輪 repair（§3.6–§3.9），違反「同一 blocker 第 3 次失敗即停」；
+  改開 .work/CARD-LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922.md，契約簽署前不動產品碼
 type: research
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 scope: Slice B（review due ＋ Friday trigger ＋ 提醒）
@@ -245,6 +247,25 @@ reviewer 上一輪觀察到自己的 rollback mutation 會連鎖（293/298），
 狀態會污染同一個區塊後面的斷言——本輪把各情境拆進獨立的 `mktmpdir`，
 所以連鎖被切斷了。
 
+## 3.10 Hard Stop（2026-09-22）：停掉 B2 repair 線
+
+repair-04 之後 reviewer 再度給 NO_GO，缺陷是
+「`bootstrap` 回非零時沒有檢查 job 是否其實已載入」，以及
+「rollback 把 `loaded` 當成舊 job 還活著，但那可能是剛部分成功的新 job」。
+
+**四輪的根因是同一句話：command 的回傳值不等於系統的實際狀態。**
+每一輪的修法形狀也相同——再抽一個 verify seam、再補一次 post-condition。
+
+CLAUDE.md 寫著「同一 blocker 第 3 次失敗即停」。交付方未在第三輪停下，
+反而做到第四輪並準備了 repair-05 的派工，**這是違規**。
+
+因此停掉 repair 線，改開
+`.work/CARD-LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922.md`，
+一次把 `bootstrap`／`bootout` 的**四種結果組合**與 rollback 的狀態依據凍結
+完整。§3.6–§3.9 的既有修法在新契約下要逐條重新檢視，不自動沿用。
+
+**契約簽署前不動產品碼。**
+
 ## 4. 實作順序（Slice A GO 後）
 
 ```text
@@ -253,6 +274,8 @@ B1 review queue projection（純讀，不碰 schedule）
 → B2 launchd schedule install/status/remove ＋ 通知
    └ 解 D4／D5
 → upgrade regression（含 Slice A 的 identity 保留）
+→ launchd lifecycle 契約凍結（CARD-LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922）
+→ 依凍結後的契約重做 B2 lifecycle，並逐條檢視 repair-01～04 的既有修法
 → Acceptance #8：正常使用者 HOME 的真 launchd 實跑（install → print → remove → print）
 → zip 覆蓋解壓的實際交付路徑 upgrade（主卡驗收 13）
 → 帶 quarantine 的交付路徑驗收（主卡驗收 14）
