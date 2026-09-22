@@ -2,6 +2,7 @@
 id: LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922
 status: AWAITING_OWNER_SIGNATURE
 signature_round_1: OWNER_SIGNED 2026-09-22（瞬時模型）→ 因 Acceptance 8 真機證據失效，見 §1.0
+contract_review_round_4: NO_GO（2026-09-22，P1×1：§1.0 未把 launchctl print 的「觀測失敗」與「not loaded」分開）→ 本版已補 §1.0.1
 gap_source: CONTRACT_GAP_FROM_REAL_RUNTIME_EVIDENCE（.work/handoff/PERSONAL-INBOX-ACCEPTANCE-8-REAL-LAUNCHD-20260922.md）
 contract_review_round_1: NO_GO（2026-09-22，P1×2：rollback 順序未凍死／缺 transaction 單一寫入者；P2×1：未明寫 failure boundary）→ 已補
 contract_review_round_2: NO_GO（2026-09-22，P1×1：forward upgrade 的 plist 發布順序未凍死，仍可留下 disk=new／live=old）→ 已補
@@ -58,7 +59,40 @@ eventual，不是瞬時。** `bootout` 回 `exit=0`，立刻複查 `launchctl pr
 少了時間維度。於是 `remove` 在真實環境下永遠判成假成功、永遠完不成。
 
 **四象限保留**，但「loaded / not loaded」一律改讀成
-**「在有界收斂窗口內觀察到的最終狀態」**。exit code 的語意**沒有改變**。
+**「在有界收斂窗口內**明確觀察到**的最終狀態」**（三態定義見 §1.0.1）。
+exit code 的語意**沒有改變**。
+
+### 1.0.1 觀測契約：`loaded` / `not_loaded` / `observation_error`
+
+輪詢 `launchctl print` 的結果是**三態**，不是兩態：
+
+| 觀測結果 | 意義 |
+|---|---|
+| `loaded` | **明確觀察到** service 存在 |
+| `not_loaded` | **明確觀察到** service 不存在 |
+| `observation_error` | **無法判定**（權限、domain 不對、I/O 錯誤、其他非預期失敗） |
+
+**`observation_error` 不得被壓成任一目標狀態。**
+
+只說「輪詢 `launchctl print` 然後歸成 loaded／not loaded」是不夠的：實作者
+很容易把「`print` 回非零」一律當成 `not_loaded`。在 `bootout` 路徑上這特別
+危險——會立刻判定收斂成功、刪掉 plist，但 job 其實還活著，直接打穿前面凍住
+的 orphan／split-brain 保護。
+
+規則：
+
+1. **四象限的 post-condition 只接受 `loaded` 與 `not_loaded`。**
+   `observation_error` **不是**其中任何一格。
+2. `observation_error` **不得讓 convergence 提前成功**——它永遠不計為達成
+   目標狀態。
+3. 出現 `observation_error` **不終止輪詢**（它可能是暫時的），但窗口結束時
+   若從未明確觀察到目標狀態，一律歸入該動作的 **timeout failure** 格，並
+   套用 §1.0 的 timeout 一致性規則（`bootout` 不刪 plist、`bootstrap` 走
+   rollback）。
+4. **fail loud，且錯誤訊息必須分得開**：「整個窗口都無法判定」與「觀測正常
+   但未收斂」處置相同、**成因不同**，混為一談會讓人去查錯方向。
+5. 本卡**不**逐一列舉 `launchctl` 的 exit code 對應哪一態——那留給實作卡。
+   **這裡只凍死一件事：第三態存在，而且不得被壓成 false。**
 
 ### 有界收斂（bounded convergence）
 
@@ -72,6 +106,10 @@ eventual，不是瞬時。** `bootout` 回 `exit=0`，立刻複查 `launchctl pr
 - 整個等待期間**必須持續持有 lifecycle lock**（§1.4）。
 
 ### 修訂後的四象限
+
+> 表中的「5 秒內收斂」欄位指的是 §1.0.1 的 `loaded` 或 `not_loaded`
+> ——**明確觀察到**的狀態。`observation_error` 不屬於任何一格，依 §1.0.1
+> 第 3 點歸入 timeout failure。
 
 | 動作 | command exit | 5 秒內收斂 | 結果 |
 |---|---|---|---|
@@ -306,6 +344,13 @@ post-condition 組成的失敗路徑**，不含上列三項。此段存在的理
     `launchctl print` → `schedule remove` → `launchctl print` 不存在），
     且需 Owner 明示授權。注入替身的測試**不能**代替這一項——本次缺口正是
     替身測不出來的。
+
+    **前一次 Acceptance 8 的授權不視為本次重跑授權；每次真機重跑都需要新的
+    Owner 明示。**
+15. **觀測三態**（§1.0.1）：`observation_error` 不得被壓成 `not_loaded` 或
+    `loaded`；需有測試構造「`print` 無法判定」並確認
+    (a) 不提前判成功、(b) `bootout` 路徑不刪 plist、
+    (c) 錯誤訊息分得出「無法判定」與「未收斂」。
 
 ### Acceptance #8 residual（沿用）
 
