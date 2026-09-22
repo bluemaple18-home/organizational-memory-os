@@ -3,7 +3,8 @@ id: LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922
 status: AWAITING_OWNER_SIGNATURE
 signature_round_1: OWNER_SIGNED 2026-09-22（瞬時模型）→ 因 Acceptance 8 真機證據失效，見 §1.0
 contract_review_round_4: NO_GO（2026-09-22，P1×1：§1.0 未把 launchctl print 的「觀測失敗」與「not loaded」分開）→ 已補 §1.0.1
-contract_review_round_5: NO_GO（2026-09-22，P1×2：rollback 在 observation_error 下仍可能 restore／驗收 15 鎖不住「不終止輪詢」）→ 本版已補
+contract_review_round_5: NO_GO（2026-09-22，P1×2：rollback 在 observation_error 下仍可能 restore／驗收 15 鎖不住「不終止輪詢」）→ 已補
+contract_review_round_6: GO（2026-09-22，P0/P1/P2/P3 皆 0）——**待 Owner 重新簽署新版 freeze，簽完才開 bounded-convergence 實作**
 gap_source: CONTRACT_GAP_FROM_REAL_RUNTIME_EVIDENCE（.work/handoff/PERSONAL-INBOX-ACCEPTANCE-8-REAL-LAUNCHD-20260922.md）
 contract_review_round_1: NO_GO（2026-09-22，P1×2：rollback 順序未凍死／缺 transaction 單一寫入者；P2×1：未明寫 failure boundary）→ 已補
 contract_review_round_2: NO_GO（2026-09-22，P1×1：forward upgrade 的 plist 發布順序未凍死，仍可留下 disk=new／live=old）→ 已補
@@ -123,6 +124,13 @@ CLEANUP_NEW_IF_NEEDED
 
 `observation_error` 與「清不掉」導向同一種安全狀態，但**錯誤碼與訊息必須
 分得開**：前者是「不知道」，後者是「知道清不掉」。查修方向完全不同。
+
+**mixed observation 的實作解讀（contract review round 6 裁定）**：
+
+> **只要沒有明確看到 `not_loaded`，rollback 的 restore gate 一律不得通過。**
+
+mixed observation 可以有自己的診斷訊息，但**不得**因為窗口裡曾經出現過某次
+正常觀測，就把它當成「已確認停止」。
 
 ### 有界收斂（bounded convergence）
 
