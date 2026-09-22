@@ -1,6 +1,8 @@
 ---
 id: LAUNCHD-LIFECYCLE-IMPLEMENTATION-20260922
-status: ACCEPTED_GO
+status: CONTRACT_GAP_FROM_REAL_RUNTIME_EVIDENCE
+note: 10f2add 對**瞬時模型**是 GO，但 Acceptance 8 真機證據證明 freeze 本身少了時間維度。
+  順序改為：補完 freeze（§1.0 狀態收斂語意）→ 契約 review → 實作 → 重跑 Acceptance 8。
 accepted_at: 10f2add（重做 dfc9e75、repair-01 10f2add）
 review_round_2: GO（2026-09-22，P0/P1/P2/P3 皆 0；.work/handoff/LAUNCHD-LIFECYCLE-IMPLEMENTATION-REPAIR-01-REREVIEW-20260922.md）
 review_round_1: NO_GO（2026-09-22，P1×1：lock 邊界太晚，交易判斷依據仍可能是 lock 前的過期快照）→ repair-01 已修；restore_old 的 partial 裁決獲接受並補入契約 §1.3.4

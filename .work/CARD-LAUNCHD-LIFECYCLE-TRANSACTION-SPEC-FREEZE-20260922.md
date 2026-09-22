@@ -1,6 +1,8 @@
 ---
 id: LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922
-status: OWNER_SIGNED
+status: AWAITING_OWNER_SIGNATURE
+signature_round_1: OWNER_SIGNED 2026-09-22（瞬時模型）→ 因 Acceptance 8 真機證據失效，見 §1.0
+gap_source: CONTRACT_GAP_FROM_REAL_RUNTIME_EVIDENCE（.work/handoff/PERSONAL-INBOX-ACCEPTANCE-8-REAL-LAUNCHD-20260922.md）
 contract_review_round_1: NO_GO（2026-09-22，P1×2：rollback 順序未凍死／缺 transaction 單一寫入者；P2×1：未明寫 failure boundary）→ 已補
 contract_review_round_2: NO_GO（2026-09-22，P1×1：forward upgrade 的 plist 發布順序未凍死，仍可留下 disk=new／live=old）→ 已補
 contract_review_round_3: GO（2026-09-22，P0/P1/P2/P3 皆 0）
@@ -43,9 +45,60 @@ B2 的 launchd 生命週期連做了四輪，每一輪 reviewer 都給 NO_GO：
 
 交付方未在第三輪停下，是違規；本卡即為 Hard Stop 的產出。
 
+## 1.0 狀態收斂語意（Owner 裁決 2026-09-22，本輪新增）
+
+### 為什麼原本的四象限不夠
+
+Acceptance 8 於真實 session 實跑後證明：**`launchctl` 的 post-condition 是
+eventual，不是瞬時。** `bootout` 回 `exit=0`，立刻複查 `launchctl print` 仍
+看得到 job；`sleep 1` 之後就查不到，再跑一次 `bootout` 回
+`Boot-out failed: 3: No such process`——第一次其實成功了，只是還沒卸載完。
+
+原契約的四象限把 post-condition 定義成「命令回傳之後**當下**的 `loaded?`」，
+少了時間維度。於是 `remove` 在真實環境下永遠判成假成功、永遠完不成。
+
+**四象限保留**，但「loaded / not loaded」一律改讀成
+**「在有界收斂窗口內觀察到的最終狀態」**。exit code 的語意**沒有改變**。
+
+### 有界收斂（bounded convergence）
+
+`bootstrap` 與 `bootout` **兩邊適用同一套**：
+
+- **command 只呼叫一次**，**不得** retry command；只輪詢 `launchctl print`。
+- 先**立即查一次**，之後每 **100ms** 查一次。
+- 最長 **5 秒**。
+- 一旦觀察到目標狀態**立刻結束**，不得硬等滿 5 秒。
+- 必須使用 **monotonic clock**；**不得**以單一 `sleep 1` 充當 correctness。
+- 整個等待期間**必須持續持有 lifecycle lock**（§1.4）。
+
+### 修訂後的四象限
+
+| 動作 | command exit | 5 秒內收斂 | 結果 |
+|---|---|---|---|
+| `bootstrap` | 0 | loaded | **成功** |
+| `bootstrap` | 0 | 仍未 loaded | false success／timeout failure |
+| `bootstrap` | 非 0 | loaded | **partial activation**，沿用原 rollback 規則（§1.3.2） |
+| `bootstrap` | 非 0 | 仍未 loaded | clean failure |
+| `bootout` | 0 | not loaded | **成功** |
+| `bootout` | 0 | 仍 loaded | false success／timeout failure |
+| `bootout` | 非 0 | not loaded | **成功**（沿用原契約：其實已經停了） |
+| `bootout` | 非 0 | 仍 loaded | clean failure |
+
+### timeout 時的一致性規則（不因 timeout 放寬）
+
+1. **`bootout` timeout 不得刪 plist**——與 clean failure 同等對待，保留
+   plist 並 fail loud，避免孤兒 job。
+2. **`bootstrap` timeout 走既有 rollback**（§1.3.2／§1.3.3），包含「新 job
+   若仍 live 必須先清掉」與「磁碟保留與 live 對應的定義」。
+3. **polling 期間不得釋放 lifecycle lock。** 釋放了就等於把收斂窗口變成別人
+   可以插進來的窗口，§1.4 的序列化會被打穿。
+
 ## 1. 必須凍結的狀態機
 
 ### 1.1 `bootstrap` 的四種結果（目前只處理三種）
+
+> **2026-09-22 起，本節的「實際 loaded」一律指 §1.0 定義的
+> 「有界收斂窗口內觀察到的最終狀態」**，不是命令回傳當下的瞬時值。
 
 | exit | 實際 loaded | 語意 | 必須怎麼做 |
 |---|---|---|---|
@@ -63,6 +116,8 @@ B2 的 launchd 生命週期連做了四輪，每一輪 reviewer 都給 NO_GO：
   舊 job 已恢復 → **disk=16:00 / live=15:00**。
 
 ### 1.2 `bootout` 的四種結果（對稱，同樣必須列全）
+
+> 同 §1.1：「實際 loaded」依 §1.0 的有界收斂判定。
 
 | exit | 實際 loaded | 語意 | 必須怎麼做 |
 |---|---|---|---|
@@ -237,6 +292,20 @@ post-condition 組成的失敗路徑**，不含上列三項。此段存在的理
    符合者註明沿用。
 11. 每一項附鑑別力反證，且各情境測試互相隔離（獨立 `mktmpdir`），
     反證不得連鎖。
+12. **收斂的時間邊界必須有 deterministic 測試**（§1.0）：
+    - 立即收斂；
+    - 100–500ms 後收斂；
+    - 4.9 秒收斂（仍算成功）；
+    - 超過 5 秒 → timeout。
+
+    **測試不得真的 sleep 5 秒**——時間必須可注入，否則這四條要嘛跑不動、
+    要嘛變成看運氣的 flaky 測試。
+13. **timeout 的一致性**：`bootout` timeout 不刪 plist、`bootstrap` timeout
+    走既有 rollback、polling 期間 lock 未釋放，三者各有測試。
+14. **真機複驗**：契約改版後必須**重跑 Acceptance 8**（`schedule install` →
+    `launchctl print` → `schedule remove` → `launchctl print` 不存在），
+    且需 Owner 明示授權。注入替身的測試**不能**代替這一項——本次缺口正是
+    替身測不出來的。
 
 ### Acceptance #8 residual（沿用）
 
