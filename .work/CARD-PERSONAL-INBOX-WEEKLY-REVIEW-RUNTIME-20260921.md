@@ -9,8 +9,8 @@ slice_b: B1_B2_READY_FOR_REVIEW（d6fce24 B1、86a5103 B1 repair、22c8ab9 B2；
 slice_b_remaining: 驗收 8（真 launchd 實證，需 Owner 明示）；驗收 14 的「重現攔截」需真實傳輸的檔案
 slice_b_delivery_path: 驗收 12 PASS、13 PASS（Owner 裁定 2026-09-22）、14 PARTIAL_BLOCKED_EXTERNAL_PROVENANCE（Owner 裁定）；
   證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-DELIVERY-PATH-EVIDENCE-20260922.md
-slice_b_closeout_blockers: 驗收 8 **FAIL**（2026-09-22 真機實跑，bootout 非同步導致 remove 無法完成；契約缺口，
-  見 .work/handoff/PERSONAL-INBOX-ACCEPTANCE-8-REAL-LAUNCHD-20260922.md）；驗收 14（待下一次真實 ZIP 交付時順便補）
+slice_b_closeout_blockers: 驗收 8 待**重跑**（首次 FAIL 的契約缺口已由 bounded convergence 修復並 GO @ 6aec59e；
+  重跑需**新的** Owner 明示授權）；驗收 14（待下一次真實 ZIP 交付時順便補）
 type: bounded-product-capability
 priority: MVP
 related:
