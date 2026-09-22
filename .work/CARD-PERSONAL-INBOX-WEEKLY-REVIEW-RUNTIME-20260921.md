@@ -1,11 +1,12 @@
 ---
 id: PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
-status: SLICE_A_ACCEPTED_GO_SLICE_B_IN_PROGRESS
+status: SLICE_B_READY_FOR_CLOSEOUT_REVIEW
 slice_a: ACCEPTED_GO @ 77e11e0（8b49d16 匯入本體、8d1227a 身分解析、d24ca37 repair-01、77e11e0 repair-02）
 slice_a_review_round_3: GO（2026-09-21，P1 皆 0；P2×1 residual 已於收片時一併收；.work/handoff/PERSONAL-INBOX-SLICE-A-REPAIR-02-REREVIEW-20260921.md）
 slice_a_review_round_1: NO_GO（2026-09-21，P1×3：身分拼接＋格式未驗／跨時間重匯不冪等／content-only dedup 黏合 provenance；P2×1：identity validation 未下沉）→ repair-01 已修
 slice_a_review_round_2: NO_GO（2026-09-21，P1×2：owner ref 仍允許多段冒號／provenance conflict 在跨 process race 下可繞過；P2×1：tmp 目錄名只含 pid）→ repair-02 已修
-slice_b: B1_B2_READY_FOR_REVIEW（d6fce24 B1、86a5103 B1 repair、22c8ab9 B2；證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-B1B2-EVIDENCE-20260921.md）
+slice_b: READY_FOR_CLOSEOUT_REVIEW——驗收 7–16 全數 PASS；收片證據包
+  .work/handoff/PERSONAL-INBOX-SLICE-B-CLOSEOUT-EVIDENCE-20260922.md
 slice_b_remaining: 驗收 8（真 launchd 實證，需 Owner 明示）；驗收 14 的「重現攔截」需真實傳輸的檔案
 slice_b_delivery_path: 驗收 12 PASS、13 PASS（Owner 裁定 2026-09-22）、14 PARTIAL_BLOCKED_EXTERNAL_PROVENANCE（Owner 裁定）；
   證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-DELIVERY-PATH-EVIDENCE-20260922.md
