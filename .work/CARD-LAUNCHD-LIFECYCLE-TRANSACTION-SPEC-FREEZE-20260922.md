@@ -2,7 +2,8 @@
 id: LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922
 status: AWAITING_OWNER_SIGNATURE
 signature_round_1: OWNER_SIGNED 2026-09-22（瞬時模型）→ 因 Acceptance 8 真機證據失效，見 §1.0
-contract_review_round_4: NO_GO（2026-09-22，P1×1：§1.0 未把 launchctl print 的「觀測失敗」與「not loaded」分開）→ 本版已補 §1.0.1
+contract_review_round_4: NO_GO（2026-09-22，P1×1：§1.0 未把 launchctl print 的「觀測失敗」與「not loaded」分開）→ 已補 §1.0.1
+contract_review_round_5: NO_GO（2026-09-22，P1×2：rollback 在 observation_error 下仍可能 restore／驗收 15 鎖不住「不終止輪詢」）→ 本版已補
 gap_source: CONTRACT_GAP_FROM_REAL_RUNTIME_EVIDENCE（.work/handoff/PERSONAL-INBOX-ACCEPTANCE-8-REAL-LAUNCHD-20260922.md）
 contract_review_round_1: NO_GO（2026-09-22，P1×2：rollback 順序未凍死／缺 transaction 單一寫入者；P2×1：未明寫 failure boundary）→ 已補
 contract_review_round_2: NO_GO（2026-09-22，P1×1：forward upgrade 的 plist 發布順序未凍死，仍可留下 disk=new／live=old）→ 已補
@@ -85,14 +86,43 @@ exit code 的語意**沒有改變**。
    `observation_error` **不是**其中任何一格。
 2. `observation_error` **不得讓 convergence 提前成功**——它永遠不計為達成
    目標狀態。
-3. 出現 `observation_error` **不終止輪詢**（它可能是暫時的），但窗口結束時
-   若從未明確觀察到目標狀態，一律歸入該動作的 **timeout failure** 格，並
-   套用 §1.0 的 timeout 一致性規則（`bootout` 不刪 plist、`bootstrap` 走
-   rollback）。
-4. **fail loud，且錯誤訊息必須分得開**：「整個窗口都無法判定」與「觀測正常
-   但未收斂」處置相同、**成因不同**，混為一談會讓人去查錯方向。
+3. 出現 `observation_error` **不終止輪詢**（Owner 裁決 2026-09-22：暫時的
+   觀測錯誤不該直接把 lifecycle 判死），但窗口結束時若從未明確觀察到目標
+   狀態，一律歸入該動作的 **timeout failure** 格，並套用 §1.0 的 timeout
+   一致性規則（`bootout` 不刪 plist、`bootstrap` 走 rollback，且 rollback
+   另受 §1.0.1.1 約束）。
+4. **fail loud，且錯誤訊息必須分得出三種成因**（處置可能相同，成因不同，
+   混為一談會讓人去查錯方向）：
+   - **全程無法判定**：窗口內每一次觀測都是 `observation_error`；
+   - **全程觀測正常但未收斂**：從未出現 `observation_error`，只是狀態沒到；
+   - **mixed observation**：窗口內既有正常的非目標觀測、也有
+     `observation_error`。這一類**必須有自己的說法**，不得硬塞進前兩類。
 5. 本卡**不**逐一列舉 `launchctl` 的 exit code 對應哪一態——那留給實作卡。
    **這裡只凍死一件事：第三態存在，而且不得被壓成 false。**
+
+#### 1.0.1.1 rollback 改動磁碟定義前，必須明確觀察到 `not_loaded`
+
+**這一條凌駕「timeout failure → 走既有 rollback」的一般敘述。**
+
+§1.3.2 的硬規則是「只有確認新 job 已停止，才能把舊 plist 寫回去」。
+若窗口結束時仍是 `observation_error`，我們**並不知道**新 job 是活著還是死了
+——此時把舊 plist 寫回去，就是在「不知道」的狀態下製造
+`disk=old / live=?`，有可能正是被禁止的 `disk=old / live=new`。
+
+> **rollback 要恢復舊 plist 之前，必須明確觀察到 `not_loaded`。
+> 若仍無法判定，停在 dirty failure，不得 restore old。**
+
+亦即 §1.3.2 的階段順序在三態下讀成：
+
+```text
+CLEANUP_NEW_IF_NEEDED
+  → 明確 not_loaded  → 可進 RESTORE_OLD_IF_NEEDED
+  → 仍 loaded        → dirty failure（磁碟保留新版，與 live 一致）
+  → observation_error → dirty failure（**不得** restore old）
+```
+
+`observation_error` 與「清不掉」導向同一種安全狀態，但**錯誤碼與訊息必須
+分得開**：前者是「不知道」，後者是「知道清不掉」。查修方向完全不同。
 
 ### 有界收斂（bounded convergence）
 
@@ -348,9 +378,19 @@ post-condition 組成的失敗路徑**，不含上列三項。此段存在的理
     **前一次 Acceptance 8 的授權不視為本次重跑授權；每次真機重跑都需要新的
     Owner 明示。**
 15. **觀測三態**（§1.0.1）：`observation_error` 不得被壓成 `not_loaded` 或
-    `loaded`；需有測試構造「`print` 無法判定」並確認
-    (a) 不提前判成功、(b) `bootout` 路徑不刪 plist、
-    (c) 錯誤訊息分得出「無法判定」與「未收斂」。
+    `loaded`。需有 deterministic 測試涵蓋：
+    - (a) 不提前判成功；
+    - (b) `bootout` 路徑不刪 plist；
+    - (c) 錯誤訊息分得出**三種**成因：全程無法判定／全程正常但未收斂／
+      mixed observation；
+    - (d) **`observation_error` → `observation_error` → 目標狀態**，且仍在
+      5 秒窗口內 → **必須成功**。
+
+      沒有 (d) 的話，「第一個 probe error 就立刻 fail」也會讓 (a)(b)(c)
+      全部通過——(d) 才真的鎖住「不終止輪詢」。
+16. **rollback 的觀測前提**（§1.0.1.1）：構造「清理後仍是
+    `observation_error`」，確認**不 restore old**、停在 dirty failure，
+    且錯誤碼與「知道清不掉」分得開。
 
 ### Acceptance #8 residual（沿用）
 
