@@ -6,7 +6,8 @@ slice_a_review_round_3: GO（2026-09-21，P1 皆 0；P2×1 residual 已於收片
 slice_a_review_round_1: NO_GO（2026-09-21，P1×3：身分拼接＋格式未驗／跨時間重匯不冪等／content-only dedup 黏合 provenance；P2×1：identity validation 未下沉）→ repair-01 已修
 slice_a_review_round_2: NO_GO（2026-09-21，P1×2：owner ref 仍允許多段冒號／provenance conflict 在跨 process race 下可繞過；P2×1：tmp 目錄名只含 pid）→ repair-02 已修
 slice_b: B1_B2_READY_FOR_REVIEW（d6fce24 B1、86a5103 B1 repair、22c8ab9 B2；證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-B1B2-EVIDENCE-20260921.md）
-slice_b_remaining: upgrade regression → zip 覆蓋解壓 upgrade（驗收 13）→ quarantine E2E（驗收 14）→ closeout review；三步若只補測試與證據、不改產品邏輯，closeout 時只審新增的 delivery-path 證據
+slice_b_remaining: 驗收 8（真 launchd 實證，需 Owner 明示）；驗收 14 的「重現攔截」需真實傳輸的檔案
+slice_b_delivery_path: 驗收 12 PASS、13 PASS（指定「先刪資料夾再解壓」）、14 部分達成；證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-DELIVERY-PATH-EVIDENCE-20260922.md
 type: bounded-product-capability
 priority: MVP
 related:
@@ -303,6 +304,18 @@ pipeline 也沒有自動更新，同事拿到的是一個 zip，所以下一版�
 
     本卡**不**因此導入簽章／notarization（需 Apple Developer 帳號，屬配送
     形式決策，仍在範圍外）。這一項只要求「已知的攔截有被文件化且實測解得開」。
+
+    **2026-09-22 實測結果：部分達成。** 寫得上 xattr、解除後殘留 0、安裝與
+    doctor 正常、說明有警告——但**攔截本身在本機重現不了**：人工 `xattr -w`
+    上去的 quarantine 不會真的觸發 Gatekeeper，同事端的攔截來自真正經過
+    Teams 傳輸的檔案，provenance 不同。條文不改寫；要完成只能把 zip 真的
+    傳出去再傳回來，需 Owner 決定。
+
+    **驗收 13 的實測補充**：覆蓋解壓不會刪掉新版已無的舊檔，而殘留檔會改變
+    artifact identity（實測 `fabb0b30…` vs 乾淨的 `44d977dc…`）。因此指定的
+    正確步驟是**先移除舊資料夾再解壓**，已寫進交付包 INSTALL.md 的「升級到
+    新版」一節。另記：`cp -R` 覆蓋會在 vendor 的唯讀 gem 檔上大量失敗，
+    `unzip -o` 不會。
 
 ### Regression
 
