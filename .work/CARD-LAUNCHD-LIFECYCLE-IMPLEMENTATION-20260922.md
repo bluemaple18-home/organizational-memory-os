@@ -1,6 +1,8 @@
 ---
 id: LAUNCHD-LIFECYCLE-IMPLEMENTATION-20260922
-status: REPAIR_01_READY_FOR_REVIEW
+status: ACCEPTED_GO
+accepted_at: 10f2add（重做 dfc9e75、repair-01 10f2add）
+review_round_2: GO（2026-09-22，P0/P1/P2/P3 皆 0；.work/handoff/LAUNCHD-LIFECYCLE-IMPLEMENTATION-REPAIR-01-REREVIEW-20260922.md）
 review_round_1: NO_GO（2026-09-22，P1×1：lock 邊界太晚，交易判斷依據仍可能是 lock 前的過期快照）→ repair-01 已修；restore_old 的 partial 裁決獲接受並補入契約 §1.3.4
 type: implementation
 severity: P1
@@ -116,8 +118,13 @@ loaded 狀態**全部移進 `with_lifecycle_lock`**，在鎖內重新取得。
 **兩筆反證只有結構檢查抓到，行為測試沒抓到。** 原因是修好之後那個競態
 **從外部已經構造不出來**——reviewer 上一輪是靠「讓第一個 install 停在 lock
 前」構造的，那需要一個注入點。交付方選擇不為此開注入接縫，改用結構檢查
-鎖住順序性質。**此取捨請 reviewer 裁定**：若認為需要行為層的確定性重現，
-請指定注入點的形狀。
+鎖住順序性質。**裁決（review round 2）**：**接受目前做法，不要求新增 production injection
+seam。** 這個不變式本質上就是「authoritative read 必須位於 lock 內」，結構
+斷言適合鎖它；行為面由 reviewer 的 deterministic concurrency 獨立證明。
+
+可選的後續（非要求）：要把 deterministic replay 常設化，可只利用既有的
+`launchctl` 注入，在第一個 transaction 持鎖時用 barrier 卡住再啟第二個
+thread，無須往產品碼新增 hook。
 
 ## 4. 不做
 
