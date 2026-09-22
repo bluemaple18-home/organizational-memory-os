@@ -1,9 +1,9 @@
 ---
 id: LAUNCHD-LIFECYCLE-IMPLEMENTATION-20260922
-status: BOUNDED_CONVERGENCE_ACCEPTED_GO_PENDING_ACCEPTANCE_8
+status: ACCEPTED_GO
 accepted_at: 6aec59e（實作 61bbb4b、repair-01 6aec59e）
 bc_review_round_2: GO（2026-09-22，P0/P1/P2/P3 皆 0；.work/handoff/LAUNCHD-BOUNDED-CONVERGENCE-REPAIR-01-REREVIEW-20260922.md）
-remaining: Acceptance 8 真 launchd 重跑——需**新的** Owner 明示授權
+acceptance_8: **PASS** @ 2026-09-22 重跑（.work/handoff/PERSONAL-INBOX-ACCEPTANCE-8-RERUN-20260922.md）
 bc_review_round_1: NO_GO（2026-09-22，P1×2：SNAPSHOT_OLD 把 observation_error 壓成「沒載入」／5 秒 deadline 可被 overshoot 穿過）→ repair-01 已修
 contract_version: freeze 第二版（OWNER_SIGNED 2026-09-22，含 §1.0／§1.0.1／§1.0.1.1）
 note: 10f2add 對**瞬時模型**是 GO，但 Acceptance 8 真機證據證明 freeze 本身少了時間維度。
