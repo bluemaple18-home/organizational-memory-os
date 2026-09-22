@@ -1,7 +1,8 @@
 ---
 id: LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922
 status: AWAITING_OWNER_SIGNATURE
-contract_review_round_1: NO_GO（2026-09-22，P1×2：rollback 順序未凍死／缺 transaction 單一寫入者；P2×1：未明寫 failure boundary）→ 本版已補
+contract_review_round_1: NO_GO（2026-09-22，P1×2：rollback 順序未凍死／缺 transaction 單一寫入者；P2×1：未明寫 failure boundary）→ 已補
+contract_review_round_2: NO_GO（2026-09-22，P1×1：forward upgrade 的 plist 發布順序未凍死，仍可留下 disk=new／live=old）→ 本版已補
 type: spec-freeze
 severity: P1
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
@@ -82,6 +83,7 @@ B2 的 launchd 生命週期連做了四輪，每一輪 reviewer 都給 NO_GO：
 ```text
 SNAPSHOT_OLD
   → OLD_STOP_VERIFIED
+  → PUBLISH_NEW_PLIST                 （**必須在停掉舊 job 之後**，見 §1.3.3）
   → NEW_ACTIVATION_ATTEMPTED
   → NEW_POSTCONDITION_CLASSIFIED      （§1.1 的四象限之一）
   → CLEANUP_NEW_IF_NEEDED
@@ -111,6 +113,42 @@ SNAPSHOT_OLD
    換句話說：寧可停在 `disk=new / live=new` 的失敗，也**絕不**製造
    `disk=old / live=new`。前者是「升級沒完成但一致」，後者是 split-brain。
 4. 只有新 job 確認已停，才進 `RESTORE_OLD_IF_NEEDED`。
+
+#### 1.3.3 正向 upgrade 的發布順序也被凍死（contract review round 2 P1）
+
+§1.3.2 只禁止了 rollback 方向的 `disk=old / live=new`。**正向 upgrade 的
+對稱狀態同樣是 split-brain，必須一併凍死。**
+
+`8041188` 目前的順序是：
+
+```text
+snapshot old → 寫 new plist → bootout old job → bootstrap new job
+```
+
+先寫 plist、後停舊 job，中間必然存在一段：
+
+```text
+disk = new 15:00
+live = old 16:00
+```
+
+這與 rollback 那一側是同一個錯，只是方向相反。不明文禁止的話，實作者照現有
+順序改其他部分，仍可能「符合卡片」卻留下同類 split-brain window。
+
+**凍結規則**：
+
+> **`OLD_STOP_VERIFIED` 之前，磁碟 plist 必須維持舊版。只有確認舊 job 已
+> 停止後，才可發布 new plist（`PUBLISH_NEW_PLIST`），再進
+> `NEW_ACTIVATION_ATTEMPTED`。**
+
+推論（一併凍結，避免實作各自解讀）：
+
+- 首次安裝沒有舊 job，`OLD_STOP_VERIFIED` 直接以「本來就沒有」通過，
+  才進 `PUBLISH_NEW_PLIST`。
+- 舊 job 停不掉時**不得**發布 new plist——磁碟仍是舊版，與 live 的舊 job
+  一致，這是乾淨的失敗。
+- `SNAPSHOT_OLD` 仍在最前面：要停舊 job 之前就得先把舊 plist 位元組留下來，
+  否則 rollback 無從還原。
 
 ### 1.4 lifecycle mutation 必須序列化（contract review P1-2）
 
@@ -159,14 +197,20 @@ post-condition 組成的失敗路徑**，不含上列三項。此段存在的理
 6. **rollback 順序**（§1.3.2）：構造「新 job 已 live 但 bootstrap 回失敗，
    且清理新 job 也失敗」，確認結果是 dirty failure、磁碟保留與 live job
    對應的定義，**且不曾出現 `disk=old / live=new` 的中間狀態**。
-7. **序列化**（§1.4）：並行跑 `install`／`install`、`install`／`remove`，
+7. **正向 upgrade 順序**（§1.3.3）：upgrade 全路徑**不得出現
+   `disk=new / live=old` 的中間狀態**。測試必須在 `bootout` 與 `bootstrap`
+   的每個觀察點檢查磁碟與 live 的對應關係，而不是只看最終結果——
+   split-brain window 的定義就是「中間存在過」。
+   另須涵蓋：舊 job 停不掉時磁碟仍是舊版；首次安裝時
+   `OLD_STOP_VERIFIED` 以「本來就沒有」通過後才發布 plist。
+8. **序列化**（§1.4）：並行跑 `install`／`install`、`install`／`remove`，
    確認第二個明確失敗（`SCHEDULE_LIFECYCLE_BUSY` 之類），且結束後磁碟與
    live 一致；不得兩個都回成功。
-8. **階段序列**（§1.3.1）：實作不得在 rollback 路徑上用 `loaded?` 判斷
+9. **階段序列**（§1.3.1）：實作不得在 rollback 路徑上用 `loaded?` 判斷
    「現在活著的是舊的還是新的」——以靜態檢查或注入測試證明。
-9. repair-01～04 的既有修法逐條對照新契約，**不符者一併改**；
+10. repair-01～04 的既有修法逐條對照新契約，**含發布順序**，**不符者一併改**；
    符合者註明沿用。
-10. 每一項附鑑別力反證，且各情境測試互相隔離（獨立 `mktmpdir`），
+11. 每一項附鑑別力反證，且各情境測試互相隔離（獨立 `mktmpdir`），
     反證不得連鎖。
 
 ### Acceptance #8 residual（沿用）
