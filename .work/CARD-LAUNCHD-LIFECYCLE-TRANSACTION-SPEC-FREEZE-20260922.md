@@ -1,8 +1,11 @@
 ---
 id: LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922
-status: AWAITING_OWNER_SIGNATURE
+status: OWNER_SIGNED
 contract_review_round_1: NO_GO（2026-09-22，P1×2：rollback 順序未凍死／缺 transaction 單一寫入者；P2×1：未明寫 failure boundary）→ 已補
-contract_review_round_2: NO_GO（2026-09-22，P1×1：forward upgrade 的 plist 發布順序未凍死，仍可留下 disk=new／live=old）→ 本版已補
+contract_review_round_2: NO_GO（2026-09-22，P1×1：forward upgrade 的 plist 發布順序未凍死，仍可留下 disk=new／live=old）→ 已補
+contract_review_round_3: GO（2026-09-22，P0/P1/P2/P3 皆 0）
+owner_signed_at: 2026-09-22
+implementation: CARD-LAUNCHD-LIFECYCLE-IMPLEMENTATION-20260922
 type: spec-freeze
 severity: P1
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
