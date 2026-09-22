@@ -1,6 +1,7 @@
 ---
 id: LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922
 status: AWAITING_OWNER_SIGNATURE
+contract_review_round_1: NO_GO（2026-09-22，P1×2：rollback 順序未凍死／缺 transaction 單一寫入者；P2×1：未明寫 failure boundary）→ 本版已補
 type: spec-freeze
 severity: P1
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
@@ -72,11 +73,77 @@ B2 的 launchd 生命週期連做了四輪，每一輪 reviewer 都給 NO_GO：
 **答不出跑的是舊的還是新的**。repair-04 用它來判斷「舊 job 從未被停掉」，
 在 partial activation 下就會把新 job 誤認成舊 job。
 
-rollback 必須依據**明確記錄的交易狀態**，至少包含：
+#### 1.3.1 交易階段序列（取代三個 boolean）
 
-- 舊 job 原本是否 loaded
-- 舊 job 是否**已成功**停掉（`bootout_and_verify` 的結果，不是推測）
-- 新 activation 是否**已嘗試**、結果為何（含 partial）
+實作必須沿著一條**明確的階段序列**推進，每一步的結果都記下來；rollback 只
+依據「走到哪一階段、該階段的分類是什麼」決定動作，**永遠不問 `loaded?`
+現在活著的是誰**。
+
+```text
+SNAPSHOT_OLD
+  → OLD_STOP_VERIFIED
+  → NEW_ACTIVATION_ATTEMPTED
+  → NEW_POSTCONDITION_CLASSIFIED      （§1.1 的四象限之一）
+  → CLEANUP_NEW_IF_NEEDED
+  → RESTORE_OLD_IF_NEEDED
+  → FINAL_VERIFIED
+```
+
+- 這是**流程階段**，不是新的資料結構：不得為它建 DB、FSM engine 或
+  持久化 ledger。階段狀態存活於單次 lifecycle 呼叫之內。
+- `SNAPSHOT_OLD` 至少含：舊 plist 位元組（或「本來沒有」）、舊 job 原本
+  是否 loaded。
+- `OLD_STOP_VERIFIED` 是 `bootout` 四象限（§1.2）的分類結果，**不是**
+  「我們呼叫過 bootout」。
+- `NEW_POSTCONDITION_CLASSIFIED` 是 `bootstrap` 四象限（§1.1）的分類結果。
+
+#### 1.3.2 rollback 的順序被凍死（contract review P1-1）
+
+`partial activation` 的清理**自己也可能失敗**，所以順序不能留給實作決定：
+
+1. **新 job 若仍 live，第一步一定是清掉它**（走完整的 `bootout` 四象限）。
+2. 在新 job 確認停掉**之前**：
+   - **不得**把磁碟 plist 換回舊版；
+   - **不得**開始 restore old。
+3. 清不掉就停在 **dirty failure**：明確失敗、回專屬錯誤碼，且**磁碟必須
+   仍保留與 live job 對應的定義**。
+
+   換句話說：寧可停在 `disk=new / live=new` 的失敗，也**絕不**製造
+   `disk=old / live=new`。前者是「升級沒完成但一致」，後者是 split-brain。
+4. 只有新 job 確認已停，才進 `RESTORE_OLD_IF_NEEDED`。
+
+### 1.4 lifecycle mutation 必須序列化（contract review P1-2）
+
+目前的交易狀態只在**單一** `install` 流程內成立。兩個 `schedule
+install`／`remove` 同時跑時，彼此都可能拿到過期的 `SNAPSHOT_OLD`／
+`OLD_STOP_VERIFIED`／`NEW_ACTIVATION_ATTEMPTED`——第二個 process 可以直接把
+這套狀態機打穿。
+
+**凍結要求**：同一個 launchd `Label` 的 lifecycle mutation（install／remove）
+必須**序列化**。
+
+- 序列化的範圍是「同一個 Label」，不是整個產品。
+- 不得為它新建 daemon、broker 或第二套鎖服務；用作業系統既有的檔案鎖等
+  最薄的手段即可（實作卡再定具體機制）。
+- 拿不到序列權時要**明確失敗**（例如 `SCHEDULE_LIFECYCLE_BUSY`），
+  **不得**排隊等到逾時後半套執行，也不得靜默跳過。
+
+### 1.5 failure boundary：明寫不保證的部分（contract review P2）
+
+以下**不在**本卡與實作卡的保證範圍，屬於 recovery boundary：
+
+- **process 被 `SIGKILL`／當機**：交易階段狀態存活於呼叫之內，行程消失即
+  失去，無法自動續做或回滾。
+- **斷電／檔案系統層的非預期中斷**。
+- **外部程式直接改動 launchd 或我們的 plist**（包含使用者手動
+  `launchctl load/bootout`、編輯或刪除 plist）。
+
+這三項的復原手段是重跑 `schedule install`（它會依 §1.1／§1.2 的四象限
+重新分類當下實況並收斂），或 `schedule remove` 後重裝。
+
+**§2 驗收第 5 項的「任何失敗路徑」僅指本卡定義的、由 launchctl 回傳值與
+post-condition 組成的失敗路徑**，不含上列三項。此段存在的理由是：不寫清楚
+的話，這幾項未來會被當成缺口重新開單。
 
 ## 2. 驗收
 
@@ -87,12 +154,20 @@ rollback 必須依據**明確記錄的交易狀態**，至少包含：
    不一致的內容。不得出現 `disk=A / live=B` 而回報成功。
 4. rollback 的判斷**不得**來自 `loaded?` 的推測；測試必須能構造
    「新 job 已 live 但 bootstrap 回失敗」並證明 rollback 仍然正確。
-5. 不得留下孤兒 job：任何失敗路徑結束後，`Label` 要嘛對應到磁碟上的
-   plist，要嘛完全不存在。
-6. repair-01～04 的既有修法逐條對照新契約，**不符者一併改**；
+5. 不得留下孤兒 job：任何失敗路徑結束後（**範圍見 §1.5**），`Label` 要嘛
+   對應到磁碟上的 plist，要嘛完全不存在。
+6. **rollback 順序**（§1.3.2）：構造「新 job 已 live 但 bootstrap 回失敗，
+   且清理新 job 也失敗」，確認結果是 dirty failure、磁碟保留與 live job
+   對應的定義，**且不曾出現 `disk=old / live=new` 的中間狀態**。
+7. **序列化**（§1.4）：並行跑 `install`／`install`、`install`／`remove`，
+   確認第二個明確失敗（`SCHEDULE_LIFECYCLE_BUSY` 之類），且結束後磁碟與
+   live 一致；不得兩個都回成功。
+8. **階段序列**（§1.3.1）：實作不得在 rollback 路徑上用 `loaded?` 判斷
+   「現在活著的是舊的還是新的」——以靜態檢查或注入測試證明。
+9. repair-01～04 的既有修法逐條對照新契約，**不符者一併改**；
    符合者註明沿用。
-7. 每一項附鑑別力反證，且各情境測試互相隔離（獨立 `mktmpdir`），
-   反證不得連鎖。
+10. 每一項附鑑別力反證，且各情境測試互相隔離（獨立 `mktmpdir`），
+    反證不得連鎖。
 
 ### Acceptance #8 residual（沿用）
 
@@ -112,6 +187,9 @@ conformance 全程注入替身，沒有真 launchd 成功路徑的實證。**Sli
   已經證明會有第五次。契約不列全，下一個未處理的組合仍會以「新 P1」的形式
   回來。
 - **why_not_more**：只凍結 launchd 這一個子系統的狀態機；不順手重寫
-  installer 的 activation，也不把同型教訓推廣成通用框架。
+  installer 的 activation，也不把同型教訓推廣成通用框架。§1.3.1 的階段序列
+  是流程描述，**不得**據以新建 FSM engine、ledger 或 DB；§1.4 的序列化用
+  作業系統既有的最薄手段，不得新建 daemon 或 broker。
 - **do_not_absorb**：不吸收 Acceptance #8 的真機實證（需 Owner 明示）；
-  不吸收 delivery-path 驗收（upgrade／zip／quarantine）。
+  不吸收 delivery-path 驗收（upgrade／zip／quarantine）；不吸收 §1.5 列為
+  recovery boundary 的三項（crash／斷電／外部改動）。
