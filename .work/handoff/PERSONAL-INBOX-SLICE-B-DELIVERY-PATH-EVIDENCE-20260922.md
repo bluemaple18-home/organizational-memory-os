@@ -64,7 +64,7 @@ blocked_item: 驗收 8（真 launchd 實證，需 Owner 明示）
 
 | 子項 | 結果 |
 |---|---|
-| 對整包實際寫入 `com.apple.quarantine` | **做到**：11 個 `.bundle` 被標記 |
+| 對整包實際寫入 `com.apple.quarantine` | **做到**：10 個 `.bundle` 被標記 |
 | **重現 Gatekeeper 攔截** | **未做到**，見下 |
 | 解除指令後殘留數為 0 且安裝／doctor 正常 | **做到**：殘留 0、`INSTALLED`、0 FAIL |
 | 安裝說明警告不得按「丟到垃圾桶」 | **做到**：INSTALL.md 出現 2 次 |

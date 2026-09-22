@@ -3,10 +3,31 @@ id: PERSONAL-INBOX-SLICE-B-CLOSEOUT-EVIDENCE-20260922
 card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
 type: closeout-evidence
 status: READY_FOR_REVIEW
-range: bf33090..HEAD（28 commits）
+range: bf33090..602b679（29 commits：28 個交付 ＋ 1 個本收片證據包）
 ---
 
 # Slice B 收片證據包｜Weekly Review Queue ＋ Friday Trigger
+
+## 0. 被驗收的實物
+
+驗收 13／14 驗的是**外部 ZIP 實物**，不是 repo 內容。因此釘住 digest，
+避免日後重打 ZIP 之後沿用舊的 PASS：
+
+```text
+OMOS-Personal-Memory.zip
+SHA-256  a1568da4aad5a81579c8cc86dd208dd44b67f244bee05da957699f10c2912e1b
+```
+
+**ZIP 一旦重打，驗收 13／14 必須重跑。**
+
+### 已知的文件小瑕疵，**刻意留到下次重打包**
+
+交付包 `INSTALL.md` 第 2 節寫「裡面有 11 個資料庫用的原生模組」，實際是
+**10 個**。改這一行會讓 ZIP digest 變掉，依上面那條規則就得連 13／14 一起
+重跑——而驗收 14 每跑一次都會在執行者畫面連續彈出系統對話框。
+
+為了一個不影響功能的數字去換一輪彈窗不划算，因此**留到下次因產品變更重打包
+時一併修**（那時 13／14 本來就要重跑）。repo 內的證據與卡片已全部更正為 10。
 
 本包是 **closeout review** 用：B1／B2 的行為已於先前 targeted review 走過，
 這裡收斂全段結果與**只有真實環境測得出來的三項證據**。

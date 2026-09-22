@@ -7,9 +7,9 @@ slice_a_review_round_1: NO_GO（2026-09-21，P1×3：身分拼接＋格式未驗
 slice_a_review_round_2: NO_GO（2026-09-21，P1×2：owner ref 仍允許多段冒號／provenance conflict 在跨 process race 下可繞過；P2×1：tmp 目錄名只含 pid）→ repair-02 已修
 slice_b: READY_FOR_CLOSEOUT_REVIEW——驗收 7–16 全數 PASS；收片證據包
   .work/handoff/PERSONAL-INBOX-SLICE-B-CLOSEOUT-EVIDENCE-20260922.md
-slice_b_remaining: 驗收 8（真 launchd 實證，需 Owner 明示）；驗收 14 的「重現攔截」需真實傳輸的檔案
-slice_b_delivery_path: 驗收 12 PASS、13 PASS（Owner 裁定 2026-09-22）、14 PARTIAL_BLOCKED_EXTERNAL_PROVENANCE（Owner 裁定）；
-  證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-DELIVERY-PATH-EVIDENCE-20260922.md
+slice_b_delivery_path: 驗收 12／13／14 **全數 PASS**；
+  中途證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-DELIVERY-PATH-EVIDENCE-20260922.md
+  （其中驗收 14 的段落已被 .work/handoff/PERSONAL-INBOX-ACCEPTANCE-14-QUARANTINE-20260922.md 取代）
 slice_b_acceptance_14: **PASS**（2026-09-22 本機重現攔截；.work/handoff/PERSONAL-INBOX-ACCEPTANCE-14-QUARANTINE-20260922.md）
 slice_b_acceptance_8: **PASS**（2026-09-22 重跑，Owner 新授權；.work/handoff/PERSONAL-INBOX-ACCEPTANCE-8-RERUN-20260922.md）
 type: bounded-product-capability
@@ -318,17 +318,11 @@ pipeline 也沒有自動更新，同事拿到的是一個 zip，所以下一版�
     此項維持為**有紀錄的手動驗收**，不進 conformance：它會在執行測試者的
     畫面跳系統對話框，且其中一個按鈕是「丟到垃圾桶」。
 
-    ~~**Owner 裁定（2026-09-22）**：維持
-    `PARTIAL / BLOCKED_EXTERNAL_PROVENANCE`。~~（已由上述實證取代）**不要為了測試硬把 ZIP 外送。**
-    人工加 xattr 已證明「解除隔離後可以正常安裝」，但製造不出真正的
-    Gatekeeper provenance；**不得把條文降級假裝 PASS**。等下一次真的透過
-    Teams／瀏覽器交付新版 ZIP 時順便補完。
-
-    **2026-09-22 實測結果：部分達成。** 寫得上 xattr、解除後殘留 0、安裝與
-    doctor 正常、說明有警告——但**攔截本身在本機重現不了**：人工 `xattr -w`
-    上去的 quarantine 不會真的觸發 Gatekeeper，同事端的攔截來自真正經過
-    Teams 傳輸的檔案，provenance 不同。條文不改寫；要完成只能把 zip 真的
-    傳出去再傳回來，需 Owner 決定。
+    **已撤回的中途結論（保留備查）**：2026-09-22 稍早曾判定
+    `PARTIAL / BLOCKED_EXTERNAL_PROVENANCE`，理由是「人工 `xattr` 不會觸發
+    Gatekeeper、需真實傳輸的檔案」。**該判定已被同日稍晚的實證推翻並撤回**
+    ——當時是在同一目錄已成功 install 之後才補 xattr，量到的不是乾淨的首次
+    載入。現行結論見上方「2026-09-22 稍晚：PASS」。
 
     **Owner 裁定（2026-09-22）｜驗收 13：PASS。** 正確升級方式固定為
     「**先刪舊的 artifact 資料夾，再解壓新版 ZIP**」，避免舊檔殘留造成

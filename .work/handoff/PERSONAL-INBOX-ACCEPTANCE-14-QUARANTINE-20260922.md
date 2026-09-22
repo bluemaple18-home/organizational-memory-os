@@ -32,14 +32,14 @@ xattr 再跑 `doctor`，量到的不是乾淨的首次載入。**條件沒控好
 
 | 子項 | 結果 |
 |---|---|
-| 對解壓後整包實際寫入 `com.apple.quarantine` 並**重現攔截** | **PASS**：11 個 `.bundle` 被標記；`install` 被擋，回 `OMOS_NATIVE_REQUIRE_FAILED`，底層訊息為 `library load disallowed by system policy` |
+| 對解壓後整包實際寫入 `com.apple.quarantine` 並**重現攔截** | **PASS**：10 個 `.bundle` 被標記；`install` 被擋，回 `OMOS_NATIVE_REQUIRE_FAILED`，底層訊息為 `library load disallowed by system policy` |
 | 解除指令後殘留 **0**，且安裝與 `doctor` 正常 | **PASS**：殘留 0、`INSTALLED`、`18 OK / 2 WARN / 0 FAIL` |
 | 安裝說明明確警告**不得**按「丟到垃圾桶」 | **PASS**：`INSTALL.md` 出現 2 次 |
 
 ## 攔截次數的實況
 
 連跑四輪，執行者的畫面上**至少跳了 5 次**對話框。這與同事端 2026-09-21 首次
-交付時「連續攔截約 10 次」一致——artifact 內有 11 個未簽章的原生 `.bundle`，
+交付時「連續攔截約 10 次」一致——artifact 內有 多個未簽章的原生模組（本版 10 個 `.bundle`），
 Gatekeeper 每個各擋一次。
 
 ## 為什麼**不**放進 conformance
