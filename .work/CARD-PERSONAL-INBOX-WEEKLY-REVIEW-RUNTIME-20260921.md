@@ -9,7 +9,7 @@ slice_b: B1_B2_READY_FOR_REVIEW（d6fce24 B1、86a5103 B1 repair、22c8ab9 B2；
 slice_b_remaining: 驗收 8（真 launchd 實證，需 Owner 明示）；驗收 14 的「重現攔截」需真實傳輸的檔案
 slice_b_delivery_path: 驗收 12 PASS、13 PASS（Owner 裁定 2026-09-22）、14 PARTIAL_BLOCKED_EXTERNAL_PROVENANCE（Owner 裁定）；
   證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-DELIVERY-PATH-EVIDENCE-20260922.md
-slice_b_closeout_blockers: 驗收 14（PARTIAL，待下一次真實 ZIP 交付時順便補）
+slice_b_acceptance_14: **PASS**（2026-09-22 本機重現攔截；.work/handoff/PERSONAL-INBOX-ACCEPTANCE-14-QUARANTINE-20260922.md）
 slice_b_acceptance_8: **PASS**（2026-09-22 重跑，Owner 新授權；.work/handoff/PERSONAL-INBOX-ACCEPTANCE-8-RERUN-20260922.md）
 type: bounded-product-capability
 priority: MVP
@@ -308,8 +308,17 @@ pipeline 也沒有自動更新，同事拿到的是一個 zip，所以下一版�
     本卡**不**因此導入簽章／notarization（需 Apple Developer 帳號，屬配送
     形式決策，仍在範圍外）。這一項只要求「已知的攔截有被文件化且實測解得開」。
 
-    **Owner 裁定（2026-09-22）**：維持
-    `PARTIAL / BLOCKED_EXTERNAL_PROVENANCE`。**不要為了測試硬把 ZIP 外送。**
+    **2026-09-22 稍晚：PASS。** 先前判斷「人工 xattr 不會觸發 Gatekeeper」
+    **是錯的**——當時是在同一目錄已成功跑過 install 之後才補 xattr，量到的不是
+    乾淨的首次載入。重跑後穩定重現（4/4 被擋），三個子項全數達成，
+    **不需外送 ZIP**。見
+    `.work/handoff/PERSONAL-INBOX-ACCEPTANCE-14-QUARANTINE-20260922.md`。
+
+    此項維持為**有紀錄的手動驗收**，不進 conformance：它會在執行測試者的
+    畫面跳系統對話框，且其中一個按鈕是「丟到垃圾桶」。
+
+    ~~**Owner 裁定（2026-09-22）**：維持
+    `PARTIAL / BLOCKED_EXTERNAL_PROVENANCE`。~~（已由上述實證取代）**不要為了測試硬把 ZIP 外送。**
     人工加 xattr 已證明「解除隔離後可以正常安裝」，但製造不出真正的
     Gatekeeper provenance；**不得把條文降級假裝 PASS**。等下一次真的透過
     Teams／瀏覽器交付新版 ZIP 時順便補完。
