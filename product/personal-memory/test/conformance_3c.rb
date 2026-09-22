@@ -2779,6 +2779,92 @@ Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
             !OMOS::Schedule.lock_path(khome).include?("Library/LaunchAgents"))
   end
 
+  # ── §1.4 真併發：lock 之前不得讀任何 authoritative state ──────────────
+  #
+  # 上一輪 reviewer 的重播：install 在 lock **之前**讀到 existing=true 就停住，
+  # remove 取得 lock 正常移除 plist，install 再繼續時仍用那份過期快照 →
+  # Errno::ENOENT。有 flock 卻用 lock 前的快照，等於序列化只保護了寫入、
+  # 沒保護判斷依據。
+  Dir.mktmpdir("omos-3c-a-lifecycle-race") do |rdir|
+    rhome = File.join(rdir, "home")
+    Support::FakeHome.seed(rhome)
+    Open3.capture3({ "HOME" => rhome }, exe, "install", "--home", rhome,
+                   "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+    rpath = OMOS::Schedule.plist_path(rhome)
+
+    rlive = { on: false }
+    mutex = Mutex.new
+    rlc = lambda do |*args|
+      mutex.synchronize do
+        case args.first
+        when "bootstrap" then rlive[:on] = true; { ok: true, status: 0, out: "", err: "" }
+        when "bootout" then rlive[:on] = false; { ok: true, status: 0, out: "", err: "" }
+        when "print" then { ok: rlive[:on], status: rlive[:on] ? 0 : 113, out: "", err: "" }
+        else { ok: false, status: 1, out: "", err: "" }
+        end
+      end
+    end
+
+    OMOS::Schedule.install(home: rhome, anchor_hour: 16, launchctl: rlc)
+
+    # (a) install ↔ remove 真併發：不得出現 ENOENT 之類的過期快照錯誤
+    8.times do
+      gate = Queue.new
+      results = Queue.new
+      ts = [
+        Thread.new do
+          gate.pop
+          results << begin
+            [:install, OMOS::Schedule.install(home: rhome, anchor_hour: 15, launchctl: rlc)]
+          rescue StandardError => e
+            [:install, "#{e.class}: #{e.message[0, 40]}"]
+          end
+        end,
+        Thread.new do
+          gate.pop
+          results << begin
+            [:remove, OMOS::Schedule.remove(home: rhome, launchctl: rlc)]
+          rescue StandardError => e
+            [:remove, "#{e.class}: #{e.message[0, 40]}"]
+          end
+        end
+      ]
+      2.times { gate << :go }
+      ts.each(&:join)
+      outcomes = 2.times.map { results.pop }
+      stale = outcomes.select { |_, r| r.is_a?(String) && !r.include?("SCHEDULE_LIFECYCLE_BUSY") }
+      C.check("§1.4 install↔remove 真併發不得因過期快照炸出例外",
+              stale.inspect, stale.empty?)
+
+      # 收斂：把狀態重設成「有一份 16:00 且 live」再跑下一輪
+      begin
+        OMOS::Schedule.remove(home: rhome, launchctl: rlc)
+      rescue StandardError
+        nil
+      end
+      OMOS::Schedule.install(home: rhome, anchor_hour: 16, launchctl: rlc)
+    end
+
+    # (b) 併發後磁碟與 live 必須一致
+    final_disk = File.file?(rpath) ? OMOS::Schedule.installed_anchor_hour(rpath) : nil
+    C.check("§1.4 併發結束後磁碟與 live 一致",
+            "disk=#{final_disk.inspect} live=#{rlive[:on]}",
+            (final_disk.nil? && !rlive[:on]) || (!final_disk.nil? && rlive[:on]))
+
+    # (c) 結構性斷言：lock 之前不得讀任何 authoritative state。
+    #     這條用靜態檢查，因為修好之後那個競態**從外部已經構造不出來**了
+    #     ——構造不出來正是修法生效的證明，但也代表行為測試蓋不到它。
+    src_rb = File.read(File.join(OMOS::Contract::ARTIFACT_ROOT, "lib/omos/schedule.rb"))
+    %w[install remove].each do |m|
+      body = src_rb[/def #{m}\(home:.*?\n    end/m].to_s
+      code = body.lines.reject { |l| l.strip.start_with?("#") }.join
+      before_lock = code.split("with_lifecycle_lock").first.to_s
+      leaked = before_lock.scan(/File\.file\?|File\.binread|File\.exist\?|own\?|loaded\?|plist_label/)
+      C.check("§1.4 #{m} 在取得 lock 之前不得讀 authoritative state",
+              leaked.inspect, leaked.empty?)
+    end
+  end
+
   # ── §1.3 rollback 不得用 loaded? 猜「現在活著的是誰」 ──────────────────
   src = File.read(File.join(OMOS::Contract::ARTIFACT_ROOT, "lib/omos/schedule.rb"))
   restore_body = src[/def restore_old.*?\n    end/m].to_s

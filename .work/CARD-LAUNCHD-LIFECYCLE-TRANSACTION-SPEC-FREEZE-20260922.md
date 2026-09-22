@@ -153,6 +153,23 @@ live = old 16:00
 - `SNAPSHOT_OLD` 仍在最前面：要停舊 job 之前就得先把舊 plist 位元組留下來，
   否則 rollback 無從還原。
 
+#### 1.3.4 derived rule：restore 自己的 partial 視為還原成功
+
+實作時發現契約未涵蓋的一格，reviewer 於 implementation review 裁定接受，
+補記於此以免日後重開：
+
+> `RESTORE_OLD_IF_NEEDED` 階段自己的 `bootstrap` 若是 **partial**
+> （exit 非 0 但 job 已載入），**視為還原成功**。
+
+前提有三，缺一不可：
+
+1. 新 job 已確認清掉（`CLEANUP_NEW_IF_NEEDED` 走完）；
+2. 舊 plist 位元組已寫回磁碟；
+3. 同一 `Label` 的 mutation 已序列化（§1.4）。
+
+三者成立時，此刻 live 的只可能是舊設定——這是**由階段序列推得的事實**，
+不是用 `loaded?` 猜。判成失敗反而會讓使用者以為舊排程沒回來。
+
 ### 1.4 lifecycle mutation 必須序列化（contract review P1-2）
 
 目前的交易狀態只在**單一** `install` 流程內成立。兩個 `schedule
@@ -161,7 +178,12 @@ install`／`remove` 同時跑時，彼此都可能拿到過期的 `SNAPSHOT_OLD`
 這套狀態機打穿。
 
 **凍結要求**：同一個 launchd `Label` 的 lifecycle mutation（install／remove）
-必須**序列化**。
+必須**序列化**，且**整段交易的判斷依據都必須在序列權之內取得**。
+
+在序列權之外讀 existence／ownership／old bytes／loaded 狀態，等於序列化只
+保護了寫入、沒保護判斷依據——實測競態：install 在取得鎖前讀到
+`existing=true` 就停住，remove 取得鎖正常移除 plist，install 再繼續時仍用
+那份過期快照，`binread` 炸出 `Errno::ENOENT`。
 
 - 序列化的範圍是「同一個 Label」，不是整個產品。
 - 不得為它新建 daemon、broker 或第二套鎖服務；用作業系統既有的檔案鎖等

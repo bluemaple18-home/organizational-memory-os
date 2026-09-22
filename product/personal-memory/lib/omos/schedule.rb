@@ -115,22 +115,37 @@ module OMOS
       end
 
       path = plist_path(home)
-      # ownership 先驗：我們路徑上若躺著別人的 plist，無論本地安裝是否完整都
-      # 不能覆寫它。排在 launcher 檢查之後的話，未安裝完的環境會先收到
-      # LAUNCHER_MISSING，掩蓋掉「那裡有別人的東西」這個更該先講的事實。
-      existing = File.file?(path)
-      if existing && !own?(path, plutil: plutil)
-        raise Failed.new("SCHEDULE_FOREIGN_PLIST_AT_OUR_PATH", path)
-      end
-
-      launcher = launcher_path(home)
-      raise Failed.new("SCHEDULE_LAUNCHER_MISSING", launcher) unless File.exist?(launcher)
 
       with_lifecycle_lock(home) do
         FileUtils.mkdir_p(agents_dir(home))
 
+        # **所有 authoritative state 都在 lock 之內讀取。**
+        #
+        # review P1：原本 existence／ownership／launcher 都在取得 lock 之前就
+        # 讀了，進 lock 後再拿那份 `existing` 去決定要不要 binread。實測競態：
+        #
+        #   install：讀到 existing=true，停在 lock 前
+        #   remove ：取得 lock → 正常移除 plist
+        #   install：繼續 → 取得 lock → 仍用舊的 existing=true → binread 炸出
+        #            Errno::ENOENT
+        #
+        # 有 flock 卻用 lock 前的快照，等於序列化只保護了寫入、沒保護判斷依據。
+        # 契約 §1.4 要的是**整段 lifecycle mutation** 序列化，所以判斷依據必須
+        # 在 lock 內重新取得。
+        #
+        # ownership 仍排在 launcher 之前：我們路徑上躺著別人的 plist，比
+        # 「本地安裝不完整」更該先講。
+        existing = File.file?(path)
+        if existing && !own?(path, plutil: plutil)
+          raise Failed.new("SCHEDULE_FOREIGN_PLIST_AT_OUR_PATH", path)
+        end
+
+        launcher = launcher_path(home)
+        raise Failed.new("SCHEDULE_LAUNCHER_MISSING", launcher) unless File.exist?(launcher)
+
         # ── SNAPSHOT_OLD ────────────────────────────────────────────────
         # 必須在停舊 job **之前**：停掉之後才想留位元組就來不及了。
+        # 也必須在 lock 之內：lock 外讀到的 bytes 可能已被別人換掉。
         old = { bytes: existing ? File.binread(path) : nil,
                 loaded: loaded?(launchctl: launchctl) }
 
@@ -183,16 +198,19 @@ module OMOS
     # 只移除本產品自己的 job：先確認 plist 內部 Label，再 bootout ＋ 刪檔。
     def remove(home:, launchctl: method(:launchctl), plutil: method(:plutil_json))
       path = plist_path(home)
-      return { label: LABEL, removed: false, reason: "NOT_INSTALLED" } unless File.file?(path)
-      unless own?(path, plutil: plutil)
-        return { label: LABEL, removed: false, reason: "NOT_OURS",
-                 found_label: plist_label(path, plutil: plutil) }
-      end
 
-      # repair-02：原本忽略 bootout 成敗就刪 plist——bootout 失敗時 job 仍然
-      # loaded，而管理它的檔案已經不見了，留下一個誰都管不到的孤兒 job。
-      # 卸載一個還在跑的東西，必須先真的把它停掉。
+      # 卸載一個還在跑的東西，必須先真的把它停掉：忽略 bootout 成敗就刪 plist
+      # 會留下一個誰都管不到的孤兒 job。
       with_lifecycle_lock(home) do
+        # 與 install 同一個理由（review P1）：existence 與 ownership 都是這筆
+        # 交易的判斷依據，必須在 lock 之內讀，否則兩個 process 會各自依據
+        # 不同時刻的磁碟狀態動作。
+        next { label: LABEL, removed: false, reason: "NOT_INSTALLED" } unless File.file?(path)
+        unless own?(path, plutil: plutil)
+          next { label: LABEL, removed: false, reason: "NOT_OURS",
+                 found_label: plist_label(path, plutil: plutil) }
+        end
+
         if loaded?(launchctl: launchctl)
           out = bootout_and_verify(launchctl)
           unless out[:ok]

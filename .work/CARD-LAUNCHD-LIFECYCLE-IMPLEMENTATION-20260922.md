@@ -1,6 +1,7 @@
 ---
 id: LAUNCHD-LIFECYCLE-IMPLEMENTATION-20260922
-status: READY_FOR_REVIEW
+status: REPAIR_01_READY_FOR_REVIEW
+review_round_1: NO_GO（2026-09-22，P1×1：lock 邊界太晚，交易判斷依據仍可能是 lock 前的過期快照）→ repair-01 已修；restore_old 的 partial 裁決獲接受並補入契約 §1.3.4
 type: implementation
 severity: P1
 contract: CARD-LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922（OWNER_SIGNED 2026-09-22）
@@ -86,6 +87,37 @@ authority: organizational-memory-os
 產品程式**淨增 0 行**（74 加入、74 刪除）——本卡是重寫既有生命週期，不是加
 功能。註解多於程式是刻意的：四象限與兩個方向的順序都必須在程式旁說清楚
 為什麼，否則下一個人又會「順手」把它改回去。
+
+## 3.2 repair-01（2026-09-22）：lock 邊界
+
+reviewer 的 P1：`install`／`remove` 在取得 lifecycle lock **之前**就讀了
+existence／ownership，進 lock 後又拿那份過期的 `existing` 去決定是否
+`binread`。實測競態：
+
+```text
+install：讀到 existing=true，停在 lock 前
+remove ：取得 lock → 正常移除 plist
+install：繼續 → 取得 lock → 仍用舊的 existing=true → Errno::ENOENT
+```
+
+有 `flock` 卻用 lock 前的快照，等於序列化只保護了寫入、**沒保護判斷依據**。
+
+修法：`install` 與 `remove` 的 existence／ownership／launcher／old bytes／
+loaded 狀態**全部移進 `with_lifecycle_lock`**，在鎖內重新取得。
+契約 §1.4 一併補上這句要求。
+
+### 測試的分工（交付方揭露）
+
+- **行為測試**：8 輪真 barrier 的 `install ↔ remove` 併發，斷言不得因過期
+  快照炸出例外，且結束後磁碟與 live 一致。
+- **結構檢查**：掃 `install`／`remove` 在 `with_lifecycle_lock` 之前是否出現
+  `File.file?`／`binread`／`own?`／`loaded?`／`plist_label`。
+
+**兩筆反證只有結構檢查抓到，行為測試沒抓到。** 原因是修好之後那個競態
+**從外部已經構造不出來**——reviewer 上一輪是靠「讓第一個 install 停在 lock
+前」構造的，那需要一個注入點。交付方選擇不為此開注入接縫，改用結構檢查
+鎖住順序性質。**此取捨請 reviewer 裁定**：若認為需要行為層的確定性重現，
+請指定注入點的形狀。
 
 ## 4. 不做
 
