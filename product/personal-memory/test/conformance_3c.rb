@@ -2564,4 +2564,234 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
   C.group = nil
 end
 
+# --- Launchd lifecycle：依已簽署契約重做（CARD-LAUNCHD-LIFECYCLE-IMPLEMENTATION-20260922）---
+#
+# 契約凍結了 bootstrap／bootout 的四象限、階段序列、兩個方向的發布順序，
+# 以及 lifecycle mutation 的序列化。這一組逐條驗。
+#
+# launchctl 一律注入替身；替身同時追蹤「現在 live 的是哪一份設定」，
+# 因為 split-brain 的定義是**中間曾經存在過** disk 與 live 不一致，
+# 只看最終結果驗不出來。
+Dir.mktmpdir("omos-3c-a-lifecycle") do |dir|
+  C.group = "A"
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
+  Open3.capture3({ "HOME" => home }, exe, "install", "--home", home,
+                 "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+  path = OMOS::Schedule.plist_path(home)
+
+  # 追蹤 live 設定的替身：bootstrap 會把「當下磁碟上的 anchor」變成 live。
+  disk_hour = -> { File.file?(path) ? OMOS::Schedule.installed_anchor_hour(path) : nil }
+  make = lambda do |behaviour: {}|
+    live = { hour: nil }
+    trace = []
+    lc = lambda do |*args|
+      case args.first
+      when "bootstrap"
+        want = behaviour[:bootstrap]
+        activates = want.nil? || want != :fail_clean
+        live[:hour] = disk_hour.call if activates
+        ok = want.nil?
+        trace << [:bootstrap, disk_hour.call, live[:hour]]
+        { ok: ok, status: ok ? 0 : 5, out: "", err: ok ? "" : "Bootstrap failed: 5" }
+      when "bootout"
+        want = behaviour[:bootout]
+        stops = want != :stuck
+        live[:hour] = nil if stops
+        ok = want != :exit_nonzero
+        trace << [:bootout, disk_hour.call, live[:hour]]
+        { ok: ok, status: ok ? 0 : 5, out: "", err: ok ? "" : "Boot-out failed" }
+      when "print" then { ok: !live[:hour].nil?, status: live[:hour] ? 0 : 113, out: "", err: "" }
+      else { ok: false, status: 1, out: "", err: "" }
+      end
+    end
+    [lc, live, trace]
+  end
+
+  # ── §1.3.3 正向 upgrade：全路徑不得出現 disk=new / live=old ────────────
+  lc, live, trace = make.call
+  OMOS::Schedule.install(home: home, anchor_hour: 16, launchctl: lc)
+  base_trace_len = trace.size
+  OMOS::Schedule.install(home: home, anchor_hour: 15, launchctl: lc)
+  upgrade_trace = trace[base_trace_len..]
+  split = upgrade_trace.select { |_, disk, livehour| disk == 15 && livehour == 16 }
+  C.check("§1.3.3 upgrade 全路徑不得出現 disk=new／live=old",
+          upgrade_trace.map { |a, d, l| "#{a}:#{d}/#{l}" }.inspect,
+          split.empty?)
+  C.check("§1.3.3 upgrade 必須先停舊 job 才發布新 plist",
+          upgrade_trace.first.inspect,
+          upgrade_trace.first[0] == :bootout && upgrade_trace.first[1] == 16)
+  C.check("§1.3.3 upgrade 最終 disk 與 live 一致", "#{disk_hour.call}/#{live[:hour]}",
+          disk_hour.call == 15 && live[:hour] == 15)
+
+  # 舊 job 停不掉 → 不得發布新 plist，磁碟維持舊版
+  lc2, live2, = make.call(behaviour: { bootout: :stuck })
+  OMOS::Schedule.install(home: home, anchor_hour: 16, launchctl: lc2)
+  code = begin
+    OMOS::Schedule.install(home: home, anchor_hour: 15, launchctl: lc2)
+    nil
+  rescue OMOS::Schedule::Failed => e
+    e.code
+  end
+  C.check("§1.3.3 舊 job 停不掉 → 不得發布新 plist，磁碟維持舊版",
+          "#{code}／disk=#{disk_hour.call}／live=#{live2[:hour]}",
+          code == "SCHEDULE_LAUNCHCTL_BOOTOUT_FAILED" &&
+          disk_hour.call == 16 && live2[:hour] == 16)
+
+  # ── §1.1 第四象限：partial activation ────────────────────────────────
+  Dir.mktmpdir("omos-3c-a-lifecycle-partial") do |pdir|
+    phome = File.join(pdir, "home")
+    Support::FakeHome.seed(phome)
+    Open3.capture3({ "HOME" => phome }, exe, "install", "--home", phome,
+                   "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+    ppath = OMOS::Schedule.plist_path(phome)
+    pdisk = -> { File.file?(ppath) ? OMOS::Schedule.installed_anchor_hour(ppath) : nil }
+
+    plive = { hour: nil }
+    # cleanup_stuck 只能卡住**清理新 job 的那一次 bootout**，不能連
+    # OLD_STOP_VERIFIED 的那次也卡住——否則測到的是「舊 job 停不掉」，
+    # 根本走不到 CLEANUP_NEW_IF_NEEDED。這是 fixture 必須精確表達情境的地方。
+    pmode = { cleanup_stuck: false, partial: false, boots: 0 }
+    plc = lambda do |*args|
+      case args.first
+      when "bootstrap"
+        plive[:hour] = pdisk.call                      # job 活起來了
+        pmode[:partial] ? { ok: false, status: 5, out: "", err: "Bootstrap failed: 5" }
+                        : { ok: true, status: 0, out: "", err: "" }
+      when "bootout"
+        pmode[:boots] += 1
+        stuck = pmode[:cleanup_stuck] && pmode[:boots] > 1   # 第 1 次是 OLD_STOP
+        plive[:hour] = nil unless stuck
+        { ok: true, status: 0, out: "", err: "" }
+      when "print" then { ok: !plive[:hour].nil?, status: plive[:hour] ? 0 : 113, out: "", err: "" }
+      else { ok: false, status: 1, out: "", err: "" }
+      end
+    end
+
+    # (a) 首次安裝 partial activation：清得掉 → 乾淨失敗、不留 plist、不留 job
+    pmode[:partial] = true
+    acode = begin
+      OMOS::Schedule.install(home: phome, launchctl: plc)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("§1.1 首次安裝 partial activation → 清掉新 job、不留假安裝",
+            "#{acode}／plist=#{File.exist?(ppath)}／live=#{plive[:hour].inspect}",
+            acode == "SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED" &&
+            !File.exist?(ppath) && plive[:hour].nil?)
+
+    # (b) 升級 partial activation：清得掉 → 還原舊版並恢復 live
+    pmode[:partial] = false
+    OMOS::Schedule.install(home: phome, anchor_hour: 16, launchctl: plc)
+    pmode[:partial] = true
+    bcode = begin
+      OMOS::Schedule.install(home: phome, anchor_hour: 15, launchctl: plc)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("§1.1 升級 partial activation → 清掉新 job 後還原舊版",
+            "#{bcode}／disk=#{pdisk.call}／live=#{plive[:hour]}",
+            bcode == "SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED" &&
+            pdisk.call == 16 && plive[:hour] == 16)
+
+    # (c) partial activation 清不掉 → dirty failure，磁碟保留**新版**與 live 一致
+    pmode[:cleanup_stuck] = true
+    pmode[:boots] = 0
+    ccode = begin
+      OMOS::Schedule.install(home: phome, anchor_hour: 15, launchctl: plc)
+      nil
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("§1.3.2 partial activation 清不掉 → dirty failure，磁碟保留新版",
+            "#{ccode}／disk=#{pdisk.call}／live=#{plive[:hour]}",
+            ccode == "SCHEDULE_PARTIAL_ACTIVATION_NOT_CLEANED" &&
+            pdisk.call == 15 && plive[:hour] == 15)
+    C.check("§1.3.2 dirty failure 下磁碟與 live 仍一致（不得 disk=old／live=new）",
+            "#{pdisk.call}/#{plive[:hour]}", pdisk.call == plive[:hour])
+  end
+
+  # ── §1.2 第四象限：bootout exit 非 0 但其實已停 → 視為成功 ─────────────
+  Dir.mktmpdir("omos-3c-a-lifecycle-bootout4") do |bdir|
+    bhome = File.join(bdir, "home")
+    Support::FakeHome.seed(bhome)
+    Open3.capture3({ "HOME" => bhome }, exe, "install", "--home", bhome,
+                   "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+    blive = { on: false }
+    blc = lambda do |*args|
+      case args.first
+      when "bootstrap" then blive[:on] = true; { ok: true, status: 0, out: "", err: "" }
+      # bootout 一律回非零，但確實把 job 停掉了——例如它本來就沒載入
+      when "bootout" then blive[:on] = false; { ok: false, status: 3, out: "", err: "not loaded" }
+      when "print" then { ok: blive[:on], status: blive[:on] ? 0 : 113, out: "", err: "" }
+      else { ok: false, status: 1, out: "", err: "" }
+      end
+    end
+    OMOS::Schedule.install(home: bhome, anchor_hour: 16, launchctl: blc)
+    up = begin
+      OMOS::Schedule.install(home: bhome, anchor_hour: 15, launchctl: blc)
+    rescue OMOS::Schedule::Failed => e
+      e.code
+    end
+    C.check("§1.2 bootout exit 非 0 但其實已停 → 視為成功，升級照樣完成",
+            up.is_a?(Hash) ? "anchor=#{up[:anchor_hour]}" : up.to_s,
+            up.is_a?(Hash) && up[:anchor_hour] == 15 && up[:loaded] == true)
+  end
+
+  # ── §1.4 序列化 ───────────────────────────────────────────────────────
+  Dir.mktmpdir("omos-3c-a-lifecycle-lock") do |kdir|
+    khome = File.join(kdir, "home")
+    Support::FakeHome.seed(khome)
+    Open3.capture3({ "HOME" => khome }, exe, "install", "--home", khome,
+                   "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+    klive = { on: false }
+    inner = { code: :not_run }
+    klc = lambda do |*args|
+      case args.first
+      when "bootstrap"
+        # 在交易**進行中**再叫一次 install，模擬第二個 process
+        if inner[:code] == :not_run
+          inner[:code] = begin
+            OMOS::Schedule.install(home: khome, anchor_hour: 17, launchctl: ->(*_) { { ok: true, status: 0, out: "", err: "" } })
+            :succeeded
+          rescue OMOS::Schedule::Failed => e
+            e.code
+          end
+        end
+        klive[:on] = true
+        { ok: true, status: 0, out: "", err: "" }
+      when "bootout" then klive[:on] = false; { ok: true, status: 0, out: "", err: "" }
+      when "print" then { ok: klive[:on], status: klive[:on] ? 0 : 113, out: "", err: "" }
+      else { ok: false, status: 1, out: "", err: "" }
+      end
+    end
+    OMOS::Schedule.install(home: khome, anchor_hour: 16, launchctl: klc)
+    C.check("§1.4 交易進行中的第二個 install 必須明確失敗（不得兩個都成功）",
+            inner[:code].to_s, inner[:code] == "SCHEDULE_LIFECYCLE_BUSY")
+    C.check("§1.4 被拒的第二個 install 不得改動磁碟",
+            OMOS::Schedule.installed_anchor_hour(OMOS::Schedule.plist_path(khome)).to_s,
+            OMOS::Schedule.installed_anchor_hour(OMOS::Schedule.plist_path(khome)) == 16)
+    C.check("§1.4 lock 檔不得放進 ~/Library/LaunchAgents",
+            OMOS::Schedule.lock_path(khome).sub(khome, "~"),
+            !OMOS::Schedule.lock_path(khome).include?("Library/LaunchAgents"))
+  end
+
+  # ── §1.3 rollback 不得用 loaded? 猜「現在活著的是誰」 ──────────────────
+  src = File.read(File.join(OMOS::Contract::ARTIFACT_ROOT, "lib/omos/schedule.rb"))
+  restore_body = src[/def restore_old.*?\n    end/m].to_s
+  # 斷言的對象是**程式碼**，不是註解——註解裡提到 loaded? 正是在說明為什麼
+  # 不用它。濾掉整行註解再檢查。
+  restore_code = restore_body.lines.reject { |l| l.strip.start_with?("#") }.join
+  C.check("§1.3 restore 路徑不得呼叫 loaded?（不得猜活著的是舊還是新）",
+          restore_code.lines.grep(/loaded\?/).inspect,
+          !restore_code.include?("loaded?"))
+  C.check("§1.3 restore_previous 已不存在（改為只依 SNAPSHOT_OLD 動作）", "",
+          !src.include?("def restore_previous"))
+
+  C.group = nil
+end
+
 C.report!

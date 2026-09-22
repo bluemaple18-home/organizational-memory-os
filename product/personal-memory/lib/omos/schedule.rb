@@ -90,16 +90,34 @@ module OMOS
 
     # ---- 生命週期 ------------------------------------------------------
 
+    # 依已簽署契約（CARD-LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922）
+    # 實作的階段序列：
+    #
+    #   SNAPSHOT_OLD → OLD_STOP_VERIFIED → PUBLISH_NEW_PLIST
+    #     → NEW_ACTIVATION_ATTEMPTED → NEW_POSTCONDITION_CLASSIFIED
+    #     → CLEANUP_NEW_IF_NEEDED → RESTORE_OLD_IF_NEEDED → FINAL_VERIFIED
+    #
+    # 這是**流程階段**，不是資料結構：沒有 FSM engine、沒有 ledger、沒有 DB，
+    # 狀態只活在這一次呼叫的區域變數裡。
+    #
+    # 兩個順序被契約凍死，不得改：
+    #
+    #   §1.3.3 OLD_STOP_VERIFIED **之前磁碟必須維持舊版**。先寫 plist 再停舊
+    #          job（repair-01 起沿用至今的順序）會留下 disk=new／live=old。
+    #   §1.3.2 rollback 時新 job 若仍 live，**第一步一定是清掉它**；清掉前不得
+    #          換回舊 plist、不得 restore old，否則變成 disk=old／live=new。
+    #
+    # 兩者是同一個 split-brain 的兩個方向。
     def install(home:, anchor_hour: ReviewQueue::DEFAULT_ANCHOR_HOUR,
                 launchctl: method(:launchctl), plutil: method(:plutil_json))
       unless (0..23).cover?(anchor_hour.to_i)
         raise Failed.new("SCHEDULE_ANCHOR_HOUR_INVALID", anchor_hour.inspect)
       end
 
-      # ownership 先驗：我們路徑上若躺著別人的 plist，無論本地安裝是否完整都
-      # 不能覆寫它。把這條排在 launcher 檢查之後的話，一個還沒安裝完的環境會
-      # 先收到 LAUNCHER_MISSING，掩蓋掉「那裡有別人的東西」這個更該先講的事實。
       path = plist_path(home)
+      # ownership 先驗：我們路徑上若躺著別人的 plist，無論本地安裝是否完整都
+      # 不能覆寫它。排在 launcher 檢查之後的話，未安裝完的環境會先收到
+      # LAUNCHER_MISSING，掩蓋掉「那裡有別人的東西」這個更該先講的事實。
       existing = File.file?(path)
       if existing && !own?(path, plutil: plutil)
         raise Failed.new("SCHEDULE_FOREIGN_PLIST_AT_OUR_PATH", path)
@@ -108,41 +126,58 @@ module OMOS
       launcher = launcher_path(home)
       raise Failed.new("SCHEDULE_LAUNCHER_MISSING", launcher) unless File.exist?(launcher)
 
-      # install 是一筆交易（repair-02）。
-      #
-      # 原本先覆寫 plist、再 bootout、最後 bootstrap，bootstrap 失敗時什麼都
-      # 不還原——於是一次失敗的升級會把**原本正常運作的排程**打壞：新 plist
-      # 留著、舊 job 已被 bootout、anchor 變成新版的。使用者下週五不會收到
-      # 提醒，而現場看起來「檔案都在」。
-      #
-      # 所以先把舊狀態完整存下來（plist 位元組 ＋ 是否真的載入），失敗就整組
-      # 還原：plist 位元組相同地寫回，原本有載入的就重新 bootstrap 回去。
-      FileUtils.mkdir_p(agents_dir(home))
-      previous_bytes = existing ? File.binread(path) : nil
-      previous_loaded = loaded?(launchctl: launchctl)
+      with_lifecycle_lock(home) do
+        FileUtils.mkdir_p(agents_dir(home))
 
-      write_atomic(path, plist(home, anchor_hour.to_i))
-      begin
-        # 重裝要先 bootout 再 bootstrap，否則 launchd 會拒收同一個 Label。
-        # 這裡的 bootout 失敗不是錯誤——本來就可能沒載入過。
-        if previous_loaded
+        # ── SNAPSHOT_OLD ────────────────────────────────────────────────
+        # 必須在停舊 job **之前**：停掉之後才想留位元組就來不及了。
+        old = { bytes: existing ? File.binread(path) : nil,
+                loaded: loaded?(launchctl: launchctl) }
+
+        # ── OLD_STOP_VERIFIED ───────────────────────────────────────────
+        # 舊 job 停不掉就**不得**發布新 plist：磁碟維持舊版、與 live 的舊 job
+        # 一致，這是乾淨的失敗。
+        if old[:loaded]
           out = bootout_and_verify(launchctl)
           raise Failed.new("SCHEDULE_LAUNCHCTL_BOOTOUT_FAILED", out[:detail]) unless out[:ok]
         end
+
+        # ── PUBLISH_NEW_PLIST ───────────────────────────────────────────
+        write_atomic(path, plist(home, anchor_hour.to_i))
+
+        # ── NEW_ACTIVATION_ATTEMPTED ／ NEW_POSTCONDITION_CLASSIFIED ────
         verdict = bootstrap_and_verify(path, launchctl)
-        raise Failed.new("SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED", verdict[:detail]) unless verdict[:ok]
-      rescue StandardError => e
-        restored = restore_previous(path, previous_bytes, previous_loaded, launchctl)
-        raise e if restored
+        if verdict[:ok]
+          # ── FINAL_VERIFIED ──
+          next { label: LABEL, plist: path, replaced: existing,
+                 anchor_hour: anchor_hour.to_i, loaded: true }
+        end
 
-        # 還原也失敗：**不得**假裝升級只是沒成功。這種狀態必須自己講出來，
-        # 否則使用者會以為舊排程還在。
-        raise Failed.new("SCHEDULE_INSTALL_FAILED_AND_NOT_RESTORED",
-                         "#{e.message}；舊 plist／loaded 狀態未能完整還原，請手動檢查 #{path}")
+        # ── CLEANUP_NEW_IF_NEEDED ───────────────────────────────────────
+        # partial activation（§1.1 第四象限）：bootstrap 回非零但 job 其實已
+        # 活起來。**必須先清掉新 job**，而且在清掉之前磁碟不准動——否則就是
+        # disk=old／live=new。
+        if verdict[:partial] || loaded?(launchctl: launchctl)
+          cleanup = bootout_and_verify(launchctl)
+          unless cleanup[:ok]
+            # 清不掉 → dirty failure。磁碟**保留新版**，與仍在跑的新 job 對應。
+            # 寧可停在「升級沒完成但一致」，也不製造 split-brain。
+            raise Failed.new("SCHEDULE_PARTIAL_ACTIVATION_NOT_CLEANED",
+                             "#{verdict[:detail]}；新 job 仍在載入中且清除失敗" \
+                             "（#{cleanup[:detail]}）。磁碟保留新版以與 live job 一致，" \
+                             "請手動處理 #{domain}/#{LABEL}")
+          end
+        end
+
+        # ── RESTORE_OLD_IF_NEEDED ───────────────────────────────────────
+        unless restore_old(path, old, launchctl)
+          raise Failed.new("SCHEDULE_INSTALL_FAILED_AND_NOT_RESTORED",
+                           "#{verdict[:detail]}；舊 plist／loaded 狀態未能完整還原，" \
+                           "請手動檢查 #{path}")
+        end
+
+        raise Failed.new("SCHEDULE_LAUNCHCTL_BOOTSTRAP_FAILED", verdict[:detail])
       end
-
-      { label: LABEL, plist: path, replaced: existing, anchor_hour: anchor_hour.to_i,
-        loaded: loaded?(launchctl: launchctl) }
     end
 
     # 只移除本產品自己的 job：先確認 plist 內部 Label，再 bootout ＋ 刪檔。
@@ -157,81 +192,134 @@ module OMOS
       # repair-02：原本忽略 bootout 成敗就刪 plist——bootout 失敗時 job 仍然
       # loaded，而管理它的檔案已經不見了，留下一個誰都管不到的孤兒 job。
       # 卸載一個還在跑的東西，必須先真的把它停掉。
-      if loaded?(launchctl: launchctl)
-        out = bootout_and_verify(launchctl)
-        raise Failed.new("SCHEDULE_BOOTOUT_FAILED", "#{out[:detail]}；plist 保留於 #{path}") unless out[:ok]
-      end
+      with_lifecycle_lock(home) do
+        if loaded?(launchctl: launchctl)
+          out = bootout_and_verify(launchctl)
+          unless out[:ok]
+            raise Failed.new("SCHEDULE_BOOTOUT_FAILED", "#{out[:detail]}；plist 保留於 #{path}")
+          end
+        end
 
-      FileUtils.rm_f(path)
-      { label: LABEL, removed: true, loaded: loaded?(launchctl: launchctl) }
+        FileUtils.rm_f(path)
+        { label: LABEL, removed: true, loaded: false }
+      end
     end
 
-    # 把 plist 與載入狀態一起還原。任何一步失敗就回 false，讓呼叫端據實回報
-    # ——「還原失敗」與「升級失敗」是兩種不同的現場，不能混為一談。
-    def restore_previous(path, previous_bytes, previous_loaded, launchctl)
-      if previous_bytes.nil?
+    # 還原舊狀態。呼叫此函式的前提（由 install 的階段序列保證）是：
+    # **新 job 已經確認不在跑了**——CLEANUP_NEW_IF_NEEDED 已經走完。
+    #
+    # 契約 §1.3 明文禁止用 `loaded?` 判斷「現在活著的是舊的還是新的」：它只
+    # 回答「這個 Label 有沒有東西在跑」，在 partial activation 下會把新 job
+    # 誤認成舊 job。repair-04 就是踩在這裡。所以這裡**完全不問**現在活著的是
+    # 誰，只依 SNAPSHOT_OLD 記下來的事實動作。
+    def restore_old(path, old, launchctl)
+      if old[:bytes].nil?
         FileUtils.rm_f(path)
       else
-        write_atomic(path, previous_bytes)
+        write_atomic(path, old[:bytes])
       end
 
-      return true unless previous_loaded
-      # 舊 job 從來沒被成功停掉（bootout 失敗的那條路）→ 現在 live 的就是舊的，
-      # plist 也已寫回舊版，狀態已經一致，不要再多動一次。
-      # 原本這裡盲目 bootout 再 bootstrap，等於把一個好好的舊 job 停掉再賭一次。
-      return true if loaded?(launchctl: launchctl)
+      return true unless old[:loaded]
 
-      bootstrap_and_verify(path, launchctl)[:ok]
+      # 這裡接受 partial：磁碟上**已經**是舊版位元組（上面剛寫回），所以此刻
+      # 若 job 是 live 的，它只可能是舊設定——這是由階段序列推得的事實，
+      # 不是用 `loaded?` 去猜「活著的是舊的還是新的」。
+      #
+      # 契約 §1.1 的 partial 處理（先清掉再恢復）針對的是**新** activation；
+      # 還原自己的 bootstrap 若 exit 非 0 但 job 已起來，最終狀態正是我們要的
+      # disk=old／live=old，判成失敗反而會讓使用者以為舊排程沒回來。
+      verdict = bootstrap_and_verify(path, launchctl)
+      verdict[:ok] || verdict[:partial] == true
     rescue StandardError
       false
     end
 
+    # 同一個 launchd Label 的 lifecycle mutation 必須序列化（契約 §1.4）。
+    #
+    # 交易狀態只活在單次呼叫內，兩個 process 同時跑 install／remove 時，彼此
+    # 都可能拿到過期的 SNAPSHOT_OLD——第二個 process 可以直接把這套狀態機打穿。
+    # 用作業系統既有的 flock 就夠，**不新建 daemon 或 broker**。
+    #
+    # 拿不到序列權一律當場失敗：排隊等到逾時再半套執行，比直接失敗更難查。
+    def with_lifecycle_lock(home)
+      # 鎖放在**我們自己的**狀態目錄，不放 ~/Library/LaunchAgents——那個目錄
+      # 屬於 launchd，往裡面丟一個 dotfile 鎖既髒又會被我們自己的
+      # 「只認自己那一支 plist」邏輯數進去。
+      FileUtils.mkdir_p(File.dirname(lock_path(home)))
+      File.open(lock_path(home), File::CREAT | File::RDWR, 0o644) do |lock|
+        unless lock.flock(File::LOCK_EX | File::LOCK_NB)
+          raise Failed.new("SCHEDULE_LIFECYCLE_BUSY",
+                           "另一個 #{LABEL} 的 install／remove 正在進行中")
+        end
+
+        begin
+          yield
+        ensure
+          lock.flock(File::LOCK_UN)
+        end
+      end
+    end
+
+    def lock_path(home) = File.join(home, ".omos/personal-memory/#{LABEL}.lifecycle.lock")
+
     # **唯一**的 bootout 入口。install／rollback／remove 都走這裡。
+    # 契約 §1.2 的**四象限**，與 bootstrap 對稱：
     #
-    # repair-04：`launchctl bootout` 回 0 **不代表 job 真的停了**。實測——
-    # 舊 16:00 的 job 還活著，bootout 回 ok、bootstrap 也回 ok 但沒換掉它，
-    # 而 bootstrap_and_verify 只問「這個 Label 是否 loaded」，看到的是**舊
-    # job 還在**，於是判成功：install 正常 return、磁碟 plist 是 15:00、
-    # 真正 live 的 job 卻是 16:00。又一次 split-brain。
+    #   exit 0   ＋ not loaded    → 成功
+    #   exit 0   ＋ loaded        → 假成功
+    #   exit 非0 ＋ loaded        → clean failure
+    #   exit 非0 ＋ **not loaded** → **其實已經停了**，視為成功。原本會誤判成
+    #                               失敗——job 本來就沒載入時 launchctl 回非零，
+    #                               那不是錯誤。
     #
-    # 判準因此是「exit 0 **而且** loaded? 為假」——與 bootstrap 那一側對稱。
-    # 這是同一個根因的第三次出現（bootstrap／bootout／provenance），所以一律
-    # 收成單一 seam，不在各自的呼叫點補檢查。
+    # 判準一律是**實際狀態**，exit code 只是輔助訊息。
     def bootout_and_verify(launchctl)
       res = launchctl.call("bootout", "#{domain}/#{LABEL}")
-      unless res[:ok]
-        return { ok: false, detail: "exit=#{res[:status]} #{res[:err].to_s.strip[0, 120]}" }
-      end
-      if loaded?(launchctl: launchctl)
+      return { ok: true, detail: nil } unless loaded?(launchctl: launchctl)
+
+      if res[:ok]
         return { ok: false,
                  detail: "launchctl bootout 回報成功（exit=#{res[:status]}），" \
                          "但 #{domain}/#{LABEL} 仍在載入中" }
       end
 
-      { ok: true, detail: nil }
+      { ok: false,
+        detail: "exit=#{res[:status]} #{res[:err].to_s.strip[0, 120]}；" \
+                "#{domain}/#{LABEL} 仍在載入中" }
     end
 
     # **唯一**的 bootstrap 入口。install 與 rollback 都走這裡。
+    # 契約 §1.1 的**四象限**，一個都不能少：
     #
-    # repair-03：`launchctl bootstrap` 回 0 **不代表 job 真的載入**——實測
-    # 回報成功但 `launchctl print` 查不到。只信 exit status 會產生兩種假成功：
-    # install 留下一份 plist 卻沒有 job（假安裝），rollback 以為舊排程回來了
-    # 卻沒有（假還原，而且錯誤碼不會升級，使用者不知道要手動處理）。
+    #   exit 0   ＋ loaded      → 成功
+    #   exit 0   ＋ not loaded  → 假成功
+    #   exit 非0 ＋ not loaded  → clean failure
+    #   exit 非0 ＋ **loaded**  → **partial activation**：命令說失敗，job 卻
+    #                             活起來了。這一象限原本完全沒處理，於是
+    #                             「失敗」路徑會留下一個沒人管的新 job。
     #
-    # 判準因此是「exit 0 **而且** loaded? 為真」，兩條路共用同一個判準——
-    # 各寫一次就是下一次只修好其中一條的原因。
+    # partial 由 :partial 標出來，讓呼叫端知道**必須先清掉新 job**才能往下走。
     def bootstrap_and_verify(path, launchctl)
       res = launchctl.call("bootstrap", domain, path)
-      unless res[:ok]
-        return { ok: false, detail: "exit=#{res[:status]} #{res[:err].to_s.strip[0, 120]}" }
-      end
-      unless loaded?(launchctl: launchctl)
-        return { ok: false,
+      now_loaded = loaded?(launchctl: launchctl)
+
+      if res[:ok]
+        return { ok: true, partial: false, detail: nil } if now_loaded
+
+        return { ok: false, partial: false,
                  detail: "launchctl bootstrap 回報成功（exit=#{res[:status]}），" \
                          "但 #{domain}/#{LABEL} 實際未載入" }
       end
 
-      { ok: true, detail: nil }
+      if now_loaded
+        return { ok: false, partial: true,
+                 detail: "launchctl bootstrap 回報失敗（exit=#{res[:status]} " \
+                         "#{res[:err].to_s.strip[0, 80]}），但 #{domain}/#{LABEL} " \
+                         "實際已載入（partial activation）" }
+      end
+
+      { ok: false, partial: false,
+        detail: "exit=#{res[:status]} #{res[:err].to_s.strip[0, 120]}" }
     end
 
     # job 是否**真的載入**，不是「檔案在不在」。

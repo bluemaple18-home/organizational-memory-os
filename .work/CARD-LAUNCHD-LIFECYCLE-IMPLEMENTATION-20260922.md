@@ -1,6 +1,6 @@
 ---
 id: LAUNCHD-LIFECYCLE-IMPLEMENTATION-20260922
-status: READY_TO_IMPLEMENT
+status: READY_FOR_REVIEW
 type: implementation
 severity: P1
 contract: CARD-LAUNCHD-LIFECYCLE-TRANSACTION-SPEC-FREEZE-20260922（OWNER_SIGNED 2026-09-22）
@@ -54,6 +54,38 @@ authority: organizational-memory-os
     為 ABSENT。
 13. 各情境測試互相隔離（獨立 `mktmpdir`），反證不得連鎖。
 14. 行數 delta 逐檔回報，並說明淨增是否符合 `MINIMUM_SUFFICIENT`。
+
+## 3.1 實作結果（2026-09-22）
+
+| 契約條款 | 實作 |
+|---|---|
+| §1.1 四象限 | `bootstrap_and_verify` 回 `{ok:, partial:, detail:}`；partial ＝ exit 非 0 但已載入 |
+| §1.2 四象限 | `bootout_and_verify` 一律以**實際狀態**判定；exit 非 0 但已停 → 成功 |
+| §1.3.1 階段序列 | `install` 內以區域變數 `old` 推進，無 FSM／ledger／DB |
+| §1.3.2 rollback 順序 | partial 先 `CLEANUP_NEW_IF_NEEDED`；清不掉 → `SCHEDULE_PARTIAL_ACTIVATION_NOT_CLEANED`，**磁碟保留新版**與 live 一致 |
+| §1.3.3 發布順序 | `OLD_STOP_VERIFIED` 之後才 `write_atomic`；舊 job 停不掉即失敗且磁碟維持舊版 |
+| §1.4 序列化 | `with_lifecycle_lock` 用 `flock(LOCK_NB)`；拿不到即 `SCHEDULE_LIFECYCLE_BUSY`。鎖放 `~/.omos/personal-memory/`，**不放** `~/Library/LaunchAgents`（那是 launchd 的目錄，且會被自己的 plist 計數邏輯數進去） |
+| §1.5 boundary | 未實作任何 crash recovery，符合契約列為 out-of-scope |
+
+### 契約未明寫、實作時補齊的一條推論
+
+`restore_old` 自己的 bootstrap 若是 **partial**（exit 非 0 但 job 已起來），
+**視為還原成功**。理由：磁碟上此刻已經是舊版位元組，所以 live 的只可能是舊
+設定——這是由階段序列推得的事實，不是用 `loaded?` 猜。契約 §1.1 的 partial
+處理針對的是**新** activation；把還原判成失敗反而會讓使用者以為舊排程沒回來。
+
+**此推論請 reviewer 裁定是否併入契約。**
+
+### 行數 delta
+
+| 檔案 | +/- |
+|---|---|
+| `lib/omos/schedule.rb` | +162 / −74（程式 74、註解 76、空白 13） |
+| `test/conformance_3c.rb` | +230 |
+
+產品程式**淨增 0 行**（74 加入、74 刪除）——本卡是重寫既有生命週期，不是加
+功能。註解多於程式是刻意的：四象限與兩個方向的順序都必須在程式旁說清楚
+為什麼，否則下一個人又會「順手」把它改回去。
 
 ## 4. 不做
 
