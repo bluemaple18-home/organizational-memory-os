@@ -30,7 +30,8 @@ module OMOS
     def self.bootstrap_bindings
       spec = Contract.spec
       {
-        supported_hosts: Contract.supported_hosts,
+        known_hosts: Contract.known_hosts,
+        delivered_hosts: Contract.supported_hosts,
         host_profiles: spec.dig("personal_memory_host_binding_v1", "host_profiles"),
         scope_modes: spec.dig("employee_memory_scope_modes", "modes") || [],
         mode_definitions: spec.dig("ownership_visibility_contract", "mode_definitions") || {},
@@ -41,14 +42,25 @@ module OMOS
       }
     end
 
-    # host           Host 名稱（必須是 supported_hosts_v1 之一）
+    # project_ref 由 cwd 決定，不接受模型或呼叫端提供——這是 authority 的一部分。
+    def self.project_ref_for(cwd)
+      "urn:omos:project:#{File.basename(File.expand_path(cwd))}"
+    end
+
+    # host           Host 名稱（必須是契約認識的 Host；且必須是這一版已交付的
+    #                Host 才產得出 binding——known 但未交付回 HBV1_HOST_BLOCKED_UPSTREAM）
     # native_session_id / cwd  Host 原生輸入
     # project_ref / project_visibility_scope  專案脈絡（可選 scope）
     # runtime_scope_mode  runtime policy 輸入，不得由專案脈絡提供
     def self.produce(host:, native_session_id:, cwd:, project_ref:,
                      runtime_scope_mode:, project_visibility_scope: nil)
       b = bootstrap_bindings
-      raise Refused, "HBV1_HOST_NOT_SUPPORTED" unless b[:supported_hosts].include?(host)
+      raise Refused, "HBV1_HOST_NOT_SUPPORTED" unless b[:known_hosts].include?(host)
+      # repair-03 P1-1：這條不是多餘的。Runtime 的授權閘（Contract.binding_problem）
+      # 現在只認已交付的 Host，所以下面的 composition 檢查會先以切片 1 的
+      # PMR_ 碼擋下 blocked host；但契約層要回的是契約層的碼。兩層各自擋，
+      # 而且兩層都真的會擋——Runtime 那一層是給「不經 produce 的 binding」用的。
+      raise Refused, "HBV1_HOST_BLOCKED_UPSTREAM" unless b[:delivered_hosts].include?(host)
 
       bootstrap = {
         "native_session_id" => native_session_id, "cwd" => cwd, "project_ref" => project_ref,

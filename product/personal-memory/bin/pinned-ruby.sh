@@ -9,18 +9,50 @@
 #
 # 因此版本解析必須發生在 Ruby 之外。這支只用 POSIX sh。
 
+# 清掉呼叫端的 bundler 環境——**必須在任何 candidate Ruby 被執行之前**。
+#
+# 本檔被三支 wrapper source，而下面的 omos_check 會實際啟動 candidate Ruby 做
+# ABI probe。若此時 caller 的 RUBYOPT=-rbundler/setup 或 BUNDLE_GEMFILE 還在，
+# probe 會在別人的 bundler 環境下啟動，可能得到假的 ABI 不符、或把 caller 的
+# gem 載進來。RUBYOPT 由 Ruby 在**啟動時**消化，等進到 Ruby 程式碼再刪已經太遲。
+unset RUBYOPT BUNDLE_GEMFILE BUNDLE_PATH BUNDLE_BIN_PATH BUNDLE_APP_CONFIG
+unset BUNDLER_VERSION BUNDLER_SETUP
+
 OMOS_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 OMOS_REQUIRED=$(cat "$OMOS_ROOT/.ruby-version" 2>/dev/null || echo "unknown")
 
+# Slice B：判準不再是版本字串相等。
+#
+# Q6 Part 1 證明版本字串同時**過嚴**（拒絕 ABI 其實相容的 patch 升級——
+# Homebrew 的 opt symlink 與 libruby install_name 都不隨 patch 改變）與
+# **過鬆**（放行裝在別的路徑、實際載不動我們原生擴充的同版本 Ruby）。
+#
+# 這裡只做**便宜的候選篩選**：ABI 目錄（3.4 系列皆為 "3.4.0"）必須與
+# artifact 宣告的一致。真正的 load probe 與 qualification 在開機路徑上由
+# OMOS::RuntimeProfile 執行——產品本來就要載入那些擴充，不另開探針重做一次。
+#
+# 版本解析仍必須發生在 Ruby 之外：macOS 系統 Ruby 2.6 的 ABI 目錄是 "2.6.0"，
+# 在這裡就會被排除，不會走到載入原生擴充而 SIGILL 的地步。
+# 需要的 ABI 直接由 artifact 自己的內容推導：vendored 原生擴充就放在
+# vendor/bundle/ruby/<ABI>/ 底下，那個目錄名**就是**它們被編譯時的 ABI。
+# 不另外宣告一份，否則會多一個會漂移的來源。
+OMOS_REQUIRED_ABI=$(ls -1 "$OMOS_ROOT/vendor/bundle/ruby" 2>/dev/null)
+case "$OMOS_REQUIRED_ABI" in
+  *"
+"*) OMOS_REQUIRED_ABI="" ;;   # 不只一個 ABI 目錄 → 無法判定，fail closed
+esac
+
 omos_check() {
   [ -x "$1" ] || return 1
-  [ "$("$1" -e 'print RUBY_VERSION' 2>/dev/null)" = "$OMOS_REQUIRED" ]
+  [ -n "$OMOS_REQUIRED_ABI" ] || return 1
+  [ "$("$1" -rrbconfig -e 'print RbConfig::CONFIG["ruby_version"]' 2>/dev/null)" = "$OMOS_REQUIRED_ABI" ]
 }
 
 if [ -n "$OMOS_RUBY" ]; then
   # 明確指定就以它為準；不合格要當場失敗，不得靜默改用別的直譯器。
   if ! omos_check "$OMOS_RUBY"; then
-    echo "[omos-personal-memory] 指定的 OMOS_RUBY=$OMOS_RUBY 不是 $OMOS_REQUIRED。" >&2
+    echo "[omos-personal-memory] 指定的 OMOS_RUBY=$OMOS_RUBY 的 ABI 與本 artifact 不符。" >&2
+    echo "  本 artifact 的原生擴充編譯於 ABI ${OMOS_REQUIRED_ABI}（參考版本 ${OMOS_REQUIRED}）。" >&2
     exit 78
   fi
 else
@@ -36,7 +68,9 @@ else
 fi
 
 if [ -z "$OMOS_RUBY" ]; then
-  echo "[omos-personal-memory] 找不到鎖定的 Ruby $OMOS_REQUIRED。" >&2
+  echo "[omos-personal-memory] 找不到 ABI 相容的 Ruby。" >&2
+  echo "  本 artifact 的原生擴充編譯於 ABI ${OMOS_REQUIRED_ABI}（參考版本 ${OMOS_REQUIRED}）；" >&2
+  echo "  判準是 ABI 目錄相容，不是版本字串相等——同 3.4 系列的 patch 升級是可接受的。" >&2
   echo "  已試過 OMOS_RUBY、Homebrew ruby@3.4、rbenv 與 PATH 上的 ruby。" >&2
   echo "  安裝方式之一： brew install ruby@3.4" >&2
   echo "  或直接指定： OMOS_RUBY=/path/to/ruby <指令>" >&2

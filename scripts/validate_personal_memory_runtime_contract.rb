@@ -72,6 +72,7 @@ EXPECTED_NEGATIVE_LABELS = [
   "a host session binding carrying a field outside the closed shape",
   "a host session binding carrying a shadow identity field",
   "a host session binding missing an upstream executor identity field",
+  "a host session binding naming a known host this version does not deliver",
   "a host session binding naming an executor that is not a supported host",
   "a host session binding whose effective_scope is an ownership mode, not a visibility scope",
   "a host session binding that is not a map",
@@ -175,6 +176,13 @@ assert(surfaces.all? { |s| s.start_with?("LOCAL_") },
 # Design Freeze B：supported_hosts_v1 ⊂ runtime_policy.optional_executors。
 optional_executors = spec.dig("runtime_policy", "optional_executors") || []
 supported_hosts = pmr.fetch("supported_hosts_v1", [])
+blocked_hosts = pmr.fetch("blocked_hosts_v1", {}).keys
+# repair-03 P1-1：本片是 **Runtime 授權**，不是純形狀 composition，因此只認
+# 已交付的 Host。先前為了讓 Codex 負例繼續綠而改吃 known_hosts，等於讓
+# blocked host 的 binding 繞過 bootstrap 直接被 Runtime 放行（reviewer 實測
+# runtime_read=ALLOWED）。負例的主詞是「某個已交付 Host 的 binding」，不是
+# Codex 本身，所以 fixture 改以 Claude Code 為例，判定回到 delivered。
+# 「認識但未交付」的判定在切片 2 bootstrap（HBV1_HOST_BLOCKED_UPSTREAM）。
 assert(optional_executors.any?, "runtime_policy.optional_executors 必須存在（本片讀它，不重述）", failures)
 assert(supported_hosts.any?, "supported_hosts_v1 不得為空", failures)
 assert((sorted_set(supported_hosts) - sorted_set(optional_executors)).empty?,

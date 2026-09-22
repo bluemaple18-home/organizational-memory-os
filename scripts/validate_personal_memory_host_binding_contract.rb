@@ -22,6 +22,10 @@ HELPER_PATH = File.join(__dir__, "lib/personal_memory_host_binding.rb")
 HB = PersonalMemoryHostBinding
 HB_PATH = File.join(__dir__, "lib/personal_memory_host_binding.rb")
 EXPECTED_V1_HOSTS = ["Codex", "Claude Code"].freeze
+# Owner 範圍裁決 2026-09-20（.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md）：
+# v1 交得出來的只有 Claude Code；Codex 保留 profile 但標記 blocked。
+EXPECTED_SUPPORTED_HOSTS = ["Claude Code"].freeze
+EXPECTED_BLOCKED_HOSTS = ["Codex"].freeze
 EXPECTED_INVARIANTS = %w[
   GLOBAL_HARNESS_NE_GLOBAL_MEMORY_VISIBILITY
   PROJECT_CONTEXT_MAY_NARROW_BUT_NOT_WIDEN_MEMORY_ACCESS
@@ -42,8 +46,11 @@ def apply_mutation(base, test_case)
   run
 end
 
-def host_set_bound?(runtime_hosts, profiles)
-  sorted_set(runtime_hosts) == sorted_set(profiles.keys)
+# Owner 裁決 2026-09-20 後，v1 的 host 集合分成 supported + blocked 兩半，
+# 但「profile 是唯一權威」這條防線沒有鬆動：兩半聯集起來仍必須與 host_profiles
+# 一對一。只往任一半塞字串而沒有對應 profile，仍然要破。
+def host_set_bound?(runtime_hosts, blocked_hosts, profiles)
+  sorted_set(runtime_hosts + blocked_hosts) == sorted_set(profiles.keys)
 end
 
 failures = []
@@ -53,24 +60,44 @@ contract = spec.fetch("personal_memory_host_binding_v1", {})
 runtime = spec.fetch("personal_memory_runtime", {})
 profiles = contract.fetch("host_profiles", {})
 runtime_hosts = runtime.fetch("supported_hosts_v1", [])
+blocked_hosts = runtime.fetch("blocked_hosts_v1", {})
 optional_executors = spec.dig("runtime_policy", "optional_executors") || []
 
 assert(contract["slice_of"].to_s.include?("EMEM-11"), "host binding contract 必須標明 EMEM-11", failures)
 assert(sorted_set(contract.fetch("invariants", [])) == sorted_set(EXPECTED_INVARIANTS),
        "host binding invariants 必須逐項等於主卡五條 invariant", failures)
 
-# v1 delivery scope 的權威是兩個具體 host profile；runtime list 必須一對一跟它綁定。
+# host profile 是「已經過 review 的 host 實體面」的權威；supported ∪ blocked
+# 必須一對一跟它綁定。
 assert(sorted_set(profiles.keys) == sorted_set(EXPECTED_V1_HOSTS),
        "v1 host_profiles 必須恰為 Codex + Claude Code", failures)
-assert(host_set_bound?(runtime_hosts, profiles),
-       "personal_memory_runtime.supported_hosts_v1 必須與 host_profiles 一對一", failures)
+assert(sorted_set(runtime_hosts) == sorted_set(EXPECTED_SUPPORTED_HOSTS),
+       "Owner 裁決後 supported_hosts_v1 必須恰為 Claude Code", failures)
+assert(sorted_set(blocked_hosts.keys) == sorted_set(EXPECTED_BLOCKED_HOSTS),
+       "blocked_hosts_v1 必須恰為 Codex", failures)
+assert((sorted_set(runtime_hosts) & sorted_set(blocked_hosts.keys)).empty?,
+       "同一個 host 不得同時是 supported 與 blocked", failures)
+assert(host_set_bound?(runtime_hosts, blocked_hosts.keys, profiles),
+       "supported_hosts_v1 ∪ blocked_hosts_v1 必須與 host_profiles 一對一", failures)
 assert((sorted_set(runtime_hosts) - sorted_set(optional_executors)).empty?,
        "supported_hosts_v1 仍必須是 runtime_policy.optional_executors 子集", failures)
 
+# blocked 不是「偷偷刪功能」：每一筆都要有理由、可查證的證據與解除條件。
+blocked_hosts.each do |host, entry|
+  %w[reason evidence_ref unblock_condition].each do |field|
+    assert(!entry.to_h[field].to_s.strip.empty?,
+           "blocked_hosts_v1.#{host} 缺少 #{field}", failures)
+  end
+end
+
 # Slice 1 residual 的 live drift probe：只往 runtime list 加第三個 executor，不能再 PASS。
 drifted_hosts = deep_dup(runtime_hosts) << "DeepSeek Harness"
-assert(!host_set_bound?(drifted_hosts, profiles),
+assert(!host_set_bound?(drifted_hosts, blocked_hosts.keys, profiles),
        "supported_hosts_v1 漂移探針失效：只加第三個 host 應破壞一對一綁定", failures)
+# 同一條防線也必須擋住「只往 blocked 塞字串」。
+drifted_blocked = deep_dup(blocked_hosts.keys) << "DeepSeek Harness"
+assert(!host_set_bound?(runtime_hosts, drifted_blocked, profiles),
+       "blocked_hosts_v1 漂移探針失效：只加第三個 host 應破壞一對一綁定", failures)
 
 expected_adapter_paths = {
   "Codex" => "規格/v0.1/codex-native-adapter.yaml",
@@ -171,7 +198,11 @@ binding_additional = binding_spec.fetch("additional_fields", [])
 binding_forbidden = binding_spec.fetch("forbidden_fields", [])
 
 BINDINGS = {
-  supported_hosts: runtime_hosts,
+  # Owner 裁決 2026-09-20 的 additive seam：
+  #   known_hosts     = 認識、能評估設定面的 Host（host_profiles 的 key）
+  #   delivered_hosts = 這一版真的能產出可信 HostSessionBinding 的 Host
+  known_hosts: profiles.keys,
+  delivered_hosts: runtime_hosts,
   host_profiles: profiles,
   scope_modes: spec.dig("employee_memory_scope_modes", "modes") || [],
   mode_definitions: spec.dig("ownership_visibility_contract", "mode_definitions") || {},
@@ -184,7 +215,10 @@ BINDINGS = {
     additional_fields: binding_additional,
     allowed_fields: identity_fields + binding_additional,
     forbidden_fields: binding_forbidden,
-    supported_hosts: runtime_hosts,
+    # 切片 1 runtime 的 binding 形狀檢查問的是「executor_ref 是不是一個已知的
+    # Host」——形狀／詞彙問題。是否已交付由上面的 delivered_hosts 在 bootstrap
+    # 最後一關判定，不在這裡重複。
+    supported_hosts: profiles.keys,
     visibility_scopes: (spec.dig("ownership_visibility_contract", "visibility_scopes") || {}).keys
   }
 }.freeze
@@ -202,11 +236,22 @@ profiles.each do |host, profile|
          "#{host} 的 required_health 有沒有對應錯誤碼的欄位（會使 evaluator 丟 KeyError）：#{unknown_health.inspect}", failures)
 end
 
+observed_codes = Set.new
 bases = fixtures.fetch("bases", {})
 assert(sorted_set(bases.keys) == sorted_set(%w[CODEX CLAUDE]), "fixtures 必須含兩個 Host base", failures)
 bases.each do |name, run|
   actual = HB.scenario_failure(run, BINDINGS)
-  assert(actual.nil?, "#{name} base 必須通過，實際 #{actual.inspect}", failures)
+  observed_codes << actual
+  if name == "CODEX"
+    # Owner 裁決 2026-09-20：Codex 仍是 known host——設定面、install／uninstall、
+    # shadow、health 全部照評估，所以這個 base 必須一路走到最後一關才被擋，
+    # 而且擋的理由必須精確是「認識但這一版沒交付」，不是「不認識這個 Host」。
+    assert(actual == "HBV1_HOST_BLOCKED_UPSTREAM",
+           "CODEX base 必須在 bootstrap 最後一關回 HBV1_HOST_BLOCKED_UPSTREAM，實際 #{actual.inspect}",
+           failures)
+  else
+    assert(actual.nil?, "#{name} base 必須通過，實際 #{actual.inspect}", failures)
+  end
 end
 
 fixtures.fetch("positive_cases", []).each do |test_case|
@@ -218,7 +263,6 @@ fixtures.fetch("positive_cases", []).each do |test_case|
   assert(actual.nil?, "#{test_case.fetch("case_id")} 預期 allow，實際 #{actual.inspect}", failures)
 end
 
-observed_codes = Set.new
 fixtures.fetch("negative_cases", []).each do |test_case|
   base = bases.fetch(test_case.fetch("base_ref"))
   run = apply_mutation(base, test_case)
@@ -310,6 +354,7 @@ ERROR_CONTRACT = {
   "HBV1_HOST_HEALTH_FIELD_MISSING" => "personal_memory_host_binding_v1.error.host_health_field_missing",
   "HBV1_HOST_HEALTH_NOT_MAP" => "personal_memory_host_binding_v1.error.host_health_not_map",
   "HBV1_HOST_HEALTH_UNKNOWN_FIELD" => "personal_memory_host_binding_v1.error.host_health_unknown_field",
+  "HBV1_HOST_BLOCKED_UPSTREAM" => "personal_memory_host_binding_v1.error.host_blocked_upstream",
   "HBV1_HOST_NOT_SUPPORTED" => "personal_memory_host_binding_v1.error.host_not_supported",
   "HBV1_HOST_PROFILE_MISSING" => "personal_memory_host_binding_v1.error.host_profile_missing",
   "HBV1_INSTALL_NOT_MAP" => "personal_memory_host_binding_v1.error.install_not_map",

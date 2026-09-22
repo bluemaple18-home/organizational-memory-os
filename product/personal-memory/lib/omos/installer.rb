@@ -2,8 +2,8 @@
 #
 # omos-personal-memory installer。
 #
-# 責任：初始化本機 store、把 MCP 與 SessionStart 註冊寫進兩個 Host 的使用者
-# 設定、產出安裝 receipt；以及對應的 uninstall。
+# 責任：初始化本機 store、把 MCP 與 SessionStart 註冊寫進**已交付 Host** 的
+# 使用者設定、產出安裝 receipt；以及對應的 uninstall。
 #
 # 安全規則（主卡「安裝與復原」驗收組）：
 #   - 判定先於寫入：每個 Host 的 merge 合法性由切片 2 既有 evaluator 判定，
@@ -15,7 +15,10 @@
 
 require "json"
 require "time"
+require "digest"
+require "set"
 require "fileutils"
+require_relative "artifact"
 require_relative "contract"
 require_relative "host_config"
 require_relative "host_config_writer"
@@ -37,48 +40,131 @@ module OMOS
 
     attr_reader :home, :product_root
 
-    def initialize(home: Dir.home, product_root: File.expand_path("../..", __dir__), store_path: nil)
+    def initialize(home: Dir.home, product_root: File.expand_path("../..", __dir__),
+                   store_path: nil, runtime_scope_mode: "EMPLOYEE_PRIVATE",
+                   personal_identity: nil)
       @home = home
       @product_root = product_root
       @store_path = store_path
+      @runtime_scope_mode = runtime_scope_mode
+      @personal_identity = personal_identity
     end
 
     def store_path = @store_path || expand(DEFAULT_STORE)
     def receipt_path = expand(RECEIPT_PATH)
-    def mcp_command = File.join(@product_root, "exe/omos-personal-memory-mcp")
-    def hook_command = File.join(@product_root, "exe/omos-personal-memory-session-start")
+
+    # --- activation 佈局（Q7 §0.1 凍結的三層分離）-------------------------
+    #
+    #   Host identity      bin/ 底下的固定 launcher —— 寫進 Host，升版不變
+    #   activation pointer current -> versions/<artifact-id>
+    #   artifact identity  versions/<artifact-id> —— 內容決定，見 OMOS::Artifact
+    #
+    # 這三者**不得**再由單一 product_root 兼任。特別是：寫進 Host 的 command
+    # 只能是 launcher 路徑，絕不能用 __dir__ 推導出來的路徑——Ruby 的 __dir__
+    # 會解析 symlink，沿用它等於把 versions/<id> 寫進 Host，stale-hook 立刻
+    # 復發（Q7 §0.4）。
+    def omos_home = expand("~/.omos/personal-memory")
+    def bin_dir = File.join(omos_home, "bin")
+    def versions_dir = File.join(omos_home, "versions")
+    def current_link = File.join(omos_home, "current")
+
+    # 寫進 Host 的就是這兩條，永遠不含版本。
+    def mcp_command = File.join(bin_dir, "omos-personal-memory-mcp")
+    def hook_command = File.join(bin_dir, "omos-personal-memory-session-start")
+
+    # artifact 內的實際執行目標（launcher 透過 current 轉過去）。
+    LAUNCHER_NAMES = %w[omos-personal-memory-mcp omos-personal-memory-session-start].freeze
+
+    # 要 materialize 進 artifact 的治理檔：2 份 spec ＋ 7 支共用 evaluator。
+    # 相對結構與 repo 內一致，Slice C 的 drift gate 因此只需逐路徑比對。
+    GOVERNANCE_FILES = [
+      "規格/v0.1/personal-harness-integration.yaml",
+      "規格/v0.1/common-vocabulary.yaml",
+      *%w[omos_contract_helpers host_session_binding_shape personal_memory_resource_evaluator
+          weekly_closeout_history minimal_evidence_package_shape runtime_log_oracle
+          personal_memory_host_binding].map { |n| "scripts/lib/#{n}.rb" }
+    ].freeze
+
+    # artifact payload：產品自己的檔案。governance/ 由 materialize 另外放進去。
+    # native-dependencies.json 是 Slice A 宣告的 production native dependency
+    # manifest，Slice B 的 runtime profile guard 會消費它，因此必須隨 artifact
+    # 一起配送（也因此被納入 artifact identity）。
+    PAYLOAD_ENTRIES = %w[lib exe bin vendor Gemfile Gemfile.lock .ruby-version .bundle
+                         native-dependencies.json runtime-profile.json].freeze
 
     def receipt
       return nil unless File.exist?(receipt_path)
 
-      JSON.parse(File.read(receipt_path))
+      JSON.parse(File.read(receipt_path, encoding: "UTF-8"))
     end
 
     # receipt 記錄的 {具體命令 => command_ref}，供 HostConfig 正規化與 doctor 使用。
     def command_map
       HostConfig.hosts.each_with_object({}) do |host, acc|
-        profile = Contract.spec.dig("personal_memory_host_binding_v1", "host_profiles", host)
-        acc[mcp_command] = profile.dig("mcp_registration", "command_ref")
-        acc[hook_command] = profile.dig("session_start_registration", "command_ref")
+        acc.merge!(writer_for(host).command_map)
       end
     end
 
     # --- install ---------------------------------------------------------
 
-    def install(hosts: HostConfig.hosts, fail_after: nil)
-      raise Failed, "INSTALL_MCP_COMMAND_MISSING" unless File.executable?(mcp_command)
-      raise Failed, "INSTALL_HOOK_COMMAND_MISSING" unless File.executable?(hook_command)
+    # 預設只安裝**已交付**的 Host（repair-03 P2：v1 的 delivery scope 只有
+    # Claude Code，不該再往 Codex 寫一套必定不能使用的 MCP + hook）。
+    # Codex 的 profile 與設定面評估仍然保留——設定面認得它，不等於要交付它。
+    # 需要明確安裝某個 blocked host（例如用真 codex CLI 驗證我們寫出的形狀）
+    # 時，呼叫端要自己把它列進 hosts:，不會預設發生。
+    def delivered_hosts = Contract.supported_hosts
+
+    # 卸載預設依 install receipt 記錄的 hosts 清理；沒有 receipt 就掃過所有
+    # 契約認識的 Host——先前版本曾把 Codex 也裝進去，不掃就會留下殘件。
+    def installed_hosts
+      receipt&.fetch("hosts", nil)&.keys || HostConfig.hosts
+    end
+
+    def install(hosts: delivered_hosts, fail_after: nil)
+      source_mcp = File.join(@product_root, "exe/omos-personal-memory-mcp")
+      source_hook = File.join(@product_root, "exe/omos-personal-memory-session-start")
+      raise Failed, "INSTALL_MCP_COMMAND_MISSING" unless File.executable?(source_mcp)
+      raise Failed, "INSTALL_HOOK_COMMAND_MISSING" unless File.executable?(source_hook)
 
       backups = {}
       store_created = !File.exist?(store_path)
+      previous = receipt
       schema_version = nil
+      artifact_id = nil
+      # repair-01 P1-1：activation 也是交易的一部分。失敗時必須把 current、
+      # receipt、launcher 一起還原——先前只還原 Host 設定，結果升級失敗後
+      # current 已經指向新版、舊 receipt 又被刪掉，違反 Q7 的 atomic
+      # activation/rollback。
+      activation = {
+        previous_current: File.symlink?(current_link) ? File.readlink(current_link) : nil,
+        previous_receipt: File.exist?(receipt_path) ? File.binread(receipt_path) : nil,
+        # repair-02：要記的是**每一支 launcher 的原始位元組與模式**，不是
+        # 「有沒有存在」。write_launchers 會覆寫既有檔案，只記布林值的話，
+        # 前一版 launcher 內容與新版不同時，後段失敗會留下新版 launcher，
+        # 於是出現 old current + old receipt + old Host config + NEW launcher
+        # 的半套狀態。
+        previous_launchers: snapshot_launchers,
+        created_artifact: nil
+      }
       begin
+        # 0. 遷移前置：證據不足就當場停，不猜、不刪
+        refuse_unknown_legacy!(hosts)
+
         # 1. 本機 store
         runtime = Runtime.open(store_path)
         schema_version = runtime.store.schema_version
         runtime.store.close
 
-        # 2. 逐個 Host 寫入；每一步先備份
+        # 2. artifact：stage → hash → rename。先算 id 再定目錄，否則 id 會
+        #    參照到自己所在的路徑。
+        artifact_id, created = materialize_artifact
+        activation[:created_artifact] = created ? File.join(versions_dir, artifact_id) : nil
+
+        # 3. 固定 launcher（Host identity）與 current pointer（activation）
+        write_launchers
+        activate(artifact_id)
+
+        # 4. 逐個 Host 寫入；每一步先備份
         hosts.each do |host|
           writer = writer_for(host)
           backups.merge!(writer.snapshot_files) { |_k, old, _new| old }
@@ -87,16 +173,28 @@ module OMOS
           raise Failed, "INSTALL_INJECTED_FAILURE" if fail_after == host
         end
 
-        # 3. receipt
-        write_receipt(hosts, schema_version)
+        # 5. receipt
+        write_receipt(hosts, schema_version, artifact_id, previous)
+
+        # 6. 歷史版本 GC。**只在交易成功後才做**——失敗路徑要回到舊版，
+        #    這時把舊版清掉就沒得回去了。
+        #
+        # 保留集直接讀**剛寫好的 receipt**，不另外推導一份。review P1-1：
+        # 原本傳 previous["artifact_id"]（上一次安裝時的 current），在同內容
+        # 重裝時它等於這次的 artifact_id，於是保留集塌成一個，真正能回退的
+        # 那一版被刪掉——receipt 說得出 previous、versions/ 裡卻沒有它。
+        # 狀態有兩份來源就會有第三種不一致；rollback 認 receipt，GC 就也只
+        # 能認 receipt。
+        collect_garbage(keep: rollback_reachable_ids)
       rescue StandardError
-        rollback(backups, store_created)
+        abort_install(backups, store_created, activation)
         raise
       end
-      { store_path: store_path, schema_version: schema_version, hosts: hosts, receipt: receipt }
+      { store_path: store_path, schema_version: schema_version, hosts: hosts,
+        artifact_id: artifact_id, receipt: receipt }
     end
 
-    def uninstall(hosts: HostConfig.hosts, remove_store: false)
+    def uninstall(hosts: installed_hosts, remove_store: false)
       backups = {}
       begin
         hosts.each do |host|
@@ -104,6 +202,7 @@ module OMOS
           backups.merge!(writer.snapshot_files) { |_k, old, _new| old }
           writer.uninstall
         end
+        remove_activation
         FileUtils.rm_f(receipt_path)
         # Personal Store 預設保留——卸載產品不等於銷毀個人記憶。
         FileUtils.rm_f(store_path) if remove_store
@@ -115,26 +214,306 @@ module OMOS
     end
 
     # 升級：命令路徑或 schema 可能變了，重跑安裝即可（install 本身 idempotent）。
-    def upgrade(hosts: HostConfig.hosts)
+    def upgrade(hosts: delivered_hosts)
       install(hosts: hosts)
+    end
+
+    # 回到上一個 artifact。
+    #
+    # Q7 裁決點 4：**只切 pointer，不重寫 Host 設定**——Host 認的是固定
+    # launcher，與版本無關，所以 rollback 完全不該碰使用者的設定檔。
+    # 也**不得**靠重新下載或猜 SHA：目標只能是 receipt 記下的
+    # previous_artifact_id，且那份 artifact 必須還在。
+    # fail_before_receipt 是注入的失敗點，與 install(fail_after:) 同一個用途：
+    # conformance 要能實測「receipt 寫不進去時不留半套」。真正的失敗原因
+    # （磁碟滿、目錄唯讀、行程被砍）沒辦法在測試裡穩定製造，而把 receipt 設成
+    # 唯讀也製造不出來——receipt 是 temp + rename 寫的，rename 看的是目錄權限。
+    def rollback(fail_before_receipt: false)
+      data = receipt
+      raise Failed, "ROLLBACK_NO_RECEIPT" if data.nil?
+
+      target = data["previous_artifact_id"]
+      raise Failed, "ROLLBACK_NO_PREVIOUS_ARTIFACT" if target.nil? || target.empty?
+
+      target_dir = File.join(versions_dir, target)
+      raise Failed, "ROLLBACK_ARTIFACT_MISSING: #{target}" unless Dir.exist?(target_dir)
+
+      from = data["artifact_id"]
+
+      # rollback 自己也是一筆交易。review P1-2：原本先 activate 再寫 receipt，
+      # receipt 寫不進去（唯讀、磁碟滿、權限）時 pointer 已經切過去，留下
+      # 「current=A、receipt 說 current=B」的分裂狀態——而 receipt 正是下一次
+      # rollback 與 GC 的唯一依據，分裂之後兩邊都會做錯決定。
+      #
+      # 復原只碰 activation 自己的兩樣東西（pointer 與 receipt），**不碰 Host
+      # 設定**——rollback 本來就沒動過它。
+      previous_current = File.symlink?(current_link) ? File.readlink(current_link) : nil
+      previous_receipt = File.binread(receipt_path)
+      begin
+        activate(target)
+        raise Failed, "ROLLBACK_INJECTED_FAILURE" if fail_before_receipt
+
+        # 交換 current／previous，讓 rollback 可以再切回去；其餘欄位保持原樣，
+        # 因為 Host 註冊與 store 都沒有變動。
+        data["artifact_id"] = target
+        data["previous_artifact_id"] = from
+        data["rolled_back_at"] = Time.now.utc.iso8601
+        write_receipt_bytes("#{JSON.pretty_generate(data)}\n")
+      rescue StandardError
+        restore_pointer(previous_current)
+        write_receipt_bytes(previous_receipt)
+        raise
+      end
+      { artifact_id: target, previous_artifact_id: from }
     end
 
     private
 
     def expand(path) = path.sub(%r{\A~(?=/)}, @home)
 
-    def writer_for(host)
-      HostConfigWriter.new(host, home: @home, mcp_command: mcp_command, hook_command: hook_command)
+    # --- artifact materialize（stage → hash → rename）---------------------
+
+    # 回傳 artifact id。若同內容的版本已存在就直接重用——install 因此是
+    # idempotent 的，重裝不會每次長出一個新目錄。
+    def materialize_artifact
+      FileUtils.mkdir_p(versions_dir)
+      stage = File.join(omos_home, ".staging-#{Process.pid}-#{rand(1 << 32).to_s(36)}")
+      begin
+        FileUtils.mkdir_p(stage)
+        PAYLOAD_ENTRIES.each do |entry|
+          src = File.join(@product_root, entry)
+          next unless File.exist?(src)
+
+          FileUtils.cp_r(src, File.join(stage, entry), preserve: true)
+        end
+        materialize_governance(stage)
+
+        id = Artifact.identity(stage)
+        target = File.join(versions_dir, id)
+        # 回傳 created：這次交易**新建**的版本才可以在失敗時刪掉。
+        # 若是重用既有版本（同內容重裝），它可能正被其他安裝引用，不得清除。
+        if Dir.exist?(target)
+          FileUtils.rm_rf(stage)
+          [id, false]
+        else
+          File.rename(stage, target)
+          [id, true]
+        end
+      rescue StandardError
+        FileUtils.rm_rf(stage)
+        raise
+      end
     end
 
-    def write_receipt(hosts, schema_version)
+    # 2 份 spec ＋ 7 支 evaluator 複製進 artifact，**byte-identical**。
+    #
+    # repair-01 P1-2：來源是「**正在執行的這份程式自己的 governance closure**」
+    # （`Contract::GOVERNANCE_ROOT`），不是寫死的 repo。已安裝的 artifact 自帶
+    # governance/，它再去安裝／升級時就用自己那份；只有從 repo checkout 執行時
+    # 才會落到 repo 原件。寫死 REPO_ROOT 會讓 standalone artifact 一安裝就
+    # INSTALL_GOVERNANCE_SOURCE_MISSING——那等於「搬得出去但不能自我安裝」。
+    def materialize_governance(stage)
+      GOVERNANCE_FILES.each do |rel|
+        src = File.join(Contract::GOVERNANCE_ROOT, rel)
+        raise Failed, "INSTALL_GOVERNANCE_SOURCE_MISSING: #{rel}" unless File.file?(src)
+
+        dst = File.join(stage, "governance", rel)
+        FileUtils.mkdir_p(File.dirname(dst))
+        FileUtils.cp(src, dst, preserve: true)
+        next if Digest::SHA256.file(src).hexdigest == Digest::SHA256.file(dst).hexdigest
+
+        raise Failed, "INSTALL_GOVERNANCE_COPY_MISMATCH: #{rel}"
+      end
+    end
+
+    # 交易開始前的 launcher 狀態：{名稱 => {bytes:, mode:} 或 nil（原本不存在）}
+    def snapshot_launchers
+      LAUNCHER_NAMES.each_with_object({}) do |name, acc|
+        path = File.join(bin_dir, name)
+        acc[name] = File.exist?(path) ? { bytes: File.binread(path), mode: File.stat(path).mode } : nil
+      end
+    end
+
+    def restore_launchers(snapshot)
+      return if snapshot.nil?
+
+      snapshot.each do |name, state|
+        path = File.join(bin_dir, name)
+        if state.nil?
+          FileUtils.rm_f(path)
+        else
+          FileUtils.mkdir_p(bin_dir)
+          File.binwrite(path, state[:bytes])
+          FileUtils.chmod(state[:mode] & 0o7777, path)
+        end
+      end
+    end
+
+    # 固定 launcher：Host 只認這兩條路徑，內容轉發到 current 背後的 artifact。
+    # 參數一律原樣轉傳——hook 的 --host / --runtime-scope-mode 是 authority
+    # 注入管道，不能在這裡被吃掉（Q7 §0.4）。
+    def write_launchers
+      FileUtils.mkdir_p(bin_dir)
+      LAUNCHER_NAMES.each do |name|
+        path = File.join(bin_dir, name)
+        File.write(path, <<~SH)
+          #!/bin/sh
+          # 由 omos-personal-memory installer 產生，請勿手改。
+          # Host 設定只認這條固定路徑；實際執行的版本由 current 決定。
+          exec "#{current_link}/exe/#{name}" "$@"
+        SH
+        FileUtils.chmod(0o755, path)
+      end
+    end
+
+    # 歷史版本 GC（Q7 裁決點 7 指定要明確定義）。
+    #
+    # 保留原則：**current ＋ previous**。rollback 的目標只能是 receipt 記的
+    # previous，所以那兩個是有用途的；再舊的版本沒有任何東西會指向它們，
+    # 留著只會讓 versions/ 無限長大（每版約 23 MB）。
+    #
+    # 刻意**不做**「保留 N 版」：N 是個沒有依據的數字，而「current 與可回退
+    # 的那一版」是由 rollback 語意直接決定的。
+    # rollback 搆得到的 artifact：current 與 previous，兩者都只由 receipt 定義。
+    # 這是 GC 保留集的**唯一**來源。
+    def rollback_reachable_ids
+      data = receipt or return []
+      [data["artifact_id"], data["previous_artifact_id"]].compact
+    end
+
+    def collect_garbage(keep:)
+      return unless Dir.exist?(versions_dir)
+
+      protected_ids = keep.compact.to_set
+      Dir.children(versions_dir).each do |id|
+        next if protected_ids.include?(id)
+
+        FileUtils.rm_rf(File.join(versions_dir, id))
+      end
+    end
+
+    # 卸載時移除 activation 的三層：launcher、current pointer、所有 artifact
+    # 版本。**只刪這三樣**——`~/.omos/personal-memory/` 這個父目錄底下還有
+    # Personal Store 與 session state，預設一律保留（Q7 裁決點 7）。
+    def remove_activation
+      LAUNCHER_NAMES.each { |name| FileUtils.rm_f(File.join(bin_dir, name)) }
+      FileUtils.rm_f(current_link)
+      FileUtils.rm_rf(versions_dir)
+      # bin/ 只有在被我們清空後才移除；若使用者放了別的東西就留著。
+      Dir.rmdir(bin_dir) if Dir.exist?(bin_dir) && Dir.children(bin_dir).empty?
+    end
+
+    # current 切換必須原子：先建暫時 symlink 再 rename(2) 蓋過去。
+    # 不用 `ln -sfn`——那是先刪後建，中間有一個 current 不存在的窗口。
+    def activate(artifact_id)
+      tmp = "#{current_link}.switching-#{Process.pid}"
+      FileUtils.rm_f(tmp)
+      File.symlink(File.join(versions_dir, artifact_id), tmp)
+      File.rename(tmp, current_link)
+    end
+
+    # installer 是唯一可信的 authority 注入點：Host 的 stdin 不會給 host 與
+    # runtime_scope_mode，模型也不得提供。MCP server 走官方的 env 表，
+    # hook 沒有 env 欄位，只能走命令列參數。
+    def trusted_env(host)
+      { "OMOS_HOST" => host,
+        "OMOS_RUNTIME_SCOPE_MODE" => @runtime_scope_mode,
+        "OMOS_PERSONAL_MEMORY_STORE" => store_path }
+    end
+
+    def writer_for(host)
+      HostConfigWriter.new(host, home: @home, mcp_command: mcp_command,
+                                 hook_command: hook_command, env: trusted_env(host),
+                                 legacy_commands: legacy_commands)
+    end
+
+    # 上一版實際寫進 Host 的具體命令，來源只有 receipt。沒有 receipt 就是
+    # 沒有證據——這時**不猜**，見 refuse_unknown_legacy!。
+    def legacy_commands
+      current = [mcp_command, hook_command]
+      (receipt&.fetch("commands", nil) || {}).reject { |_ref, cmd| current.include?(cmd) }
+    end
+
+    # 遷移的辨識 authority：只認 receipt 給的精確命令。若 Host 設定裡出現
+    # 「執行檔名正好是我們的、但路徑不是目前 launcher、receipt 又沒記過」
+    # 的註冊，代表證據不足——**當場失敗並說清楚**，不得自行刪除。
+    # 誤刪使用者或第三方的 hook，比裝不起來嚴重得多。
+    def refuse_unknown_legacy!(hosts)
+      known = legacy_commands.values + [mcp_command, hook_command]
+      hosts.each do |host|
+        config = HostConfig.new(host, home: @home, command_map: command_map)
+        next unless config.present?[:mcp_config]
+
+        config.snapshot["session_start_hooks"].each do |hook|
+          cmd = hook["command_ref"].to_s
+          next if hook["id"] == config.own_hook_id || known.include?(cmd)
+          next unless File.basename(cmd.split(" ").first.to_s) == "omos-personal-memory-session-start"
+
+          raise Failed, "INSTALL_UNKNOWN_LEGACY_REGISTRATION: #{cmd}"
+        end
+      end
+    end
+
+    # 「上一版」指的是**上一個不同的 artifact**，不是「上一次安裝」。
+    # 重裝同內容時 artifact identity 不變（materialize 直接重用既有目錄），
+    # 若照抄 previous["artifact_id"] 會得到 previous == current，rollback
+    # 於是變成一個回報成功卻什麼都沒換的 no-op；真正能回退的那一版還會被
+    # collect_garbage 當成無人引用而刪掉。這時要沿用上一份 receipt 的
+    # previous_artifact_id。
+    def previous_artifact_id_for(artifact_id, previous)
+      return nil if previous.nil?
+
+      prior = previous["artifact_id"] || previous.dig("artifact", "id")
+      prior == artifact_id ? previous["previous_artifact_id"] : prior
+    end
+
+    # explicit（這次 install 帶的）> 上一份 receipt 保留的 > nil。
+    # nil 是合法狀態：沒設定過就是沒設定過，import 會當場要求補上，不會猜。
+    def personal_identity_for(previous)
+      return normalized_identity(@personal_identity) unless @personal_identity.nil?
+
+      previous && previous["personal_identity"]
+    end
+
+    def normalized_identity(identity)
+      owner = identity[:employee_owner_ref] || identity["employee_owner_ref"]
+      tenant = identity[:tenant_id] || identity["tenant_id"]
+      raise Failed, "INSTALL_IDENTITY_INCOMPLETE" if blank?(owner) || blank?(tenant)
+
+      { "employee_owner_ref" => owner.strip, "tenant_id" => tenant.strip }
+    end
+
+    def blank?(v) = !v.is_a?(String) || v.strip.empty?
+
+    def write_receipt(hosts, schema_version, artifact_id, previous)
       data = {
         "installed_at" => Time.now.utc.iso8601,
-        "product_root" => @product_root,
+        # artifact identity：內容決定，與安裝位置、mtime、本 receipt 無關。
+        # 與 store 的 schema_version 是**兩件不同的事**，不得互相冒充。
+        "artifact_id" => artifact_id,
+        # rollback 要知道上一版是誰——不得靠重新下載或猜 SHA（Q7 裁決點 4）。
+        "previous_artifact_id" => previous_artifact_id_for(artifact_id, previous),
+        # 遷移用的精確證據：上一次實際寫進 Host 的 command **原文**
+        # （receipt 的 commands 是 {command_ref => 具體命令}，要的是值不是鍵）。
+        # 舊 hook 的辨識只能靠這個，不得用前綴或「看起來像 OMOS」去猜。
+        "previous_commands" => previous && (previous["commands"] || {}),
+        "build_source_root" => @product_root,
         "ruby_version" => RUBY_VERSION,
         "store_path" => store_path,
         "schema_version" => schema_version,
         "commands" => command_map.invert,
+        # 安裝時**明確設定過**的個人身分。
+        #
+        # 這裡只是保存值，**不是 identity authority**，也沒有新增第二套
+        # identity vocabulary——欄位名沿用 portable record contract 既有的
+        # employee_owner_ref／tenant_id。產品其他地方仍然由呼叫端自己帶身分，
+        # 這份只給 import 這種「使用者不該每次重打一遍」的本機操作讀。
+        #
+        # upgrade 必須原樣保留：新版 install 沒帶 --owner/--tenant 時沿用上一份
+        # receipt 的值，否則升級會把使用者的身分洗掉，而洗掉的徵狀是下一次
+        # import 才會出現的 INBOX_OWNER_IDENTITY_REQUIRED——離原因很遠。
+        # 只有明確重新指定才覆寫。
+        "personal_identity" => personal_identity_for(previous),
         "hosts" => hosts.each_with_object({}) do |host, acc|
           config = HostConfig.new(host, home: @home)
           acc[host] = {
@@ -145,8 +524,34 @@ module OMOS
           }
         end
       }
+      write_receipt_bytes("#{JSON.pretty_generate(data)}\n")
+    end
+
+    # receipt 一律 temp + rename 寫入。receipt 是卸載、遷移、rollback 與 GC 的
+    # 唯一依據，一份被截斷的 receipt 比沒有 receipt 更糟——沒有時我們會明確
+    # 失敗（見 refuse_unknown_legacy!），被截斷時 JSON.parse 會炸在不相干的
+    # 地方。rename(2) 保證讀到的不是舊的就是新的。
+    def write_receipt_bytes(bytes)
       FileUtils.mkdir_p(File.dirname(receipt_path))
-      File.write(receipt_path, "#{JSON.pretty_generate(data)}\n")
+      tmp = "#{receipt_path}.writing-#{Process.pid}"
+      begin
+        File.binwrite(tmp, bytes)
+        File.rename(tmp, receipt_path)
+      rescue StandardError
+        FileUtils.rm_f(tmp)
+        raise
+      end
+    end
+
+    # current 還原成指定的目標（nil 代表原本就沒有 current）。
+    # 與 activate 一樣走 temp + rename，不用 rm 再建——中間不留空窗。
+    def restore_pointer(target)
+      return FileUtils.rm_f(current_link) if target.nil?
+
+      tmp = "#{current_link}.restoring-#{Process.pid}"
+      FileUtils.rm_f(tmp)
+      File.symlink(target, tmp)
+      File.rename(tmp, current_link)
     end
 
     def restore_all(backups)
@@ -160,13 +565,49 @@ module OMOS
       end
     end
 
-    def rollback(backups, store_created)
+    # 安裝交易失敗時的「全部還原」。
+    #
+    # 刻意**不叫** rollback：那個名字已經是使用者可見的「切回上一版」語意
+    # （public #rollback）。兩者同名會讓後定義的這支覆蓋掉前者，CLI 的
+    # rollback 就會變成呼叫這支私有方法而爆 ArgumentError——這是 Ruby
+    # 沒有 overload 的直接後果，不是風格問題。
+    def abort_install(backups, store_created, activation = nil)
       restore_all(backups)
-      FileUtils.rm_f(receipt_path)
+      restore_activation(activation)
       # 這次安裝才建立的 store 才刪；既有 store 一律不動。
-      return unless store_created
+      if store_created
+        [store_path, "#{store_path}-wal", "#{store_path}-shm"].each { |f| FileUtils.rm_f(f) }
+      end
+      nil
+    end
 
-      [store_path, "#{store_path}-wal", "#{store_path}-shm"].each { |f| FileUtils.rm_f(f) }
+    # repair-01 P1-1：把 activation 還原到交易開始前的狀態。
+    #
+    # 三件事缺一不可：
+    #   1. current 切回原本指向的 artifact（原本沒有就移除）——先前只還原
+    #      Host 設定，結果升級失敗後 current 已指向新版。
+    #   2. receipt 還原成舊的那一份，而不是直接刪掉——刪掉會讓下一次安裝
+    #      失去遷移所需的精確證據。
+    #   3. 清掉這次交易**新建且沒有被引用**的 artifact（孤兒）。重用既有
+    #      版本時不得刪，它可能還是別人的 current。
+    def restore_activation(activation)
+      return FileUtils.rm_f(receipt_path) if activation.nil?
+
+      restore_pointer(activation[:previous_current])
+
+      # launcher 逐支精確還原：原本存在就寫回原始位元組與模式，原本不存在
+      # 才刪除。這與 current 的還原是**各自獨立**的——launcher 可能在
+      # current 沒變的情況下被覆寫。
+      restore_launchers(activation[:previous_launchers])
+
+      if activation[:previous_receipt]
+        write_receipt_bytes(activation[:previous_receipt])
+      else
+        FileUtils.rm_f(receipt_path)
+      end
+
+      orphan = activation[:created_artifact]
+      FileUtils.rm_rf(orphan) if orphan && orphan != activation[:previous_current]
     end
   end
 end

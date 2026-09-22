@@ -11,6 +11,17 @@ require "open3"
 require "fileutils"
 
 module Support
+  # --- 假時間 ---------------------------------------------------------
+  #
+  # 契約驗收 12 要求收斂的時間邊界要有 deterministic 測試，而且**不得真的
+  # sleep 5 秒**。所以 Schedule 的 clock／sleeper 一律注入：clock 讀假的
+  # monotonic 值，sleeper 不睡、只把它往前推。
+  #
+  # 共用一個累加的讀數是安全的：converge_to 每次呼叫都自己記 started，
+  # 只看差值，所以單調遞增就夠。
+  FAKE_NOW = { t: 0.0 }
+  TSEAM = { clock: -> { FAKE_NOW[:t] }, sleeper: ->(d) { FAKE_NOW[:t] += d } }.freeze
+
   # --- 檢查收集與輸出 --------------------------------------------------
 
   class Checks
@@ -25,6 +36,17 @@ module Support
     def check(name, detail, ok, group: @group)
       @rows << [ok ? "PASS" : "FAIL", group, name, detail.to_s]
       ok
+    end
+
+    # 這台機器上**無法驗證**的命題。
+    #
+    # 只有兩種合法用法，且都必須說清楚由誰負責：workspace B 沒有 repo
+    # 原件可比對（由 repo 側的 drift gate 負責），以及需要真 Host 才能觀測
+    # 的項目。一律印成 N/A 而不是 PASS——把驗不到的東西報成通過，正是
+    # 本產品一路在防的「假成功」。N/A 不影響離開碼，但會出現在報表上。
+    def skip(name, reason, group: @group)
+      @rows << ["N/A", group, name, reason.to_s]
+      nil
     end
 
     # 期待被治理層拒絕，且**實際資料表不得多出任何一列**。
@@ -50,7 +72,9 @@ module Support
         puts format("%-6s %-#{width}s  %s", prefix, n, d)
       end
       failed = @rows.count { |st, _, _, _| st == "FAIL" }
-      puts "\n#{@label}：#{@rows.size - failed}/#{@rows.size} PASS"
+      skipped = @rows.count { |st, _, _, _| st == "N/A" }
+      suffix = skipped.zero? ? "" : "（#{skipped} 項本環境無法驗證，見上方 N/A）"
+      puts "\n#{@label}：#{@rows.size - failed - skipped}/#{@rows.size - skipped} PASS#{suffix}"
       exit(failed.zero? ? 0 : 1)
     end
   end
@@ -111,22 +135,45 @@ module Support
 
   # --- 真的 MCP stdio 子進程（一個實例＝一個進程）-----------------------
 
+  # 真的跑 SessionStart hook executable，餵真 Host 的 stdin 形狀。
+  # 測試不自己捏造 binding——binding 只能由 hook 落地、由 server 讀回。
+  HOOK_EXE = File.expand_path("../exe/omos-personal-memory-session-start", __dir__)
+
+  module_function
+
+  def run_session_start(host:, session_id:, cwd:, state_dir:, scope_mode: "EMPLOYEE_PRIVATE",
+                        source: "startup")
+    payload = JSON.generate({ "session_id" => session_id, "cwd" => cwd,
+                              "hook_event_name" => "SessionStart", "source" => source })
+    out, err, st = Open3.capture3({ "OMOS_SESSION_STATE_DIR" => state_dir },
+                                  HOOK_EXE, "--host", host, "--runtime-scope-mode", scope_mode,
+                                  stdin_data: payload)
+    [out, err, st]
+  end
+
   class MCPClient
     EXE = File.expand_path("../exe/omos-personal-memory-mcp", __dir__)
 
-    attr_reader :binding
-
-    def initialize(store, binding: nil, handshake: true)
-      @binding = binding
-      @in, @out, @err, @wait = Open3.popen3({ "OMOS_PERSONAL_MEMORY_STORE" => store }, EXE)
+    def initialize(store, host: nil, cwd: nil, state_dir: nil, session_id: nil,
+                   scope_mode: "EMPLOYEE_PRIVATE", handshake: true)
+      env = { "OMOS_PERSONAL_MEMORY_STORE" => store }
+      # installer 會把這兩個寫進 MCP 註冊的 env 表；測試照做。
+      env["OMOS_HOST"] = host if host
+      env["OMOS_RUNTIME_SCOPE_MODE"] = scope_mode if host
+      env["OMOS_SESSION_STATE_DIR"] = state_dir if state_dir
+      # repair-02：server 自己找 native session id 的來源。目前唯一有官方管道
+      # 的是 Claude Code（PROCESS_ENV），測試比照真 Host 把它放進子行程環境。
+      env["CLAUDE_CODE_SESSION_ID"] = session_id if session_id && host == "Claude Code"
+      @host = host
+      opts = cwd ? { chdir: cwd } : {}
+      @in, @out, @err, @wait = Open3.popen3(env, EXE, **opts)
       @id = 0
       initialize! if handshake
     end
 
     def initialize!
-      name = @binding ? @binding["executor_ref"] : "conformance"
       rpc("initialize", { "protocolVersion" => "2024-11-05", "capabilities" => {},
-                          "clientInfo" => { "name" => name, "version" => "0" } })
+                          "clientInfo" => { "name" => @host || "conformance", "version" => "0" } })
       notify("notifications/initialized")
     end
 
@@ -147,7 +194,6 @@ module Support
 
     # 回傳 [原始 response, 解析後的 tool 內容]
     def call_tool(name, args)
-      args = args.merge("host_session_binding" => @binding) if @binding
       res = rpc("tools/call", { "name" => name, "arguments" => args })
       text = res&.dig("result", "content", 0, "text")
       [res, text && (begin
@@ -175,6 +221,14 @@ module Support
   end
 
   # --- 假 HOME：全程不碰使用者的正式設定 --------------------------------
+
+  # repo 原件的所在。workspace B（無 source checkout）沒有這個目錄，此時
+  # 「package 與原件位元組相同」在本機無從驗證——由 repo 側的
+  # validate_packaged_governance_drift.rb 負責，**不得**改成與自己比對。
+  def repo_originals
+    root = OMOS::Contract::REPO_ROOT
+    Dir.exist?(File.join(root, "規格/v0.1")) ? root : nil
+  end
 
   module FakeHome
     module_function

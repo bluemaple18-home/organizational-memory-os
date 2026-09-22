@@ -130,7 +130,6 @@
     }
   },
   "positive_cases": [
-    {"case_id": "HBV1_POS_CODEX_NARROWING", "base_ref": "CODEX"},
     {"case_id": "HBV1_POS_CLAUDE_NARROWING", "base_ref": "CLAUDE"},
     {
       "case_id": "HBV1_POS_CLAUDE_NO_PROJECT_OVERRIDE",
@@ -141,10 +140,11 @@
       }
     },
     {
-      "case_id": "HBV1_POS_CODEX_EQUAL_SCOPE",
-      "base_ref": "CODEX",
+      "case_id": "HBV1_POS_EQUAL_SCOPE",
+      "base_ref": "CLAUDE",
       "mutate": {
         "set": {
+          "bootstrap/runtime_scope_mode": "SHARED_WORK_CONTEXT",
           "bootstrap/project_visibility_scope": "WORK_CONTEXT_PARTICIPANTS",
           "bootstrap/produced_binding/effective_scope": "WORK_CONTEXT_PARTICIPANTS"
         }

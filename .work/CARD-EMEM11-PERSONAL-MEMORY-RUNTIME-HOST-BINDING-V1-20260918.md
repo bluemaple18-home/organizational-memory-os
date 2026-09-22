@@ -1,6 +1,9 @@
 ---
 id: EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
-status: BACKLOG_READY_NOT_IMPLEMENTED
+status: DOD_MET_20260920_READY_FOR_SSP295
+human_acceptance: .work/handoff/EMEM11-HUMAN-ACCEPTANCE-20260920.md（ACCEPTED_GO）
+slice3_delivery: fa0959a
+slice3_review: GO_20260920（repair-04，P0/P1/P2/P3 全 0）
 jira: NOT_CREATED
 parent_jira: SSP-286
 type: mvp-product-capability
@@ -11,8 +14,40 @@ depends_on:
 parallel_with:
   - SSP-324
 blocks:
-  - SSP-295_FULL_PRODUCT_PILOT
+  - SSP-295_FULL_PRODUCT_PILOT（進入條件已於 2026-09-21 全部成立，見 .work/CARD-SSP295-FULL-PRODUCT-PILOT-20260921.md）
+packaging: CARD-EMEM11-STANDALONE-PACKAGING-IMPLEMENTATION-20260921（ALL_SLICES_ACCEPTED_GO，Slice C repair-01 @ d652bee）
+scope_decision: .work/CARD-EMEM11-SCOPE-FREEZE-20260920.md
+supported_hosts_v1:
+  - Claude Code
+follow_up:
+  - CARD-EMEM11B-CODEX-CROSS-HOST-20260920
 ---
+
+> **Owner 範圍裁決 2026-09-20（FP-1 A／FP-2 C／FP-3 A）**：v1 交付範圍為
+> **Claude Code 單一 Host**。Codex 為 known-but-not-delivered
+> （`BLOCKED_UPSTREAM_IDENTITY_CHANNEL`）：契約仍認識它、設定面（install／
+> uninstall／shadow／health）照常評估，但產不出 HostSessionBinding，
+> 一律回 `HBV1_HOST_BLOCKED_UPSTREAM`。Codex 與真正的 cross-host 能力見
+> `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`。
+> **SSP-295 的進入條件以收斂後的單 Host DoD 為準**，不等 Codex。
+
+> **切片 3 收線（2026-09-20）**：delivery `fa0959a`，定點 review **GO**
+> （P0/P1/P2/P3 全 0）。回歸：3a 26/26、3b 33/33、3c 49/49、39 支 validators
+> 全過。repair 歷程：repair-02 `756f005`（GO）→ scope correction `263c048`
+> （NO_GO）→ repair-03 `6f042d9`（四筆 CLOSED）→ repair-04 `fa0959a`（GO）。
+>
+> **DoD 已全部成立（2026-09-20）**：最後一項「已交付 Host（Claude Code）有
+> 真人實測」已完成並判 **ACCEPTED_GO**。在真的 Claude Code v2.1.278
+> session 中實測：SessionStart hook 由真 Host 觸發、hook 與 MCP server 看到
+> 同一個 native session id、write→read→closeout 全程經 MCP 進 Store（獨立
+> SQLite 連線佐證）、重啟後資料存活且新 session 不沿用舊 identity、缺可信
+> binding 時以 `MCP_NO_SESSION_RECORD` fail closed 且未動到任何資料、
+> doctor 0 FAIL。證據包：
+> `.work/handoff/EMEM11-HUMAN-ACCEPTANCE-20260920.md`。
+> **本卡不再阻擋 SSP-295。**
+>
+> 仍未收治（不在本卡範圍）：產品尚未可獨立安裝（`contract.rb` 的 spec 路徑
+> 指向 repo 內）、session state 檔無清理路徑、doctor 的 hook WARN 無法收斂。
 
 # EMEM-11｜Personal Memory Runtime & Host Binding v1
 
@@ -28,14 +63,24 @@ SSP-323 已封的是 Personal Memory Core：
 - batch UX / closeout semantics
 
 EMEM-11 補的是第一版正式產品的 **local runtime + host integration layer**：
-把已驗收的 Personal Memory contract 變成 Codex / Claude Code 可以在每個受支援專案中穩定使用的本機能力。
+把已驗收的 Personal Memory contract 變成 Host 可以在每個受支援專案中穩定使用的本機能力。
 
-v1 正式支援範圍只包含：
+v1 正式交付範圍（`supported_hosts_v1`，Owner 裁決 2026-09-20 收斂）：
 
 ```text
-OpenAI Codex
 Anthropic Claude Code
 ```
+
+已知但**本版不交付**（`blocked_hosts_v1`）：
+
+```text
+OpenAI Codex — BLOCKED_UPSTREAM_IDENTITY_CHANNEL
+```
+
+Codex 仍是契約認識的 Host：host profile、設定探索、install／uninstall／shadow／
+health 的評估全部保留，但它產不出 `HostSessionBinding`（`HBV1_HOST_BLOCKED_UPSTREAM`）、
+Runtime 授權閘也不收它的 binding、installer 預設不交付它。解除條件與原本的
+cross-host 驗收見 `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`。
 
 其他 AI Host（ChatGPT app / Gemini / 其他）一律不列 v1 compatibility promise，不建立假抽象。
 
@@ -399,16 +444,26 @@ omos-personal-memory doctor
 - weekly review period continuity
 - uninstall / rollback metadata
 
-### Cross-host acceptance
+### Same-store acceptance（v1 範圍：Claude Code）
+
+> **Owner 範圍裁決 2026-09-20**（`.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md`，簽
+> FP-1 A／FP-2 C／FP-3 A）：v1 交付範圍收斂為 Claude Code。原本的第 1、2 項
+> **Codex ↔ Claude Code cross-host 實測整條搬到
+> `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`**（狀態 BLOCKED，等上游提供可信
+> native session identity channel），**不是改寫成別的能力**——並行 session
+> 共用同一 store 值得驗，但那不是 cross-host。
 
 必須實測：
 
-1. Codex → Claude Code 使用同一 Local Personal Store，不做 memory migration。
-2. Claude Code → Codex 同理。
+1. 同一 Host 的兩個並行 session（同 cwd、不同 native session id）使用同一
+   Local Personal Store，不互相覆蓋 identity、不做 memory migration。
+2. （原 Codex ↔ Claude Code 雙向 cross-host 實測 → 移至 EMEM-11b，此處不再列為
+   v1 驗收項。）
 3. Project A → Project B 不重新建 store、不重新定義 lifecycle。
 4. Project B 比 A 權限小時，只能少看，不能擴權。
 5. Host restart / resume / compact 不產生 duplicate weekly closeout / Promotion。
-6. 同一 review period 在兩 Host 間切換仍維持同一 identity。
+6. 同一 review period 在同一 Host 的並行 session 間切換仍維持同一 identity。
+   （原為「在兩 Host 間切換」——跨 Host 部分隨 Codex 一併移至 EMEM-11b。）
 7. MCP / hook broken 或 shadowed 時明確失敗，不 silent fallback。
 8. install → upgrade → uninstall → reinstall 不破壞 Personal Store truth。
 9. vendor-native memory on/off 不改 Personal Store canonical semantics。
@@ -419,13 +474,16 @@ omos-personal-memory doctor
 
 ### 0. 假設與目標確認
 
-- **目標**：把 EMEM-11 從「契約層」推到**可安裝、可診斷、可跨 Codex／Claude Code
-  實際使用的實物**。這一片要交出真的會開啟 SQLite、真的被兩個 Host 以 stdio 呼叫、
-  真的讀寫使用者設定檔的程式。
-- **邊界**：只做 Codex + Claude Code 兩個 Host；不新增 Jira 卡；不推翻切片 1／2 的
+- **目標**：把 EMEM-11 從「契約層」推到**可安裝、可診斷、可實際使用的實物**。
+  這一片要交出真的會開啟 SQLite、真的被 Host 以 stdio 呼叫、真的讀寫使用者
+  設定檔的程式。
+  （原文為「可跨 Codex／Claude Code 實際使用」「真的被兩個 Host 呼叫」——
+  Owner 裁決 2026-09-20 後 v1 交付 Host 只有 Claude Code。）
+- **邊界**：v1 交付 **Claude Code 單一 Host**；Codex 保留 profile 與設定面
+  評估但不交付（見 EMEM-11b）；不新增 Jira 卡；不推翻切片 1／2 的
   契約與已接受裁決；不碰同事的正式設定（安裝／卸載測試一律在隔離的 HOME）。
 - **驗收**：契約測資與實際操作證據**分欄計算**，不混算 PASS；三組驗收（安裝與復原／
-  Doctor 與失敗診斷／跨 Host 與跨專案）各自要有實物證據。
+  Doctor 與失敗診斷／並行 session、同一 Store 與跨專案）各自要有實物證據。
 - **前置決策**：產品實作語言與 runtime（見 §5），需 Owner 裁決後才動手。
 
 ### 1. 實體交付對照（開工前盤點，2026-09-20 實測）
@@ -481,9 +539,11 @@ before/after 快照是證據。
 |---|---|
 | **A 安裝與復原** | 在隔離 HOME 實際 install → reinstall → upgrade → uninstall；保留非本產品設定與個人資料；中途失敗必須停止或復原，不得留下半套卻回報成功（以注入失敗點實測）。 |
 | **B Doctor 與失敗診斷** | 讀實際設定檔、解析實際啟動目標、實際執行健康檢查。「設定存在」「程序能啟動」「Store 能使用」必須是三種不同結果；缺 executable／被同名設定遮蔽／hook 未啟用各自要有實測失敗案例，不得靠 caller 自報。 |
-| **C 跨 Host 與跨專案** | Codex 寫入 → Claude Code 從同一 Store 讀回，反向亦然；切換專案不得擴權；retry／重啟不得產生第二筆相同提交或第二次 terminal closeout。記錄實際測試的 Host 版本與使用入口。 |
+| **C 並行 session、同一 Store 與跨專案** | 同一 Host 的兩個並行 session（同 cwd、不同 native session id）對同一個 Store 雙向往返，各自 binding 不被對方覆蓋；切換專案不得擴權；retry／重啟不得產生第二筆相同提交或第二次 terminal closeout。記錄實際測試的 Host 版本與使用入口。**這一組不叫 cross-host**——Codex ↔ Claude Code 的 cross-host same-store 驗收在 EMEM-11b。 |
 
-只驗 Codex + Claude Code。**沒實測過的入口不得因品牌相同一併宣稱支援。**
+v1 只驗 Claude Code（Owner 裁決 2026-09-20；Codex 為 known-but-not-delivered，
+見 `personal_memory_runtime.blocked_hosts_v1`）。**沒實測過的入口不得因品牌相同
+一併宣稱支援；被標為 blocked 的 Host 也不得因為設定寫得進去就算交付。**
 
 ### 4. 實作順序（同一張卡內分三階段，非三張卡）
 
@@ -492,7 +552,7 @@ before/after 快照是證據。
   治理層（`no direct DB access path`）。產出 operation journal。
 - **3b｜MCP server + Host 啟動整合**：stdio MCP server 暴露同一 runtime；
   SessionStart 產生 HostSessionBinding；實際讀寫 Codex／Claude Code 設定探索。
-- **3c｜Installer / Doctor / 跨 Host conformance**：三組驗收與證據收集。
+- **3c｜Installer / Doctor / 並行 session conformance**：三組驗收與證據收集。
 
 ### 5. 實作語言與 runtime — Owner 已裁決（2026-09-20）
 
@@ -559,8 +619,10 @@ installer 不得假設每位同事都已有合適版本的 Ruby；取得與鎖�
 
 ### 7. Minimum Sufficient
 
-**why_not_less** — DoD 明文要求 installer / doctor deterministic acceptance、兩個
-Host 真人實測、cross-host same-store 實證。少於「一支三個介面（CLI／MCP／installer）
+**why_not_less** — DoD 明文要求 installer / doctor deterministic acceptance、
+**Claude Code 真人實測**（Owner 裁決 2026-09-20 前為「兩個 Host 真人實測」，
+Codex 部分連同 cross-host same-store 實證一併移至 EMEM-11b）、同一 Store 在
+並行 session 下的實證。少於「一支三個介面（CLI／MCP／installer）
 共用的 runtime」就交不出這些。
 
 **why_not_more** — 明確不做：常駐 daemon、background reasoning agent、vector DB、
@@ -588,7 +650,8 @@ Claude Code 以外的 Host、GUI、自動更新。
 
 **超出既有規範的說明（依指示先講，不完工才補）**：切片 1 約 913 行手寫、切片 2 約
 775 行，兩片都是**只交契約不交程式**才那麼小。切片 3 是 EMEM-11 第一片要交出可執行
-產品的切片，主卡本來就要求 installer、doctor、MCP executable 與跨 Host 實測，
+產品的切片，主卡本來就要求 installer、doctor、MCP executable 與實機實測（原文為「跨 Host 實測」，
+Owner 裁決 2026-09-20 後收斂為已交付 Host），
 這些責任在原卡、不是新增需求。切片 1「不按 store／surface 人工二分、只按真正共用接點
 抽取」的裁決保留——因此**不會**為了行數把這片拆成人工邊界，而是按 §4 的
 3a／3b／3c 實作順序推進，每階段可獨立回報與檢查。
@@ -636,10 +699,17 @@ EMEM-10 與 EMEM-11 可平行施工；SSP-295 full product pilot 必須等兩者
 
 EMEM-11 只有在以下全部成立才可進 SSP-295 full pilot：
 
+> **Owner 範圍裁決 2026-09-20（FP-1 A／FP-2 C／FP-3 A）後的 normative DoD。**
+> 原文要求「兩個 Host 都有真人實測」與「cross-host same-store 實證」；Codex
+> 已收斂為 known-but-not-delivered，該兩項連同 Codex 一併移至
+> `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`，**不再是本卡進 SSP-295 的條件**。
+
 - Slice 1/2/3 全部 machine-readable contract / fixtures / validators 或等價可重播驗證完成
 - installer / doctor 有 deterministic acceptance
-- Codex 與 Claude Code 兩個 Host 都有真人實測
-- cross-host same-store / permission-narrowing / review-period idempotency 實證通過
+- **已交付 Host（Claude Code）有真人實測**
+- **同一 Store 在並行 session 下** / permission-narrowing / review-period idempotency 實證通過
+- blocked host（Codex）在三個層級都真的擋得住：bootstrap 產不出 binding、
+  Runtime 授權閘拒收繞過 bootstrap 的 binding、installer 預設不交付
 - no direct DB access path
 - no second lifecycle / second Personal authority
 - repo regression 全綠

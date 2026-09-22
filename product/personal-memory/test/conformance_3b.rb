@@ -14,6 +14,7 @@ require "tmpdir"
 require "fileutils"
 require "open3"
 require "sqlite3"
+require "rbconfig"
 $LOAD_PATH.unshift(File.expand_path("../lib", __dir__))
 require "omos/version_guard"
 OMOS::VersionGuard.assert!
@@ -32,13 +33,37 @@ Dir.mktmpdir("omos-3b") do |dir|
 
   # --- SessionStart 產出 binding（推導委派切片 2 evaluator）---
   binding = OMOS::SessionStart.produce(
-    host: "Codex", native_session_id: "codex-session-3b", cwd: File.join(dir, "projA"),
+    host: "Claude Code", native_session_id: "claude-session-3b", cwd: File.join(dir, "projA"),
     project_ref: "urn:omos:project:a", runtime_scope_mode: "EMPLOYEE_PRIVATE"
   )
   C.check("SessionStart 產出 binding", binding["effective_scope"], binding["effective_scope"] == "SELF_ONLY")
 
+  # Owner 範圍裁決 2026-09-20：v1 只交付 Claude Code。Codex 仍是契約認識的
+  # Host（設定面照常評估，見本檔後段的設定探索段落），但產不出 binding——
+  # 而且錯誤碼必須是「認識但未交付」，不是「不認識這個 Host」。
+  blocked = begin
+    OMOS::SessionStart.produce(host: "Codex", native_session_id: "codex-session-3b",
+                               cwd: File.join(dir, "projA"), project_ref: "urn:omos:project:a",
+                               runtime_scope_mode: "EMPLOYEE_PRIVATE")
+    nil
+  rescue OMOS::SessionStart::Refused => e
+    e.code
+  end
+  C.check("Codex 為 known-but-not-delivered，SessionStart 產不出 binding", blocked.to_s,
+          blocked == "HBV1_HOST_BLOCKED_UPSTREAM")
+
+  unknown = begin
+    OMOS::SessionStart.produce(host: "DeepSeek Harness", native_session_id: "s", cwd: dir,
+                               project_ref: "p", runtime_scope_mode: "EMPLOYEE_PRIVATE")
+    nil
+  rescue OMOS::SessionStart::Refused => e
+    e.code
+  end
+  C.check("完全不認識的 Host 回的是 HOST_NOT_SUPPORTED，與 blocked 分得開", unknown.to_s,
+          unknown == "HBV1_HOST_NOT_SUPPORTED")
+
   widened = begin
-    OMOS::SessionStart.produce(host: "Codex", native_session_id: "s", cwd: dir,
+    OMOS::SessionStart.produce(host: "Claude Code", native_session_id: "s", cwd: dir,
                                project_ref: "p", runtime_scope_mode: "EMPLOYEE_PRIVATE",
                                project_visibility_scope: "WORK_CONTEXT_PARTICIPANTS")
     nil
@@ -47,8 +72,30 @@ Dir.mktmpdir("omos-3b") do |dir|
   end
   C.check("專案不得擴權", widened, widened == "HBV1_PROJECT_SCOPE_WIDENS_BASELINE")
 
-  # --- 真的 spawn MCP server，走真的 stdio JSON-RPC ---
-  client = Support::MCPClient.new(store, handshake: false)
+  # --- 真的跑 SessionStart hook（真 Host 的 stdin 形狀），再 spawn MCP server ---
+  #
+  # repair-02：MCP server 的 binding 需要獨立得知 native session id，目前只有
+  # Claude Code 有官方管道（PROCESS_ENV）；Codex 一律 fail closed
+  # （MCP_NATIVE_SESSION_ID_UNAVAILABLE，見本檔案後段獨立驗證）。這裡的
+  # 「MCP 真的能寫能讀」happy path 因此改用 Claude Code。
+  state_dir = File.join(dir, "state")
+  proj = File.join(dir, "projA")
+  FileUtils.mkdir_p(proj)
+  sid = "claude-session-3b"
+  hook_out, _hook_err, hook_st = Support.run_session_start(
+    host: "Claude Code", session_id: sid, cwd: proj, state_dir: state_dir
+  )
+  C.check("SessionStart hook 吃真 Host stdin 並成功", "exit=#{hook_st.exitstatus}",
+          hook_st.success? && hook_out.include?("hookSpecificOutput"))
+
+  no_sid_out, no_sid_err, no_sid_st = Support.run_session_start(
+    host: "Claude Code", session_id: "", cwd: proj, state_dir: state_dir
+  )
+  C.check("stdin 缺 session_id 時 hook 明確拒絕", (no_sid_err + no_sid_out).strip[0, 40],
+          !no_sid_st.success? && (no_sid_err + no_sid_out).include?("MISSING_HOST_SESSION_ID"))
+
+  client = Support::MCPClient.new(store, host: "Claude Code", cwd: proj, state_dir: state_dir,
+                                  session_id: sid, handshake: false)
   init = client.rpc("initialize", { "protocolVersion" => "2024-11-05",
                                         "capabilities" => {},
                                         "clientInfo" => { "name" => "conformance", "version" => "0" } })
@@ -61,19 +108,14 @@ Dir.mktmpdir("omos-3b") do |dir|
   C.check("tools/list 暴露三個 tool", names.inspect,
         names == %w[personal_memory_closeout personal_memory_read personal_memory_write])
 
-  # 缺 binding 必須明確失敗。tool schema 會先擋下來（更早的拒絕，合格），
-  # 但真正的保證在 Runtime，所以另外直接驗 Runtime 那一層。
-  res_missing, missing = client.call_tool("personal_memory_write",
-                                          { "kind" => "MemorySupportLink", "resource" => F.link_body(L1, R1),
-                                            "idempotency_key" => "k-l1" })
-  protocol_refused = !res_missing.nil? &&
-                     (!res_missing["error"].nil? || missing.to_s.include?("Missing required arguments"))
-  C.check("MCP 呼叫缺 host_session_binding 被 tool schema 擋下",
-        missing.to_s[0, 50], protocol_refused)
+  # binding 不再是 tool 參數——模型連提供的欄位都沒有。
+  write_schema = (tools&.dig("result", "tools") || []).find { |t| t["name"] == "personal_memory_write" }
+  schema_props = (write_schema&.dig("inputSchema", "properties") || {}).keys.sort
+  C.check("tool schema 不含 host_session_binding（模型無從提供）", schema_props.inspect,
+          !schema_props.include?("host_session_binding"))
 
-  # 帶 binding 的合法寫入
   _, wrote = client.call_tool("personal_memory_write",
-                              { "host_session_binding" => binding, "kind" => "MemorySupportLink",
+                              { "kind" => "MemorySupportLink",
                                 "resource" => F.link_body(L1, R1), "idempotency_key" => "k-l1" })
   C.check("MCP 合法寫入", wrote.is_a?(Hash) ? wrote["status"] : wrote.to_s,
         wrote.is_a?(Hash) && wrote["status"] == "WROTE")
@@ -82,23 +124,60 @@ Dir.mktmpdir("omos-3b") do |dir|
   bad = F.link_body("urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b9", R1)
   bad["anchor_resolution"] = "AMBIGUOUS"
   _, refused = client.call_tool("personal_memory_write",
-                                { "host_session_binding" => binding, "kind" => "MemorySupportLink",
+                                { "kind" => "MemorySupportLink",
                                   "resource" => bad, "idempotency_key" => "k-bad" })
   C.check("MCP 寫入被既有治理 evaluator 拒絕",
         refused.is_a?(Hash) ? refused["code"] : refused.to_s,
         refused.is_a?(Hash) && refused["code"] == "PMR_ROW_RESOURCE_FAILS_RESOURCE_CONTRACT")
 
-  # 偽造 binding（塞第二套身分欄位）
-  shadow = binding.merge("host" => "Codex")
-  _, shadowed = client.call_tool("personal_memory_read", { "host_session_binding" => shadow })
-  C.check("MCP 帶第二套身分欄位的 binding 被拒",
-        shadowed.is_a?(Hash) ? shadowed["code"] : shadowed.to_s,
-        shadowed.is_a?(Hash) && shadowed["code"] == "PMR_HOST_BINDING_SHADOW_IDENTITY_FIELD")
+  # 模型即使硬塞 binding 參數也無效：schema 未宣告，server 一律用自己建構的。
+  _, ignored = client.call_tool("personal_memory_read",
+                                { "host_session_binding" => { "executor_ref" => "Hermes",
+                                                              "executor_session_ref" => "forged" } })
+  C.check("模型硬塞的 binding 參數被忽略（server 用自己建構的）",
+          ignored.is_a?(Array) ? "以 server binding 正常回應" : ignored.to_s,
+          ignored.is_a?(Array))
 
-  _, rows = client.call_tool("personal_memory_read", { "host_session_binding" => binding })
+  _, rows = client.call_tool("personal_memory_read", {})
   C.check("MCP 讀回", rows.is_a?(Array) ? rows.size : rows.to_s, rows.is_a?(Array) && rows.size == 1)
 
   client.close
+
+  # 沒有 session 記錄（有 native session id，但 hook 沒落地過這一個）：
+  # server 建不出 binding，必須 fail closed。
+  other = File.join(dir, "no-session")
+  FileUtils.mkdir_p(other)
+  lone = Support::MCPClient.new(store, host: "Claude Code", cwd: other, state_dir: state_dir,
+                                session_id: "claude-session-3b-no-record")
+  lone_res = lone.read
+  lone.close
+  C.check("無 SessionStart 記錄的 native session 一律 fail closed",
+          lone_res.is_a?(Hash) ? lone_res["code"] : lone_res.to_s,
+          lone_res.is_a?(Hash) && lone_res["code"] == "MCP_NO_SESSION_RECORD")
+
+  # repair-02 的產品裁決：Codex 目前沒有官方管道讓 MCP server 獨立得知
+  # native session id，因此一律 fail closed，不退回 cwd 或任何代理鍵猜測。
+  # 三個 tool 都要驗，不能只驗 read——establish_binding! 是連線層級一次性判定，
+  # 但這是「目前的實作事實」，不是「不用驗」的理由。
+  codex_client = Support::MCPClient.new(store, host: "Codex", cwd: proj, state_dir: state_dir)
+  codex_read = codex_client.read
+  _, codex_write = codex_client.call_tool("personal_memory_write",
+                                          { "kind" => "MemorySupportLink",
+                                            "resource" => F.link_body(
+                                              "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000bb",
+                                              R1), "idempotency_key" => "k-codex-write" })
+  codex_closeout = codex_client.closeout(F.closeout(
+                                            "urn:omos:personal-memory:review-period:2026-W37",
+                                            "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000cc",
+                                            "COMPLETE", "SCHEDULED"
+                                          ))
+  codex_client.close
+  codex_all_refused = [codex_read, codex_write, codex_closeout].all? do |r|
+    r.is_a?(Hash) && r["status"] == "REFUSED" && r["code"] == "MCP_NATIVE_SESSION_ID_UNAVAILABLE"
+  end
+  C.check("Codex 目前無可信 native session 管道，read/write/closeout 三個 tool 全部 fail closed",
+          [codex_read, codex_write, codex_closeout].map { |r| r.is_a?(Hash) ? r["code"] : r.to_s }.inspect,
+          codex_all_refused)
 
   # Runtime 層的保證（不依賴 tool schema）：MCP surface 少了 binding 必須以
   # 契約錯誤碼拒絕。
@@ -110,15 +189,65 @@ Dir.mktmpdir("omos-3b") do |dir|
   rescue OMOS::Runtime::Rejected => e
     e.code
   end
-  rt_probe.store.close
   C.check("Runtime 層：MCP surface 無 binding 被拒", runtime_missing.to_s,
         runtime_missing == "PMR_MCP_OPERATION_MISSING_HOST_BINDING")
+
+  # repair-03 P1-1 的回歸測試：blocked host 不得繞過 bootstrap 直接被 Runtime
+  # 授權。這裡刻意**不經 SessionStart.produce**，手工遞一份逐欄合法的 Codex
+  # binding 給 Runtime——形狀完全正確，只有「這一版沒交付這個 Host」一項不對。
+  # 先前 Runtime 的授權閘與純形狀檢查共用同一份 bindings（認 known_hosts），
+  # 這份 binding 會被放行（reviewer 實測 runtime_read=ALLOWED）。
+  forged_codex_binding = {
+    "executor_ref" => "Codex", "executor_session_ref" => "codex-forged-001",
+    "cwd" => proj, "project_ref" => "urn:omos:project:a", "effective_scope" => "SELF_ONLY"
+  }
+  blocked_at_runtime = begin
+    rt_probe.read_rows(surface: OMOS::Runtime::SURFACES[:mcp], binding: forged_codex_binding)
+    nil
+  rescue OMOS::Runtime::Rejected => e
+    e.code
+  end
+  rt_probe.store.close
+  C.check("Runtime 層：blocked host 的合法形狀 binding 仍被拒（不得繞過 bootstrap）",
+          blocked_at_runtime.to_s,
+          blocked_at_runtime == "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST")
+
+  # 對照組：同一條路徑，已交付的 Host 必須通得過，否則上面那條是因為別的原因綠的。
+  delivered_binding = forged_codex_binding.merge("executor_ref" => "Claude Code",
+                                                 "executor_session_ref" => "claude-probe-001")
+  delivered_ok = OMOS::Contract.binding_problem(delivered_binding)
+  C.check("對照組：已交付 Host 的同形狀 binding 通過 Runtime 授權", delivered_ok.inspect,
+          delivered_ok.nil?)
 
   # --- 以獨立連線直接查資料庫確認（不信 server 的自我回報）---
   db = SQLite3::Database.new(store)
   landed = db.execute("SELECT row_id FROM memory_rows ORDER BY rowid").flatten
   surfaces = db.execute("SELECT DISTINCT surface FROM operation_journal").flatten.sort
   db.close
+  # repair-04 P2：事後 conformance oracle 必須與 Runtime 授權閘用**同一組**
+  # host set。先前 oracle 吃 known_hosts，於是把這份 journal 的 MCP binding
+  # 換成 blocked host 之後仍被判合法——真正的 Runtime 早就擋住了，但「證據」
+  # 與「授權」對不起來，事後看 journal 會得到錯的結論。
+  mcp_log = OMOS::Runtime.open(store)
+  real_log = mcp_log.operation_log
+  mcp_log.store.close
+  C.check("真實 MCP journal 通過事後 oracle", OMOS::Contract.runtime_log_problem(real_log).inspect,
+          OMOS::Contract.runtime_log_problem(real_log).nil?)
+
+  codex_log = JSON.parse(JSON.generate(real_log))
+  rewritten = 0
+  codex_log.fetch("operations").each do |op|
+    next unless op["host_session_binding"].is_a?(Hash)
+
+    op["host_session_binding"]["executor_ref"] = "Codex"
+    rewritten += 1
+  end
+  codex_log_problem = OMOS::Contract.runtime_log_problem(codex_log)
+  C.check("blocked host 的 journal 被事後 oracle 拒絕（與 Runtime 授權同一組 host set）",
+          "改寫 #{rewritten} 筆 binding → #{codex_log_problem.inspect}",
+          rewritten.positive? &&
+          codex_log_problem == "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST")
+
   C.check("獨立連線查資料表：合法那筆真的落地", landed.inspect, landed == [L1])
   C.check("被拒絕的那筆完全沒落地", landed.size, landed.size == 1)
   C.check("journal 記錄的 surface 為 LOCAL_STDIO_MCP", surfaces.inspect, surfaces == ["LOCAL_STDIO_MCP"])
@@ -133,35 +262,39 @@ Dir.mktmpdir("omos-3b") do |dir|
   fake_home = File.join(dir, "home")
   FileUtils.mkdir_p(File.join(fake_home, ".codex"))
   FileUtils.mkdir_p(File.join(fake_home, ".claude"))
+  # Host 原生形狀：hook 是 event → matcher group → handler[]，handler 無 id。
   File.write(File.join(fake_home, ".codex/config.toml"), <<~TOML)
     [mcp_servers.foreign-tool]
     command = "foreign"
+
     [[hooks.SessionStart]]
-    id = "foreign.bootstrap"
+
+    [[hooks.SessionStart.hooks]]
+    type = "command"
     command = "foreign-boot"
   TOML
   File.write(File.join(fake_home, ".claude.json"),
              JSON.generate({ "mcpServers" => { "foreign-tool" => { "command" => "foreign" } } }))
   File.write(File.join(fake_home, ".claude/settings.json"),
-             JSON.generate({ "hooks" => { "SessionStart" => [{ "id" => "foreign.bootstrap",
-                                                               "command" => "foreign-boot" }] } }))
+             JSON.generate({ "hooks" => { "SessionStart" =>
+                             [{ "hooks" => [{ "type" => "command", "command" => "foreign-boot" }] }] } }))
 
   codex = OMOS::HostConfig.new("Codex", home: fake_home)
   snap = codex.snapshot
   C.check("Codex 設定探索讀到實際 TOML 的 mcp_servers", snap["mcp_entries"].keys.inspect,
         snap["mcp_entries"].keys == ["foreign-tool"])
-  C.check("Codex 設定探索讀到 [[hooks.SessionStart]]",
-        snap["session_start_hooks"].map { |h| h["id"] }.inspect,
-        snap["session_start_hooks"].map { |h| h["id"] } == ["foreign.bootstrap"])
+  C.check("Codex 設定探索讀到三層 [[hooks.SessionStart.hooks]]",
+        snap["session_start_hooks"].map { |h| h["command_ref"] }.inspect,
+        snap["session_start_hooks"].map { |h| h["command_ref"] } == ["foreign-boot"])
   C.check("未安裝時既有 evaluator 回報 MCP 缺漏", codex.own_registration_problem.to_s,
         codex.own_registration_problem == "HBV1_EFFECTIVE_MCP_MISSING_OR_DRIFTED")
 
   claude = OMOS::HostConfig.new("Claude Code", home: fake_home)
   csnap = claude.snapshot
   C.check("Claude Code 的 MCP 與 hook 在不同檔案，兩者都讀到",
-        "#{csnap["mcp_entries"].keys.inspect} / #{csnap["session_start_hooks"].map { |h| h["id"] }.inspect}",
+        "#{csnap["mcp_entries"].keys.inspect} / #{csnap["session_start_hooks"].map { |h| h["command_ref"] }.inspect}",
         csnap["mcp_entries"].keys == ["foreign-tool"] &&
-        csnap["session_start_hooks"].map { |h| h["id"] } == ["foreign.bootstrap"])
+        csnap["session_start_hooks"].map { |h| h["command_ref"] } == ["foreign-boot"])
 
   # 設定壞掉要明確失敗，不得 silent fallback 成「沒有註冊」
   File.write(File.join(fake_home, ".claude.json"), "{ this is not json")
@@ -198,9 +331,29 @@ Dir.mktmpdir("omos-3b") do |dir|
 
   bad_out, bad_err, bad_st = Open3.capture3(clean.merge("OMOS_RUBY" => "/usr/bin/ruby"),
                                             cli_exe, "--help", unsetenv_others: true)
+  # Slice B repair-01：呼叫端的 bundler 環境不得影響 ABI probe。
+  #
+  # sanitization 原本放在 wrapper source pinned-ruby.sh **之後**，但 ABI probe
+  # 就在那支腳本裡執行——於是 caller 的 RUBYOPT=-rbundler/setup 與
+  # BUNDLE_GEMFILE 會讓 probe 在別人的 bundler 環境下啟動，產生**假的 ABI
+  # 不符**。修復前實測輸出正是「找不到 ABI 相容的 Ruby」。
+  hostile_dir = File.join(dir, "hostile-bundler")
+  FileUtils.mkdir_p(hostile_dir)
+  File.write(File.join(hostile_dir, "Gemfile"),
+             "source \"https://rubygems.org\"\ngem \"this_gem_does_not_exist_anywhere\"\n")
+  hostile_env = { "RUBYOPT" => "-rbundler/setup",
+                  "BUNDLE_GEMFILE" => File.join(hostile_dir, "Gemfile") }
+  h_out, h_err, h_st = Open3.capture3(hostile_env, cli_exe, "--help")
+  C.check("繼承的敵意 RUBYOPT／BUNDLE_GEMFILE 不影響 ABI probe 與執行",
+        h_st.success? ? "exit=0" : (h_err + h_out).lines.first.to_s.strip[0, 50],
+        h_st.success? && h_out.include?("用法"))
+
+  # Slice B：判準由版本字串改為 ABI 相容，訊息也必須說明**實際**的不符原因，
+  # 並帶出 artifact 需要的 ABI——只說「版本不對」對使用者沒有幫助。
   C.check("指定不合格的 OMOS_RUBY 會當場失敗，不靜默改用別的",
         "exit=#{bad_st.exitstatus}",
-        !bad_st.success? && (bad_err + bad_out).include?("不是"))
+        !bad_st.success? && (bad_err + bad_out).include?("ABI 與本 artifact 不符") &&
+        (bad_err + bad_out).include?("ABI #{RbConfig::CONFIG["ruby_version"]}"))
 
   # --- 3b 邊界：唯讀，不得有任何 Host 設定寫入路徑 ---
   src = File.read(File.expand_path("../lib/omos/host_config.rb", __dir__))

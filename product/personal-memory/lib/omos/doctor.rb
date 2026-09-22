@@ -34,6 +34,7 @@ module OMOS
     def initialize(home: Dir.home, product_root: File.expand_path("../..", __dir__),
                    store_path: nil, cwd: Dir.pwd)
       @installer = Installer.new(home: home, product_root: product_root, store_path: store_path)
+      @product_root = product_root
       @home = home
       @cwd = cwd
     end
@@ -43,7 +44,11 @@ module OMOS
       checks.concat(env_checks)
       checks.concat(store_checks)
       checks.concat(process_checks)
-      HostConfig.hosts.each { |host| checks.concat(host_checks(host)) }
+      # repair-03 P2：只有**已交付**的 Host 才檢查安裝狀態。blocked host 依
+      # Owner 裁決本來就不該被安裝，把它的「沒裝」報成 FAIL 是誤報——使用者
+      # 會以為機器壞了。改成照實說明它為什麼不在交付範圍內。
+      Contract.supported_hosts.each { |host| checks.concat(host_checks(host)) }
+      checks.concat(blocked_host_checks)
       checks.concat(binding_checks)
       checks.concat(cycle_checks)
       checks << uninstall_metadata_check
@@ -121,8 +126,19 @@ module OMOS
 
     # --- PROCESS_OK 群：真的把 executable 叫起來 -------------------------
 
+    # 「程序叫得起來」必須是與「設定存在」「store 可用」**獨立**的結果，
+    # 因此未安裝時也要能驗——這時固定 launcher 還不存在（它是安裝產物），
+    # 改探產品原始目錄裡的 exe。已安裝時則探 launcher，因為那才是 Host
+    # 實際會叫的東西。
+    def probe_mcp_command
+      launcher = @installer.mcp_command
+      return launcher if File.executable?(launcher)
+
+      File.join(@product_root, "exe/omos-personal-memory-mcp")
+    end
+
     def process_checks
-      cmd = @installer.mcp_command
+      cmd = probe_mcp_command
       return [bad("mcp_executable", "不存在或不可執行：#{cmd}")] unless File.executable?(cmd)
 
       [ok("mcp_executable", cmd), mcp_handshake_check(cmd)]
@@ -149,6 +165,16 @@ module OMOS
 
     # --- CONFIG_PRESENT 群：逐 Host 讀實際設定 ---------------------------
 
+    # blocked host：不檢查安裝狀態，只照實回報「這一版沒交付它、為什麼、
+    # 什麼條件下會解除」。這是已知狀態，不是故障。
+    def blocked_host_checks
+      blocked = Contract.runtime.fetch("blocked_hosts_v1", {})
+      blocked.map do |host, entry|
+        warn_("#{tag(host)}_not_delivered",
+              "#{entry["reason"]}：本版不交付此 Host，依裁決不安裝。解除條件：#{entry["unblock_condition"].to_s.strip}")
+      end
+    end
+
     def host_checks(host)
       config = HostConfig.new(host, home: @home, command_map: @installer.command_map)
       present = config.present?
@@ -162,20 +188,18 @@ module OMOS
       results << (mcp_present ? ok("#{tag(host)}_mcp_visible", config.own_mcp_id) :
                   bad("#{tag(host)}_mcp_visible", "設定檔內找不到 #{config.own_mcp_id}"))
 
-      # 這一項只證明「我們寫的那筆，我們自己的正規化讀得回來」，**不證明
-      # Host 會接受它**。實測依據：Codex 真實設定裡的 hook 是巢狀的
-      # [[hooks.<Event>]] + [[hooks.<Event>.hooks]]（含 type / timeout，
-      # 且無 id，另有 [hooks.state] 的 trusted_hash），與我們寫入的扁平
-      # {id, command} 不同；而 Codex 是否支援 SessionStart 事件本身也**尚無
-      # 證據**（真實設定只出現過 Interrupt）。Claude Code 的 SessionStart 事件
-      # 確實存在（repo 官方快照有列），但其 settings 條目 schema 亦未驗證。
-      # 詳見交付包的「已知缺陷」。
+      # repair-01：形狀已對齊 Host 官方 schema——event → matcher group →
+      # handler[]，handler 帶 type/command 且無 id（依據 codex-cli 0.153.2
+      # binary 內的 HookHandlerConfig / MatcherGroup，以及 Claude Code 官方
+      # hook 文件）。MCP 註冊那一側已由真的 codex CLI 解析確認。
+      # 仍為 WARN 的原因只剩一個：**尚未由真 Host 實際觸發過這個 hook**，
+      # 因此「寫得對」與「真的會被叫起來」還差一次真人實測。
       hook = snapshot["session_start_hooks"].find { |h| h["id"] == config.own_hook_id }
       results << if hook.nil?
                    bad("#{tag(host)}_session_start_hook_present", "SessionStart hook 未寫入")
                  else
                    warn_("#{tag(host)}_session_start_hook_present",
-                         "已寫入 #{config.own_hook_id}，但 hook 條目形狀未經 Host 實際驗證")
+                         "已依官方 schema 寫入；尚未由真 Host 實際觸發過")
                  end
 
       # 漂移判定委派切片 2 既有 evaluator（含 command_ref 對不上的情況）
@@ -220,13 +244,16 @@ module OMOS
     # --- binding / scope / cycle ----------------------------------------
 
     def binding_checks
+      # 探針必須用**已交付**的 Host：HostConfig.hosts 是「契約認識的 Host」，
+      # 其中可能含 blocked（例如 Codex），拿它去產 binding 只會得到
+      # HBV1_HOST_BLOCKED_UPSTREAM——那是契約的正常狀態，不是這台機器壞了。
       probe = SessionStart.produce(
-        host: HostConfig.hosts.first, native_session_id: "doctor-probe",
+        host: probe_host, native_session_id: "doctor-probe",
         cwd: Dir.pwd, project_ref: "urn:omos:project:doctor", runtime_scope_mode: "EMPLOYEE_PRIVATE"
       )
       results = [ok("binding_bootstrap", "產出 effective_scope=#{probe["effective_scope"]}")]
       widened = begin
-        SessionStart.produce(host: HostConfig.hosts.first, native_session_id: "doctor-probe",
+        SessionStart.produce(host: probe_host, native_session_id: "doctor-probe",
                              cwd: Dir.pwd, project_ref: "urn:omos:project:doctor",
                              runtime_scope_mode: "EMPLOYEE_PRIVATE",
                              project_visibility_scope: widest_scope)
@@ -240,6 +267,8 @@ module OMOS
     rescue SessionStart::Refused => e
       [bad("binding_bootstrap", e.code)]
     end
+
+    def probe_host = Contract.supported_hosts.first
 
     def widest_scope
       scopes = Contract.spec.dig("ownership_visibility_contract", "visibility_scopes") || {}
@@ -264,7 +293,7 @@ module OMOS
       data = @installer.receipt
       return bad("uninstall_metadata", "找不到安裝 receipt：#{@installer.receipt_path}") if data.nil?
 
-      required = %w[installed_at product_root store_path commands hosts]
+      required = %w[installed_at artifact_id build_source_root store_path commands hosts]
       missing = required.reject { |k| data.key?(k) }
       return bad("uninstall_metadata", "receipt 缺欄位：#{missing.inspect}") unless missing.empty?
 
