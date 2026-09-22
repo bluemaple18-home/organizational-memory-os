@@ -1,12 +1,15 @@
 ---
 id: PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
-status: SLICE_B_READY_FOR_CLOSEOUT_REVIEW
+status: ALL_SLICES_ACCEPTED_GO
 slice_a: ACCEPTED_GO @ 77e11e0（8b49d16 匯入本體、8d1227a 身分解析、d24ca37 repair-01、77e11e0 repair-02）
 slice_a_review_round_3: GO（2026-09-21，P1 皆 0；P2×1 residual 已於收片時一併收；.work/handoff/PERSONAL-INBOX-SLICE-A-REPAIR-02-REREVIEW-20260921.md）
 slice_a_review_round_1: NO_GO（2026-09-21，P1×3：身分拼接＋格式未驗／跨時間重匯不冪等／content-only dedup 黏合 provenance；P2×1：identity validation 未下沉）→ repair-01 已修
 slice_a_review_round_2: NO_GO（2026-09-21，P1×2：owner ref 仍允許多段冒號／provenance conflict 在跨 process race 下可繞過；P2×1：tmp 目錄名只含 pid）→ repair-02 已修
-slice_b: READY_FOR_CLOSEOUT_REVIEW——驗收 7–16 全數 PASS；收片證據包
-  .work/handoff/PERSONAL-INBOX-SLICE-B-CLOSEOUT-EVIDENCE-20260922.md
+slice_b: ACCEPTED_GO @ 602b679（交付 bf33090..602b679 共 28 commits ＋ 收片證據包；closeout repair-01 ffad1fc）
+slice_b_closeout_review: GO（2026-09-22，P0/P1/P2/P3 皆 0；.work/handoff/PERSONAL-INBOX-SLICE-B-CLOSEOUT-REREVIEW-20260922.md）
+delivered_zip_sha256: a1568da4aad5a81579c8cc86dd208dd44b67f244bee05da957699f10c2912e1b
+carried_residual: 交付包 INSTALL.md 的「11 個原生模組」應改為 10——**下次重打 ZIP 時一併修**；
+  ZIP digest 一變，驗收 13／14 必須重跑
 slice_b_delivery_path: 驗收 12／13／14 **全數 PASS**；
   中途證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-DELIVERY-PATH-EVIDENCE-20260922.md
   （其中驗收 14 的段落已被 .work/handoff/PERSONAL-INBOX-ACCEPTANCE-14-QUARANTINE-20260922.md 取代）
