@@ -7,7 +7,9 @@ slice_a_review_round_1: NO_GO（2026-09-21，P1×3：身分拼接＋格式未驗
 slice_a_review_round_2: NO_GO（2026-09-21，P1×2：owner ref 仍允許多段冒號／provenance conflict 在跨 process race 下可繞過；P2×1：tmp 目錄名只含 pid）→ repair-02 已修
 slice_b: B1_B2_READY_FOR_REVIEW（d6fce24 B1、86a5103 B1 repair、22c8ab9 B2；證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-B1B2-EVIDENCE-20260921.md）
 slice_b_remaining: 驗收 8（真 launchd 實證，需 Owner 明示）；驗收 14 的「重現攔截」需真實傳輸的檔案
-slice_b_delivery_path: 驗收 12 PASS、13 PASS（指定「先刪資料夾再解壓」）、14 部分達成；證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-DELIVERY-PATH-EVIDENCE-20260922.md
+slice_b_delivery_path: 驗收 12 PASS、13 PASS（Owner 裁定 2026-09-22）、14 PARTIAL_BLOCKED_EXTERNAL_PROVENANCE（Owner 裁定）；
+  證據包 .work/handoff/PERSONAL-INBOX-SLICE-B-DELIVERY-PATH-EVIDENCE-20260922.md
+slice_b_closeout_blockers: 驗收 8（真 launchd 實證，待 Owner 明示授權）；驗收 14（待下一次真實 ZIP 交付時順便補）
 type: bounded-product-capability
 priority: MVP
 related:
@@ -305,11 +307,22 @@ pipeline 也沒有自動更新，同事拿到的是一個 zip，所以下一版�
     本卡**不**因此導入簽章／notarization（需 Apple Developer 帳號，屬配送
     形式決策，仍在範圍外）。這一項只要求「已知的攔截有被文件化且實測解得開」。
 
+    **Owner 裁定（2026-09-22）**：維持
+    `PARTIAL / BLOCKED_EXTERNAL_PROVENANCE`。**不要為了測試硬把 ZIP 外送。**
+    人工加 xattr 已證明「解除隔離後可以正常安裝」，但製造不出真正的
+    Gatekeeper provenance；**不得把條文降級假裝 PASS**。等下一次真的透過
+    Teams／瀏覽器交付新版 ZIP 時順便補完。
+
     **2026-09-22 實測結果：部分達成。** 寫得上 xattr、解除後殘留 0、安裝與
     doctor 正常、說明有警告——但**攔截本身在本機重現不了**：人工 `xattr -w`
     上去的 quarantine 不會真的觸發 Gatekeeper，同事端的攔截來自真正經過
     Teams 傳輸的檔案，provenance 不同。條文不改寫；要完成只能把 zip 真的
     傳出去再傳回來，需 Owner 決定。
+
+    **Owner 裁定（2026-09-22）｜驗收 13：PASS。** 正確升級方式固定為
+    「**先刪舊的 artifact 資料夾，再解壓新版 ZIP**」，避免舊檔殘留造成
+    artifact identity 漂移。Personal Store 不在那個資料夾，所以不會刪掉
+    個人資料。
 
     **驗收 13 的實測補充**：覆蓋解壓不會刪掉新版已無的舊檔，而殘留檔會改變
     artifact identity（實測 `fabb0b30…` vs 乾淨的 `44d977dc…`）。因此指定的
