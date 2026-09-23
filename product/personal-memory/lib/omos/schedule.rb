@@ -538,6 +538,22 @@ module OMOS
     # 不一致代表 plist 被手改過，寧可回 nil 讓上層退回預設並顯示，不猜。
     # 與 hour 同一個做法：兩個來源（StartCalendarInterval 與 ProgramArguments）
     # 必須一致，不一致回 nil 讓上層退回預設並顯示——不猜。
+    # repair-01 P1-3：`review done/history` 需要知道「使用者實際排的是星期幾
+    # 幾點」，但它不該為了問這件事去碰 launchctl——那是 mutation 路徑的東西。
+    # 這支只讀 plist，且沿用既有的 own?／installed_anchor_* 判定，不新增
+    # 第二個設定來源。plist 不是我們的、或兩處寫的 cadence 不一致時一律回
+    # nil，由呼叫端退回預設（fail-open 到預設，不是猜一個值）。
+    def installed_cadence(home:, plutil: method(:plutil_json))
+      path = plist_path(home)
+      return { anchor_hour: nil, anchor_weekday: nil } unless File.file?(path) &&
+                                                              own?(path, plutil: plutil)
+
+      { anchor_hour: installed_anchor_hour(path, plutil: plutil),
+        anchor_weekday: installed_anchor_weekday(path, plutil: plutil) }
+    rescue StandardError
+      { anchor_hour: nil, anchor_weekday: nil }
+    end
+
     def installed_anchor_weekday(path, plutil: method(:plutil_json))
       doc = plutil.call(path)
       return nil unless doc.is_a?(Hash)

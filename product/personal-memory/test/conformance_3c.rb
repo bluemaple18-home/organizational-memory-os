@@ -3437,4 +3437,157 @@ Dir.mktmpdir("omos-3c-a-origin") do |dir|
   C.group = nil
 end
 
+# --- 週期帳 repair-01：外部 review 的三筆 P1 -----------------------------
+Dir.mktmpdir("omos-3c-a-repair01") do |dir|
+  C.group = "A"
+  require "omos/review_ledger"
+  require "omos/cli"
+  ldg = OMOS::ReviewLedger
+  store = File.join(dir, "r.db")
+  rt = OMOS::Runtime.open(store)
+  cli = OMOS::Runtime::SURFACES[:cli]
+  owner = Support::Fixtures::EMP
+  period = OMOS::ReviewQueue.period_for(Time.new(2026, 9, 18, 16, 0, 0))
+  anchor = Time.parse(period[:scheduled_anchor_at])
+
+  # ── P1-1：T-3 兩個方向都要鎖，不只擋「少選」──────────────────────
+  #
+  # 反轉前後為什麼不同：`due_refs - given` 對「多塞」恆為空集合，所以只檢
+  # missing 的版本對這條斷言永遠是綠的。要證明它真的有鎖，必須送一筆**不在
+  # 本期 queue** 的 ref。
+  a = File.join(dir, "in.md")
+  File.write(a, "# 本期\n\nanchor 之前匯入。\n")
+  inside = OMOS::Inbox.import(rt, store, a, memory_kind: "DECISION", owner_ref: owner,
+                                  tenant_id: "t-acme", surface: cli, now: anchor - 3600)
+  b = File.join(dir, "out.md")
+  File.write(b, "# 下一期\n\nanchor 之後才匯入，不屬於本期 queue。\n")
+  outside = OMOS::Inbox.import(rt, store, b, memory_kind: "LESSON", owner_ref: owner,
+                                   tenant_id: "t-acme", surface: cli, now: anchor + 3600)
+
+  due_now = OMOS::ReviewQueue.due(rt, now: anchor, surface: cli)[:items].map { |i| i["candidate_id"] }
+  C.check("P1-1 前提：anchor 之後匯入的 candidate 確實不在本期 queue",
+          due_now.size.to_s,
+          due_now == [inside[:candidate_id]])
+
+  extra_code = begin
+    ldg.build_done(rt, period,
+                   { inside[:candidate_id] => "UNSEEN", outside[:candidate_id] => "UNSEEN" },
+                   now: anchor + 7200, surface: cli)
+    nil
+  rescue ldg::Rejected => e
+    e.code
+  end
+  C.check("P1-1 多塞不屬於本期 queue 的項目 → 拒絕", extra_code.to_s,
+          extra_code == "REVIEW_DONE_ITEMS_OUT_OF_SCOPE")
+  C.check("P1-1 恰好等於 queue 才放行",
+          ldg.build_done(rt, period, { inside[:candidate_id] => "UNSEEN" },
+                         now: anchor + 7200, surface: cli)["selected_item_refs"].inspect,
+          ldg.build_done(rt, period, { inside[:candidate_id] => "UNSEEN" },
+                         now: anchor + 7200, surface: cli)["selected_item_refs"] ==
+            [inside[:candidate_id]])
+
+  # ── P1-2：origin 不落在 anchor 瞬間時，不得倒推上一週 ────────────────
+  #
+  # 反轉前後為什麼不同：原本的 fixture 拿「週五 anchor 本身」當 origin，
+  # `period_for(origin)` 回的就是同一期，相等即納入——所以「往回走一期」這個
+  # bug 在那個取樣點上看不出來。origin 改成週二才暴露。
+  weeks = ->(origin, now) do
+    ldg.expected_periods(origin.iso8601, now).map { |w| w[:id].split(":").last }
+  end
+  # 第一期＝**anchor 落在 origin 當下或之後**的那一期。三個取樣點圍住
+  # anchor 這個邊界（b-ε／b／b+ε），其餘兩點是 anchor 之後的一般情形。
+  [["週五 anchor 之前一小時（b-ε）", Time.new(2026, 9, 18, 15, 0, 0), "2026-W38"],
+   ["週五 anchor 本身（b，相等即納入）", Time.new(2026, 9, 18, 16, 0, 0), "2026-W38"],
+   ["週五 anchor 之後一秒（b+ε）", Time.new(2026, 9, 18, 16, 0, 1), "2026-W39"],
+   ["週六（catch-up 窗內）", Time.new(2026, 9, 19, 10, 0, 0), "2026-W39"],
+   ["週二（下一期 anchor 之前）", Time.new(2026, 9, 22, 10, 0, 0), "2026-W39"]].each do |label, origin, want|
+    got = weeks.call(origin, Time.new(2026, 9, 25, 16, 0, 0))
+    C.check("P1-2 origin=#{label} → 第一期 #{want}", got.inspect,
+            got.first == want && got.none? { |w| w < want })
+  end
+  C.check("P1-2 origin 以前的期別一律不得出現",
+          weeks.call(Time.new(2026, 9, 22, 10, 0, 0), Time.new(2026, 10, 9, 16, 0, 0)).inspect,
+          weeks.call(Time.new(2026, 9, 22, 10, 0, 0), Time.new(2026, 10, 9, 16, 0, 0)) ==
+            %w[2026-W39 2026-W40 2026-W41])
+
+  # ── P1-3：已安裝的 schedule cadence 必須成為 review 的 authority ──────
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
+  Open3.capture3({ "HOME" => home }, exe, "install", "--home", home,
+                 "--owner", owner, "--tenant", "t-acme")
+  on = { v: false }
+  fake_lc = lambda do |*args|
+    case args.first
+    when "bootstrap" then on[:v] = true; { ok: true, status: 0, out: "", err: "" }
+    when "bootout"   then was = on[:v]; on[:v] = false
+                          { ok: was, status: was ? 0 : 3, out: "", err: "" }
+    when "print"     then { ok: on[:v], status: on[:v] ? 0 : 113, out: "", err: "" }
+    else { ok: false, status: 1, out: "", err: "unknown" }
+    end
+  end
+  OMOS::Schedule.install(home: home, anchor_hour: 15, anchor_weekday: 3,
+                         launchctl: fake_lc, **Support::TSEAM)
+  cadence = OMOS::Schedule.installed_cadence(home: home)
+  C.check("P1-3 installed_cadence 從 plist 讀回週三 15:00",
+          cadence.inspect,
+          cadence == { anchor_hour: 15, anchor_weekday: 3 })
+
+  resolved = OMOS::CLI.new.send(:anchor_opts, { home: home })
+  C.check("P1-3 沒給參數時 review 採用**已安裝的** cadence，不是預設週五 16:00",
+          resolved.inspect,
+          resolved == { anchor_hour: 15, anchor_weekday: 3 })
+  explicit = OMOS::CLI.new.send(:anchor_opts, { home: home, anchor_hour: 9, anchor_weekday: 1 })
+  C.check("P1-3 明示的 CLI 參數仍然勝過已安裝的 cadence", explicit.inspect,
+          explicit == { anchor_hour: 9, anchor_weekday: 1 })
+  # 別人的 plist 佔在我們的路徑上時，**不得**讓它決定我們的 review cadence。
+  # own? 是既有的歸屬判定，這裡只是消費它——但沒有測試釘住的話，把 own?
+  # 拿掉一樣全綠（repair-01 的 R6 反證原本就是綠的）。
+  foreign_home = File.join(dir, "foreign-home")
+  Support::FakeHome.seed(foreign_home)
+  FileUtils.mkdir_p(File.dirname(OMOS::Schedule.plist_path(foreign_home)))
+  File.write(OMOS::Schedule.plist_path(foreign_home), <<~PLIST)
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0"><dict>
+      <key>Label</key><string>com.someoneelse.weekly-review</string>
+      <key>StartCalendarInterval</key><dict>
+        <key>Hour</key><integer>7</integer><key>Weekday</key><integer>2</integer>
+      </dict>
+      <key>ProgramArguments</key><array>
+        <string>/bin/echo</string><string>--anchor-hour</string><string>7</string>
+        <string>--anchor-weekday</string><string>2</string>
+      </array>
+    </dict></plist>
+  PLIST
+  C.check("P1-3 別人的 plist 不得決定 cadence（installed_cadence 回 nil）",
+          OMOS::Schedule.installed_cadence(home: foreign_home).inspect,
+          OMOS::Schedule.installed_cadence(home: foreign_home) ==
+            { anchor_hour: nil, anchor_weekday: nil })
+  C.check("P1-3 外來 plist 下 review 退回預設，不採用 7:00／週二",
+          OMOS::CLI.new.send(:anchor_opts, { home: foreign_home }).inspect,
+          OMOS::CLI.new.send(:anchor_opts, { home: foreign_home }) ==
+            { anchor_hour: OMOS::ReviewQueue::DEFAULT_ANCHOR_HOUR,
+              anchor_weekday: OMOS::ReviewQueue::FRIDAY })
+
+  bare = File.join(dir, "bare-home")
+  Support::FakeHome.seed(bare)
+  Open3.capture3({ "HOME" => bare }, exe, "install", "--home", bare,
+                 "--owner", owner, "--tenant", "t-acme")
+  C.check("P1-3 沒裝 schedule 時退回預設（不猜值）",
+          OMOS::CLI.new.send(:anchor_opts, { home: bare }).inspect,
+          OMOS::CLI.new.send(:anchor_opts, { home: bare }) ==
+            { anchor_hour: OMOS::ReviewQueue::DEFAULT_ANCHOR_HOUR,
+              anchor_weekday: OMOS::ReviewQueue::FRIDAY })
+  C.check("P1-3 週三 15:00 的 cadence 會算出與預設**不同**的期別（證明這條有作用）",
+          [OMOS::ReviewQueue.period_for(Time.new(2026, 9, 24, 10), **resolved)[:id].split(":").last,
+           OMOS::ReviewQueue.period_for(Time.new(2026, 9, 24, 10))[:id].split(":").last].inspect,
+          OMOS::ReviewQueue.period_for(Time.new(2026, 9, 24, 10), **resolved)[:scheduled_review_period_start] !=
+            OMOS::ReviewQueue.period_for(Time.new(2026, 9, 24, 10))[:scheduled_review_period_start])
+
+  # WAL 的 -shm/-wal 側檔若還開著，mktmpdir 清理會與 SQLite 收尾互踩。
+  rt.store.close
+  C.group = nil
+end
+
 C.report!

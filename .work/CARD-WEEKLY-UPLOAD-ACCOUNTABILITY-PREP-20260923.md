@@ -1,7 +1,9 @@
 ---
 id: WEEKLY-UPLOAD-ACCOUNTABILITY-PREP-20260923
 jira: 尚無對應 ticket，需補開一張並回填此欄
-status: IMPLEMENTED_AWAITING_IMPLEMENTATION_REVIEW
+impl_review_round_1: NO_GO（2026-09-23，P1×3：T-3 只鎖單向／expected_periods 起點倒推一週／
+  已安裝 cadence 未成為 review 的 authority；P2×2 另記不擋卡）→ repair-01 已收
+status: REPAIR_01_AWAITING_REREVIEW
 freeze_c_review_round_1: NO_GO（2026-09-23，P1×2：驗收 14 誤稱 evaluator 會擋合法 ref 欄位／attempt_kind 只看歷史會標錯；P2×2：C-2 應消費既有 seam／C-3 的 COMPLETE 語意是新政策非契約）→ 已補
 freeze_c_review_round_2: NO_GO（2026-09-23，P1×1：C-7 四格與自身散文衝突且未列未到期週期；P2×1：§3.3 開頭過度宣稱「全部來自既有契約」）→ 已補
 freeze_c_review_round_3: NO_GO（2026-09-23，P1×1：驗收 14 未鎖 LATE 分叉；P2×1：C-7 整個 phase classifier 未標為產品推導）→ 已補
@@ -536,3 +538,55 @@ terminal 之後不得再有任何 attempt。）
 `WeeklyCloseoutHistory`，本卡只組 payload 與算期別。
 `do_not_absorb`：不做公司端匯總、不做多人視圖、不做提醒推播——那些要 Owner
 與契約先裁決，已列在 §5。
+
+---
+
+## 9. repair-01（2026-09-23）
+
+外部 review 在 `e12ab90` 上回 NO_GO，P1×3。三筆根因互不相同（集合方向／
+邊界起點／authority 來源），不是同一根因重複出現，因此走 repair 而非 Hard Stop。
+
+| # | 問題 | 修法 | 位置 | 反證 |
+|---|---|---|---|---|
+| P1-1 | T-3 只算 `due_refs - given`，「少選」被擋、「多塞」沒擋。anchor 之後才建立的 Candidate 可以被寫進本期 terminal closeout | 兩個方向都鎖：另加 `given - due_refs` → `REVIEW_DONE_ITEMS_OUT_OF_SCOPE` | `review_ledger.rb` `build_done` | R1 RED |
+| P1-2 | `expected_periods` 用 `period_for(origin)` 取「origin 之前最近一次 anchor」，origin 落在週二時會把安裝前那一週報成 MISSING | 第一期改成 **anchor 落在 origin 當下或之後**的那一期 | `review_ledger.rb` `expected_periods` | R2／R3 RED |
+| P1-3 | `review done/history` 的 `anchor_opts` 直接跳到預設 Friday 16:00，排週三 15:00 的人會被拿週五去判階段 | authority 鏈改為 **明示 CLI > 已安裝 plist > 預設**，消費既有 `installed_anchor_*` seam，不新增設定來源 | `cli.rb` `anchor_opts` ＋ `schedule.rb` `installed_cadence` | R4／R5／R6b RED |
+
+### 原測試為什麼沒抓到
+
+- P1-1：`due_refs - given` 對「多塞」恆為空集合，只檢 missing 的版本對原斷言
+  永遠是綠的。要暴露它必須送一筆**不在本期 queue** 的 ref。
+- P1-2：原 fixture 拿「週五 anchor 本身」當 origin，`period_for(origin)` 回的
+  就是同一期（相等即納入），所以「往回走一期」在那個取樣點上看不出來。
+  現在改成圍住 anchor 邊界的 `b-ε／b／b+ε` 三點 ＋ 兩個一般點。
+- P1-3：`schedule status` 早就從 plist 讀 anchor，但 review 這條路徑沒有消費
+  同一個 seam，而原測試只驗了 `status` 那一側。
+
+### repair-01 自己又抓到一個缺口
+
+R6 反證（把 `own?` 歸屬判定拿掉）原本是綠的——別人的 plist 佔在我們路徑上時
+會決定我們的 review cadence，而沒有任何測試釘住。已補兩條（`installed_cadence`
+回 nil、`anchor_opts` 退回預設），R6b 轉紅。
+
+### P2（另記，本輪不收）
+
+- **P2-1**：`ReviewLedger::TERMINAL_STATUSES` 是 upstream terminal vocabulary
+  的第二份抄本，應直接消費 `Contract::CloseoutHistory::TERMINAL_STATUSES`。
+- **P2-2**：`schedule status` 判斷「採預設」時只看 `anchor_hour.nil?`，
+  weekday 來源不一致時會靜默退回 Friday 而不揭露 drift。
+
+### 驗證
+
+`3a 26/26`、`3b 34/34`、`3c 407/407`（repair-01 新增 16 條）、六支 validator
+全 PASS、`git diff --check` 乾淨、launchd 殘留 0。
+反證 7 個，6 個直接轉紅，R6 揭露真缺口並在補測後由 R6b 轉紅。
+
+### 體積
+
+| 檔案 | 產品 | 測試 |
+|---|---|---|
+| `review_ledger.rb` | +29 | — |
+| `schedule.rb` | +16 | — |
+| `cli.rb` | +14 | — |
+| `conformance_3c.rb` | — | +153 |
+| **repair-01 合計** | **+59** | **+153** |

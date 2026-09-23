@@ -108,6 +108,8 @@ module OMOS
     # 從**穩定的** origin（T-6 的 weekly_review_origin_at）起算，每個 ISO 週
     # 一個 period。origin 以前沒有可證明的資料，**視為 unknown，不得倒推成
     # MISSING**——偽造歷史比留白更糟。
+    WEEK_SECONDS = 7 * 24 * 3600
+
     def expected_periods(origin_at, now, anchor_hour: ReviewQueue::DEFAULT_ANCHOR_HOUR,
                          anchor_weekday: ReviewQueue::FRIDAY)
       origin = Time.parse(origin_at.to_s).getlocal
@@ -115,8 +117,19 @@ module OMOS
                                               anchor_weekday: anchor_weekday)
       current = ReviewQueue.period_for(now, anchor_hour: anchor_hour,
                                             anchor_weekday: anchor_weekday)
+      # repair-01 P1-2：`period_for(origin)` 找的是「origin 之前最近一次
+      # anchor」——origin 若落在週二，它會回到**上一個週五**的期別，於是
+      # 安裝前一週被憑空報成 MISSING。規格簽的是「origin 以前不得倒推」，
+      # 所以第一期必須是 **anchor 落在 origin 當下或之後**的那一期。
+      # 原本的測試只挑 anchor 瞬間當 origin（anchor == origin，相等即納入），
+      # 所以看不到這個洞。
+      first = cursor
+      first = ReviewQueue.period_for(origin + WEEK_SECONDS, anchor_hour: anchor_hour,
+                                                            anchor_weekday: anchor_weekday) if
+        Time.parse(cursor[:scheduled_anchor_at]) < origin
+
       out = []
-      date = Date.parse(cursor[:scheduled_review_period_start])
+      date = Date.parse(first[:scheduled_review_period_start])
       last = Date.parse(current[:scheduled_review_period_start])
       while date <= last
         out << ReviewQueue.period_for(Time.new(date.year, date.month, date.day, anchor_hour),
@@ -171,15 +184,27 @@ module OMOS
                             .map { |i| i["candidate_id"] }.to_set
       given = dispositions.keys.to_set
 
-      # T-3：selected 預設＝該週期全部 due items，缺一即 fail closed。
+      # T-3：selected **恰為**該週期的 due items——兩個方向都要鎖。
       # 上游只要求 selected 與 dispositions 鍵集合相同，不要求涵蓋整個 queue
       # ——但契約明寫 NEEDS_ORG_FOLLOWUP 是唯一合法的「延後但不回答」，
       # 不是 silent carry-over。要延後必須明確給那個分類，不能靠不選它。
+      #
+      # repair-01 P1-1：原本只算 `due_refs - given`，於是「少選」被擋、
+      # 「多塞」沒被擋——reviewer 塞了一筆 anchor 之後才建立、根本不屬於本期
+      # queue 的 Candidate，build_done 照樣接受，下一期的資料就被寫進本期的
+      # terminal closeout。集合的包含關係只鎖一個方向等於沒鎖。
       missing = due_refs - given
       unless missing.empty?
         raise Rejected.new("REVIEW_DONE_ITEMS_INCOMPLETE",
                            "#{missing.size} 筆待 review 沒有 disposition：" \
                            "#{missing.to_a.first(3).join(", ")}#{missing.size > 3 ? " …" : ""}")
+      end
+
+      extra = given - due_refs
+      unless extra.empty?
+        raise Rejected.new("REVIEW_DONE_ITEMS_OUT_OF_SCOPE",
+                           "#{extra.size} 筆不屬於 #{period[:id]} 的 queue：" \
+                           "#{extra.to_a.first(3).join(", ")}#{extra.size > 3 ? " …" : ""}")
       end
 
       categories = Contract.disposition_categories

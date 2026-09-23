@@ -337,9 +337,19 @@ module OMOS
     # Candidate 自己的 gate 上，批次確認本身不能接受任何東西——所以這裡沒有
     # 週期帳與補做。CLI 只正規化與組 payload，合法性一律交既有
     # Runtime.commit_closeout 與 weekly_closeout_history evaluator。
+    # cadence 的 authority 鏈：**明示的 CLI 參數 > 已安裝的 schedule > 預設**。
+    #
+    # repair-01 P1-3：原本直接跳到預設 Friday 16:00，於是排了「週三 15:00」
+    # 的人照卡片 UX 跑 `review done --period ...`（不再手打 anchor 參數）時，
+    # 會被拿週五 16:00 去判階段——可能被判成 BEFORE 而拒絕，或寫進錯的
+    # cadence 欄位。`schedule status` 早就會從 plist 讀回 anchor，問題是
+    # review 這條路徑沒有消費同一個 seam。
     def anchor_opts(opts)
-      { anchor_hour: opts[:anchor_hour] || ReviewQueue::DEFAULT_ANCHOR_HOUR,
-        anchor_weekday: opts[:anchor_weekday] || ReviewQueue::FRIDAY }
+      installed = Schedule.installed_cadence(home: opts[:home] || Dir.home)
+      { anchor_hour: opts[:anchor_hour] || installed[:anchor_hour] ||
+                     ReviewQueue::DEFAULT_ANCHOR_HOUR,
+        anchor_weekday: opts[:anchor_weekday] || installed[:anchor_weekday] ||
+                        ReviewQueue::FRIDAY }
     end
 
     def weekly_origin(path)
