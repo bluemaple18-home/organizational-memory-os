@@ -1,5 +1,6 @@
 ---
 id: WEEKLY-UPLOAD-ACCOUNTABILITY-PREP-20260923
+jira: 尚無對應 ticket，需補開一張並回填此欄
 status: IMPLEMENTED_AWAITING_IMPLEMENTATION_REVIEW
 freeze_c_review_round_1: NO_GO（2026-09-23，P1×2：驗收 14 誤稱 evaluator 會擋合法 ref 欄位／attempt_kind 只看歷史會標錯；P2×2：C-2 應消費既有 seam／C-3 的 COMPLETE 語意是新政策非契約）→ 已補
 freeze_c_review_round_2: NO_GO（2026-09-23，P1×1：C-7 四格與自身散文衝突且未列未到期週期；P2×1：§3.3 開頭過度宣稱「全部來自既有契約」）→ 已補
