@@ -8,6 +8,8 @@ freeze_c_review_round_4: NO_GO（2026-09-23，P1×2：attempt 矩陣仍是人工
   → **不做第五輪 patch**。四輪同一根因（手工列舉的第二份 authority），依
   「同一 blocker 第 3 次失敗即停」重構 Freeze C 為
   Rule → Generated Coverage → Builder → Existing Evaluator
+freeze_c_review_round_5: NO_GO（2026-09-23，重構方向獲確認；P1×1：缺 history → prior_failed_phase 的 reducer；
+  P2×1：T-9 只綁 scheduled_anchor_at，應擴成兩個 cadence 欄位）→ 本版已補
 type: bounded-product-capability
 priority: MVP
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
@@ -179,13 +181,40 @@ adapter：把人輸入的東西，翻譯成既有 evaluator 收得下的 payload
 - `[T-8 PRODUCT]` `review skip` 固定送 `selected_item_refs: []` ＋
   `item_dispositions: {}`。**上游並未要求 SKIPPED 必須是空集合**，這是產品
   縮窄合法輸入。
-- `[T-9 PRODUCT]` `scheduled_anchor_at` 必須由 `--period` 的 anchor 推導。
-  上游只要求它是非空字串；跨 attempt 真正比對一致性的只有
-  `scheduled_review_period_start`。
+- `[T-9 PRODUCT]` **兩個 cadence 欄位都必須由 `--period` 的 anchor 推導**：
+  `scheduled_review_period_start` 與 `scheduled_anchor_at`。
+  上游只要求兩者是非空字串，且跨 attempt **一致**——但**不驗它們真的對應
+  該 period**：整段 history 一起填錯同一個值，evaluator 照樣放行。
+  （刻意不拆成 T-10：這是**同一個 binding**，拆兩份就又回到「同一規則寫兩處」。）
+- `[T-10 PRODUCT]` §3.3.2(a) 的 history reducer。上游不規定 `prior_failed_phase`
+  怎麼從 history 算出來——它只驗最終送進去的 `attempt_kind` 合法。
 
 #### 3.3.2 `attempt_kind` 的唯一決策函式
 
 **這是 canonical，不得再有第二份描述。** 矩陣與 Acceptance 都由它導出。
+
+##### (a) history reducer — 唯一的一份
+
+決策函式的輸入是 `(current_phase, prior_failed_phase, has_terminal)`，但**真實
+輸入是按 `attempt_seq` 排好的整段 closeout history**。中間這一步若各寫各的，
+Cartesian product 可以**全綠而產品仍判錯**——例如實作取「第一個 `FAILED`」
+而不是「最近一個 `FAILED`」。
+
+因此 reducer 也只能有一份：
+
+```text
+reduce(history):                       # history 依 attempt_seq 排序
+  任一筆為 terminal                    → has_terminal = true（其餘不必再算）
+  history 為空                          → prior_failed_phase = none
+  否則                                  → prior_failed_phase =
+      **最後一筆** final_status == "FAILED" 的 actual_closeout_at 所屬 phase
+```
+
+「**最後一筆**」是這條的全部重點。取第一筆在
+`SCHEDULED FAILED → RETRY FAILED → 跨進 CATCH_UP` 這種序列上就會判錯，
+而那正是矩陣測不出來的地方——因為矩陣的輸入已經是 reduce 之後的值。
+
+##### (b) 決策函式
 
 ```text
 決策(current_phase, prior_failed_phase | none, has_terminal):
@@ -299,12 +328,16 @@ T-ID → rule location（§3.3.1 的哪一條）→ implementation guard → tes
     - **`attempt_kind` 的 coverage 由 §3.3.2 的決策函式生成，不得手寫故事案例。**
       測試自行展開 `current_phase × prior_failed_phase(含 none)` 的
       Cartesian product，逐格斷言；`has_terminal` 與 `BEFORE` 另列。
+    - **必須測 reducer → 決策函式的 composition**（T-10），不得只測決策函式。
+      矩陣的輸入已經是 reduce 之後的值，所以「取第一筆 `FAILED` 而非最後一筆」
+      這種錯**矩陣全綠也抓不到**。反證：把 reducer 改成取第一筆，
+      `SCHEDULED FAILED → RETRY FAILED → 跨進 CATCH_UP` 必須轉紅。
 
       這樣日後新增一個 phase，矩陣會**立刻**指出有格子沒定義——而不是等
       reviewer 找出第 21 個故事。前四輪就是敗在「取樣」而不是「窮舉」。
     - **`[T-n]` 每一條都必須有 guard 與 test**，並在實作 review 附上
       §3.4 的 `T-ID → rule location → guard → test` 對照表。
-      T-1～T-9 一條都不能少。
+      T-1～T-10 一條都不能少。
     - **`[UPSTREAM]` 的條目不得被複製成產品自己的判斷**——
       分類詞彙必須消費 `Contract.disposition_categories`；改動 upstream 的
       集合後產品接受的集合必須跟著變（此為證明沒有第二份詞彙的反證）。
