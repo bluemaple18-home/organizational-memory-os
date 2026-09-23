@@ -1,7 +1,8 @@
 ---
 id: WEEKLY-UPLOAD-ACCOUNTABILITY-PREP-20260923
 status: SPEC_FROZEN_AWAITING_FREEZE_C_REVIEW
-freeze_c_review_round_1: NO_GO（2026-09-23，P1×2：驗收 14 誤稱 evaluator 會擋合法 ref 欄位／attempt_kind 只看歷史會標錯；P2×2：C-2 應消費既有 seam／C-3 的 COMPLETE 語意是新政策非契約）→ 本版已補
+freeze_c_review_round_1: NO_GO（2026-09-23，P1×2：驗收 14 誤稱 evaluator 會擋合法 ref 欄位／attempt_kind 只看歷史會標錯；P2×2：C-2 應消費既有 seam／C-3 的 COMPLETE 語意是新政策非契約）→ 已補
+freeze_c_review_round_2: NO_GO（2026-09-23，P1×1：C-7 四格與自身散文衝突且未列未到期週期；P2×1：§3.3 開頭過度宣稱「全部來自既有契約」）→ 本版已補
 type: bounded-product-capability
 priority: MVP
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
@@ -106,7 +107,9 @@ idempotency 規則。
 最可能的結果是自己發明一套簡化的處置語彙——**那就是第二份規則**，正是驗收
 第 12 項明文禁止的。
 
-以下全部來自**已存在的** evaluator 與規格，不新增任何詞彙：
+以下**沿用既有詞彙與 evaluator**；凡是產品／Owner 的收緊，**逐條明示**
+（C-1 的 builder exact shape、C-3 的 `NO_PROMOTION`、C-4 的全 queue
+fail-closed、C-7 的未到期拒絕，都是收緊，不是契約幫我們守）：
 
 #### C-1 evaluator 允許四個欄位；本片**自己**只產一個
 
@@ -192,24 +195,42 @@ evaluator 另有四條跨 attempt 的規則：`WRC_MULTIPLE_SCHEDULED_ATTEMPTS`
 - `scheduled_review_period_start` 與 `scheduled_anchor_at` **一律由 `--period`
   的 anchor 推導**，不得用當下時間——否則跨週補做會觸發
   `WRC_PERIOD_START_INCONSISTENT`；
-- `attempt_kind` **不能只看「有沒有既有 closeout」**。先前寫「尚無 closeout →
-  `SCHEDULED`」是錯的：使用者週五完全沒做、週一才補，歷史確實是空的，但契約
-  明確說那是 `CATCH_UP`。
+- `attempt_kind` **不能只看「有沒有既有 closeout」**，也**不能只分「窗口內／
+  逾窗口」**。前一版的兩格表與自己的散文衝突：它會把「已在 catch-up 階段、
+  前次 `FAILED`、同階段再試」標成 `CATCH_UP`，但散文說同一窗口內的再試是
+  `RETRY`。
 
-  判斷需要**兩個維度**：相對於該 period anchor 的**時間位置**，以及**既有
-  attempt 歷史**。四格定死如下：
+  改以**階段**為準。每個 period 由 anchor 與 catch-up 截止切成四段：
 
-  | 既有 attempt | 在 anchor 當日窗口內 | 已逾 anchor 窗口（catch-up 期間或之後） |
-  |---|---|---|
-  | 無 | **`SCHEDULED`** | **`CATCH_UP`** |
-  | 有（前次 `FAILED`） | **`RETRY`** | **`CATCH_UP`** |
+  | 階段 | 範圍 |
+  |---|---|
+  | `BEFORE` | `now < scheduled_anchor_at` |
+  | `SCHEDULED` | anchor 起，至**該 anchor 當日結束** |
+  | `CATCH_UP` | anchor 當日之後，至 `catch_up_deadline_at`（下一個工作日的同一時刻）前 |
+  | `LATE` | `now >= catch_up_deadline_at` |
 
-  也就是：`RETRY` 只用在**同一個嘗試窗口內**的再試；一旦跨出 anchor 窗口，
-  無論之前有沒有失敗過，都是 `CATCH_UP`。
+  （週六日落在 `CATCH_UP`——契約說 catch-up 是「滾到下一個工作日」，
+  週末屬於等待期。）
 
-  這個推導**必須由實作讀既有 closeouts ＋ 該 period 的 anchor 決定**，不由
-  使用者指定；而 `WRC_MULTIPLE_SCHEDULED_ATTEMPTS` 會擋住同一 period 出現
-  第二次 `SCHEDULED`。
+  推導規則：
+
+  1. **`BEFORE` → 拒絕**。不得提前 closeout 一個還沒到 anchor 的週期。
+     **這是產品收緊**——evaluator 不會替我們擋這件事。
+  2. `SCHEDULED` 階段、該階段尚無 attempt → **`SCHEDULED`**
+  3. `CATCH_UP` 或 `LATE` 階段、該階段尚無 attempt → **`CATCH_UP`**
+  4. **同一階段**內前次 `FAILED` → **`RETRY`**
+     （涵蓋 `SCHEDULED FAILED → RETRY → FAILED → RETRY`，
+     以及 `CATCH_UP FAILED → RETRY`）
+  5. 前次 `FAILED` 但**階段已改變** → 依第 2／3 條，即
+     `SCHEDULED FAILED` 跨進 catch-up 後是 **`CATCH_UP`**，不是 `RETRY`
+  6. 該 period 已有 terminal → 由既有 evaluator
+     （`WRC_DUPLICATE_TERMINAL_CLOSEOUT`／`WRC_CLOSEOUT_AFTER_TERMINAL`）
+     與 unique index 拒絕，**產品不另寫一份**
+
+  一句話：**`RETRY` 只在同一階段內成立；跨階段一律回到該階段的首次種類。**
+
+  `catch_up_deadline_passed` 亦由階段決定：`LATE` 為 `true`，其餘為 `false`。
+  `WRC_MULTIPLE_SCHEDULED_ATTEMPTS` 會擋住同一 period 出現第二次 `SCHEDULED`。
 
 ## 4. 範圍
 
@@ -273,10 +294,14 @@ evaluator 另有四條跨 attempt 的規則：`WRC_MULTIPLE_SCHEDULED_ATTEMPTS`
     - `review skip` 的空 selected／dispositions 能通過 evaluator；
     - 跨週補做時 `scheduled_review_period_start` 取自 `--period` 的 anchor，
       不得觸發 `WRC_PERIOD_START_INCONSISTENT`；
-    - **`attempt_kind` 四格各有測試**：準時首次＝`SCHEDULED`；
-      無歷史但逾期補做＝`CATCH_UP`；`FAILED` 後同一嘗試窗口內＝`RETRY`；
-      `FAILED` 後跨到 catch-up＝`CATCH_UP`。同一 period 不得出現第二次
-      `SCHEDULED`。
+    - **`attempt_kind` 六條各有測試**：準時首次＝`SCHEDULED`；
+      無歷史但逾期補做＝`CATCH_UP`；`SCHEDULED FAILED` 同階段再試＝`RETRY`；
+      `SCHEDULED FAILED` 跨進 catch-up＝`CATCH_UP`；
+      **`CATCH_UP FAILED` 後同一 catch-up 階段再做＝`RETRY`**；
+      已 terminal 由既有 evaluator／unique index 拒絕。
+      同一 period 不得出現第二次 `SCHEDULED`；
+    - **尚未到 anchor 的 period → `review done`／`review skip` 必須拒絕**
+      （產品收緊，evaluator 不會擋），錯誤碼明確。
 15. 每項附鑑別力反證。
 
 ## 7. Minimum Sufficient
