@@ -1,6 +1,6 @@
 ---
 id: WEEKLY-UPLOAD-ACCOUNTABILITY-PREP-20260923
-status: SPEC_FROZEN_READY_TO_IMPLEMENT
+status: SPEC_FROZEN_AWAITING_FREEZE_C_REVIEW
 type: bounded-product-capability
 priority: MVP
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
@@ -98,6 +98,82 @@ idempotency 規則。
 缺 `--period` 必須 fail closed，不提供會在有多個 open period 時改變含義的
 「自動猜本週」捷徑。`review history` 要直接顯示可複製的 `YYYY-Www`。
 
+### 3.3 Freeze C — `review done` 收什麼（本輪新增）
+
+`review done` **不可能是一個字的指令**。既有 evaluator
+（`weekly_closeout_history.rb`）對 receipt 的要求已經很硬，實作若不先釘死，
+最可能的結果是自己發明一套簡化的處置語彙——**那就是第二份規則**，正是驗收
+第 12 項明文禁止的。
+
+以下全部來自**已存在的** evaluator 與規格，不新增任何詞彙：
+
+#### C-1 每一筆 disposition 只能有四個欄位
+
+`ALLOWED_DISPOSITION_FIELDS = category / record_ref / promotion_ref /
+promotion_idempotency_key`。多一個欄位即 `WRC_ITEM_DISPOSITION_UNKNOWN_FIELD`。
+
+#### C-2 分類詞彙必須從規格讀，不得寫死
+
+`category` 取自 `historical_comparison.categories`
+（`UNSEEN`／`UNCHANGED`／`NEW_EVIDENCE`／`MATERIALLY_CHANGED`／`CONTRADICTED`）
+加上 `NEEDS_ORG_FOLLOWUP`。**實作必須從規格讀出來**，與 `Contract` 讀 id
+template 同一個做法；寫死一份字串就是第二份詞彙。
+
+#### C-3 本片只產生 category，不碰 promotion
+
+`record_ref`／`promotion_ref`／`promotion_idempotency_key` 屬
+Personal → Company（SSP-324），**不在本片**。因此：
+
+- `review done` 產生的 disposition **只帶 `category`**；
+- `final_status` 固定為 **`NO_PROMOTION`**（終局狀態之一，表示這週有做、
+  但沒有產生 Promotion）；
+- `COMPLETE` 保留給日後真的有 promotion 的情境，本片不產生。
+
+#### C-4 選取範圍預設是「該週期的全部待辦」，缺一不可
+
+evaluator 只要求 `selected_item_refs` 與 `item_dispositions` 鍵集合相同，
+沒有要求涵蓋整個 queue。但契約明寫 `NEEDS_ORG_FOLLOWUP` 是**唯一**合法的
+「延後但不回答」，**不是 silent carry-over**。
+
+因此本片在產品層收緊：
+
+> `review done --period W` 的 selected 預設**等於該週期 `review due` 的全部
+> 項目**；任何一項沒有 disposition 就 **fail closed**，不得產生部分 closeout。
+
+要延後某一項，必須明確給它 `NEEDS_ORG_FOLLOWUP`，不能靠「不選它」。
+
+#### C-5 輸入形狀
+
+```text
+review done --period 2026-W38 --item <candidate-urn>=<CATEGORY> [--item ...]
+review done --period 2026-W38 --dispositions FILE.json      # 項目多時
+```
+
+`--item` 的 key 必須是 **PersonalMemoryCandidate 的 URN**——evaluator 會擋
+（`WRC_ITEM_REF_NOT_CANDIDATE`），CLI 不得另立字串規則。
+
+#### C-6 `review skip` 的 receipt 形狀
+
+`selected_item_refs: []` ＋ `item_dispositions: {}`（鍵集合相同，合法），
+`final_status: SKIPPED`，`catch_up_deadline_passed: true`——後者為 false 時
+evaluator 直接回 `WRC_SKIPPED_BEFORE_CATCH_UP_EXHAUSTED`。
+
+#### C-7 attempt_kind 與 cadence 欄位由**週期**推導，不由「今天」推導
+
+evaluator 另有四條跨 attempt 的規則：`WRC_MULTIPLE_SCHEDULED_ATTEMPTS`
+（一個 period 至多一次 `SCHEDULED`）、`WRC_PERIOD_START_INCONSISTENT`
+（所有 attempt 的 `scheduled_review_period_start` 必須一致）、
+`WRC_DUPLICATE_TERMINAL_CLOSEOUT`、`WRC_CLOSEOUT_AFTER_TERMINAL`。
+
+因此：
+
+- `scheduled_review_period_start` 與 `scheduled_anchor_at` **一律由 `--period`
+  的 anchor 推導**，不得用當下時間——否則跨週補做會觸發
+  `WRC_PERIOD_START_INCONSISTENT`；
+- `attempt_kind`：該 period 尚無任何 closeout → `SCHEDULED`；已有非終局
+  attempt → `CATCH_UP`（或失敗後 `RETRY`）。實作**讀既有 closeouts 決定**，
+  不由使用者指定。
+
 ## 4. 範圍
 
 1. **`--anchor-weekday`**（限週一～週五）。每個人自己選哪一天上傳——放假時間
@@ -149,7 +225,17 @@ idempotency 規則。
 12. done／skip 只組 payload 並呼叫既有 `Runtime.commit_closeout`；不得在 CLI 或
     新 helper 複製 `weekly_closeout_history` 的 terminal／SKIPPED 規則。
 13. 3a／3b／3c 全綠；validators 全綠；`git diff --check` clean。
-14. 每項附鑑別力反證。
+14. **Freeze C**：
+    - disposition 只帶 `category`，多一個欄位即被 evaluator 擋；
+    - 分類詞彙**從規格讀出**——把規格的 categories 改一個字，產品接受的集合
+      必須跟著變（鑑別力反證用此證明沒有寫死第二份）；
+    - `review done` 漏掉任一待辦項目 → fail closed，不得產生部分 closeout；
+    - `review skip` 的空 selected／dispositions 能通過 evaluator；
+    - 跨週補做時 `scheduled_review_period_start` 取自 `--period` 的 anchor，
+      不得觸發 `WRC_PERIOD_START_INCONSISTENT`；
+    - `attempt_kind` 由既有 closeouts 推導，同一 period 不得出現第二次
+      `SCHEDULED`。
+15. 每項附鑑別力反證。
 
 ## 7. Minimum Sufficient
 
