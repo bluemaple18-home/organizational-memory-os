@@ -1,6 +1,7 @@
 ---
 id: WEEKLY-UPLOAD-ACCOUNTABILITY-PREP-20260923
 status: SPEC_FROZEN_AWAITING_FREEZE_C_REVIEW
+freeze_c_review_round_1: NO_GO（2026-09-23，P1×2：驗收 14 誤稱 evaluator 會擋合法 ref 欄位／attempt_kind 只看歷史會標錯；P2×2：C-2 應消費既有 seam／C-3 的 COMPLETE 語意是新政策非契約）→ 本版已補
 type: bounded-product-capability
 priority: MVP
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
@@ -107,27 +108,48 @@ idempotency 規則。
 
 以下全部來自**已存在的** evaluator 與規格，不新增任何詞彙：
 
-#### C-1 每一筆 disposition 只能有四個欄位
+#### C-1 evaluator 允許四個欄位；本片**自己**只產一個
 
-`ALLOWED_DISPOSITION_FIELDS = category / record_ref / promotion_ref /
-promotion_idempotency_key`。多一個欄位即 `WRC_ITEM_DISPOSITION_UNKNOWN_FIELD`。
+evaluator 的 allowlist 是
+`category / record_ref / promotion_ref / promotion_idempotency_key`，
+**第五種**未知欄位才會被擋（`WRC_ITEM_DISPOSITION_UNKNOWN_FIELD`）。
 
-#### C-2 分類詞彙必須從規格讀，不得寫死
+因此必須講清楚：本片的 disposition 只帶 `category`，這是
+**`review done` builder 自己保證的產品收緊，不是 evaluator 幫我們守**。
+`record_ref`／`promotion_ref` 對 evaluator 而言完全合法——寫成「多一個欄位
+就被擋」是錯的，會讓人以為有一道實際上不存在的防線。
 
-`category` 取自 `historical_comparison.categories`
-（`UNSEEN`／`UNCHANGED`／`NEW_EVIDENCE`／`MATERIALLY_CHANGED`／`CONTRADICTED`）
-加上 `NEEDS_ORG_FOLLOWUP`。**實作必須從規格讀出來**，與 `Contract` 讀 id
-template 同一個做法；寫死一份字串就是第二份詞彙。
+#### C-2 分類詞彙必須消費既有的 `Contract.disposition_categories`
 
-#### C-3 本片只產生 category，不碰 promotion
+產品**已經有**這個 seam，而共用 evaluator 吃的就是這一份：
 
-`record_ref`／`promotion_ref`／`promotion_idempotency_key` 屬
-Personal → Company（SSP-324），**不在本片**。因此：
+```ruby
+OMOS::Contract.disposition_categories
+# => #<Set: {"UNSEEN", "UNCHANGED", "NEW_EVIDENCE",
+#            "MATERIALLY_CHANGED", "CONTRADICTED", "NEEDS_ORG_FOLLOWUP"}>
+```
 
-- `review done` 產生的 disposition **只帶 `category`**；
-- `final_status` 固定為 **`NO_PROMOTION`**（終局狀態之一，表示這週有做、
-  但沒有產生 Promotion）；
-- `COMPLETE` 保留給日後真的有 promotion 的情境，本片不產生。
+**必須直接消費它**，不得自己再讀一次 spec。「自己讀 spec」看起來也會跟著
+規格動，但 `NEEDS_ORG_FOLLOWUP` 不在 `historical_comparison.categories` 裡
+——它是在這個 seam 裡被併進去的。自己讀就會把它手抄一次，**那就是第二份詞彙**。
+
+#### C-3 本片固定產 `NO_PROMOTION`——這是 **Owner scope decision**，不是契約語意
+
+`COMPLETE` 與 `NO_PROMOTION` **都只是既有的 terminal status**，契約**沒有**
+把 `COMPLETE` 保留給「有 promotion」的情境。先前卡上那樣寫是**新發明的產品
+政策**被誤述成契約語意，已更正。
+
+本片的決定與它精確的意思：
+
+- `review done` 產生的 disposition **只帶 `category`**（C-1：builder 自己
+  保證，不是 evaluator 擋）；
+- `final_status` 固定為 **`NO_PROMOTION`**，意思是
+  **「這次 closeout 當下沒有產生 Promotion」**——不是「這週沒做完」，
+  也不是「以後永遠不會有 promotion」。
+
+**凍結的推論**：日後 SSP-324 另外產生 submission／promotion record 時，
+**不得回頭改寫這筆 terminal closeout**。terminal 已經是 terminal
+（`WRC_CLOSEOUT_AFTER_TERMINAL` 也會擋）。這樣才真的不需要 migration。
 
 #### C-4 選取範圍預設是「該週期的全部待辦」，缺一不可
 
@@ -170,9 +192,24 @@ evaluator 另有四條跨 attempt 的規則：`WRC_MULTIPLE_SCHEDULED_ATTEMPTS`
 - `scheduled_review_period_start` 與 `scheduled_anchor_at` **一律由 `--period`
   的 anchor 推導**，不得用當下時間——否則跨週補做會觸發
   `WRC_PERIOD_START_INCONSISTENT`；
-- `attempt_kind`：該 period 尚無任何 closeout → `SCHEDULED`；已有非終局
-  attempt → `CATCH_UP`（或失敗後 `RETRY`）。實作**讀既有 closeouts 決定**，
-  不由使用者指定。
+- `attempt_kind` **不能只看「有沒有既有 closeout」**。先前寫「尚無 closeout →
+  `SCHEDULED`」是錯的：使用者週五完全沒做、週一才補，歷史確實是空的，但契約
+  明確說那是 `CATCH_UP`。
+
+  判斷需要**兩個維度**：相對於該 period anchor 的**時間位置**，以及**既有
+  attempt 歷史**。四格定死如下：
+
+  | 既有 attempt | 在 anchor 當日窗口內 | 已逾 anchor 窗口（catch-up 期間或之後） |
+  |---|---|---|
+  | 無 | **`SCHEDULED`** | **`CATCH_UP`** |
+  | 有（前次 `FAILED`） | **`RETRY`** | **`CATCH_UP`** |
+
+  也就是：`RETRY` 只用在**同一個嘗試窗口內**的再試；一旦跨出 anchor 窗口，
+  無論之前有沒有失敗過，都是 `CATCH_UP`。
+
+  這個推導**必須由實作讀既有 closeouts ＋ 該 period 的 anchor 決定**，不由
+  使用者指定；而 `WRC_MULTIPLE_SCHEDULED_ATTEMPTS` 會擋住同一 period 出現
+  第二次 `SCHEDULED`。
 
 ## 4. 範圍
 
@@ -226,14 +263,19 @@ evaluator 另有四條跨 attempt 的規則：`WRC_MULTIPLE_SCHEDULED_ATTEMPTS`
     新 helper 複製 `weekly_closeout_history` 的 terminal／SKIPPED 規則。
 13. 3a／3b／3c 全綠；validators 全綠；`git diff --check` clean。
 14. **Freeze C**：
-    - disposition 只帶 `category`，多一個欄位即被 evaluator 擋；
-    - 分類詞彙**從規格讀出**——把規格的 categories 改一個字，產品接受的集合
-      必須跟著變（鑑別力反證用此證明沒有寫死第二份）；
+    - **builder 自己保證** disposition 的形狀恰為 `{category}`。
+      **不得**宣稱「evaluator 會擋多出來的欄位」——`record_ref`／
+      `promotion_ref` 對 evaluator 完全合法，只有第五種未知欄位才被擋；
+    - 產品直接消費 `Contract.disposition_categories`；改動 upstream 的
+      category 集合後，產品接受的集合必須**跟著變**（此為證明沒有第二份
+      詞彙的鑑別力反證）；
     - `review done` 漏掉任一待辦項目 → fail closed，不得產生部分 closeout；
     - `review skip` 的空 selected／dispositions 能通過 evaluator；
     - 跨週補做時 `scheduled_review_period_start` 取自 `--period` 的 anchor，
       不得觸發 `WRC_PERIOD_START_INCONSISTENT`；
-    - `attempt_kind` 由既有 closeouts 推導，同一 period 不得出現第二次
+    - **`attempt_kind` 四格各有測試**：準時首次＝`SCHEDULED`；
+      無歷史但逾期補做＝`CATCH_UP`；`FAILED` 後同一嘗試窗口內＝`RETRY`；
+      `FAILED` 後跨到 catch-up＝`CATCH_UP`。同一 period 不得出現第二次
       `SCHEDULED`。
 15. 每項附鑑別力反證。
 
