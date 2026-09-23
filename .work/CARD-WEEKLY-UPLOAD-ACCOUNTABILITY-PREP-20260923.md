@@ -3,7 +3,11 @@ id: WEEKLY-UPLOAD-ACCOUNTABILITY-PREP-20260923
 status: SPEC_FROZEN_AWAITING_FREEZE_C_REVIEW
 freeze_c_review_round_1: NO_GO（2026-09-23，P1×2：驗收 14 誤稱 evaluator 會擋合法 ref 欄位／attempt_kind 只看歷史會標錯；P2×2：C-2 應消費既有 seam／C-3 的 COMPLETE 語意是新政策非契約）→ 已補
 freeze_c_review_round_2: NO_GO（2026-09-23，P1×1：C-7 四格與自身散文衝突且未列未到期週期；P2×1：§3.3 開頭過度宣稱「全部來自既有契約」）→ 已補
-freeze_c_review_round_3: NO_GO（2026-09-23，P1×1：驗收 14 未鎖 LATE 分叉；P2×1：C-7 整個 phase classifier 未標為產品推導）→ 本版已補
+freeze_c_review_round_3: NO_GO（2026-09-23，P1×1：驗收 14 未鎖 LATE 分叉；P2×1：C-7 整個 phase classifier 未標為產品推導）→ 已補
+freeze_c_review_round_4: NO_GO（2026-09-23，P1×2：attempt 矩陣仍是人工列舉／§3.4 清單本身漏 T-8、T-9；P2×1：索引規則不可機器自驗）
+  → **不做第五輪 patch**。四輪同一根因（手工列舉的第二份 authority），依
+  「同一 blocker 第 3 次失敗即停」重構 Freeze C 為
+  Rule → Generated Coverage → Builder → Existing Evaluator
 type: bounded-product-capability
 priority: MVP
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
@@ -101,162 +105,144 @@ idempotency 規則。
 缺 `--period` 必須 fail closed，不提供會在有多個 open period 時改變含義的
 「自動猜本週」捷徑。`review history` 要直接顯示可複製的 `YYYY-Www`。
 
-### 3.3 Freeze C — `review done` 收什麼（本輪新增）
+### 3.3 Freeze C — `review done` / `review skip` 的 deterministic adapter
 
-`review done` **不可能是一個字的指令**。既有 evaluator
-（`weekly_closeout_history.rb`）對 receipt 的要求已經很硬，實作若不先釘死，
-最可能的結果是自己發明一套簡化的處置語彙——**那就是第二份規則**，正是驗收
-第 12 項明文禁止的。
+**第四輪 review 後重構。** 前四輪一直爆，不是因為 Freeze C 難，而是因為中間
+長出了「故事案例、集中清單、散文解釋、Acceptance 案例」幾份半重複的 authority
+——每多一份，就會有一份忘記更新。
 
-以下**沿用既有詞彙與 evaluator**。凡是產品／Owner 的收緊，一律登記在
-**§3.4 的集中清單**——不散落在各條之中。
+本節改用一條標準：
 
-> **為什麼要集中列。** 「把產品收緊寫成契約既有」這個毛病在 Freeze C 的
-> 三輪 review 裡出現了**三次**（誤稱 evaluator 會擋合法 ref 欄位、開頭的
-> 全稱宣告、phase classifier 沒標）。三次的修法形狀都一樣：補一句
-> 「這是產品收緊」。補句子治不了它，因為下一條新增的收緊還是會忘。
-> 改成**單一清單**：任何收緊都必須出現在 §3.4，沒出現就是沒凍。
+> **Normative rule 只存在一次；矩陣、索引、Acceptance 都從它導出或綁回它。**
 
-#### C-1 evaluator 允許四個欄位；本片**自己**只產一個
+這與 launchd lifecycle 最後收斂成單一 `bootstrap_and_verify` /
+`bootout_and_verify` 是同一種解法。
 
-evaluator 的 allowlist 是
-`category / record_ref / promotion_ref / promotion_idempotency_key`，
-**第五種**未知欄位才會被擋（`WRC_ITEM_DISPOSITION_UNKNOWN_FIELD`）。
+#### 3.3.0 四層 authority，不得互相冒充
 
-因此必須講清楚：本片的 disposition 只帶 `category`，這是
-**`review done` builder 自己保證的產品收緊，不是 evaluator 幫我們守**。
-`record_ref`／`promotion_ref` 對 evaluator 而言完全合法——寫成「多一個欄位
-就被擋」是錯的，會讓人以為有一道實際上不存在的防線。
+| 層 | Authority | 本卡可不可以動 |
+|---|---|---|
+| Weekly lifecycle 合法性 | 既有 SSP-323 evaluator | **不可** |
+| Personal Inbox 額外限制 | Owner／Product | 可，但必須標 `[T-n]` |
+| `attempt_kind` 怎麼推導 | deterministic derived rule（§3.3.2） | 可，且**只有一份** |
+| CLI 怎麼讓人操作 | UX adapter | 可 |
 
-#### C-2 分類詞彙必須消費既有的 `Contract.disposition_categories`
+**Freeze C 不發明 lifecycle。** 它只是「UX → 既有契約」的 deterministic
+adapter：把人輸入的東西，翻譯成既有 evaluator 收得下的 payload。
 
-產品**已經有**這個 seam，而共用 evaluator 吃的就是這一份：
+鏈路固定為：
 
-```ruby
-OMOS::Contract.disposition_categories
-# => #<Set: {"UNSEEN", "UNCHANGED", "NEW_EVIDENCE",
-#            "MATERIALLY_CHANGED", "CONTRADICTED", "NEEDS_ORG_FOLLOWUP"}>
+```text
+既有 Weekly Contract
+  → Owner／Product 收緊
+  → 唯一的決策函式
+  → closeout payload builder
+  → Runtime.commit_closeout
+  → 既有 weekly_closeout_history evaluator
 ```
 
-**必須直接消費它**，不得自己再讀一次 spec。「自己讀 spec」看起來也會跟著
-規格動，但 `NEEDS_ORG_FOLLOWUP` 不在 `historical_comparison.categories` 裡
-——它是在這個 seam 裡被併進去的。自己讀就會把它手抄一次，**那就是第二份詞彙**。
+#### 3.3.1 規則清單（每條自帶 authority 標記）
 
-#### C-3 本片固定產 `NO_PROMOTION`——這是 **Owner scope decision**，不是契約語意
+標記長在規則旁邊，**不另外維護第二份清單**。
 
-`COMPLETE` 與 `NO_PROMOTION` **都只是既有的 terminal status**，契約**沒有**
-把 `COMPLETE` 保留給「有 promotion」的情境。先前卡上那樣寫是**新發明的產品
-政策**被誤述成契約語意，已更正。
+- `[UPSTREAM]` `SKIPPED` 必須 `catch_up_deadline_passed == true`，否則
+  `WRC_SKIPPED_BEFORE_CATCH_UP_EXHAUSTED`。
+- `[UPSTREAM]` disposition 的 allowlist 是
+  `category / record_ref / promotion_ref / promotion_idempotency_key`，
+  **第五種**未知欄位才被擋。
+- `[UPSTREAM]` `selected_item_refs` 與 `item_dispositions` 鍵集合必須相同。
+- `[UPSTREAM]` item ref 必須是 PersonalMemoryCandidate 的 URN。
+- `[UPSTREAM]` `NEEDS_ORG_FOLLOWUP` 不得帶 `record_ref`／`promotion_ref`。
+- `[UPSTREAM]` 跨 attempt 四條：至多一次 `SCHEDULED`、
+  `scheduled_review_period_start` 必須一致、至多一次 terminal、
+  terminal 必須是最後一筆。
+- `[UPSTREAM]` 分類詞彙的 authority 是 `Contract.disposition_categories`
+  ——**必須消費它**，不得自己再讀一次 spec（`NEEDS_ORG_FOLLOWUP` 是在這個
+  seam 才被併進去的，自己讀就會手抄一次）。
 
-本片的決定與它精確的意思：
+- `[T-1 PRODUCT]` `review done` 產生的 disposition 形狀**恰為** `{category}`。
+  上游允許四欄，這是 **builder 自己保證**，沒有 evaluator 規則在守。
+- `[T-2 OWNER]` `final_status` 固定 `NO_PROMOTION`。上游 `COMPLETE` 與
+  `NO_PROMOTION` 都合法；本片的意思是「**這次 closeout 當下**沒有產生
+  Promotion」，不是「這週沒做完」。日後 SSP-324 產生 promotion record 時
+  **不得回頭改寫這筆 terminal closeout**。
+- `[T-3 PRODUCT]` `review done` 的 selected 預設＝該週期 `review due` 的
+  **全部**項目，缺一即 fail closed。上游只要求鍵集合相同。要延後必須明確給
+  `NEEDS_ORG_FOLLOWUP`，不得靠「不選它」。
+- `[T-4 PRODUCT]` `BEFORE` 階段拒絕 closeout。上游不擋提前關帳。
+- `[T-5 PRODUCT]` §3.3.2 的整個 phase classifier 與決策函式。上游只檢查
+  `attempt_kind` 在三個值之內與上述跨 attempt 四條，**不驗階段推導**。
+- `[T-6 PRODUCT]` `weekly_review_origin_at` 與「origin 以前視為 unknown」
+  （Freeze A）。上游沒有歷史起點的概念。
+- `[T-7 PRODUCT]` `--period` 必填、`--anchor-weekday` 限週一～五（Freeze B
+  與範圍第 1 項）。上游對 CLI 形狀無規定。
+- `[T-8 PRODUCT]` `review skip` 固定送 `selected_item_refs: []` ＋
+  `item_dispositions: {}`。**上游並未要求 SKIPPED 必須是空集合**，這是產品
+  縮窄合法輸入。
+- `[T-9 PRODUCT]` `scheduled_anchor_at` 必須由 `--period` 的 anchor 推導。
+  上游只要求它是非空字串；跨 attempt 真正比對一致性的只有
+  `scheduled_review_period_start`。
 
-- `review done` 產生的 disposition **只帶 `category`**（C-1：builder 自己
-  保證，不是 evaluator 擋）；
-- `final_status` 固定為 **`NO_PROMOTION`**，意思是
-  **「這次 closeout 當下沒有產生 Promotion」**——不是「這週沒做完」，
-  也不是「以後永遠不會有 promotion」。
+#### 3.3.2 `attempt_kind` 的唯一決策函式
 
-**凍結的推論**：日後 SSP-324 另外產生 submission／promotion record 時，
-**不得回頭改寫這筆 terminal closeout**。terminal 已經是 terminal
-（`WRC_CLOSEOUT_AFTER_TERMINAL` 也會擋）。這樣才真的不需要 migration。
+**這是 canonical，不得再有第二份描述。** 矩陣與 Acceptance 都由它導出。
 
-#### C-4 選取範圍預設是「該週期的全部待辦」，缺一不可
+```text
+決策(current_phase, prior_failed_phase | none, has_terminal):
 
-evaluator 只要求 `selected_item_refs` 與 `item_dispositions` 鍵集合相同，
-沒有要求涵蓋整個 queue。但契約明寫 `NEEDS_ORG_FOLLOWUP` 是**唯一**合法的
-「延後但不回答」，**不是 silent carry-over**。
+  has_terminal                      → REJECT（交既有 evaluator／unique index）
+  current_phase == BEFORE           → REJECT [T-4]
 
-因此本片在產品層收緊：
+  prior_failed_phase == none:
+    current_phase == SCHEDULED      → SCHEDULED
+    current_phase ∈ {CATCH_UP,LATE} → CATCH_UP
 
-> `review done --period W` 的 selected 預設**等於該週期 `review due` 的全部
-> 項目**；任何一項沒有 disposition 就 **fail closed**，不得產生部分 closeout。
+  prior_failed_phase == current_phase → RETRY
 
-要延後某一項，必須明確給它 `NEEDS_ORG_FOLLOWUP`，不能靠「不選它」。
+  prior_failed_phase != current_phase:
+    current_phase == SCHEDULED      → SCHEDULED
+    current_phase ∈ {CATCH_UP,LATE} → CATCH_UP
+```
 
-#### C-5 輸入形狀
+一句話：**`RETRY` 只在同一階段內成立；跨階段一律回到該階段的首次種類。**
+
+`phase` 的定義（同屬 `[T-5]`）：
+
+| phase | 範圍 |
+|---|---|
+| `BEFORE` | `now < scheduled_anchor_at` |
+| `SCHEDULED` | anchor 起，至該 anchor **當日結束** |
+| `CATCH_UP` | 當日之後，至 `catch_up_deadline_at` 前（週六日屬此段） |
+| `LATE` | `now >= catch_up_deadline_at` |
+
+`catch_up_deadline_passed` 亦由 phase 決定：`LATE` 為 `true`，其餘 `false`。
+
+**Owner 裁決**：`LATE` 階段**仍可** `review done`。逾期不自動判死——`SKIPPED`
+是明確放棄這一期，不是逾期的自動結果；否則「下週補上週、同週做兩次」這個
+原始需求會被打掉。
+
+#### 3.3.3 輸入形狀（UX adapter 層）
 
 ```text
 review done --period 2026-W38 --item <candidate-urn>=<CATEGORY> [--item ...]
-review done --period 2026-W38 --dispositions FILE.json      # 項目多時
+review done --period 2026-W38 --dispositions FILE.json
+review skip --period 2026-W38
 ```
 
-`--item` 的 key 必須是 **PersonalMemoryCandidate 的 URN**——evaluator 會擋
-（`WRC_ITEM_REF_NOT_CANDIDATE`），CLI 不得另立字串規則。
+CLI 只負責把 `2026-Www` 正規化成既有 URN、依該週 anchor 產生 cadence 欄位、
+組 payload；**最後一律走 `Runtime.commit_closeout` 與既有 evaluator**。
+CLI 不得重寫第二份 `SKIPPED`／terminal／idempotency 規則。
 
-#### C-6 `review skip` 的 receipt 形狀
+### 3.4 T-ID 索引（**非 normative**）
 
-`selected_item_refs: []` ＋ `item_dispositions: {}`（鍵集合相同，合法），
-`final_status: SKIPPED`，`catch_up_deadline_passed: true`——後者為 false 時
-evaluator 直接回 `WRC_SKIPPED_BEFORE_CATCH_UP_EXHAUSTED`。
+本節**沒有新語意**，漏一列不會改變產品規則——normative 的來源是 §3.3.1 的
+inline 標記。這裡只是給實作 review 用的對照表。
 
-#### C-7 attempt_kind 與 cadence 欄位由**週期**推導，不由「今天」推導
+實作 review **必須**附上這張表，每個 T-ID 都要有 guard 與 test：
 
-evaluator 另有四條跨 attempt 的規則：`WRC_MULTIPLE_SCHEDULED_ATTEMPTS`
-（一個 period 至多一次 `SCHEDULED`）、`WRC_PERIOD_START_INCONSISTENT`
-（所有 attempt 的 `scheduled_review_period_start` 必須一致）、
-`WRC_DUPLICATE_TERMINAL_CLOSEOUT`、`WRC_CLOSEOUT_AFTER_TERMINAL`。
-
-因此：
-
-- `scheduled_review_period_start` 與 `scheduled_anchor_at` **一律由 `--period`
-  的 anchor 推導**，不得用當下時間——否則跨週補做會觸發
-  `WRC_PERIOD_START_INCONSISTENT`；
-- `attempt_kind` **不能只看「有沒有既有 closeout」**，也**不能只分「窗口內／
-  逾窗口」**。前一版的兩格表與自己的散文衝突：它會把「已在 catch-up 階段、
-  前次 `FAILED`、同階段再試」標成 `CATCH_UP`，但散文說同一窗口內的再試是
-  `RETRY`。
-
-  **整個 phase classifier 都是產品層推導**（§3.4 T-5）：階段切法、
-  「anchor 當日結束」的界線、週末歸 `CATCH_UP`、`LATE` 仍映成 `CATCH_UP`、
-  「同 phase 才是 `RETRY`」——**evaluator 一條都不會替我們守**。
-  它只檢查最後送進去的 `attempt_kind` 是否在
-  `SCHEDULED/CATCH_UP/RETRY` 之內，以及跨 attempt 的四條一致性規則。
-
-  改以**階段**為準。每個 period 由 anchor 與 catch-up 截止切成四段：
-
-  | 階段 | 範圍 |
-  |---|---|
-  | `BEFORE` | `now < scheduled_anchor_at` |
-  | `SCHEDULED` | anchor 起，至**該 anchor 當日結束** |
-  | `CATCH_UP` | anchor 當日之後，至 `catch_up_deadline_at`（下一個工作日的同一時刻）前 |
-  | `LATE` | `now >= catch_up_deadline_at` |
-
-  （週六日落在 `CATCH_UP`——契約說 catch-up 是「滾到下一個工作日」，
-  週末屬於等待期。）
-
-  推導規則：
-
-  1. **`BEFORE` → 拒絕**。不得提前 closeout 一個還沒到 anchor 的週期。
-  2. `SCHEDULED` 階段、該階段尚無 attempt → **`SCHEDULED`**
-  3. `CATCH_UP` 或 `LATE` 階段、該階段尚無 attempt → **`CATCH_UP`**
-  4. **同一階段**內前次 `FAILED` → **`RETRY`**
-     （涵蓋 `SCHEDULED FAILED → RETRY → FAILED → RETRY`，
-     以及 `CATCH_UP FAILED → RETRY`）
-  5. 前次 `FAILED` 但**階段已改變** → 依第 2／3 條，即
-     `SCHEDULED FAILED` 跨進 catch-up 後是 **`CATCH_UP`**，不是 `RETRY`
-  6. 該 period 已有 terminal → 由既有 evaluator
-     （`WRC_DUPLICATE_TERMINAL_CLOSEOUT`／`WRC_CLOSEOUT_AFTER_TERMINAL`）
-     與 unique index 拒絕，**產品不另寫一份**
-
-  一句話：**`RETRY` 只在同一階段內成立；跨階段一律回到該階段的首次種類。**
-
-  `catch_up_deadline_passed` 亦由階段決定：`LATE` 為 `true`，其餘為 `false`。
-  `WRC_MULTIPLE_SCHEDULED_ATTEMPTS` 會擋住同一 period 出現第二次 `SCHEDULED`。
-
-### 3.4 產品／Owner 收緊的集中清單
-
-**本卡所有超出上游契約的收緊都必須登記在這裡。** 新增收緊時若沒有加進這張
-表，視為沒有凍結。
-
-| # | 收緊 | 上游實際怎樣 | 為什麼還是要收 |
-|---|---|---|---|
-| T-1 | `review done` 的 disposition 形狀恰為 `{category}` | evaluator 允許 `category`／`record_ref`／`promotion_ref`／`promotion_idempotency_key` 四欄，**只擋第五種** | promotion 屬 SSP-324，本片不產生；由 **builder 自己保證**，沒有任何 evaluator 規則在守這件事 |
-| T-2 | `final_status` 固定 `NO_PROMOTION` | `COMPLETE` 與 `NO_PROMOTION` **都是**合法 terminal，契約沒有保留 `COMPLETE` 給 promotion | Owner scope decision。意思是「這次 closeout 當下沒有產生 Promotion」，**不是**「這週沒做完」 |
-| T-3 | `review done` 的 selected 預設＝該週期全部 due items，缺一即 fail closed | evaluator 只要求 selected 與 dispositions **鍵集合相同**，不要求涵蓋整個 queue | 否則漏掉的項目可以靠「不選它」靜默消失，本卡的目的就破了。延後必須明確給 `NEEDS_ORG_FOLLOWUP` |
-| T-4 | `BEFORE` 階段拒絕 closeout | evaluator **不擋**提前 closeout 未到期的週期 | 提前關帳會讓週期帳失真 |
-| T-5 | 整個 phase classifier（四階段切法、anchor 當日界線、週末歸 `CATCH_UP`、`LATE` 映 `CATCH_UP`、同 phase 才 `RETRY`） | evaluator 只檢查 `attempt_kind` 在三個值之內，以及跨 attempt 的四條一致性；**不驗階段推導** | 沒有這套推導，`attempt_kind` 等於使用者隨便填 |
-| T-6 | `weekly_review_origin_at` 與「origin 以前視為 unknown」 | 上游沒有這個欄位，也沒有歷史起點的概念 | 見 Freeze A：`installed_at` 每次升級被重寫 |
-| T-7 | `--period` 必填、`--anchor-weekday` 限週一～五 | 上游對 CLI 形狀沒有規定 | 見 Freeze B 與範圍第 1 項 |
+```text
+T-ID → rule location（§3.3.1 的哪一條）→ implementation guard → test
+```
 
 ## 4. 範圍
 
@@ -310,34 +296,24 @@ evaluator 另有四條跨 attempt 的規則：`WRC_MULTIPLE_SCHEDULED_ATTEMPTS`
     新 helper 複製 `weekly_closeout_history` 的 terminal／SKIPPED 規則。
 13. 3a／3b／3c 全綠；validators 全綠；`git diff --check` clean。
 14. **Freeze C**：
-    - **builder 自己保證** disposition 的形狀恰為 `{category}`。
-      **不得**宣稱「evaluator 會擋多出來的欄位」——`record_ref`／
-      `promotion_ref` 對 evaluator 完全合法，只有第五種未知欄位才被擋；
-    - 產品直接消費 `Contract.disposition_categories`；改動 upstream 的
-      category 集合後，產品接受的集合必須**跟著變**（此為證明沒有第二份
-      詞彙的鑑別力反證）；
-    - `review done` 漏掉任一待辦項目 → fail closed，不得產生部分 closeout；
-    - `review skip` 的空 selected／dispositions 能通過 evaluator；
-    - 跨週補做時 `scheduled_review_period_start` 取自 `--period` 的 anchor，
-      不得觸發 `WRC_PERIOD_START_INCONSISTENT`；
-    - **`attempt_kind` 八條各有測試**：
-      (a) 準時首次＝`SCHEDULED`；
-      (b) 無歷史但逾期補做＝`CATCH_UP`；
-      (c) `SCHEDULED FAILED` 同階段再試＝`RETRY`；
-      (d) `SCHEDULED FAILED` 跨進 `CATCH_UP`＝`CATCH_UP`；
-      (e) `CATCH_UP FAILED` 同階段再試＝`RETRY`；
-      (f) **`CATCH_UP FAILED` 跨進 `LATE`＝`CATCH_UP`**；
-      (g) **`LATE FAILED` 同一 `LATE` 再試＝`RETRY`**；
-      (h) **連續失敗 `FAILED → RETRY → FAILED → RETRY`**——只處理第一次
-          retry 的實作必須在這條轉紅；
-      已 terminal 由既有 evaluator／unique index 拒絕。
-      同一 period 不得出現第二次 `SCHEDULED`；
-    - **`LATE` 階段仍可 `review done`**（Owner 裁決）。逾期不自動判死——
-      `SKIPPED` 是明確放棄這一期，不是逾期的自動結果；否則「下週補上週、
-      同週做兩次」這個原始需求會被打掉；
-    - **尚未到 anchor 的 period → `review done`／`review skip` 必須拒絕**
-      （T-4，evaluator 不會擋），錯誤碼明確；
-    - **§3.4 的每一條收緊都必須有對應測試**——沒有測試的收緊等於沒凍。
+    - **`attempt_kind` 的 coverage 由 §3.3.2 的決策函式生成，不得手寫故事案例。**
+      測試自行展開 `current_phase × prior_failed_phase(含 none)` 的
+      Cartesian product，逐格斷言；`has_terminal` 與 `BEFORE` 另列。
+
+      這樣日後新增一個 phase，矩陣會**立刻**指出有格子沒定義——而不是等
+      reviewer 找出第 21 個故事。前四輪就是敗在「取樣」而不是「窮舉」。
+    - **`[T-n]` 每一條都必須有 guard 與 test**，並在實作 review 附上
+      §3.4 的 `T-ID → rule location → guard → test` 對照表。
+      T-1～T-9 一條都不能少。
+    - **`[UPSTREAM]` 的條目不得被複製成產品自己的判斷**——
+      分類詞彙必須消費 `Contract.disposition_categories`；改動 upstream 的
+      集合後產品接受的集合必須跟著變（此為證明沒有第二份詞彙的反證）。
+    - `review done` 漏掉任一待辦項目 → fail closed（T-3）。
+    - `review skip` 的空 selected／dispositions 能通過 evaluator（T-8）。
+    - 跨週補做時 `scheduled_review_period_start` 與 `scheduled_anchor_at`
+      取自 `--period` 的 anchor（T-9），不得觸發
+      `WRC_PERIOD_START_INCONSISTENT`。
+    - `LATE` 階段仍可 `review done`（Owner 裁決），不得自動判成 `SKIPPED`。
 15. 每項附鑑別力反證。
 
 ## 7. Minimum Sufficient
