@@ -3,7 +3,9 @@ id: WEEKLY-UPLOAD-ACCOUNTABILITY-PREP-20260923
 jira: 尚無對應 ticket，需補開一張並回填此欄
 impl_review_round_1: NO_GO（2026-09-23，P1×3：T-3 只鎖單向／expected_periods 起點倒推一週／
   已安裝 cadence 未成為 review 的 authority；P2×2 另記不擋卡）→ repair-01 已收
-status: REPAIR_01_AWAITING_REREVIEW
+impl_review_round_2: NO_GO（2026-09-23，P1-1／P1-2／own? 三筆 CLOSED；P1×1：P1-3 未收完，
+  build_done 重新算 due queue 時沒把 cadence 傳下去）→ repair-02 改結構
+status: REPAIR_02_AWAITING_REREVIEW
 freeze_c_review_round_1: NO_GO（2026-09-23，P1×2：驗收 14 誤稱 evaluator 會擋合法 ref 欄位／attempt_kind 只看歷史會標錯；P2×2：C-2 應消費既有 seam／C-3 的 COMPLETE 語意是新政策非契約）→ 已補
 freeze_c_review_round_2: NO_GO（2026-09-23，P1×1：C-7 四格與自身散文衝突且未列未到期週期；P2×1：§3.3 開頭過度宣稱「全部來自既有契約」）→ 已補
 freeze_c_review_round_3: NO_GO（2026-09-23，P1×1：驗收 14 未鎖 LATE 分叉；P2×1：C-7 整個 phase classifier 未標為產品推導）→ 已補
@@ -590,3 +592,79 @@ R6 反證（把 `own?` 歸屬判定拿掉）原本是綠的——別人的 plist
 | `cli.rb` | +14 | — |
 | `conformance_3c.rb` | — | +153 |
 | **repair-01 合計** | **+59** | **+153** |
+
+---
+
+## 10. repair-02（2026-09-23）
+
+### 判定：改結構，不再逐點補
+
+P1-3 是**同一個 blocker 的第 2 次失敗**，而且如果照上一輪的形狀修
+（「再讓一個呼叫點去讀 cadence」），第 3 輪一定會出現下一個呼叫點。
+依 `same-root-cause-third-failure-hard-stop` 的判準——看**修法的形狀**而不是
+finding 的標題——這一輪必須換形狀。
+
+### 根因
+
+cadence 是**兩個散裝 kwarg**，穿過九個呼叫點，而且**每個呼叫點各自帶預設值**：
+
+```
+period_for / due                         review_queue.rb
+expected_periods / period_from_iso_week  review_ledger.rb
+history / build_done                     review_ledger.rb
+anchor_opts / schedule install           cli.rb
+status / notify                          schedule.rb
+```
+
+忘了往下傳不會有任何錯誤，只會靜默退回週五 16:00。repair-01 的 P1-3 是
+`anchor_opts` 讀對了、`build_done` 忘了傳；下一個會是誰只是時間問題。
+
+### 修法：period 自帶 cadence
+
+1. `period_for` 的回傳值加上 `anchor_hour` / `anchor_weekday`——
+   **拿到 period 的人就拿到了 cadence**。
+2. `ReviewQueue.cadence_of(period)`：缺欄位時 **raise**，不退回預設。
+   靜默退回預設正是兩輪 P1-3 的成因。
+3. `ReviewQueue.due_for(runtime, period, surface:)`：拿著 period 問 due 的
+   唯一入口，**不收 cadence 參數**——結構上沒有傳錯的機會。
+   `build_done` 改用它。
+4. 機器可驗的防再發：測試掃描 `lib/**/*.rb`，任何 `ReviewQueue.due(` 呼叫點
+   若既沒明示 `anchor_hour:` 也沒有 `**` splat，即判 FAIL 並要求改用 `due_for`。
+
+### 反證
+
+| | 變異 | 結果 |
+|---|---|---|
+| S1c | `build_done` 回到 repair-01 的寫法（**reviewer 的原始重播**） | RED |
+| S2e | `period_for` 不再帶 `anchor_hour` | RED |
+| S6c | `period_for` 不再帶 `anchor_weekday` | RED |
+| S3 | `cadence_of` 缺欄位時靜默退回預設 | RED |
+| S4b | `due_for` 忽略 period 的 cadence | RED |
+| S5 | `anchor_opts` 跳過已安裝 cadence（repair-01 的 R4 重跑） | RED |
+| S7 | 把 cadence 從 `cli.rb` 的 due 呼叫點拿掉（打掃描器本身） | RED |
+| S8 | `period_for` 的 cadence 寫死成預設值（假裝有帶） | RED |
+
+8 個全紅。
+
+### 反證過程中修掉的測試缺陷
+
+S1/S2/S4 第一次跑時是**崩潰**而不是轉紅——裸呼叫 `build_done` 的地方沒有
+收斂例外，變異一改就讓整支測試中止。崩潰不是測試結果，所以先把 T-1/T-2/T-3/
+T-8 與 repair-01 區塊的裸呼叫全部收成值（`rescue StandardError` 回錯誤字串、
+後續斷言 nil-safe），再重跑才算數。
+
+### 驗證
+
+`3a 26/26`、`3b 34/34`、`3c 421/421`（repair-02 新增 14 條）、六支 validator
+全 PASS、`git diff --check` 乾淨、launchd 殘留 0。
+
+### 體積
+
+| 檔案 | 產品 | 測試 |
+|---|---|---|
+| `review_queue.rb` | +33 | — |
+| `review_ledger.rb` | +7／-4 | — |
+| `conformance_3c.rb` | — | +213／-19 |
+| **repair-02 合計** | **+36** | **+194** |
+
+測試的淨增量裡有一部分是把既有裸呼叫改成可收斂的形狀（上一段），不是新斷言。

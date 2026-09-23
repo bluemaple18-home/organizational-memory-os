@@ -3305,24 +3305,34 @@ Dir.mktmpdir("omos-3c-a-tighten") do |dir|
   item = imported[:candidate_id]
   ok = ->(entries) { OMOS::Contract.closeout_history_problem(period[:id], entries) }
 
-  done = ldg.build_done(rt, period, { item => "UNSEEN" }, now: anchor + 60, surface: cli)
-  C.check("done payload 通過既有 evaluator（收緊的前提）", ok.call([done]).inspect, ok.call([done]).nil?)
+  # 裸呼叫在變異下會讓整支測試崩潰，那不算「轉紅」。一律收成值。
+  done = begin
+    ldg.build_done(rt, period, { item => "UNSEEN" }, now: anchor + 60, surface: cli)
+  rescue StandardError => e
+    "#{e.class}: #{e.message[0, 40]}"
+  end
+  problem = done.is_a?(Hash) ? ok.call([done]) : done
+  C.check("done payload 通過既有 evaluator（收緊的前提）", problem.inspect, problem.nil?)
+
+  d0 = done.is_a?(Hash) ? done : {}
 
   # T-1：disposition 形狀恰為 {category}
   C.check("T-1 builder 產出的 disposition 只有 category",
-          done["item_dispositions"].values.flat_map(&:keys).uniq.inspect,
-          done["item_dispositions"].values.all? { |d| d.keys == ["category"] })
-  wide = Marshal.load(Marshal.dump(done))
-  wide["item_dispositions"][item] = { "category" => "UNSEEN",
-                                      "promotion_ref" => "urn:omos:promotion:x",
-                                      "promotion_idempotency_key" => "k1" }
+          d0["item_dispositions"].to_h.values.flat_map(&:keys).uniq.inspect,
+          !d0["item_dispositions"].to_h.empty? &&
+          d0["item_dispositions"].to_h.values.all? { |d| d.keys == ["category"] })
+  wide = Marshal.load(Marshal.dump(d0))
+  wide["item_dispositions"] = (wide["item_dispositions"] || {}).merge(
+    item => { "category" => "UNSEEN", "promotion_ref" => "urn:omos:promotion:x",
+              "promotion_idempotency_key" => "k1" }
+  )
   C.check("T-1 鑑別力：多帶 promotion 欄位**上游照樣放行**（所以這是產品收緊）",
           ok.call([wide]).inspect, ok.call([wide]).nil?)
 
   # T-2：final_status 固定 NO_PROMOTION
-  C.check("T-2 build_done 的 final_status 固定 NO_PROMOTION", done["final_status"],
-          done["final_status"] == "NO_PROMOTION")
-  complete = Marshal.load(Marshal.dump(done)).merge("final_status" => "COMPLETE")
+  C.check("T-2 build_done 的 final_status 固定 NO_PROMOTION", d0["final_status"].inspect,
+          d0["final_status"] == "NO_PROMOTION")
+  complete = Marshal.load(Marshal.dump(d0)).merge("final_status" => "COMPLETE")
   C.check("T-2 鑑別力：COMPLETE **上游照樣放行**", ok.call([complete]).inspect,
           ok.call([complete]).nil?)
 
@@ -3336,6 +3346,9 @@ Dir.mktmpdir("omos-3c-a-tighten") do |dir|
     nil
   rescue ldg::Rejected => e
     e.code
+  rescue StandardError => e
+    # 變異可能讓別的例外先冒出來——那要算「轉紅」，不是讓整支測試崩潰。
+    "#{e.class}: #{e.message[0, 40]}"
   end
   C.check("T-3 漏掉待辦項目 → fail closed", partial.to_s, partial == "REVIEW_DONE_ITEMS_INCOMPLETE")
   one_of_two = { "review_period_id" => period[:id],
@@ -3347,9 +3360,14 @@ Dir.mktmpdir("omos-3c-a-tighten") do |dir|
                  "item_dispositions" => { item => { "category" => "UNSEEN" } } }
   C.check("T-3 鑑別力：只關一半 **上游照樣放行**（上游只比對兩個集合相等）",
           ok.call([one_of_two]).inspect, ok.call([one_of_two]).nil?)
-  full = ldg.build_done(rt, period, { item => "UNSEEN", second[:candidate_id] => "NEEDS_ORG_FOLLOWUP" },
-                      now: anchor + 60, surface: cli)
-  C.check("T-3 兩筆都給 disposition 才放行", full["selected_item_refs"].size.to_s,
+  full = begin
+    ldg.build_done(rt, period, { item => "UNSEEN", second[:candidate_id] => "NEEDS_ORG_FOLLOWUP" },
+                   now: anchor + 60, surface: cli)
+  rescue StandardError => e
+    "#{e.class}: #{e.message[0, 40]}"
+  end
+  C.check("T-3 兩筆都給 disposition 才放行", full.is_a?(Hash) ? full["selected_item_refs"].size.to_s : full,
+          full.is_a?(Hash) &&
           full["selected_item_refs"].to_set == [item, second[:candidate_id]].to_set)
 
   # T-4：BEFORE 階段拒絕（done 與 skip **兩個入口**都要擋）
@@ -3363,6 +3381,8 @@ Dir.mktmpdir("omos-3c-a-tighten") do |dir|
       nil
     rescue ldg::Rejected => e
       e.code
+    rescue StandardError => e
+      "#{e.class}: #{e.message[0, 40]}"
     end
     C.check("T-4 #{entry} 在 anchor 之前拒絕（且錯碼指向真正原因）", code.to_s,
             code == "REVIEW_PERIOD_NOT_STARTED")
@@ -3377,7 +3397,11 @@ Dir.mktmpdir("omos-3c-a-tighten") do |dir|
           ok.call([early]).inspect, ok.call([early]).nil?)
 
   # T-8：skip 固定送空集合，且僅限 LATE
-  skipped = ldg.build_skip(rt, period, now: late)
+  skipped = begin
+    ldg.build_skip(rt, period, now: late)
+  rescue StandardError => e
+    { "error" => "#{e.class}: #{e.message[0, 40]}" }
+  end
   C.check("T-8 skip 送空的 selected／dispositions 且通過 evaluator",
           "#{skipped["selected_item_refs"].inspect} #{ok.call([skipped]).inspect}",
           skipped["selected_item_refs"] == [] && skipped["item_dispositions"] == {} &&
@@ -3392,6 +3416,9 @@ Dir.mktmpdir("omos-3c-a-tighten") do |dir|
     nil
   rescue ldg::Rejected => e
     e.code
+  rescue StandardError => e
+    # 變異可能讓別的例外先冒出來——那要算「轉紅」，不是讓整支測試崩潰。
+    "#{e.class}: #{e.message[0, 40]}"
   end
   C.check("T-8 catch-up 期限前 skip 仍拒絕", early_skip.to_s,
           early_skip == "REVIEW_SKIP_BEFORE_CATCH_UP_EXHAUSTED")
@@ -3476,15 +3503,21 @@ Dir.mktmpdir("omos-3c-a-repair01") do |dir|
     nil
   rescue ldg::Rejected => e
     e.code
+  rescue StandardError => e
+    # 變異可能讓別的例外先冒出來——那要算「轉紅」，不是讓整支測試崩潰。
+    "#{e.class}: #{e.message[0, 40]}"
   end
   C.check("P1-1 多塞不屬於本期 queue 的項目 → 拒絕", extra_code.to_s,
           extra_code == "REVIEW_DONE_ITEMS_OUT_OF_SCOPE")
+  exact = begin
+    ldg.build_done(rt, period, { inside[:candidate_id] => "UNSEEN" },
+                   now: anchor + 7200, surface: cli)
+  rescue StandardError => e
+    "#{e.class}: #{e.message[0, 40]}"
+  end
   C.check("P1-1 恰好等於 queue 才放行",
-          ldg.build_done(rt, period, { inside[:candidate_id] => "UNSEEN" },
-                         now: anchor + 7200, surface: cli)["selected_item_refs"].inspect,
-          ldg.build_done(rt, period, { inside[:candidate_id] => "UNSEEN" },
-                         now: anchor + 7200, surface: cli)["selected_item_refs"] ==
-            [inside[:candidate_id]])
+          exact.is_a?(Hash) ? exact["selected_item_refs"].inspect : exact,
+          exact.is_a?(Hash) && exact["selected_item_refs"] == [inside[:candidate_id]])
 
   # ── P1-2：origin 不落在 anchor 瞬間時，不得倒推上一週 ────────────────
   #
@@ -3586,6 +3619,146 @@ Dir.mktmpdir("omos-3c-a-repair01") do |dir|
             OMOS::ReviewQueue.period_for(Time.new(2026, 9, 24, 10))[:scheduled_review_period_start])
 
   # WAL 的 -shm/-wal 側檔若還開著，mktmpdir 清理會與 SQLite 收尾互踩。
+  rt.store.close
+  C.group = nil
+end
+
+# --- 週期帳 repair-02：cadence 必須隨 period 走完全程 ---------------------
+#
+# repair-01 的 P1-3 沒收完：`anchor_opts` 讀對了週三 15:00，但 `build_done`
+# 重新算本期 queue 時沒把 cadence 傳下去，又退回週五 16:00。
+# 根因不是「那一行忘了傳」，是 **cadence 以兩個散裝 kwarg 穿過九個呼叫點、
+# 每個呼叫點各自有預設值**——逐點補只會讓下一個呼叫點再踩一次。
+# 修法：period 自帶 cadence，拿著 period 的人不得再自己傳一份。
+Dir.mktmpdir("omos-3c-a-repair02") do |dir|
+  C.group = "A"
+  require "omos/review_ledger"
+  require "omos/cli"
+  ldg = OMOS::ReviewLedger
+  rq = OMOS::ReviewQueue
+
+  # ── 結構：每一個 period 都帶得出 cadence，缺了就 raise 而非退預設 ──────
+  [rq.period_for(Time.new(2026, 9, 18, 16, 0, 0)),
+   rq.period_for(Time.new(2026, 9, 23, 15, 0, 0), anchor_hour: 15, anchor_weekday: 3),
+   ldg.period_from_iso_week("2026-W38"),
+   ldg.period_from_iso_week("2026-W38", anchor_hour: 15, anchor_weekday: 3)]
+    .each_with_index do |p_, i|
+    # 變異下 cadence_of 會 raise——那要算「轉紅」，不是讓整支測試崩潰。
+    got = begin
+      rq.cadence_of(p_)
+    rescue StandardError => e
+      "#{e.class}: #{e.message[0, 40]}"
+    end
+    C.check("repair-02 period##{i} 自帶 cadence", got.inspect,
+            got.is_a?(Hash) && !got[:anchor_hour].nil? && !got[:anchor_weekday].nil? &&
+            got == { anchor_hour: p_[:anchor_hour], anchor_weekday: p_[:anchor_weekday] })
+  end
+  %i[anchor_hour anchor_weekday].each do |missing|
+    stripped = rq.period_for(Time.new(2026, 9, 18, 16, 0, 0)).reject { |k, _| k == missing }
+    raised = begin
+      rq.cadence_of(stripped)
+      false
+    rescue ArgumentError
+      true
+    end
+    C.check("repair-02 period 缺 #{missing} → raise，不得靜默退回預設",
+            raised.to_s, raised)
+  end
+
+  # ── reviewer 的重播：已安裝週三 15:00 → review done 必須成功 ───────────
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "r2.db")
+  exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
+  Open3.capture3({ "HOME" => home }, exe, "install", "--home", home,
+                 "--owner", Support::Fixtures::EMP, "--tenant", "t-acme")
+  on = { v: false }
+  fake_lc = lambda do |*args|
+    case args.first
+    when "bootstrap" then on[:v] = true; { ok: true, status: 0, out: "", err: "" }
+    when "bootout"   then was = on[:v]; on[:v] = false
+                          { ok: was, status: was ? 0 : 3, out: "", err: "" }
+    when "print"     then { ok: on[:v], status: on[:v] ? 0 : 113, out: "", err: "" }
+    else { ok: false, status: 1, out: "", err: "unknown" }
+    end
+  end
+  OMOS::Schedule.install(home: home, anchor_hour: 15, anchor_weekday: 3,
+                         launchctl: fake_lc, **Support::TSEAM)
+
+  cadence = OMOS::CLI.new.send(:anchor_opts, { home: home })
+  period = ldg.period_from_iso_week("2026-W38", **cadence)
+  anchor = Time.parse(period[:scheduled_anchor_at])
+  C.check("repair-02 前提：週三 cadence 的 W38 anchor 是 2026-09-16 15:00",
+          period[:scheduled_anchor_at][0, 19],
+          period[:scheduled_review_period_start] == "2026-09-16" &&
+          period[:scheduled_anchor_at].start_with?("2026-09-16T15:00:00"))
+
+  rt = OMOS::Runtime.open(store)
+  cli_s = OMOS::Runtime::SURFACES[:cli]
+  f = File.join(dir, "wed.md")
+  File.write(f, "# 週三排程\n\n在週三 anchor 之前建立。\n")
+  cand = OMOS::Inbox.import(rt, store, f, memory_kind: "DECISION",
+                                owner_ref: Support::Fixtures::EMP, tenant_id: "t-acme",
+                                surface: cli_s, now: anchor - 3600)[:candidate_id]
+
+  # 這一筆在**週五 16:00** 的預設 cadence 下不屬於 W38（週五 anchor 是 09-18，
+  # 09-16 14:00 建立的其實也在窗內）——所以只比對「有沒有成功」不夠，
+  # 必須證明兩種 cadence 算出來的 period 本身就不同。
+  C.check("repair-02 鑑別力：同一個 --period 在兩種 cadence 下 anchor 不同",
+          [period[:scheduled_anchor_at][0, 16],
+           ldg.period_from_iso_week("2026-W38")[:scheduled_anchor_at][0, 16]].inspect,
+          period[:scheduled_anchor_at] != ldg.period_from_iso_week("2026-W38")[:scheduled_anchor_at])
+
+  done = begin
+    ldg.build_done(rt, period, { cand => "UNSEEN" }, now: anchor + 60, surface: cli_s)
+  rescue ldg::Rejected => e
+    e.code
+  rescue StandardError => e
+    # 變異可能讓別的例外先冒出來——那要算「轉紅」，不是讓整支測試崩潰。
+    "#{e.class}: #{e.message[0, 40]}"
+  end
+  C.check("repair-02 已安裝週三 15:00 時 review done 必須被接受（不得 OUT_OF_SCOPE）",
+          done.is_a?(String) ? done : done["attempt_kind"],
+          !done.is_a?(String) && done["selected_item_refs"] == [cand])
+  h = done.is_a?(Hash) ? done : {}
+  C.check("repair-02 closeout 的 cadence 欄位綁週三 anchor，不是週五",
+          "#{h["scheduled_review_period_start"]} / #{h["scheduled_anchor_at"].to_s[0, 16]}",
+          h["scheduled_review_period_start"] == "2026-09-16" &&
+          h["scheduled_anchor_at"].to_s.start_with?("2026-09-16T15:00"))
+  evaluated = done.is_a?(Hash) ? OMOS::Contract.closeout_history_problem(period[:id], [done]) : "NOT_BUILT"
+  C.check("repair-02 payload 仍通過既有 evaluator", evaluated.inspect, evaluated.nil?)
+
+  # ── due_for 不接受 cadence 參數：沒有傳錯的機會 ───────────────────────
+  C.check("repair-02 due_for 不收 cadence 參數（結構上沒得傳錯）",
+          rq.method(:due_for).parameters.inspect,
+          rq.method(:due_for).parameters.none? { |_, n| %i[anchor_hour anchor_weekday].include?(n) })
+  df = begin
+    rq.due_for(rt, period, surface: cli_s)[:scheduled_anchor_at]
+  rescue StandardError => e
+    "#{e.class}"
+  end
+  C.check("repair-02 due_for 用的是 period 的 cadence，不是預設", df.to_s[0, 19],
+          df == period[:scheduled_anchor_at])
+
+  # ── 機器可驗的防再發：每一個 due 呼叫點都必須明示 cadence ────────────
+  #
+  # 上面的測試只證明現有的呼叫點是對的；這條是給**未來的呼叫點**用的——
+  # 「忘了傳 cadence」會在這裡被抓到，不必等 reviewer 再踩一次。
+  due_sites = Dir[File.join(OMOS::Contract::ARTIFACT_ROOT, "lib/**/*.rb")].flat_map do |file|
+    File.readlines(file).each_with_index.filter_map do |line, i|
+      next unless line.include?("ReviewQueue.due(")
+
+      # 呼叫可能跨行，連同下一行一起看。明示 `anchor_hour:` 或 `**`（把
+      # 一整包 cadence splat 進去）都算；兩者皆無就是忘了傳。
+      call = line + File.readlines(file)[i + 1].to_s
+      ok = call.include?("anchor_hour:") || call.include?("**")
+      "#{File.basename(file)}:#{i + 1}#{ok ? "" : "  ← 缺 cadence"}"
+    end
+  end
+  C.check("repair-02 lib 內每個 ReviewQueue.due 呼叫點都明示 cadence（否則請改用 due_for）",
+          due_sites.inspect,
+          !due_sites.empty? && due_sites.none? { |x| x.include?("缺 cadence") })
+
   rt.store.close
   C.group = nil
 end

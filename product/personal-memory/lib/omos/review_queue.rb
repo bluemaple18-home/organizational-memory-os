@@ -76,10 +76,19 @@ module OMOS
       anchor_date = d - back
       anchor_date -= 7 if back.zero? && local.hour < anchor_hour
 
+      # repair-02：period **自帶推導它的 cadence**。
+      #
+      # 修正前 cadence 是兩個散裝 kwarg，穿過九個呼叫點、每個呼叫點各自有
+      # 預設值——忘了往下傳就靜默退回週五 16:00，而且不會有任何錯誤。
+      # repair-01 的 P1-3 是這樣踩到的（`anchor_opts` 讀對了、`build_done`
+      # 又忘了傳），逐點補只會讓下一個呼叫點再踩一次。
+      # 拿到 period 的人就拿到了 cadence，不需要、也不應該再自己傳一份。
       { id: "#{REF_PREFIX}#{anchor_date.strftime("%G-W%V")}",
         scheduled_review_period_start: anchor_date.to_s,
         scheduled_anchor_at: local_anchor(anchor_date, anchor_hour).iso8601,
-        catch_up_deadline_at: catch_up_deadline(anchor_date, anchor_hour) }
+        catch_up_deadline_at: catch_up_deadline(anchor_date, anchor_hour),
+        anchor_hour: anchor_hour,
+        anchor_weekday: anchor_weekday }
     end
 
     # 本機時區的 anchor 時刻。Time.new 不帶 utc_offset 時就是系統時區，
@@ -109,6 +118,28 @@ module OMOS
     #
     # 已經在本期 terminal closeout 裡被處置過的項目要排除——否則同一筆會在
     # closeout 之後仍然出現在 queue 裡，看起來像沒做完。
+    # period 身上的 cadence。缺欄位就 **raise**，不退回預設——
+    # 靜默退回預設正是 repair-01／repair-02 兩次 P1-3 的成因。
+    def cadence_of(period)
+      h = period[:anchor_hour]
+      w = period[:anchor_weekday]
+      if h.nil? || w.nil?
+        raise ArgumentError, "period 未帶 cadence（anchor_hour／anchor_weekday）：#{period[:id].inspect}"
+      end
+
+      { anchor_hour: h, anchor_weekday: w }
+    end
+
+    # **拿著 period 問 due 的唯一入口。**
+    #
+    # `due` 的語意是「現在是哪一期、那一期有什麼」，所以它要收 cadence；
+    # 但呼叫端手上已經有一個 period 時，再傳一次 cadence 就是給了它傳錯的
+    # 機會。這支不收 cadence，一律從 period 身上讀。
+    def due_for(runtime, period, surface: Runtime::SURFACES[:cli])
+      due(runtime, now: Time.parse(period[:scheduled_anchor_at]),
+                   surface: surface, **cadence_of(period))
+    end
+
     def due(runtime, now: Time.now.utc, anchor_hour: DEFAULT_ANCHOR_HOUR,
             anchor_weekday: FRIDAY, surface: Runtime::SURFACES[:cli])
       period = period_for(now, anchor_hour: anchor_hour, anchor_weekday: anchor_weekday)

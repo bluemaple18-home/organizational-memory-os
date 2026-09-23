@@ -179,8 +179,11 @@ module OMOS
       # 導向錯的方向。
       assert_started!(now, period)
 
-      due_refs = ReviewQueue.due(runtime, now: Time.parse(period[:scheduled_anchor_at]),
-                                          surface: surface)[:items]
+      # repair-02 P1-3：改用 `due_for`，cadence 一律從 period 身上讀。
+      # 修正前這裡重新呼叫 `due` 卻沒把 cadence 傳下去，於是「設定讀對了、
+      # 真正算本期 queue 時又用錯設定」——排週三 15:00 的人做 review done
+      # 會拿到 REVIEW_DONE_ITEMS_OUT_OF_SCOPE。
+      due_refs = ReviewQueue.due_for(runtime, period, surface: surface)[:items]
                             .map { |i| i["candidate_id"] }.to_set
       given = dispositions.keys.to_set
 
