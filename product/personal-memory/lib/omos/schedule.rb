@@ -119,10 +119,17 @@ module OMOS
     #
     # 兩者是同一個 split-brain 的兩個方向。
     def install(home:, anchor_hour: ReviewQueue::DEFAULT_ANCHOR_HOUR,
+                anchor_weekday: ReviewQueue::FRIDAY,
                 launchctl: method(:launchctl), plutil: method(:plutil_json),
                 clock: method(:monotonic), sleeper: method(:sleep))
       unless (0..23).cover?(anchor_hour.to_i)
         raise Failed.new("SCHEDULE_ANCHOR_HOUR_INVALID", anchor_hour.inspect)
+      end
+      # T-7：限週一～週五。catch-up 以「下一個工作日」定義，允許週末 anchor
+      # 會讓那個語意破掉。
+      unless ReviewQueue::WEEKDAY_RANGE.cover?(anchor_weekday.to_i)
+        raise Failed.new("SCHEDULE_ANCHOR_WEEKDAY_INVALID",
+                         "#{anchor_weekday.inspect}；須為 1(週一)～5(週五)")
       end
 
       path = plist_path(home)
@@ -184,14 +191,15 @@ module OMOS
         end
 
         # ── PUBLISH_NEW_PLIST ───────────────────────────────────────────
-        write_atomic(path, plist(home, anchor_hour.to_i))
+        write_atomic(path, plist(home, anchor_hour.to_i, anchor_weekday.to_i))
 
         # ── NEW_ACTIVATION_ATTEMPTED ／ NEW_POSTCONDITION_CLASSIFIED ────
         verdict = bootstrap_and_verify(path, launchctl, clock: clock, sleeper: sleeper)
         if verdict[:ok]
           # ── FINAL_VERIFIED ──
           next { label: LABEL, plist: path, replaced: existing,
-                 anchor_hour: anchor_hour.to_i, loaded: true }
+                 anchor_hour: anchor_hour.to_i, anchor_weekday: anchor_weekday.to_i,
+                 loaded: true }
         end
 
         # ── CLEANUP_NEW_IF_NEEDED ───────────────────────────────────────
@@ -497,8 +505,11 @@ module OMOS
       # repair-01 P1-2：anchor 從**已安裝的 plist** 讀回來，不用預設值猜。
       # 猜的話 15:00 的排程會被 status 當成 16:00，算出上一期的 period。
       hour = ours ? installed_anchor_hour(path, plutil: plutil) : nil
+      weekday = ours ? installed_anchor_weekday(path, plutil: plutil) : nil
       effective = hour || ReviewQueue::DEFAULT_ANCHOR_HOUR
-      period = ReviewQueue.period_for(now, anchor_hour: effective)
+      effective_weekday = weekday || ReviewQueue::FRIDAY
+      period = ReviewQueue.period_for(now, anchor_hour: effective,
+                                           anchor_weekday: effective_weekday)
       # status 是**查詢**，不是 mutation：用單次觀測即可，不進收斂窗口。
       # clock／sleeper 只為與其他入口簽名一致而接受，這裡用不到。
       _ = [clock, sleeper]
@@ -508,6 +519,7 @@ module OMOS
                # 「已安裝」= plist 是我們的 **且** job 真的載入了。
                installed: ours && loaded, loaded: loaded,
                anchor_hour: hour, effective_anchor_hour: effective,
+               anchor_weekday: weekday, effective_anchor_weekday: effective_weekday,
                plist: path, period: period[:id],
                scheduled_anchor_at: period[:scheduled_anchor_at],
                catch_up_deadline_at: period[:catch_up_deadline_at],
@@ -516,13 +528,27 @@ module OMOS
                overdue: now >= Time.parse(period[:catch_up_deadline_at]) }
       return base if runtime.nil?
 
-      q = ReviewQueue.due(runtime, now: now, anchor_hour: effective, surface: surface)
+      q = ReviewQueue.due(runtime, now: now, anchor_hour: effective,
+                                   anchor_weekday: effective_weekday, surface: surface)
       base.merge(due_count: q[:items].size, terminal_closeout: q[:terminal_closeout])
     end
 
     # 已安裝 plist 宣告的 anchor 小時。兩個來源必須一致：
     # StartCalendarInterval 的 Hour，與傳給 `review due` 的 --anchor-hour。
     # 不一致代表 plist 被手改過，寧可回 nil 讓上層退回預設並顯示，不猜。
+    # 與 hour 同一個做法：兩個來源（StartCalendarInterval 與 ProgramArguments）
+    # 必須一致，不一致回 nil 讓上層退回預設並顯示——不猜。
+    def installed_anchor_weekday(path, plutil: method(:plutil_json))
+      doc = plutil.call(path)
+      return nil unless doc.is_a?(Hash)
+
+      from_calendar = doc.dig("StartCalendarInterval", "Weekday")
+      args = doc["ProgramArguments"]
+      i = args.is_a?(Array) ? args.index("--anchor-weekday") : nil
+      from_args = i && args[i + 1] && Integer(args[i + 1], exception: false)
+      from_calendar == from_args ? from_calendar : nil
+    end
+
     def installed_anchor_hour(path, plutil: method(:plutil_json))
       doc = plutil.call(path)
       return nil unless doc.is_a?(Hash)
@@ -578,7 +604,7 @@ module OMOS
       raise
     end
 
-    def plist(home, anchor_hour)
+    def plist(home, anchor_hour, anchor_weekday = ReviewQueue::FRIDAY)
       <<~XML
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -593,10 +619,12 @@ module OMOS
             <string>--notify</string>
             <string>--anchor-hour</string>
             <string>#{anchor_hour}</string>
+            <string>--anchor-weekday</string>
+            <string>#{anchor_weekday}</string>
           </array>
           <key>StartCalendarInterval</key>
           <dict>
-            <key>Weekday</key><integer>#{FRIDAY_WEEKDAY}</integer>
+            <key>Weekday</key><integer>#{anchor_weekday}</integer>
             <key>Hour</key><integer>#{anchor_hour}</integer>
             <key>Minute</key><integer>0</integer>
           </dict>

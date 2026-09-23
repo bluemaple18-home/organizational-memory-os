@@ -36,6 +36,16 @@ module OMOS
     REF_PREFIX = "urn:omos:personal-memory:review-period:"
     FRIDAY = 5
 
+    # T-7：anchor 的「星期幾」可設定，限**週一～週五**。
+    #
+    # 契約的 cadence_policy 寫 `anchor_is_tenant_configurable: true`，
+    # `FRIDAY_AFTERNOON` 只是 default——所以這不是擴充範圍。限工作日是因為
+    # catch-up 本身以「下一個工作日」定義；允許週末 anchor 會讓那個語意破掉。
+    #
+    # 每個人放假的日子不同，所以「哪一天上傳」交給使用者，產品不內建行事曆。
+    # 不變式仍然是「一週一次」——period 身分綁 ISO 週，改哪一天都動不到它。
+    WEEKDAY_RANGE = (1..5).freeze
+
     # anchor 的預設時刻（FRIDAY_AFTERNOON）。契約允許 tenant 設定其他
     # Friday-afternoon 時間，但改 anchor 不得連帶改 closeout_statuses、
     # attempt_kinds 或 receipt schema——所以這裡只是一個時刻，沒有別的語意。
@@ -55,17 +65,21 @@ module OMOS
     #
     # 「週五下午」這個 anchor 本來就是**牆上時間**的概念；它與排程器看到的
     # 是同一個時鐘，所以這裡把 caller 給的任何 Time 一律 getlocal 之後再算。
-    def period_for(now, anchor_hour: DEFAULT_ANCHOR_HOUR)
+    def period_for(now, anchor_hour: DEFAULT_ANCHOR_HOUR, anchor_weekday: FRIDAY)
+      unless WEEKDAY_RANGE.cover?(anchor_weekday)
+        raise ArgumentError, "anchor_weekday 必須是 1(週一)～5(週五)：#{anchor_weekday.inspect}"
+      end
+
       local = now.getlocal
       d = local.to_date
-      back = (d.wday - FRIDAY) % 7
-      friday = d - back
-      friday -= 7 if back.zero? && local.hour < anchor_hour
+      back = (d.wday - anchor_weekday) % 7
+      anchor_date = d - back
+      anchor_date -= 7 if back.zero? && local.hour < anchor_hour
 
-      { id: "#{REF_PREFIX}#{friday.strftime("%G-W%V")}",
-        scheduled_review_period_start: friday.to_s,
-        scheduled_anchor_at: local_anchor(friday, anchor_hour).iso8601,
-        catch_up_deadline_at: catch_up_deadline(friday, anchor_hour) }
+      { id: "#{REF_PREFIX}#{anchor_date.strftime("%G-W%V")}",
+        scheduled_review_period_start: anchor_date.to_s,
+        scheduled_anchor_at: local_anchor(anchor_date, anchor_hour).iso8601,
+        catch_up_deadline_at: catch_up_deadline(anchor_date, anchor_hour) }
     end
 
     # 本機時區的 anchor 時刻。Time.new 不帶 utc_offset 時就是系統時區，
@@ -78,8 +92,8 @@ module OMOS
     # 沒有給演算法；這裡取週一到週五，**不含國定假日**——產品沒有行事曆，
     # 而假造一份行事曆比沒有更糟（它會在不同地區悄悄算錯）。
     # 這個限制寫在這裡，不是藏在某個常數裡。
-    def catch_up_deadline(friday, anchor_hour)
-      d = friday + 1
+    def catch_up_deadline(anchor_date, anchor_hour)
+      d = anchor_date + 1
       d += 1 while [0, 6].include?(d.wday)   # 跳過週六、週日
       local_anchor(d, anchor_hour).iso8601
     end
@@ -96,8 +110,8 @@ module OMOS
     # 已經在本期 terminal closeout 裡被處置過的項目要排除——否則同一筆會在
     # closeout 之後仍然出現在 queue 裡，看起來像沒做完。
     def due(runtime, now: Time.now.utc, anchor_hour: DEFAULT_ANCHOR_HOUR,
-            surface: Runtime::SURFACES[:cli])
-      period = period_for(now, anchor_hour: anchor_hour)
+            anchor_weekday: FRIDAY, surface: Runtime::SURFACES[:cli])
+      period = period_for(now, anchor_hour: anchor_hour, anchor_weekday: anchor_weekday)
       rows = runtime.read_rows(surface: surface)
       handled = dispositioned_refs(runtime, period[:id])
       anchor = Time.parse(period[:scheduled_anchor_at])

@@ -3143,4 +3143,298 @@ Dir.mktmpdir("omos-3c-a-converge") do |dir|
   C.group = nil
 end
 
+# --- 週期帳｜Rule → Generated Coverage（CARD-WEEKLY-UPLOAD-ACCOUNTABILITY-PREP-20260923）---
+#
+# §6.0 的兩條結構規則：
+#   R-1 coverage 由**函式的輸出空間**生成，不由輸入故事列舉；
+#       有序輸出（phase classifier）另加 boundary coverage（b-ε / b / b+ε）。
+#   R-2 每個反證都必須先證明它**會**轉紅——寫得出「反轉前後輸出為什麼不同」
+#       才算數。
+Dir.mktmpdir("omos-3c-a-ledger") do |dir|
+  C.group = "A"
+  require "omos/review_ledger"
+  L = OMOS::ReviewLedger
+  RQ = OMOS::ReviewQueue
+
+  # ── R-1／T-5：phase classifier 的 boundary coverage（3 邊界 × 3 點）──
+  #
+  # 「每個輸出至少命中一次」對它**不夠**：把時間邊界整個算錯，四種輸出照樣
+  # 都能命中。真正鎖住它的是邊界。
+  period = RQ.period_for(Time.new(2026, 9, 18, 16, 0, 0))
+  anchor = Time.parse(period[:scheduled_anchor_at])
+  deadline = Time.parse(period[:catch_up_deadline_at])
+  boundaries = {
+    "A（BEFORE→SCHEDULED）" => [anchor, :before, :scheduled],
+    "D0（SCHEDULED→CATCH_UP）" => [L.day_after_local(anchor), :scheduled, :catch_up],
+    "C（CATCH_UP→LATE）" => [deadline, :catch_up, :late]
+  }
+  boundaries.each do |label, (b, before_phase, after_phase)|
+    got = [L.phase_of(b - 1, period), L.phase_of(b, period), L.phase_of(b + 1, period)]
+    C.check("T-5 邊界 #{label}：b-ε／b／b+ε",
+            got.inspect,
+            got == [before_phase, after_phase, after_phase])
+  end
+  C.check("T-5 四個 phase 都被命中（output coverage）",
+          boundaries.values.flat_map { |_, a, bb| [a, bb] }.uniq.sort.inspect,
+          boundaries.values.flat_map { |_, a, bb| [a, bb] }.uniq.sort == L::PHASES.sort)
+
+  # ── R-1／決策函式：完整 Cartesian product，不寫故事 ──────────────────
+  priors = [nil] + L::PHASES
+  expected = lambda do |cur, prior|
+    next :reject if cur == :before
+    next "RETRY" if prior == cur
+
+    cur == :scheduled ? "SCHEDULED" : "CATCH_UP"
+  end
+  mismatches = L::PHASES.product(priors).reject do |cur, prior|
+    L.attempt_kind(current_phase: cur, prior_failed_phase: prior, has_terminal: false) ==
+      expected.call(cur, prior)
+  end
+  C.check("決策函式：#{L::PHASES.size}×#{priors.size} 全格生成比對",
+          mismatches.inspect, mismatches.empty?)
+  terminal_any = L::PHASES.product(priors).all? do |cur, prior|
+    L.attempt_kind(current_phase: cur, prior_failed_phase: prior, has_terminal: true) == :reject
+  end
+  C.check("決策函式：has_terminal 在**全部**格子都 reject", terminal_any.to_s, terminal_any)
+  C.check("決策函式：RETRY 只出現在對角線（同 phase）",
+          L::PHASES.reject { |p_| L.attempt_kind(current_phase: p_, prior_failed_phase: p_,
+                                                 has_terminal: false) == "RETRY" }.inspect,
+          L::PHASES.all? do |p_|
+            p_ == :before ||
+              L.attempt_kind(current_phase: p_, prior_failed_phase: p_, has_terminal: false) == "RETRY"
+          end)
+
+  # ── R-1／T-10：reducer 的**三個出口**都要命中 ────────────────────────
+  at = ->(phase) do
+    case phase
+    when :scheduled then anchor + 60
+    when :catch_up then L.day_after_local(anchor) + 60
+    else deadline + 60
+    end
+  end
+  entry = ->(status, phase) { { "final_status" => status, "actual_closeout_at" => at.call(phase).iso8601 } }
+
+  C.check("T-10 出口一：history 為空 → prior_failed_phase = nil",
+          L.reduce_history([], period).inspect,
+          L.reduce_history([], period) == { has_terminal: false, prior_failed_phase: nil })
+  %w[COMPLETE SKIPPED NO_PROMOTION].each do |terminal|
+    r = L.reduce_history([entry.call("FAILED", :scheduled), entry.call(terminal, :late)], period)
+    C.check("T-10 出口二：FAILED* → #{terminal} → has_terminal", r.inspect, r[:has_terminal] == true)
+  end
+  C.check("T-10 出口三：取**最後一筆** FAILED 的 phase",
+          L.reduce_history([entry.call("FAILED", :scheduled), entry.call("FAILED", :catch_up)],
+                           period)[:prior_failed_phase].inspect,
+          L.reduce_history([entry.call("FAILED", :scheduled), entry.call("FAILED", :catch_up)],
+                           period)[:prior_failed_phase] == :catch_up)
+
+  # ── R-2／composition：多筆 FAILED **分屬不同 phase**，生成而非故事 ────
+  #
+  # 反轉前後為什麼不同：取第一筆得 SCHEDULED → CATCH_UP；
+  # 取最後一筆得 CATCH_UP → RETRY。兩筆同屬一個 phase 的序列**證明不了**
+  # 這件事（卡上前一版的反證就是敗在這裡）。
+  composed = L::PHASES.reject { |p_| p_ == :before }.permutation(2).map do |first, last|
+    history = [entry.call("FAILED", first), entry.call("FAILED", last)]
+    reduced = L.reduce_history(history, period)
+    kind = L.attempt_kind(current_phase: last, prior_failed_phase: reduced[:prior_failed_phase],
+                          has_terminal: reduced[:has_terminal])
+    [[first, last], reduced[:prior_failed_phase], kind]
+  end
+  C.check("R-2 composition：reducer→決策 永遠依**最後一筆** FAILED",
+          composed.reject { |(_f, l), pf, kind| pf == l && kind == "RETRY" }.inspect,
+          composed.all? { |(_f, l), pf, kind| pf == l && kind == "RETRY" })
+  C.check("R-2 composition 的鑑別力：取第一筆會得到不同答案",
+          composed.map { |(f, l), _, _| f == l }.uniq.inspect,
+          composed.none? { |(f, l), _, _| f == l })
+
+  # ── T-9：exact binding，expected 來自**固定 fixture**而非 production ──
+  #
+  # 反轉前後為什麼不同：production derivation 整體 +1 week 時，兩個 cadence
+  # 欄位**仍彼此一致**、evaluator 仍放行，但與固定 fixture 不符 → 轉紅。
+  { "2026-W38" => ["2026-09-18", "2026-09-18T16:00:00"],
+    "2026-W39" => ["2026-09-25", "2026-09-25T16:00:00"] }.each do |week, (date, stamp)|
+    got = L.period_from_iso_week(week)
+    C.check("T-9 #{week} 的 cadence 欄位綁 --period anchor（固定 oracle）",
+            "#{got[:scheduled_review_period_start]} / #{got[:scheduled_anchor_at][0, 19]}",
+            got[:scheduled_review_period_start] == date &&
+            got[:scheduled_anchor_at].start_with?(stamp))
+  end
+  C.check("T-9 週四 anchor 的固定 oracle（W38 → 2026-09-17）",
+          L.period_from_iso_week("2026-W38", anchor_weekday: 4)[:scheduled_review_period_start],
+          L.period_from_iso_week("2026-W38", anchor_weekday: 4)[:scheduled_review_period_start] ==
+            "2026-09-17")
+
+  # ── T-7：anchor weekday 可設定，限週一～五；改天不得動搖「一週一次」──
+  C.check("T-7 週四與週五 anchor 算出**同一個** period（一週仍只有一次）",
+          [4, 5].map { |wd| RQ.period_for(Time.new(2026, 9, 22, 10), anchor_weekday: wd)[:id].split(":").last }.inspect,
+          [4, 5].map { |wd| RQ.period_for(Time.new(2026, 9, 22, 10), anchor_weekday: wd)[:id] }.uniq.size == 1)
+  rejected = [0, 6, 7, -1].reject do |wd|
+    begin
+      RQ.period_for(Time.now, anchor_weekday: wd)
+      false
+    rescue ArgumentError
+      true
+    end
+  end
+  C.check("T-7 週末／非法 weekday 一律拒絕", rejected.inspect, rejected.empty?)
+
+  C.group = nil
+end
+
+# --- 週期帳｜T-1..T-8 的**產品收緊**逐條驗證 -----------------------------
+#
+# 這一段的每一條都帶同一個前提：**上游 evaluator 放行**。
+# 只證明 payload 能過 evaluator 是不夠的——那證明不了任何「產品比上游更嚴」
+# 的宣稱。所以每條都成對寫：先證明一個更寬鬆的 payload **上游會放行**，
+# 再證明 builder **不產生／直接拒絕**它。
+Dir.mktmpdir("omos-3c-a-tighten") do |dir|
+  C.group = "A"
+  require "omos/review_ledger"
+  ldg = OMOS::ReviewLedger
+  store = File.join(dir, "t.db")
+  rt = OMOS::Runtime.open(store)
+  cli = OMOS::Runtime::SURFACES[:cli]
+  owner = Support::Fixtures::EMP
+  period = OMOS::ReviewQueue.period_for(Time.new(2026, 9, 18, 16, 0, 0))
+  anchor = Time.parse(period[:scheduled_anchor_at])
+  late = Time.parse(period[:catch_up_deadline_at]) + 3600
+
+  src = File.join(dir, "a.md")
+  File.write(src, "# 週期帳\n\n產品收緊測試用。\n")
+  imported = OMOS::Inbox.import(rt, store, src, memory_kind: "DECISION", owner_ref: owner,
+                                    tenant_id: "t-acme", surface: cli, now: anchor - 3600)
+  item = imported[:candidate_id]
+  ok = ->(entries) { OMOS::Contract.closeout_history_problem(period[:id], entries) }
+
+  done = ldg.build_done(rt, period, { item => "UNSEEN" }, now: anchor + 60, surface: cli)
+  C.check("done payload 通過既有 evaluator（收緊的前提）", ok.call([done]).inspect, ok.call([done]).nil?)
+
+  # T-1：disposition 形狀恰為 {category}
+  C.check("T-1 builder 產出的 disposition 只有 category",
+          done["item_dispositions"].values.flat_map(&:keys).uniq.inspect,
+          done["item_dispositions"].values.all? { |d| d.keys == ["category"] })
+  wide = Marshal.load(Marshal.dump(done))
+  wide["item_dispositions"][item] = { "category" => "UNSEEN",
+                                      "promotion_ref" => "urn:omos:promotion:x",
+                                      "promotion_idempotency_key" => "k1" }
+  C.check("T-1 鑑別力：多帶 promotion 欄位**上游照樣放行**（所以這是產品收緊）",
+          ok.call([wide]).inspect, ok.call([wide]).nil?)
+
+  # T-2：final_status 固定 NO_PROMOTION
+  C.check("T-2 build_done 的 final_status 固定 NO_PROMOTION", done["final_status"],
+          done["final_status"] == "NO_PROMOTION")
+  complete = Marshal.load(Marshal.dump(done)).merge("final_status" => "COMPLETE")
+  C.check("T-2 鑑別力：COMPLETE **上游照樣放行**", ok.call([complete]).inspect,
+          ok.call([complete]).nil?)
+
+  # T-3：selected 預設＝整個 queue，缺一即 fail closed
+  src2 = File.join(dir, "b.md")
+  File.write(src2, "# 第二筆\n\n用來證明漏選會被擋。\n")
+  second = OMOS::Inbox.import(rt, store, src2, memory_kind: "LESSON", owner_ref: owner,
+                                  tenant_id: "t-acme", surface: cli, now: anchor - 1800)
+  partial = begin
+    ldg.build_done(rt, period, { item => "UNSEEN" }, now: anchor + 60, surface: cli)
+    nil
+  rescue ldg::Rejected => e
+    e.code
+  end
+  C.check("T-3 漏掉待辦項目 → fail closed", partial.to_s, partial == "REVIEW_DONE_ITEMS_INCOMPLETE")
+  one_of_two = { "review_period_id" => period[:id],
+                 "scheduled_review_period_start" => period[:scheduled_review_period_start],
+                 "scheduled_anchor_at" => period[:scheduled_anchor_at],
+                 "actual_closeout_at" => (anchor + 60).iso8601,
+                 "attempt_kind" => "SCHEDULED", "final_status" => "NO_PROMOTION",
+                 "catch_up_deadline_passed" => false, "selected_item_refs" => [item],
+                 "item_dispositions" => { item => { "category" => "UNSEEN" } } }
+  C.check("T-3 鑑別力：只關一半 **上游照樣放行**（上游只比對兩個集合相等）",
+          ok.call([one_of_two]).inspect, ok.call([one_of_two]).nil?)
+  full = ldg.build_done(rt, period, { item => "UNSEEN", second[:candidate_id] => "NEEDS_ORG_FOLLOWUP" },
+                      now: anchor + 60, surface: cli)
+  C.check("T-3 兩筆都給 disposition 才放行", full["selected_item_refs"].size.to_s,
+          full["selected_item_refs"].to_set == [item, second[:candidate_id]].to_set)
+
+  # T-4：BEFORE 階段拒絕（done 與 skip **兩個入口**都要擋）
+  %w[done skip].each do |entry|
+    code = begin
+      if entry == "done"
+        ldg.build_done(rt, period, { item => "UNSEEN" }, now: anchor - 60, surface: cli)
+      else
+        ldg.build_skip(rt, period, now: anchor - 60)
+      end
+      nil
+    rescue ldg::Rejected => e
+      e.code
+    end
+    C.check("T-4 #{entry} 在 anchor 之前拒絕（且錯碼指向真正原因）", code.to_s,
+            code == "REVIEW_PERIOD_NOT_STARTED")
+  end
+  early = one_of_two.merge("actual_closeout_at" => (anchor - 60).iso8601,
+                           "selected_item_refs" => [item, second[:candidate_id]],
+                           "item_dispositions" => {
+                             item => { "category" => "UNSEEN" },
+                             second[:candidate_id] => { "category" => "UNSEEN" }
+                           })
+  C.check("T-4 鑑別力：anchor 之前關帳 **上游照樣放行**（上游不擋提前關帳）",
+          ok.call([early]).inspect, ok.call([early]).nil?)
+
+  # T-8：skip 固定送空集合，且僅限 LATE
+  skipped = ldg.build_skip(rt, period, now: late)
+  C.check("T-8 skip 送空的 selected／dispositions 且通過 evaluator",
+          "#{skipped["selected_item_refs"].inspect} #{ok.call([skipped]).inspect}",
+          skipped["selected_item_refs"] == [] && skipped["item_dispositions"] == {} &&
+          skipped["catch_up_deadline_passed"] == true && ok.call([skipped]).nil?)
+  nonempty = Marshal.load(Marshal.dump(skipped))
+             .merge("selected_item_refs" => [item],
+                    "item_dispositions" => { item => { "category" => "UNSEEN" } })
+  C.check("T-8 鑑別力：帶著項目的 SKIPPED **上游照樣放行**", ok.call([nonempty]).inspect,
+          ok.call([nonempty]).nil?)
+  early_skip = begin
+    ldg.build_skip(rt, period, now: anchor + 60)
+    nil
+  rescue ldg::Rejected => e
+    e.code
+  end
+  C.check("T-8 catch-up 期限前 skip 仍拒絕", early_skip.to_s,
+          early_skip == "REVIEW_SKIP_BEFORE_CATCH_UP_EXHAUSTED")
+
+  C.group = nil
+end
+
+# --- 週期帳｜T-6：weekly_review_origin_at 必須**跨升級穩定** ---------------
+#
+# 為什麼不能直接用 installed_at：每次 install 都會重寫 installed_at，
+# 於是「你漏了哪幾週」的起點會隨著每次升級往前跳，過去的缺漏被抹掉。
+Dir.mktmpdir("omos-3c-a-origin") do |dir|
+  C.group = "A"
+  require "omos/review_ledger"
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "o.db")
+
+  first = OMOS::Installer.new(home: home, store_path: store).tap(&:install).receipt
+  sleep 1.05
+  second = OMOS::Installer.new(home: home, store_path: store).tap(&:install).receipt
+
+  C.check("T-6 installed_at 每次安裝都會變（這就是不能拿它當起點的原因）",
+          "#{first["installed_at"]}→#{second["installed_at"]}",
+          first["installed_at"] != second["installed_at"])
+  C.check("T-6 weekly_review_origin_at 跨升級不變",
+          "#{first["weekly_review_origin_at"]}→#{second["weekly_review_origin_at"]}",
+          !first["weekly_review_origin_at"].nil? &&
+          first["weekly_review_origin_at"] == second["weekly_review_origin_at"])
+
+  # origin 以前視為 unknown，不得倒推成 MISSING
+  origin = Time.new(2026, 9, 18, 16, 0, 0)
+  weeks = OMOS::ReviewLedger.expected_periods(origin.iso8601, Time.new(2026, 10, 9, 16, 0, 0))
+         .map { |w| w[:id].split(":").last }
+  C.check("T-6 期別序列從 origin 當週起算、每 ISO 週一期", weeks.inspect,
+          weeks == %w[2026-W38 2026-W39 2026-W40 2026-W41])
+  C.check("T-6 origin 以前的週期不得出現（不倒推成 MISSING）",
+          weeks.first, weeks.none? { |w| w < "2026-W38" })
+  C.check("T-6 origin 當週即為第一期（邊界：now == origin）",
+          OMOS::ReviewLedger.expected_periods(origin.iso8601, origin).map { |w| w[:id].split(":").last }.inspect,
+          OMOS::ReviewLedger.expected_periods(origin.iso8601, origin)
+                            .map { |w| w[:id].split(":").last } == ["2026-W38"])
+  C.group = nil
+end
+
 C.report!

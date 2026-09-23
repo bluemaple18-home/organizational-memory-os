@@ -467,6 +467,12 @@ module OMOS
       prior == artifact_id ? previous["previous_artifact_id"] : prior
     end
 
+    def weekly_review_origin_for(previous)
+      return Time.now.utc.iso8601 if previous.nil?
+
+      previous["weekly_review_origin_at"] || previous["installed_at"] || Time.now.utc.iso8601
+    end
+
     # explicit（這次 install 帶的）> 上一份 receipt 保留的 > nil。
     # nil 是合法狀態：沒設定過就是沒設定過，import 會當場要求補上，不會猜。
     def personal_identity_for(previous)
@@ -488,6 +494,17 @@ module OMOS
     def write_receipt(hosts, schema_version, artifact_id, previous)
       data = {
         "installed_at" => Time.now.utc.iso8601,
+        # weekly review 的**穩定歷史起點**（T-6）。
+        #
+        # 不能用 installed_at 當起點——它每次 install／upgrade 都被重寫
+        # （實測 05:43:28Z → 05:43:29Z），拿它算「預期的週期序列」的話，
+        # 每升級一次就把之前的 MISSING 週靜默洗掉，而那正是週期帳要防的事。
+        #
+        # 首次建立時寫入當下；之後 reinstall／upgrade **原樣保留**。
+        # 舊 receipt 尚無此欄位時，採其現有 installed_at 作 migration origin
+        # ——那是「目前仍可證明的最早起點」，origin 之前的週期視為 unknown，
+        # **不得倒推成 MISSING**。
+        "weekly_review_origin_at" => weekly_review_origin_for(previous),
         # artifact identity：內容決定，與安裝位置、mtime、本 receipt 無關。
         # 與 store 的 schema_version 是**兩件不同的事**，不得互相冒充。
         "artifact_id" => artifact_id,

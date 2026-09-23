@@ -14,6 +14,7 @@ require_relative "host_config_writer"
 require_relative "doctor"
 require_relative "inbox"
 require_relative "review_queue"
+require_relative "review_ledger"
 require_relative "schedule"
 
 module OMOS
@@ -30,9 +31,14 @@ module OMOS
         import FILE [--memory-kind KIND]
                                 把一個 .md／.txt 匯入成 PersonalMemoryCandidate(PROPOSED)
         inbox list              列出已匯入的 evidence 與對應的 candidate
-        review due [--notify] [--anchor-hour H]
+        review due [--notify] [--anchor-hour H] [--anchor-weekday D]
                                 列出本週期待 review 的 candidate（純讀，不做任何處置）
-        schedule install [--home DIR] [--anchor-hour H]
+        review history          週期帳：每個 ISO 週一列，MISSING 即「少了哪週」
+        review done --period YYYY-Www --item <candidate>=<CATEGORY> [--item ...]
+                                把該週期記成已完成（NO_PROMOTION）
+        review skip --period YYYY-Www
+                                catch-up 期限過後，把該週期明確記成 SKIPPED
+        schedule install [--home DIR] [--anchor-hour H] [--anchor-weekday D]
                                 安裝週五提醒（macOS launchd LaunchAgent）
         schedule status [--home DIR]
         schedule remove [--home DIR]
@@ -121,6 +127,10 @@ module OMOS
         o.on("--tenant ID") { |v| opts[:tenant] = v }
         o.on("--notify") { opts[:notify] = true }
         o.on("--anchor-hour H", Integer) { |v| opts[:anchor_hour] = v }
+        o.on("--anchor-weekday D", Integer) { |v| opts[:anchor_weekday] = v }
+        o.on("--period W") { |v| opts[:period] = v }
+        o.on("--item PAIR") { |v| (opts[:items] ||= []) << v }
+        o.on("--dispositions FILE") { |v| opts[:dispositions] = v }
       end.parse!(argv)
       opts
     end
@@ -325,17 +335,103 @@ module OMOS
 
     # review due 只準備 queue 與回報。契約把 acceptance authority 封死在每個
     # Candidate 自己的 gate 上，批次確認本身不能接受任何東西——所以這裡沒有
-    # 任何寫入路徑，連「標記已讀」都沒有。
-    def cmd_review(path, argv, opts, out, err)
-      sub = argv.shift
-      unless sub == "due"
-        err.puts "用法: omos-personal-memory review due"
+    # 週期帳與補做。CLI 只正規化與組 payload，合法性一律交既有
+    # Runtime.commit_closeout 與 weekly_closeout_history evaluator。
+    def anchor_opts(opts)
+      { anchor_hour: opts[:anchor_hour] || ReviewQueue::DEFAULT_ANCHOR_HOUR,
+        anchor_weekday: opts[:anchor_weekday] || ReviewQueue::FRIDAY }
+    end
+
+    def weekly_origin(path)
+      receipt = File.expand_path(Installer::RECEIPT_PATH)
+      receipt = File.join(File.dirname(path), "install-receipt.json") unless File.file?(receipt)
+      return nil unless File.file?(receipt)
+
+      JSON.parse(File.read(receipt))["weekly_review_origin_at"]
+    rescue JSON::ParserError
+      nil
+    end
+
+    def cmd_review_history(path, opts, out, err)
+      origin = weekly_origin(path)
+      if origin.nil?
+        err.puts "REVIEW_HISTORY_NO_ORIGIN"
+        err.puts "  找不到 weekly_review_origin_at——請先跑 install。"
         return 2
       end
 
       with_runtime(path) do |rt|
-        anchor = opts[:anchor_hour] || ReviewQueue::DEFAULT_ANCHOR_HOUR
-        q = ReviewQueue.due(rt, anchor_hour: anchor, surface: surface)
+        rows = ReviewLedger.history(rt, origin, **anchor_opts(opts))
+        out.puts "週期帳（自 #{origin} 起）"
+        rows.each do |r|
+          mark = r["status"] == "MISSING" ? "x" : "v"
+          out.puts "  #{mark} #{r["period"]}  #{r["status"].ljust(13)} " \
+                   "起 #{r["scheduled_review_period_start"]}  attempts=#{r["attempts"]}"
+        end
+        missing = rows.count { |r| r["status"] == "MISSING" }
+        out.puts "\n共 #{rows.size} 週，其中 #{missing} 週未完成。"
+        out.puts "補做： omos-personal-memory review done --period <YYYY-Www> …" if missing.positive?
+      end
+      0
+    end
+
+    def parse_dispositions(opts)
+      from_file = opts[:dispositions] ? JSON.parse(File.read(opts[:dispositions])) : {}
+      (opts[:items] || []).each_with_object(from_file) do |pair, acc|
+        ref, category = pair.split("=", 2)
+        raise ArgumentError, "--item 需要 <candidate-urn>=<CATEGORY>：#{pair}" if category.nil?
+
+        acc[ref] = category
+      end
+    end
+
+    def cmd_review_closeout(path, opts, out, err, mode)
+      if opts[:period].nil?
+        err.puts "REVIEW_PERIOD_REQUIRED"
+        err.puts "  必須明確指定週期，例如 --period 2026-W38。"
+        err.puts "  （不自動猜本週：下週補上週、同週做兩次時會分不清。）"
+        return 2
+      end
+
+      period = ReviewLedger.period_from_iso_week(opts[:period], **anchor_opts(opts))
+      with_runtime(path) do |rt|
+        payload = if mode == :done
+                    ReviewLedger.build_done(rt, period, parse_dispositions(opts), surface: surface)
+                  else
+                    ReviewLedger.build_skip(rt, period)
+                  end
+        result = rt.commit_closeout(closeout: payload, surface: surface)
+        out.puts "COMMITTED #{result[:review_period_id]}"
+        out.puts "  final_status: #{payload["final_status"]}"
+        out.puts "  attempt_kind: #{payload["attempt_kind"]}"
+        out.puts "  terminal:     #{result[:terminal]}"
+      end
+      0
+    rescue ReviewLedger::Rejected => e
+      err.puts e.code
+      err.puts "  #{e.message}"
+      2
+    rescue ArgumentError => e
+      err.puts "REVIEW_ARGUMENT_INVALID"
+      err.puts "  #{e.message}"
+      2
+    end
+
+    # 任何寫入路徑，連「標記已讀」都沒有。
+    def cmd_review(path, argv, opts, out, err)
+      sub = argv.shift
+      case sub
+      when "history" then return cmd_review_history(path, opts, out, err)
+      when "done"    then return cmd_review_closeout(path, opts, out, err, :done)
+      when "skip"    then return cmd_review_closeout(path, opts, out, err, :skip)
+      when "due"     then nil
+      else
+        err.puts "用法: omos-personal-memory review due|history|done|skip"
+        return 2
+      end
+
+      with_runtime(path) do |rt|
+        q = ReviewQueue.due(rt, **anchor_opts(opts), surface: surface)
         notified = opts[:notify] ? Schedule.notify(q[:items].size, io: err) : nil
         out.puts "review period: #{q[:id]}"
         out.puts "  anchor:       #{q[:scheduled_anchor_at]}（起始 #{q[:scheduled_review_period_start]}）"
@@ -361,11 +457,13 @@ module OMOS
       case sub
       when "install"
         r = Schedule.install(home: home,
-                             anchor_hour: opts[:anchor_hour] || ReviewQueue::DEFAULT_ANCHOR_HOUR)
+                             anchor_hour: opts[:anchor_hour] || ReviewQueue::DEFAULT_ANCHOR_HOUR,
+                             anchor_weekday: opts[:anchor_weekday] || ReviewQueue::FRIDAY)
         out.puts(r[:replaced] ? "SCHEDULE_REPLACED" : "SCHEDULE_INSTALLED")
         out.puts "  label:  #{r[:label]}"
         out.puts "  plist:  #{r[:plist]}"
-        out.puts "  觸發:   每週五 #{r[:anchor_hour]}:00（本機時區）＋ RunAtLoad 補喚醒"
+        out.puts "  觸發:   每週#{%w[日 一 二 三 四 五 六][r[:anchor_weekday]]} " \
+                 "#{r[:anchor_hour]}:00（本機時區）＋ RunAtLoad 補喚醒"
         out.puts "  已載入: #{r[:loaded] ? "是" : "否"}"
       when "status"
         with_runtime(path) do |rt|
@@ -373,7 +471,8 @@ module OMOS
           out.puts "schedule: #{st[:installed] ? "已安裝且已載入" : "未安裝"}（#{st[:label]}）"
           out.puts "  plist:         #{st[:plist_present] ? (st[:plist_is_ours] ? "存在（本產品）" : "存在但不是本產品的") : "不存在"}"
           out.puts "  launchd job:   #{st[:loaded] ? "已載入" : "未載入"}"
-          out.puts "  anchor:        每週五 #{st[:effective_anchor_hour]}:00#{st[:anchor_hour].nil? ? "（plist 未宣告或不一致，採預設）" : ""}"
+          out.puts "  anchor:        每週#{%w[日 一 二 三 四 五 六][st[:effective_anchor_weekday]]} " \
+                   "#{st[:effective_anchor_hour]}:00#{st[:anchor_hour].nil? ? "（plist 未宣告或不一致，採預設）" : ""}"
           out.puts "  period:        #{st[:period]}"
           out.puts "  排定於:        #{st[:scheduled_anchor_at]}"
           out.puts "  catch-up 截止: #{st[:catch_up_deadline_at]}#{st[:overdue] ? "（逾期）" : ""}"

@@ -1,6 +1,6 @@
 ---
 id: WEEKLY-UPLOAD-ACCOUNTABILITY-PREP-20260923
-status: SPEC_FROZEN_AWAITING_FREEZE_C_REVIEW
+status: IMPLEMENTED_AWAITING_IMPLEMENTATION_REVIEW
 freeze_c_review_round_1: NO_GO（2026-09-23，P1×2：驗收 14 誤稱 evaluator 會擋合法 ref 欄位／attempt_kind 只看歷史會標錯；P2×2：C-2 應消費既有 seam／C-3 的 COMPLETE 語意是新政策非契約）→ 已補
 freeze_c_review_round_2: NO_GO（2026-09-23，P1×1：C-7 四格與自身散文衝突且未列未到期週期；P2×1：§3.3 開頭過度宣稱「全部來自既有契約」）→ 已補
 freeze_c_review_round_3: NO_GO（2026-09-23，P1×1：驗收 14 未鎖 LATE 分叉；P2×1：C-7 整個 phase classifier 未標為產品推導）→ 已補
@@ -469,3 +469,69 @@ terminal 之後不得再有任何 attempt。）
   不改 SSP-323 的 catch-up 語意。
 - **do_not_absorb**：不吸收 SSP-324 的提交面與隱私裁決；不吸收國定假日
   行事曆（每個人放假不同，產品不該內建一份）。
+
+---
+
+## 8. 實作結果（2026-09-23）
+
+### 8.1 T-ID → 規則位置 → guard → 測試
+
+規範規則只寫在「規則位置」那一欄，其餘兩欄都指回它。
+
+| T | 規則位置（唯一） | guard（實作） | 測試 | 反證 |
+|---|---|---|---|---|
+| T-1 | `review_ledger.rb:159` | `build_done` 只組 `{category}` | `T-1 builder 產出的 disposition 只有 category` ＋ 上游放行對照 | M11 RED |
+| T-2 | `review_ledger.rb:190` | `base(..., "NO_PROMOTION", ...)` | `T-2 final_status 固定 NO_PROMOTION` ＋ 上游放行對照 | M12 RED |
+| T-3 | `review_ledger.rb:174` | `missing = due_refs - given` → `REVIEW_DONE_ITEMS_INCOMPLETE` | `T-3 漏掉待辦項目 → fail closed` ＋ 上游放行對照 | M13 RED |
+| T-4 | `review_ledger.rb:212` | `assert_started!`，於 `build_done`／`build_skip`／`base` **最先**呼叫 | `T-4 done/skip 在 anchor 之前拒絕` ＋ 上游放行對照 | M14 RED |
+| T-5 | `review_ledger.rb:30` | `phase_of` 半開區間 | 3 邊界 × `b-ε/b/b+ε` ＝ 9 點 ＋ 四輸出命中 | M1/M2/M3 RED |
+| T-6 | `installer.rb:497` | `weekly_review_origin_for(previous)` | `origin 跨升級不變`、`installed_at 每次都變`、序列從 origin 當週起算 | M17 RED、installer 變異 RED |
+| T-7 | `review_queue.rb:39`（`WEEKDAY_RANGE`） | `period_for` 的 range 檢查 ＋ `schedule.rb:128` | 週四/週五同一 period、`0/6/7/-1` 全拒 | M8/M9/M10 RED |
+| T-8 | `review_ledger.rb:197` | `build_skip` 固定 `[]`／`{}`，且僅限 `:late` | 空集合通過 evaluator ＋ 上游放行對照 ＋ 期限前拒絕 | M15b/M16b RED |
+| T-9 | `review_ledger.rb:129`／`:233` | `period_from_iso_week` → 兩個 cadence 欄位同綁 | 固定 fixture oracle（W38→09-18、W39→09-25、週四→09-17） | M6/M7b RED |
+| T-10 | `review_ledger.rb:70` | `reduce_history` 取最後一筆 `FAILED` | 三個出口逐一命中 ＋ reducer→決策 composition | M4/M5 RED |
+
+### 8.2 §6.0 兩條結構規則的落地
+
+- **R-1**：決策函式的 coverage 由 `current_phase × prior_failed_phase(含 nil)`
+  的 Cartesian product 生成（4×5 全格），`has_terminal` 另外對全格斷言；
+  reducer 三個出口逐一命中；phase classifier 另加 9 點 boundary coverage。
+  測試裡沒有任何手寫故事案例。
+- **R-2**：18 個反證，17 個轉紅。唯一沒轉紅的是 **M7（等價變異，非假綠）**：
+  `period_from_iso_week` 把 `Date.commercial(y, w, anchor_weekday)` 寫死成
+  `5` 時輸出不變——因為 `period_for` 會從給定時刻**往回走**到 anchor 星期，
+  而週五是允許範圍 `1..5` 的最大值，往回走不會跨出該 ISO 週。改寫死成 `1`
+  就會跨到上一週（**M7b RED**），證明這個位置確實有被測到。
+
+  另外在寫反證的過程中發現我自己的一個假綠：`T-8 catch-up 期限前 skip 仍拒絕`
+  原本把比較式當成 `actual`、第三個參數寫死 `true`，恆真。已改為取回錯碼再斷言
+  （M16b 因此由 GREEN 轉 RED）。
+
+### 8.3 驗證
+
+- `3a 26/26`、`3b 34/34`、`3c 391/391`（本卡新增 19+14+5 ＝ 38 條）
+- 六支 validator 全 PASS
+- 端到端：`review history` 由 `x 2026-W38 MISSING` → `review done` →
+  `v 2026-W38 NO_PROMOTION`，`attempt_kind` 回報 `CATCH_UP`
+- 實作期間發現並修掉一個真 bug：`--period` 指向未來週期時回
+  `REVIEW_SKIP_BEFORE_CATCH_UP_EXHAUSTED` 而非 `REVIEW_PERIOD_NOT_STARTED`
+  （兩個 builder 各自先跑自己的檢查）→ 抽出 `assert_started!` 並最先呼叫
+
+### 8.4 體積（MINIMUM_SUFFICIENT）
+
+| 檔案 | 產品 | 測試 |
+|---|---|---|
+| `review_ledger.rb`（新） | +268（實碼 146／註解 90／空白 32） | — |
+| `cli.rb` | +117 | — |
+| `review_queue.rb` | +40 | — |
+| `schedule.rb` | +40 | — |
+| `installer.rb` | +17 | — |
+| `conformance_3c.rb` | — | +294 |
+| **合計** | **約 +482（實碼約 300）** | **+294** |
+
+`why_not_less`：T-1..T-10 每一條都是上游 evaluator **不會擋**的產品收緊，
+少一條就少一個 fail-closed 點（8.1 的「上游放行對照」欄逐條證明了這點）。
+`why_not_more`：沒有新 table、新 ledger、新 FSM；合法性判定一律回呼既有
+`WeeklyCloseoutHistory`，本卡只組 payload 與算期別。
+`do_not_absorb`：不做公司端匯總、不做多人視圖、不做提醒推播——那些要 Owner
+與契約先裁決，已列在 §5。
