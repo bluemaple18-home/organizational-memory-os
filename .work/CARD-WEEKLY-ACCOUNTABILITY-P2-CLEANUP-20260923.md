@@ -37,6 +37,23 @@ parent: WEEKLY-UPLOAD-ACCOUNTABILITY-PREP-20260923
 plist，`schedule status` 必須指出 weekday 來源不可信；
 反證——把揭露拿掉，該測試必須轉紅。
 
+## P2-3 剛安裝完 `review history` 的空輸出沒有解釋
+
+（2026-09-23 隔離試跑時發現，非 reviewer 提出。）
+
+安裝當下還沒有任何一期的 anchor 落在 origin 之後，`review history` 印的是
+「共 0 週，其中 0 週未完成」。這個結果是**對的**（origin 以前不倒推），
+但看的人不知道是「還沒開始算」還是「壞了」。
+
+實測：週三安裝 → 今天 0 週；同一個 store 模擬到 10/14 → 正確列出
+W39／W40／W41 三週 MISSING。
+
+**修法**：rows 為空時改印「尚未進入第一個週期，第一次 review 是 <日期>」，
+日期取 `expected_periods` 的下一期 anchor。
+
+**驗收**：origin 在下一個 anchor 之前時，輸出必須含下一次 review 的日期；
+反證——把該分支拿掉，測試必須轉紅。
+
 ## 不做
 
 不改 cadence 的傳遞結構（`repair-02` 已凍結：period 自帶 cadence、
