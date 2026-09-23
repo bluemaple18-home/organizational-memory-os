@@ -9,7 +9,9 @@ freeze_c_review_round_4: NO_GO（2026-09-23，P1×2：attempt 矩陣仍是人工
   「同一 blocker 第 3 次失敗即停」重構 Freeze C 為
   Rule → Generated Coverage → Builder → Existing Evaluator
 freeze_c_review_round_5: NO_GO（2026-09-23，重構方向獲確認；P1×1：缺 history → prior_failed_phase 的 reducer；
-  P2×1：T-9 只綁 scheduled_anchor_at，應擴成兩個 cadence 欄位）→ 本版已補
+  P2×1：T-9 只綁 scheduled_anchor_at，應擴成兩個 cadence 欄位）→ 已補
+freeze_c_review_round_6: NO_GO（2026-09-23，P1×1：composition 反證兩筆 FAILED 同屬 SCHEDULED phase，
+  取第一筆與取最後一筆算出同一個值，反證不會轉紅）→ 本版已補
 type: bounded-product-capability
 priority: MVP
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
@@ -330,8 +332,23 @@ T-ID → rule location（§3.3.1 的哪一條）→ implementation guard → tes
       Cartesian product，逐格斷言；`has_terminal` 與 `BEFORE` 另列。
     - **必須測 reducer → 決策函式的 composition**（T-10），不得只測決策函式。
       矩陣的輸入已經是 reduce 之後的值，所以「取第一筆 `FAILED` 而非最後一筆」
-      這種錯**矩陣全綠也抓不到**。反證：把 reducer 改成取第一筆，
-      `SCHEDULED FAILED → RETRY FAILED → 跨進 CATCH_UP` 必須轉紅。
+      這種錯**矩陣全綠也抓不到**。
+
+      **coverage 同樣用生成的，不寫故事**：產生「**多筆 `FAILED` 分屬不同
+      phase**」的 history，斷言 reducer **永遠**取 `attempt_seq` 最後一筆
+      `FAILED`。這樣 reducer 與 decision matrix 兩層才都被鎖住。
+
+      > **反證必須先證明它會轉紅。** 本卡前一版寫的反證是
+      > `SCHEDULED FAILED → RETRY FAILED → 跨進 CATCH_UP`——但那兩筆 `FAILED`
+      > **都在 SCHEDULED phase**，取第一筆與取最後一筆算出**同一個值**，
+      > 錯誤實作照樣全綠。
+      >
+      > 有鑑別力的最小例子是
+      > `SCHEDULED FAILED → 跨進 CATCH_UP → CATCH_UP FAILED → 同一 CATCH_UP 再做`：
+      > 取最後一筆得 `CATCH_UP` → `RETRY`；取第一筆得 `SCHEDULED` → `CATCH_UP`。
+      >
+      > 差別在於**多筆 `FAILED` 必須分屬不同 phase**——這正是生成式 coverage
+      > 要涵蓋的維度，而不是再挑一個故事。
 
       這樣日後新增一個 phase，矩陣會**立刻**指出有格子沒定義——而不是等
       reviewer 找出第 21 個故事。前四輪就是敗在「取樣」而不是「窮舉」。
