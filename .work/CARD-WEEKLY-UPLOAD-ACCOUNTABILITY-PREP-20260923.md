@@ -11,7 +11,9 @@ freeze_c_review_round_4: NO_GO（2026-09-23，P1×2：attempt 矩陣仍是人工
 freeze_c_review_round_5: NO_GO（2026-09-23，重構方向獲確認；P1×1：缺 history → prior_failed_phase 的 reducer；
   P2×1：T-9 只綁 scheduled_anchor_at，應擴成兩個 cadence 欄位）→ 已補
 freeze_c_review_round_6: NO_GO（2026-09-23，P1×1：composition 反證兩筆 FAILED 同屬 SCHEDULED phase，
-  取第一筆與取最後一筆算出同一個值，反證不會轉紅）→ 本版已補
+  取第一筆與取最後一筆算出同一個值，反證不會轉紅）→ 已補
+freeze_c_review_round_7: NO_GO（2026-09-23，P1×1：reducer composition 缺 empty history 與 terminal 兩個出口；
+  P2×1：T-9 反證兩欄一起填錯仍會過）→ 本版已補，並把兩類根因各收成一條結構規則（§6.0）
 type: bounded-product-capability
 priority: MVP
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
@@ -303,6 +305,51 @@ T-ID → rule location（§3.3.1 的哪一條）→ implementation guard → tes
 
 ## 6. Acceptance
 
+### 6.0 兩條結構規則（先於個別條目）
+
+第 5～7 輪 review 的發現可歸成兩類，各出現兩次。**不等第三次**，收成規則：
+
+#### R-1 coverage 由**函式的輸出空間**生成，不由輸入故事列舉
+
+適用於本卡所有 deterministic function（決策函式、reducer、phase classifier）。
+
+> 每個函式必須列出它的**完整輸出集合**，測試對**每一個輸出**都有至少一筆
+> 生成的輸入命中它。
+
+`attempt_kind` 決策函式已經這樣做（Cartesian product）。**reducer 也必須**
+——它的輸出空間是三個：
+
+| reducer 輸出 | 命中條件 |
+|---|---|
+| `has_terminal = true` | history 含 terminal（`FAILED* → terminal` 亦屬之） |
+| `prior_failed_phase = none` | **history 為空** |
+| `prior_failed_phase = <phase>` | 取 `attempt_seq` **最後一筆** `FAILED` 所屬 phase |
+
+第 7 輪就是敗在只測了第三個出口——「矩陣全綠但空 history 算錯」的實作可以
+完全通過。
+
+（附帶更正一個錯誤前提：合法 history **不可能**出現「`FAILED` 中間夾非
+`FAILED`」——`COMPLETE`／`SKIPPED`／`NO_PROMOTION` 都是 terminal，
+terminal 之後不得再有任何 attempt。）
+
+#### R-2 每個反證都必須先證明它**會**轉紅
+
+> 反證條目必須同時寫出三件事：
+> **(i)** 反轉什麼；**(ii)** 哪一條斷言轉紅；
+> **(iii)** **反轉前後的輸出為什麼不同**。
+>
+> **寫不出 (iii) 的反證一律無效**——它只是看起來有保護。
+
+兩次教訓：
+
+- composition 反證用了兩筆同屬 `SCHEDULED` 的 `FAILED`，取第一筆與取最後
+  一筆**算出同一個值**；
+- T-9 反證只斷言「不觸發 `WRC_PERIOD_START_INCONSISTENT`」，但兩個 cadence
+  欄位**一起填成同一組錯值**時 evaluator 照樣放行。
+
+兩者都是「宣稱有保護，卻沒驗證那個保護真的會失效」。
+
+
 1. `--anchor-weekday` 可設 Mon–Fri；週末一律拒絕（catch-up 以工作日定義）。
 2. 改變 anchor 的那一天**不得**造成週期重複或消失——period 身分綁 ISO 週，
    需有測試鎖住，不得只靠推論。
@@ -334,9 +381,16 @@ T-ID → rule location（§3.3.1 的哪一條）→ implementation guard → tes
       矩陣的輸入已經是 reduce 之後的值，所以「取第一筆 `FAILED` 而非最後一筆」
       這種錯**矩陣全綠也抓不到**。
 
-      **coverage 同樣用生成的，不寫故事**：產生「**多筆 `FAILED` 分屬不同
-      phase**」的 history，斷言 reducer **永遠**取 `attempt_seq` 最後一筆
-      `FAILED`。這樣 reducer 與 decision matrix 兩層才都被鎖住。
+      **coverage 同樣用生成的，不寫故事**，且依 R-1 必須命中 reducer 的
+      **全部三個輸出**：
+
+      - `prior_failed_phase = <phase>`：多筆 `FAILED` **分屬不同 phase**，
+        斷言永遠取 `attempt_seq` 最後一筆；
+      - `prior_failed_phase = none`：**history 為空**；
+      - `has_terminal = true`：`FAILED* → terminal`，且**不得再進**
+        attempt decision。
+
+      只測第一個出口的話，「空 history 算錯」的實作會完全通過矩陣。
 
       > **反證必須先證明它會轉紅。** 本卡前一版寫的反證是
       > `SCHEDULED FAILED → RETRY FAILED → 跨進 CATCH_UP`——但那兩筆 `FAILED`
@@ -360,9 +414,13 @@ T-ID → rule location（§3.3.1 的哪一條）→ implementation guard → tes
       集合後產品接受的集合必須跟著變（此為證明沒有第二份詞彙的反證）。
     - `review done` 漏掉任一待辦項目 → fail closed（T-3）。
     - `review skip` 的空 selected／dispositions 能通過 evaluator（T-8）。
-    - 跨週補做時 `scheduled_review_period_start` 與 `scheduled_anchor_at`
-      取自 `--period` 的 anchor（T-9），不得觸發
-      `WRC_PERIOD_START_INCONSISTENT`。
+    - **T-9 改驗 exact binding，不驗「沒觸發錯誤」**：直接斷言
+      `scheduled_review_period_start == 該 period anchor 的日期` 且
+      `scheduled_anchor_at == 該 period anchor 的時刻`。
+
+      依 R-2 的 (iii)：反證把**兩欄一起**改成另一週但**保持彼此一致**，
+      必須轉紅——只斷言「不觸發 `WRC_PERIOD_START_INCONSISTENT`」的話，
+      evaluator 會放行，反證不會紅。
     - `LATE` 階段仍可 `review done`（Owner 裁決），不得自動判成 `SKIPPED`。
 15. 每項附鑑別力反證。
 
