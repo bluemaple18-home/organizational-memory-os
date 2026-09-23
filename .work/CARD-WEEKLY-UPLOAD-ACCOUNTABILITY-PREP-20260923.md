@@ -5,7 +5,9 @@ impl_review_round_1: NO_GO（2026-09-23，P1×3：T-3 只鎖單向／expected_pe
   已安裝 cadence 未成為 review 的 authority；P2×2 另記不擋卡）→ repair-01 已收
 impl_review_round_2: NO_GO（2026-09-23，P1-1／P1-2／own? 三筆 CLOSED；P1×1：P1-3 未收完，
   build_done 重新算 due queue 時沒把 cadence 傳下去）→ repair-02 改結構
-status: REPAIR_02_AWAITING_REREVIEW
+impl_review_round_3: GO（2026-09-23，P1-3 CLOSED；reviewer 另行重播週三 15:00 全鏈路與完整 CLI，
+  40 支 validator 0 fail；明示不需要開 cadence spec-freeze）
+status: DONE（impl review GO，2026-09-23）
 freeze_c_review_round_1: NO_GO（2026-09-23，P1×2：驗收 14 誤稱 evaluator 會擋合法 ref 欄位／attempt_kind 只看歷史會標錯；P2×2：C-2 應消費既有 seam／C-3 的 COMPLETE 語意是新政策非契約）→ 已補
 freeze_c_review_round_2: NO_GO（2026-09-23，P1×1：C-7 四格與自身散文衝突且未列未到期週期；P2×1：§3.3 開頭過度宣稱「全部來自既有契約」）→ 已補
 freeze_c_review_round_3: NO_GO（2026-09-23，P1×1：驗收 14 未鎖 LATE 分叉；P2×1：C-7 整個 phase classifier 未標為產品推導）→ 已補
@@ -668,3 +670,42 @@ T-8 與 repair-01 區塊的裸呼叫全部收成值（`rescue StandardError` 回
 | **repair-02 合計** | **+36** | **+194** |
 
 測試的淨增量裡有一部分是把既有裸呼叫改成可收斂的形狀（上一段），不是新斷言。
+
+---
+
+## 11. 收尾（2026-09-23）
+
+`d1809c4` 取得 GO，P1-3 關閉，reviewer 明示不需要開 cadence spec-freeze。
+
+三輪 implementation review 的軌跡：
+
+| 輪 | 結果 | 根因 |
+|---|---|---|
+| 1 | NO_GO P1×3 | 集合只鎖單向／邊界起點倒推／authority 來源沒接上 — 三個不同根因，走 repair |
+| 2 | NO_GO P1×1 | 與上輪 P1-3 **同一根因換呼叫點** — 換修法形狀，改結構 |
+| 3 | **GO** | — |
+
+第 2 輪是關鍵：若照第 1 輪的形狀修（再讓一個呼叫點去讀 cadence），
+第 3 輪必然出現下一個呼叫點。判準是**修法的形狀**，不是 finding 的標題。
+
+### 交付的東西
+
+Owner 原話「以後到公司端要可以記錄每個人這禮拜有沒有上傳，是不是上傳本週的
+版本，不是的話是少了哪週」——個人端四件事全部落地：
+
+- 一週一次，`--anchor-weekday` 可改成週一～五任一天，改天不會多生出一期
+- `review history` 逐週列出，缺的標 `MISSING`，起點是跨升級穩定的
+  `weekly_review_origin_at`
+- 遞延／補做由 `attempt_kind` 自動判 `SCHEDULED`／`CATCH_UP`／`RETRY`
+- origin 以前留白，不倒推成 MISSING
+
+公司端匯總、多人視圖、提醒推播仍在 §5，需要 Owner 與契約先裁決。
+
+### 移交給後續卡的殘留
+
+1. **P2×2**（見 `.work/CARD-WEEKLY-ACCOUNTABILITY-P2-CLEANUP-20260923.md`）
+2. **交付包尚未重打包** — 目前 `~/Desktop/OMOS-發布/OMOS-Personal-Memory.zip`
+   是 Slice B 的版本，**不含週期帳**。重打包會改變 artifact digest，
+   因此驗收 13／14 必須重跑，同事那端也要走一次升級（先刪舊資料夾）。
+   這是 Owner 決策，不在本卡範圍。
+3. **`INSTALL.md` 寫「11 個原生模組」，實際是 10** — 重打包時一併修。
