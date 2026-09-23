@@ -13,7 +13,9 @@ freeze_c_review_round_5: NO_GO（2026-09-23，重構方向獲確認；P1×1：�
 freeze_c_review_round_6: NO_GO（2026-09-23，P1×1：composition 反證兩筆 FAILED 同屬 SCHEDULED phase，
   取第一筆與取最後一筆算出同一個值，反證不會轉紅）→ 已補
 freeze_c_review_round_7: NO_GO（2026-09-23，P1×1：reducer composition 缺 empty history 與 terminal 兩個出口；
-  P2×1：T-9 反證兩欄一起填錯仍會過）→ 本版已補，並把兩類根因各收成一條結構規則（§6.0）
+  P2×1：T-9 反證兩欄一起填錯仍會過）→ 已補，並把兩類根因各收成一條結構規則（§6.0）
+freeze_c_review_round_8: NO_GO（2026-09-23，P1×1：R-1 對 phase classifier 不夠強，算錯邊界仍能命中四種輸出；
+  P2×1：T-9 的 expected 未要求獨立於 production derivation）→ 本版已補
 type: bounded-product-capability
 priority: MVP
 parent_card: CARD-PERSONAL-INBOX-WEEKLY-REVIEW-RUNTIME-20260921
@@ -241,12 +243,29 @@ reduce(history):                       # history 依 attempt_seq 排序
 
 `phase` 的定義（同屬 `[T-5]`）：
 
-| phase | 範圍 |
+**四個 phase 一律定義成半開區間**，每個邊界都是一個**精確的瞬間**——
+否則 §6.0 R-1 要求的 `b-ε / b / b+ε` 根本寫不出來（「當日結束」不是一個瞬間）。
+
+| phase | 區間（本機時區） |
 |---|---|
-| `BEFORE` | `now < scheduled_anchor_at` |
-| `SCHEDULED` | anchor 起，至該 anchor **當日結束** |
-| `CATCH_UP` | 當日之後，至 `catch_up_deadline_at` 前（週六日屬此段） |
-| `LATE` | `now >= catch_up_deadline_at` |
+| `BEFORE` | `(-∞, A)` |
+| `SCHEDULED` | `[A, D0)` |
+| `CATCH_UP` | `[D0, C)`（週六日屬此段） |
+| `LATE` | `[C, +∞)` |
+
+三個邊界：
+
+- **`A` = `scheduled_anchor_at`**（該 period anchor 的時刻）
+- **`D0` = anchor 隔日 `00:00:00` local**（不是「當日 23:59:59」——
+  取隔日零時才是精確瞬間）
+- **`C` = `catch_up_deadline_at`**（下一個工作日的同一時刻）
+
+邊界一律**左閉右開**：`b` 本身屬於**後**一個 phase。
+
+> **實作限制**：phase classifier 必須比較**時間戳**，不得比較「小時」。
+> 既有 `ReviewQueue.period_for` 用的是 `local.hour < anchor_hour`——
+> **不要沿用那個寫法**。實測 15:59→W37、16:00→W38 在 anchor 邊界上剛好正確，
+> 但用在 `D0` 這種零時邊界會讓 ε 測試完全失效（同一小時內的 ε 不改變結果）。
 
 `catch_up_deadline_passed` 亦由 phase 決定：`LATE` 為 `true`，其餘 `false`。
 
@@ -315,6 +334,17 @@ T-ID → rule location（§3.3.1 的哪一條）→ implementation guard → tes
 
 > 每個函式必須列出它的**完整輸出集合**，測試對**每一個輸出**都有至少一筆
 > 生成的輸入命中它。
+>
+> **對有序輸出（phase classifier）另加 boundary coverage**：每個邊界 `b`
+> 都要驗 `b-ε` / `b` / `b+ε` 三點。
+
+「每個輸出至少命中一次」對 phase classifier **不夠**——把時間邊界整個算錯，
+仍然可以命中 `BEFORE`／`SCHEDULED`／`CATCH_UP`／`LATE` 四種輸出，測試照樣
+全綠。真正鎖住它的是邊界，不是輸出種類。
+
+phase classifier 有**三個邊界**（定義見 §3.3.2 的半開區間）：`A`、`D0`、`C`，
+共 9 個生成點。**每個邊界必須在卡上寫明它屬於哪一側**——不寫明的話
+`b` 這一點要斷言什麼就是未定義的。
 
 `attempt_kind` 決策函式已經這樣做（Cartesian product）。**reducer 也必須**
 ——它的輸出空間是三個：
@@ -418,9 +448,16 @@ terminal 之後不得再有任何 attempt。）
       `scheduled_review_period_start == 該 period anchor 的日期` 且
       `scheduled_anchor_at == 該 period anchor 的時刻`。
 
-      依 R-2 的 (iii)：反證把**兩欄一起**改成另一週但**保持彼此一致**，
-      必須轉紅——只斷言「不觸發 `WRC_PERIOD_START_INCONSISTENT`」的話，
-      evaluator 會放行，反證不會紅。
+      **expected 必須獨立於 production derivation**：用**固定 fixture**
+      （硬寫的日期字串）當 oracle，**不得**呼叫產品的推導 helper 去算 expected
+      ——否則 helper 整體錯一週時，兩欄會一起錯、測試仍然 PASS。
+
+      （既有 3c 已有此前例：`"2026-W38"`／`"2026-09-18"` 都是硬寫的期望值。）
+
+      依 R-2 的 (iii)，反證與輸出差異：把 production derivation 整體 `+1 week`，
+      兩個 cadence 欄**仍彼此一致**、evaluator 仍放行，但與固定 fixture 不符
+      → T-9 測試轉紅。只斷言「不觸發 `WRC_PERIOD_START_INCONSISTENT`」的版本
+      在這個反證下**不會紅**。
     - `LATE` 階段仍可 `review done`（Owner 裁決），不得自動判成 `SKIPPED`。
 15. 每項附鑑別力反證。
 
