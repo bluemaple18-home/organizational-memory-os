@@ -1,0 +1,867 @@
+spec_id: graph-query-contract
+version: 0.1-draft
+status: DRAFT_NOT_IMPLEMENTATION_AUTHORITY
+reviewed_at: "2026-09-07"
+classification:
+  - PROJECTION_ONLY
+  - ENTERPRISE_GOVERNANCE_AT_QUERY_BOUNDARY
+
+decision_ref: 文件/Obsidian式關聯圖開源整合裁決-20260907.md
+work_card_ref: .work/CARD-GRAPH-01-REVIEWER-IMPACT-NAVIGATOR-20260907.md
+
+purpose: >
+  Define a permission-safe, bounded, traceable graph query envelope for
+  Reviewer / Impact Navigator and later aggregate graph exploration.
+  This contract does not define Canonical Knowledge or a graph database.
+
+authority:
+  canonical_entity_authority: existing_knowledge_authority
+  canonical_relation_authority: existing_single_writer_boundary
+  permission_authority: existing_managed_policy_floor
+  graph_projection_authority: none
+  layout_authority: none
+  browser_graph_authority: none
+
+invariants:
+  permission_before_graph: true
+  server_side_authorization_required: true
+  client_side_acl_filter_is_forbidden: true
+  hidden_entity_existence_leakage_is_forbidden: true
+  hidden_relation_existence_leakage_is_forbidden: true
+  hidden_counts_and_metrics_are_forbidden: true
+  dangling_hidden_placeholders_are_forbidden: true
+  full_tenant_graph_download_is_forbidden: true
+  direct_canonical_mutation_from_graph_ui_is_forbidden: true
+  graph_projection_is_rebuildable: true
+  graph_layout_is_rebuildable: true
+  model_generated_relation_requires_proposal_and_provenance: true
+  partial_or_truncated_result_must_be_disclosed: true
+  server_limits_are_authoritative: true
+  client_may_only_narrow_limits: true
+
+endpoint:
+  method: POST
+  path: /api/v1/graph/query
+  authentication:
+    source: request_context
+    principal_in_request_body: forbidden
+    required_context:
+      - tenant_id
+      - principal_id
+      - authenticated_session_id
+      - policy_context
+  idempotency:
+    required_for_read: false
+    request_id_required: true
+
+modes:
+  reviewer_impact:
+    delivery_priority: P1-B
+    allowed_root_types:
+      - CandidateKnowledge
+      - CanonicalKnowledge
+      - Procedure
+      - WorkRecord
+      - Review
+      - Decision
+      - Object
+      - SourceEvidence
+      - RepositoryArtifact
+    defaults:
+      depth: 2
+      node_limit: 300
+      edge_limit: 1000
+      label_limit: 80
+      layout_time_budget_ms: 1500
+    server_hard_caps:
+      depth: 3
+      node_limit: 2000
+      edge_limit: 8000
+      label_limit: 300
+      layout_time_budget_ms: 5000
+
+  local_explorer:
+    delivery_priority: P2
+    defaults:
+      depth: 1
+      node_limit: 200
+      edge_limit: 700
+      label_limit: 60
+      layout_time_budget_ms: 1200
+    server_hard_caps:
+      depth: 3
+      node_limit: 2000
+      edge_limit: 8000
+      label_limit: 300
+      layout_time_budget_ms: 5000
+
+  global_aggregate:
+    delivery_priority: P2_TRIGGER_BASED
+    raw_full_graph_allowed: false
+    root_kind: aggregate_cluster
+    defaults:
+      depth: 1
+      node_limit: 150
+      edge_limit: 500
+      label_limit: 50
+      layout_time_budget_ms: 1200
+    server_hard_caps:
+      depth: 2
+      node_limit: 1000
+      edge_limit: 4000
+      label_limit: 200
+      layout_time_budget_ms: 4000
+
+controlled_vocabulary:
+  entity_types:
+    - CandidateKnowledge
+    - CanonicalKnowledge
+    - Procedure
+    - Skill
+    - WorkRecord
+    - Review
+    - Decision
+    - Object
+    - SourceEvidence
+    - RepositoryArtifact
+    - Person
+    - Team
+    - Project
+    - Client
+    - AggregateCluster
+
+  relation_types:
+    - DERIVED_FROM
+    - CITES
+    - SUPPORTS
+    - CONTRADICTS
+    - CONFLICTS_WITH
+    - SUPERSEDES
+    - DEPENDS_ON
+    - IMPACTS
+    - VERIFIED_BY
+    - ACCEPTED_BY
+    - LINKED_TO_OBJECT
+    - SAME_OBJECT
+    - SIMILAR_TO_PROJECTION
+
+  authority_states:
+    - proposed
+    - verified
+    - accepted
+    - projection_only
+
+  lifecycle_states:
+    - candidate
+    - canonical
+    - superseded
+    - stale
+    - archived
+    - deleted
+
+  verification_states:
+    - PASS
+    - FAIL
+    - PARTIAL
+    - NOT_RUN
+    - STATIC_ONLY
+
+  freshness_states:
+    - current
+    - stale
+    - unknown
+
+request:
+  type: object
+  additional_properties: false
+  required:
+    - request_id
+    - mode
+    - roots
+  properties:
+    request_id:
+      type: string
+      format: uuid
+      description: Caller-generated correlation identifier; not authority.
+
+    mode:
+      type: string
+      enum:
+        - reviewer_impact
+        - local_explorer
+        - global_aggregate
+
+    roots:
+      type: array
+      min_items: 1
+      max_items: 20
+      items:
+        type: object
+        additional_properties: false
+        required:
+          - entity_type
+          - entity_id
+        properties:
+          entity_type:
+            type: string
+            vocabulary_ref: controlled_vocabulary.entity_types
+          entity_id:
+            type: string
+            min_length: 1
+          requested_label:
+            forbidden: true
+
+    depth:
+      type: integer
+      minimum: 0
+      maximum_source: modes.<mode>.server_hard_caps.depth
+      default_source: modes.<mode>.defaults.depth
+
+    node_limit:
+      type: integer
+      minimum: 1
+      maximum_source: modes.<mode>.server_hard_caps.node_limit
+      default_source: modes.<mode>.defaults.node_limit
+
+    edge_limit:
+      type: integer
+      minimum: 0
+      maximum_source: modes.<mode>.server_hard_caps.edge_limit
+      default_source: modes.<mode>.defaults.edge_limit
+
+    label_limit:
+      type: integer
+      minimum: 0
+      maximum_source: modes.<mode>.server_hard_caps.label_limit
+      default_source: modes.<mode>.defaults.label_limit
+
+    relation_types:
+      type: array
+      unique_items: true
+      items:
+        type: string
+        vocabulary_ref: controlled_vocabulary.relation_types
+
+    filters:
+      type: object
+      additional_properties: false
+      properties:
+        entity_types:
+          type: array
+          unique_items: true
+          items:
+            type: string
+            vocabulary_ref: controlled_vocabulary.entity_types
+
+        authority_states:
+          type: array
+          unique_items: true
+          items:
+            type: string
+            vocabulary_ref: controlled_vocabulary.authority_states
+
+        lifecycle_states:
+          type: array
+          unique_items: true
+          items:
+            type: string
+            vocabulary_ref: controlled_vocabulary.lifecycle_states
+
+        verification_states:
+          type: array
+          unique_items: true
+          items:
+            type: string
+            vocabulary_ref: controlled_vocabulary.verification_states
+
+        freshness_states:
+          type: array
+          unique_items: true
+          items:
+            type: string
+            vocabulary_ref: controlled_vocabulary.freshness_states
+
+        domain_ids:
+          type: array
+          unique_items: true
+          items:
+            type: string
+
+        scope_ids:
+          type: array
+          unique_items: true
+          items:
+            type: string
+          validation: >
+            Requested scopes are intersected with the managed authorized space.
+            Request data can never expand the caller's effective scope.
+
+        time_range:
+          one_of:
+            - type: "null"
+            - type: object
+              additional_properties: false
+              required:
+                - start
+                - end
+              properties:
+                start:
+                  type: string
+                  format: date-time
+                end:
+                  type: string
+                  format: date-time
+              invariant: start <= end
+
+    expansion:
+      type: object
+      additional_properties: false
+      properties:
+        continuation_token:
+          type: string
+          opaque: true
+          signed: true
+          bound_to:
+            - tenant_id
+            - principal_policy_fingerprint
+            - query_fingerprint
+            - projection_version
+            - expiry
+        expand_node_ids:
+          type: array
+          max_items: 50
+          unique_items: true
+          items:
+            type: string
+      rule: >
+        Expansion is a new authorized bounded query. A continuation token never
+        grants access and cannot survive policy or projection version changes.
+
+response:
+  type: object
+  additional_properties: false
+  required:
+    - request_id
+    - mode
+    - generated_at
+    - policy_decision_id
+    - principal_policy_fingerprint
+    - projection_version
+    - relation_vocabulary_version
+    - nodes
+    - edges
+    - truncation
+  properties:
+    request_id:
+      type: string
+      format: uuid
+
+    mode:
+      type: string
+      vocabulary_ref: request.properties.mode.enum
+
+    generated_at:
+      type: string
+      format: date-time
+
+    policy_decision_id:
+      type: string
+      min_length: 1
+      traceable: true
+
+    principal_policy_fingerprint:
+      type: string
+      format: sha-256
+      reversible: false
+      disclosure_rule: Must not encode raw ACL membership.
+
+    authorized_scope_fingerprint:
+      type: string
+      format: sha-256
+      reversible: false
+      disclosure_rule: Must not encode hidden scope identifiers.
+
+    projection_version:
+      type: string
+      min_length: 1
+
+    relation_vocabulary_version:
+      type: string
+      min_length: 1
+
+    query_fingerprint:
+      type: string
+      format: sha-256
+      inputs:
+        - mode
+        - authorized_roots
+        - effective_filters
+        - effective_bounds
+        - principal_policy_fingerprint
+        - projection_version
+        - relation_vocabulary_version
+
+    nodes:
+      type: array
+      items:
+        schema_ref: node_projection
+
+    edges:
+      type: array
+      items:
+        schema_ref: edge_projection
+
+    truncation:
+      type: object
+      additional_properties: false
+      required:
+        - truncated
+        - reasons
+      properties:
+        truncated:
+          type: boolean
+        reasons:
+          type: array
+          unique_items: true
+          items:
+            type: string
+            enum:
+              - depth_limit
+              - node_limit
+              - edge_limit
+              - label_limit
+              - time_budget
+              - policy_boundary
+              - aggregate_only_mode
+              - continuation_required
+        continuation_token:
+          one_of:
+            - type: "null"
+            - type: string
+              opaque: true
+              signed: true
+      invariant: >
+        reasons must be non-empty when truncated is true. A policy boundary may
+        be reported only as a generic boundary and must not disclose hidden IDs,
+        labels, counts, relation types, or existence.
+
+    layout_hint:
+      schema_ref: layout_hint
+
+node_projection:
+  type: object
+  additional_properties: false
+  required:
+    - node_id
+    - entity_ref
+    - entity_type
+    - label
+    - lifecycle_state
+    - freshness_state
+    - scope_ref
+    - visual_tokens
+    - projection_version
+  properties:
+    node_id:
+      type: string
+      opaque: true
+      stability: stable_within_projection_version
+
+    entity_ref:
+      type: object
+      additional_properties: false
+      required:
+        - entity_type
+        - entity_id
+      properties:
+        entity_type:
+          type: string
+          vocabulary_ref: controlled_vocabulary.entity_types
+        entity_id:
+          type: string
+          opaque: true
+
+    entity_type:
+      type: string
+      vocabulary_ref: controlled_vocabulary.entity_types
+
+    label:
+      type: string
+      authorization_required: true
+      fallback: authorized_generic_label
+
+    lifecycle_state:
+      type: string
+      vocabulary_ref: controlled_vocabulary.lifecycle_states
+
+    verification_state:
+      one_of:
+        - type: "null"
+        - type: string
+          vocabulary_ref: controlled_vocabulary.verification_states
+
+    freshness_state:
+      type: string
+      vocabulary_ref: controlled_vocabulary.freshness_states
+
+    scope_ref:
+      type: string
+      authorization_required: true
+      opaque: true
+
+    visual_tokens:
+      type: object
+      additional_properties: false
+      properties:
+        size_metric:
+          type: number
+          minimum: 0
+          authority: visualization_only
+          calculation_scope: authorized_subgraph_only
+        category:
+          type: string
+          authority: semantic_design_token_only
+        badges:
+          type: array
+          unique_items: true
+          items:
+            type: string
+      invariant: Visual tokens cannot mutate knowledge semantics.
+
+    detail_ref:
+      one_of:
+        - type: "null"
+        - type: string
+          description: Authorized API route or opaque resolver key.
+
+    projection_version:
+      type: string
+
+edge_projection:
+  type: object
+  additional_properties: false
+  required:
+    - edge_id
+    - source_node_id
+    - target_node_id
+    - relation_type
+    - authority_state
+    - evidence_refs
+    - projection_version
+  properties:
+    edge_id:
+      type: string
+      opaque: true
+
+    source_node_id:
+      type: string
+      must_reference_returned_node: true
+
+    target_node_id:
+      type: string
+      must_reference_returned_node: true
+
+    relation_type:
+      type: string
+      vocabulary_ref: controlled_vocabulary.relation_types
+
+    authority_state:
+      type: string
+      vocabulary_ref: controlled_vocabulary.authority_states
+
+    confidence:
+      one_of:
+        - type: "null"
+        - type: number
+          minimum: 0
+          maximum: 1
+      authority: evidence_about_projection_not_acceptance
+
+    weight:
+      one_of:
+        - type: "null"
+        - type: number
+          minimum: 0
+      authority: visualization_only
+      calculation_scope: authorized_subgraph_only
+
+    evidence_refs:
+      type: array
+      unique_items: true
+      items:
+        type: object
+        additional_properties: false
+        required:
+          - evidence_id
+        properties:
+          evidence_id:
+            type: string
+            opaque: true
+          source_anchor_id:
+            one_of:
+              - type: "null"
+              - type: string
+                opaque: true
+      invariant: >
+        Non-projection-only relations require at least one evidence reference or
+        a canonical relation record that is resolvable through the detail route.
+
+    canonical_relation_ref:
+      one_of:
+        - type: "null"
+        - type: string
+          opaque: true
+
+    first_observed_at:
+      one_of:
+        - type: "null"
+        - type: string
+          format: date-time
+
+    last_observed_at:
+      one_of:
+        - type: "null"
+        - type: string
+          format: date-time
+
+    detail_ref:
+      one_of:
+        - type: "null"
+        - type: string
+          description: Authorized relation/provenance detail resolver.
+
+    projection_version:
+      type: string
+
+layout_hint:
+  type: object
+  additional_properties: false
+  required:
+    - engine
+    - engine_version
+    - deterministic_seed
+    - time_budget_ms
+    - positions_authority
+  properties:
+    engine:
+      type: string
+      enum:
+        - forceatlas2
+        - precomputed
+        - none
+
+    engine_version:
+      type: string
+      example: graphology-layout-forceatlas2@0.10.1
+
+    deterministic_seed:
+      type: string
+      opaque: true
+
+    time_budget_ms:
+      type: integer
+      minimum: 0
+      maximum_source: modes.<mode>.server_hard_caps.layout_time_budget_ms
+
+    positions:
+      one_of:
+        - type: "null"
+        - type: object
+          additional_properties:
+            type: object
+            required:
+              - x
+              - y
+            properties:
+              x:
+                type: number
+              y:
+                type: number
+
+    positions_authority:
+      const: disposable_projection
+
+    expires_at:
+      one_of:
+        - type: "null"
+        - type: string
+          format: date-time
+
+metrics:
+  calculation_boundary: authorized_subgraph_only
+  allowed:
+    - authorized_degree
+    - authorized_component_id
+    - authorized_path_length
+    - authorized_cluster_id
+    - authorized_cluster_size
+  forbidden:
+    - global_degree_before_authorization
+    - hidden_neighbor_count
+    - hidden_cluster_size
+    - hidden_path_existence
+    - tenant_global_centrality_leak
+
+cache:
+  key_inputs:
+    - tenant_id
+    - principal_policy_fingerprint
+    - mode
+    - authorized_roots
+    - effective_filters
+    - effective_bounds
+    - projection_version
+    - relation_vocabulary_version
+  forbidden_shared_keys:
+    - tenant_only
+    - query_without_policy_fingerprint
+    - layout_without_projection_version
+  invalidation_triggers:
+    - acl_delta
+    - managed_policy_change
+    - principal_scope_change
+    - source_deletion
+    - retention_expiry
+    - legal_hold_change
+    - canonical_relation_change
+    - supersession
+    - entity_deletion
+    - projection_version_change
+    - relation_vocabulary_change
+
+error_semantics:
+  unauthorized_or_nonexistent_root:
+    outward_status: NOT_FOUND_OR_DENIED
+    rule: >
+      The outward response must follow the formal permission contract and must
+      not allow callers to distinguish a hidden entity from a nonexistent one.
+
+  invalid_request:
+    outward_status: INVALID_ARGUMENT
+
+  server_bound_exceeded:
+    outward_status: INVALID_ARGUMENT
+    rule: Return effective server limits without exposing hidden graph size.
+
+  projection_unavailable:
+    outward_status: TEMPORARILY_UNAVAILABLE
+    partial_success_allowed: false
+
+  policy_unavailable:
+    outward_status: FAIL_CLOSED
+    partial_success_allowed: false
+
+observability:
+  required_fields:
+    - request_id
+    - tenant_id
+    - mode
+    - requested_bounds
+    - effective_bounds
+    - returned_node_count
+    - returned_edge_count
+    - truncated
+    - truncation_reasons
+    - policy_decision_id
+    - projection_version
+    - latency_ms
+    - status
+    - error_class
+  forbidden_fields:
+    - hidden_entity_ids
+    - hidden_labels
+    - raw_acl_membership
+    - hidden_neighbor_count
+  note: Telemetry is operational evidence/projection, not Knowledge Truth.
+
+export:
+  allowed_scope: current_authorized_response_only
+  formats:
+    - json
+    - graphml
+    - gexf
+    - png
+  required_receipt_fields:
+    - policy_decision_id
+    - principal_policy_fingerprint
+    - projection_version
+    - relation_vocabulary_version
+    - query_fingerprint
+    - generated_at
+    - truncated
+    - truncation_reasons
+  forbidden:
+    - hidden_ids_in_metadata
+    - tenant_full_export_by_default
+    - export_from_stale_policy_context
+
+accessibility:
+  required_fallbacks:
+    - tabular_node_view
+    - tabular_edge_view
+    - textual_selection_summary
+    - keyboard_navigation
+    - reduced_motion_mode
+  graph_canvas_alone_is_sufficient: false
+
+supply_chain:
+  primary_stack:
+    sigma:
+      version: 3.0.3
+      commit: d32c4e5bfd4c5f49724ebc21bd786b01be555dac
+      license: MIT
+    graphology:
+      version: 0.26.0
+      commit: feb3e5c37e791d75f3dab185a56cb25d32c17de7
+      license: MIT
+    forceatlas2:
+      version: 0.10.1
+      license: MIT
+    noverlap:
+      version: 0.4.2
+      license: MIT
+  requirements:
+    exact_version_pin: true
+    lockfile_integrity: true
+    third_party_notices: true
+    sbom_entry: true
+    beta_dependency_for_production: forbidden
+
+verification_fixtures:
+  - id: G-SMALL
+    nodes: 300
+    edges: 1000
+    purpose: default reviewer graph
+  - id: G-MEDIUM
+    nodes: 2000
+    edges: 8000
+    purpose: server hard-cap behavior
+  - id: G-LARGE
+    nodes: 10000
+    edges: 40000
+    purpose: renderer comparison trigger only
+  - id: G-DENSE
+    purpose: high-degree and label-overlap pathology
+  - id: G-UNICODE
+    purpose: Traditional Chinese, English, emoji, and long labels
+  - id: G-ACL
+    purpose: visible and hidden entities mixed; prove no existence leakage
+  - id: G-DELETE
+    purpose: ACL downgrade, retention expiry, and source deletion invalidation
+
+acceptance_gates:
+  - no_hidden_entity_or_relation_leakage
+  - no_hidden_count_degree_path_or_cluster_leakage
+  - all_edges_reference_returned_nodes
+  - non_projection_edges_have_resolvable_authority
+  - direct_canonical_write_path_absent
+  - partial_and_truncated_results_are_explicit
+  - worker_listener_and_renderer_teardown_verified
+  - webgl_failure_has_accessible_fallback
+  - exact_dependency_pins_and_notices_verified
+
+promotion_rule: >
+  This draft may become implementation authority only after Canonical Relation,
+  Permission/Retention/Deletion, projection invalidation, and reviewer workflow
+  boundaries are reviewed and accepted. Promotion must assign a non-draft
+  version and immutable acceptance evidence.
