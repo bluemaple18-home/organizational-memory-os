@@ -3825,4 +3825,73 @@ Dir.mktmpdir("omos-3c-a-repair02") do |dir|
   C.group = nil
 end
 
+# --- Ruby 版本判準：ABI 相容，不得回到字串相等 -------------------------
+#
+# 2026-09-24 真實事故：Homebrew 9/23 把 ruby@3.4 升到 3.4.11，於是四個還留著
+# 「版本字串必須完全相等」的地方同時擋掉了**所有新安裝的人**——而
+# bin/pinned-ruby.sh 與 OMOS::RuntimeProfile 早就改用 ABI 判準並放行了同一個
+# 直譯器。同一條規則存在多份、其中幾份形狀是錯的，就會這樣互相矛盾。
+#
+# 這一段不是驗「現在是對的」，是驗「**再寫回去會被抓到**」。
+Dir.mktmpdir("omos-3c-a-abi") do |_dir|
+  C.group = "A"
+  require "omos/version_guard"
+  root = OMOS::Contract::ARTIFACT_ROOT
+  vg = OMOS::VersionGuard
+
+  # (1) 需要的 ABI 由 artifact 自己的內容推導，不另立一份宣告
+  vendor_abis = Dir.children(File.join(root, "vendor/bundle/ruby"))
+  C.check("ABI 來源唯一：vendor/bundle/ruby 底下恰好一個 ABI 目錄",
+          vendor_abis.inspect, vendor_abis.size == 1)
+  C.check("VersionGuard::REQUIRED_ABI 等於那個目錄名（不是另外寫死）",
+          vg::REQUIRED_ABI.inspect, vg::REQUIRED_ABI == vendor_abis.first)
+  C.check("pinned-ruby.sh 也從同一個目錄推導，不讀 .ruby-version 當判準",
+          File.read(File.join(root, "bin/pinned-ruby.sh"))
+              .include?('OMOS_REQUIRED_ABI=$(ls -1 "$OMOS_ROOT/vendor/bundle/ruby"').to_s,
+          File.read(File.join(root, "bin/pinned-ruby.sh"))
+              .include?('OMOS_REQUIRED_ABI=$(ls -1 "$OMOS_ROOT/vendor/bundle/ruby"'))
+
+  # (2) 目前的直譯器應被放行，而且理由是 ABI 而不是版本字串
+  C.check("目前直譯器通過（ABI #{vg.current_abi}）",
+          "#{RUBY_VERSION} / #{vg.current_abi}", vg.compatible?)
+  C.check("放行判準只看 ABI，不看 RUBY_VERSION",
+          "#{vg.current_abi} vs #{vg::REQUIRED_ABI}",
+          vg.compatible? == (vg.current_abi == vg::REQUIRED_ABI))
+
+  # (3) **防再發**：lib 底下不得有任何「RUBY_VERSION 字串相等」當閘門
+  #
+  # 反證：把 version_guard.rb 或 doctor.rb 改回 `RUBY_VERSION == …`，這條轉紅。
+  offenders = Dir[File.join(root, "lib/**/*.rb")].flat_map do |file|
+    File.readlines(file).each_with_index.filter_map do |line, i|
+      next if line.strip.start_with?("#")
+      next unless line.match?(/RUBY_VERSION\s*==/) || line.match?(/==\s*RUBY_VERSION/)
+
+      "#{file.sub("#{root}/", "")}:#{i + 1}"
+    end
+  end
+  C.check("lib 底下沒有 RUBY_VERSION 字串相等的閘門（判準是 ABI）",
+          offenders.inspect, offenders.empty?)
+
+  # (4) **防再發**：Gemfile／Gemfile.lock 不得重述版本規則
+  #
+  # Gemfile 的 `ruby "x.y.z"` 是字串相等，Bundler 會在 require "bundler/setup"
+  # 當場擋下——這就是 2026-09-24 那次新安裝者看到的
+  # 「Your Ruby version is 3.4.11, but your Gemfile specified 3.4.10」。
+  gemfile = File.read(File.join(root, "Gemfile"))
+  C.check("Gemfile 不得有 ruby directive（那是 ABI 規則的第二份抄本）",
+          gemfile.lines.grep(/^\s*ruby\s+["']/).inspect,
+          gemfile.lines.none? { |l| l.match?(/^\s*ruby\s+["']/) })
+  C.check("Gemfile.lock 不得有 RUBY VERSION 區段",
+          File.readlines(File.join(root, "Gemfile.lock")).grep(/RUBY VERSION/).inspect,
+          File.readlines(File.join(root, "Gemfile.lock")).none? { |l| l.include?("RUBY VERSION") })
+
+  # (5) .ruby-version 仍在，但只作為參考（pinned-ruby.sh 找 rbenv 路徑用）
+  C.check(".ruby-version 仍存在且只是參考版本，不是判準",
+          vg::REQUIRED,
+          File.file?(File.join(root, ".ruby-version")) && !vg::REQUIRED.empty? &&
+          vg::REQUIRED != vg::REQUIRED_ABI)
+
+  C.group = nil
+end
+
 C.report!

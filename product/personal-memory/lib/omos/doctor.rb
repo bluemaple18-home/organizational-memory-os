@@ -75,9 +75,14 @@ module OMOS
     # 其餘 10 項都已被 doctor 與 conformance 覆蓋，只剩 gem 版本沒人看，
     # 所以併進來、把那支腳本刪掉，不留一份會漂移的重複檢查。
     def env_checks
-      results = [RUBY_VERSION == VersionGuard::REQUIRED ?
-                 ok("ruby_version", RUBY_VERSION) :
-                 bad("ruby_version", "#{RUBY_VERSION}（本產品鎖定 #{VersionGuard::REQUIRED}）")]
+      # 判準是 ABI 相容，不是版本字串相等——與 VersionGuard／pinned-ruby.sh
+      # 同一個來源。修正前這裡是字串相等，Homebrew 把 ruby@3.4 升到 3.4.11
+      # 之後 doctor 會憑空多報一個 FAIL。
+      results = [VersionGuard.compatible? ?
+                 ok("ruby_version", "#{RUBY_VERSION}（ABI #{VersionGuard.current_abi}）") :
+                 bad("ruby_version",
+                     "#{RUBY_VERSION}（ABI #{VersionGuard.current_abi}；" \
+                     "本 artifact 需要 ABI #{VersionGuard::REQUIRED_ABI || "?"}）")]
       results << begin
         require "sqlite3"
         require "mcp"

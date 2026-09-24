@@ -3,9 +3,13 @@
 # EMEM-11 切片 3：本機 Personal Memory Runtime 的產品環境。
 # 依 Owner 裁決：受維護的 Ruby 3.4 系列 + Bundler 鎖版 + 官方 MCP Ruby SDK
 # + 新版 sqlite3 gem；不使用系統 Ruby 2.6，也不沿用全域舊 gem。
+#
+# **這裡刻意沒有 `ruby` directive。** Ruby 的可用性判準是 **ABI 相容**
+# （vendor/bundle/ruby/<ABI> 那個目錄名），由 bin/pinned-ruby.sh 與
+# OMOS::RuntimeProfile 執行。Gemfile 的 `ruby "x.y.z"` 是字串相等，會拒絕
+# ABI 其實相容的 patch 升級——2026-09-23 Homebrew 把 ruby@3.4 升到 3.4.11
+# 之後，它擋掉了所有新安裝者。同一條規則不寫第二份。
 source "https://rubygems.org"
-
-ruby "3.4.10"
 
 gem "mcp"
 gem "sqlite3"
