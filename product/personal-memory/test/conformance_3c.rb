@@ -2075,6 +2075,7 @@ end
 Dir.mktmpdir("omos-3c-a-schedule") do |dir|
   C.group = "A"
   require "omos/schedule"
+  require "omos/cli"
   home = File.join(dir, "home")
   Support::FakeHome.seed(home)
   store = File.join(home, ".omos/personal-memory/personal.db")
@@ -2129,6 +2130,67 @@ Dir.mktmpdir("omos-3c-a-schedule") do |dir|
           !args.first.to_s.match?(%r{/versions/[0-9a-f]+}))
   C.check("LaunchAgent 呼叫的是 review due（不是任何會寫入的指令）", args.inspect,
           args[1].to_s == "review" && args[2].to_s == "due")
+  C.check("pilot observability：LaunchAgent 明示 scheduled trigger，人工 due 不會冒充",
+          args.inspect, args.include?("--scheduled-trigger"))
+
+  # SSP-295 local-only pilot：不新增 uploader／trigger state file。launchd 本來就
+  # 把 stdout 寫進 schedule.log，所以只需要一行結構化 marker，再由本機
+  # `review receipt` 組 content-free projection 讓 pilot 使用者手動貼回。
+  manual_out = StringIO.new
+  manual_err = StringIO.new
+  manual_code = OMOS::CLI.run(["review", "due", "--store", store, "--home", home],
+                              out: manual_out, err: manual_err)
+  C.check("pilot observability：人工 review due 不產生 scheduled-trigger marker",
+          manual_out.string.lines.grep(/OMOS_SCHEDULE_TRIGGER/).inspect,
+          manual_code == 0 && !manual_out.string.include?(OMOS::Schedule::TRIGGER_LOG_PREFIX))
+
+  scheduled_out = StringIO.new
+  scheduled_err = StringIO.new
+  scheduled_code = OMOS::CLI.run(
+    ["review", "due", "--store", store, "--home", home, "--scheduled-trigger"],
+    out: scheduled_out, err: scheduled_err
+  )
+  marker_line = scheduled_out.string.lines.find do |line|
+    line.start_with?(OMOS::Schedule::TRIGGER_LOG_PREFIX)
+  end
+  C.check("pilot observability：scheduled due 產生單一 content-free marker",
+          marker_line.to_s.strip,
+          scheduled_code == 0 && !marker_line.nil? &&
+          marker_line.include?("review_period_id") && !marker_line.include?("candidate"))
+
+  current_period = scheduled_out.string[/review period: (\S+)/, 1]
+  week = current_period.to_s.split(":").last
+  receipt_unknown_out = StringIO.new
+  receipt_unknown_code = OMOS::CLI.run(
+    ["review", "receipt", "--store", store, "--home", home, "--period", week],
+    out: receipt_unknown_out, err: StringIO.new
+  )
+  receipt_unknown = JSON.parse(receipt_unknown_out.string)
+  C.check("pilot observability：沒有 log 證據時 schedule_observed 必須是 unknown",
+          receipt_unknown["schedule_observed"].inspect,
+          receipt_unknown_code == 0 && receipt_unknown["schedule_observed"] == "unknown")
+
+  FileUtils.mkdir_p(File.dirname(OMOS::Schedule.trigger_log_path(home)))
+  File.write(OMOS::Schedule.trigger_log_path(home), scheduled_out.string)
+  trigger_at = OMOS::Schedule.trigger_observation(home: home, period_id: current_period)
+  C.check("pilot observability：receipt 只認 exact period 的 trigger marker",
+          trigger_at.to_s, !trigger_at.nil?)
+
+  receipt_out = StringIO.new
+  receipt_code = OMOS::CLI.run(
+    ["review", "receipt", "--store", store, "--home", home, "--period", week],
+    out: receipt_out, err: StringIO.new
+  )
+  receipt = JSON.parse(receipt_out.string)
+  expected_keys = %w[attempt_count employee_ref observed_at review_period_id review_status
+                     schedule_observed schedule_observed_at terminal_closeout].sort
+  C.check("pilot observability：receipt shape 封閉且不含知識內容",
+          receipt.keys.sort.inspect,
+          receipt_code == 0 && receipt.keys.sort == expected_keys &&
+          receipt["employee_ref"] == Support::Fixtures::EMP &&
+          receipt["review_period_id"] == current_period &&
+          receipt["schedule_observed"] == true &&
+          receipt["review_status"] == "MISSING" && receipt["terminal_closeout"] == false)
 
   # (2) repair-01 P1-1：install 必須真的 bootstrap，status 要反映實際載入狀態
   C.check("P1-1 install 真的呼叫 launchctl bootstrap",

@@ -9,6 +9,7 @@ depends_on:
   - SSP-323_EMEM09_ACCEPTED_GO
   - SSP-324_EMEM10_ACCEPTED_GO
   - EMEM11_DOD_MET_20260920
+  - SSP295_PILOT_OBSERVABILITY_READY
 blocks:
   - SSP-286_MVP_CLOSURE
 authority: organizational-memory-os
@@ -44,6 +45,13 @@ authority: organizational-memory-os
   而非只靠 synthetic schema fixture。
 - **EMEM-11 範圍裁決（Owner 2026-09-20）**：v1 為 **Claude Code 單一 Host**。
   Codex 是 known-but-not-delivered，pilot **不涵蓋** cross-host。
+
+## 2.1 Pilot observability 前置
+
+真人 pilot 不得以「同事沒回報＝沒問題」作為成功判準。第一輪採**單人、local-only**：
+開跑前完成 `.work/CARD-SSP295-PILOT-OBSERVABILITY-20260923.md` 的本機 content-free
+receipt 與 Friday-trigger observation；由使用者人工貼回 receipt。**不**新增公司端 telemetry、
+不走 SSP-324 evidence-package boundary，也不得建立 Personal Store reverse-access。
 
 ## 3. 已知的缺口（進 pilot 時要知道，不是阻塞）
 

@@ -240,6 +240,17 @@ module OMOS
       base(period, [], {}, "SKIPPED", runtime, now)
     end
 
+    # Pilot receipt 只投影週期帳的 content-free 事實，不輸出 disposition 內容。
+    # 非 terminal 的 FAILED attempt 仍要看得到；完全沒有 attempt 才是 MISSING。
+    def receipt_state(runtime, period)
+      entries = runtime.store.closeouts_for(period[:id])
+      terminal = entries.reverse.find { |e| TERMINAL_STATUSES.include?(e["final_status"]) }
+      latest = entries.last
+      { review_status: terminal&.fetch("final_status", nil) || latest&.fetch("final_status", nil) || "MISSING",
+        attempt_count: entries.size,
+        terminal_closeout: !terminal.nil? }
+    end
+
     # T-4：BEFORE 拒絕。**上游不擋提前關帳**，這是產品收緊。
     def assert_started!(now, period)
       return unless phase_of(now, period) == :before

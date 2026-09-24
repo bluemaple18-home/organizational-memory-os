@@ -34,6 +34,8 @@ module OMOS
         review due [--notify] [--anchor-hour H] [--anchor-weekday D]
                                 列出本週期待 review 的 candidate（純讀，不做任何處置）
         review history          週期帳：每個 ISO 週一列，MISSING 即「少了哪週」
+        review receipt --period YYYY-Www
+                                輸出本機 content-free pilot receipt（不自動上傳）
         review done --period YYYY-Www --item <candidate>=<CATEGORY> [--item ...]
                                 把該週期記成已完成（NO_PROMOTION）
         review skip --period YYYY-Www
@@ -126,6 +128,7 @@ module OMOS
         o.on("--owner REF") { |v| opts[:owner] = v }
         o.on("--tenant ID") { |v| opts[:tenant] = v }
         o.on("--notify") { opts[:notify] = true }
+        o.on("--scheduled-trigger") { opts[:scheduled_trigger] = true }
         o.on("--anchor-hour H", Integer) { |v| opts[:anchor_hour] = v }
         o.on("--anchor-weekday D", Integer) { |v| opts[:anchor_weekday] = v }
         o.on("--period W") { |v| opts[:period] = v }
@@ -427,21 +430,57 @@ module OMOS
       2
     end
 
+    def cmd_review_receipt(path, opts, out, err)
+      if opts[:period].nil?
+        err.puts "REVIEW_PERIOD_REQUIRED"
+        err.puts "  必須明確指定週期，例如 --period 2026-W38。"
+        return 2
+      end
+
+      home = opts[:home] || Dir.home
+      period = ReviewLedger.period_from_iso_week(opts[:period], **anchor_opts(opts))
+      identity_path = Installer.new(home: home, store_path: path).receipt_path
+      identity = installed_identity_at(identity_path)
+      trigger_at = Schedule.trigger_observation(home: home, period_id: period[:id])
+      receipt = nil
+      with_runtime(path) do |rt|
+        state = ReviewLedger.receipt_state(rt, period)
+        receipt = {
+          "employee_ref" => identity["employee_owner_ref"],
+          "review_period_id" => period[:id],
+          "review_status" => state[:review_status],
+          "attempt_count" => state[:attempt_count],
+          "schedule_observed" => trigger_at.nil? ? "unknown" : true,
+          "schedule_observed_at" => trigger_at,
+          "terminal_closeout" => state[:terminal_closeout],
+          "observed_at" => Time.now.iso8601
+        }
+      end
+      out.puts JSON.pretty_generate(receipt)
+      0
+    rescue ArgumentError => e
+      err.puts "REVIEW_ARGUMENT_INVALID"
+      err.puts "  #{e.message}"
+      2
+    end
+
     # 任何寫入路徑，連「標記已讀」都沒有。
     def cmd_review(path, argv, opts, out, err)
       sub = argv.shift
       case sub
       when "history" then return cmd_review_history(path, opts, out, err)
+      when "receipt" then return cmd_review_receipt(path, opts, out, err)
       when "done"    then return cmd_review_closeout(path, opts, out, err, :done)
       when "skip"    then return cmd_review_closeout(path, opts, out, err, :skip)
       when "due"     then nil
       else
-        err.puts "用法: omos-personal-memory review due|history|done|skip"
+        err.puts "用法: omos-personal-memory review due|history|receipt|done|skip"
         return 2
       end
 
       with_runtime(path) do |rt|
         q = ReviewQueue.due(rt, **anchor_opts(opts), surface: surface)
+        out.puts Schedule.trigger_marker(q[:id]) if opts[:scheduled_trigger]
         notified = opts[:notify] ? Schedule.notify(q[:items].size, io: err) : nil
         out.puts "review period: #{q[:id]}"
         out.puts "  anchor:       #{q[:scheduled_anchor_at]}（起始 #{q[:scheduled_review_period_start]}）"

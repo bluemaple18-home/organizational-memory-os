@@ -51,6 +51,7 @@ module OMOS
 
     LABEL = "com.omos.personal-memory.weekly-review"
     FRIDAY_WEEKDAY = 5   # launchd: 0=Sunday
+    TRIGGER_LOG_PREFIX = "OMOS_SCHEDULE_TRIGGER "
 
     # 契約 §1.0：有界收斂。command 只呼叫一次，之後只輪詢 `launchctl print`。
     CONVERGENCE_WINDOW_SECONDS = 5.0
@@ -67,7 +68,31 @@ module OMOS
     def agents_dir(home) = File.join(home, "Library/LaunchAgents")
     def plist_path(home) = File.join(agents_dir(home), "#{LABEL}.plist")
     def launcher_path(home) = File.join(home, ".omos/personal-memory/current/exe/omos-personal-memory")
+    def trigger_log_path(home) = File.join(home, ".omos/personal-memory/schedule.log")
     def domain = "gui/#{Process.uid}"
+
+    # launchd 的 stdout/stderr 本來就落在 schedule.log；pilot 只補一行結構化、
+    # 不含知識內容的 marker，不另建 trigger state file／telemetry channel。
+    def trigger_marker(period_id, observed_at: Time.now)
+      "#{TRIGGER_LOG_PREFIX}#{JSON.generate({ "review_period_id" => period_id,
+                                             "observed_at" => observed_at.iso8601 })}"
+    end
+
+    def trigger_observation(home:, period_id:)
+      path = trigger_log_path(home)
+      return nil unless File.file?(path)
+
+      found = nil
+      File.foreach(path, encoding: "UTF-8") do |line|
+        next unless line.start_with?(TRIGGER_LOG_PREFIX)
+
+        payload = JSON.parse(line.delete_prefix(TRIGGER_LOG_PREFIX))
+        found = payload["observed_at"] if payload["review_period_id"] == period_id
+      rescue JSON::ParserError
+        next
+      end
+      found
+    end
 
     # 真正呼叫 launchctl 的預設實作。測試注入替身，**不得**在 conformance 裡
     # 把 job 載進使用者真正的 session——那是會留在機器上的外部副作用。
@@ -633,6 +658,7 @@ module OMOS
             <string>review</string>
             <string>due</string>
             <string>--notify</string>
+            <string>--scheduled-trigger</string>
             <string>--anchor-hour</string>
             <string>#{anchor_hour}</string>
             <string>--anchor-weekday</string>
@@ -645,8 +671,8 @@ module OMOS
             <key>Minute</key><integer>0</integer>
           </dict>
           <key>RunAtLoad</key><true/>
-          <key>StandardErrorPath</key><string>#{File.join(home, ".omos/personal-memory/schedule.log")}</string>
-          <key>StandardOutPath</key><string>#{File.join(home, ".omos/personal-memory/schedule.log")}</string>
+          <key>StandardErrorPath</key><string>#{trigger_log_path(home)}</string>
+          <key>StandardOutPath</key><string>#{trigger_log_path(home)}</string>
         </dict>
         </plist>
       XML
