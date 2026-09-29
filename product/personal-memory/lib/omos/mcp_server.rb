@@ -31,38 +31,43 @@ module OMOS
       attr_accessor :runtime, :binding, :binding_problem
     end
 
-    # server 必須能**獨立**得知自己屬於哪個 native session。來源由契約的
-    # native_session_id_source 宣告，各 Host 不同；取不到就 fail closed，
-    # 不用 cwd 之類的代理鍵去猜（repair-02 P1-1/P1-2）。
-    def self.native_session_id(host)
-      source = Contract.spec.dig("personal_memory_host_binding_v1", "bootstrap_contract",
-                                 "native_session_id_source", host) || {}
-      case source["mechanism"]
-      when "PROCESS_ENV" then ENV[source.fetch("env_var")]
-      end
+    BIND_TOOL_NAME = Contract.spec.dig("personal_memory_host_binding_v1", "bootstrap_contract",
+                                       "native_session_id_source", "Codex", "bind_tool_name") ||
+                     "personal_memory_bind_session"
+
+    # Host 的 native session identity 來源有兩種：
+    # - Claude Code：MCP process env，server 啟動時即可取得。
+    # - Codex：SessionStart 的 mcp_tool request `_meta.threadId`，必須等 Host 主動呼叫。
+    # 兩者都由 Host 注入；模型不能提供或覆寫。
+    def self.native_session_source(host)
+      Contract.spec.dig("personal_memory_host_binding_v1", "bootstrap_contract",
+                        "native_session_id_source", host) || {}
     end
 
-    # 由可信來源建構 binding。模型既不經手也無法改寫。
-    def self.establish_binding!
+    def self.native_session_id(host)
+      source = native_session_source(host)
+      ENV[source.fetch("env_var")] if source["mechanism"] == "PROCESS_ENV"
+    end
+
+    def self.establish_binding_for_session_id!(session_id)
       host = ENV["OMOS_HOST"]
       scope_mode = ENV["OMOS_RUNTIME_SCOPE_MODE"]
       if host.nil? || scope_mode.nil?
+        self.binding = nil
         self.binding_problem = "MCP_MISSING_TRUSTED_AUTHORITY_ENV"
-        return
+        return false
       end
-
-      session_id = native_session_id(host)
       if session_id.nil? || session_id.to_s.strip.empty?
-        # 例如 Codex：目前沒有任何機制讓 MCP server 得知 native session id，
-        # 契約標為 UNDECIDED。在決定之前一律拒絕，不退回 cwd 猜測。
+        self.binding = nil
         self.binding_problem = "MCP_NATIVE_SESSION_ID_UNAVAILABLE"
-        return
+        return false
       end
 
       record = SessionState.read(host, session_id)
       if record.nil?
+        self.binding = nil
         self.binding_problem = "MCP_NO_SESSION_RECORD"
-        return
+        return false
       end
 
       self.binding = SessionStart.produce(
@@ -70,8 +75,53 @@ module OMOS
         cwd: record.fetch("cwd"), project_ref: SessionStart.project_ref_for(record.fetch("cwd")),
         runtime_scope_mode: scope_mode
       )
+      self.binding_problem = nil
+      true
     rescue SessionStart::Refused => e
+      self.binding = nil
       self.binding_problem = e.code
+      false
+    end
+
+    # 啟動時只處理可由 process env 直接取得 identity 的 Host。Codex 必須等
+    # trusted SessionStart mcp_tool call 帶來 `_meta.threadId`，不可退回 cwd 猜測。
+    def self.establish_binding!
+      host = ENV["OMOS_HOST"]
+      source = native_session_source(host)
+      if source["mechanism"] == "MCP_REQUEST_META"
+        self.binding = nil
+        self.binding_problem = "MCP_HOST_BIND_REQUIRED"
+        return false
+      end
+
+      establish_binding_for_session_id!(native_session_id(host))
+    end
+
+    def self.request_thread_id(server_context)
+      meta = server_context && server_context[:_meta]
+      return unless meta.is_a?(Hash)
+
+      meta[:threadId] || meta["threadId"]
+    rescue NoMethodError
+      nil
+    end
+
+    def self.bind_from_request!(server_context)
+      host = ENV["OMOS_HOST"]
+      unless native_session_source(host)["mechanism"] == "MCP_REQUEST_META"
+        self.binding = nil
+        self.binding_problem = "MCP_HOST_BIND_NOT_ALLOWED"
+        return false
+      end
+
+      thread_id = request_thread_id(server_context)
+      if thread_id.nil? || thread_id.to_s.strip.empty?
+        self.binding = nil
+        self.binding_problem = "MCP_REQUEST_THREAD_ID_MISSING"
+        return false
+      end
+
+      establish_binding_for_session_id!(thread_id)
     end
 
     def self.refuse_no_binding
@@ -145,6 +195,18 @@ module OMOS
       end
     end
 
+    BindSessionTool = Class.new(MCP::Tool) do
+      tool_name BIND_TOOL_NAME
+      description "Codex SessionStart 專用：只接受 Host 注入的 request threadId 綁定目前 session"
+      input_schema(properties: {}, required: [])
+      define_singleton_method(:call) do |server_context: nil, **|
+        return MCPServer.refuse_no_binding unless MCPServer.bind_from_request!(server_context)
+
+        MCPServer.reply(JSON.generate({ "status" => "BOUND",
+                                        "executor_ref" => MCPServer.binding["executor_ref"] }))
+      end
+    end
+
     CloseoutTool = Class.new(MCP::Tool) do
       tool_name "personal_memory_closeout"
       description "提交一次 weekly closeout；唯一性與 promotion idempotency 由既有 evaluator 判定"
@@ -172,11 +234,12 @@ module OMOS
     def self.build(store_path)
       self.runtime = Runtime.open(store_path)
       establish_binding!
+      tools = ENV["OMOS_HOST"] == "Codex" ? (TOOLS + [BindSessionTool]) : TOOLS
       MCP::Server.new(
         name: "omos-personal-memory",
         version: "0.1.0",
         instructions: "本機 Personal Memory Store。所有寫入經 Runtime 治理層，被拒者不落地。",
-        tools: TOOLS
+        tools: tools
       )
     end
 

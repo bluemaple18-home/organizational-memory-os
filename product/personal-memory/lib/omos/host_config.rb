@@ -82,6 +82,23 @@ module OMOS
       Contract::HostBinding.own_registration_problem(snapshot, @profile)
     end
 
+    # Codex 的第二個 SessionStart handler 是 mcp_tool identity bridge。既有
+    # normalized contract 只描述 command hook，因此這一項由 doctor 獨立驗。
+    def session_start_mcp_tool_present?(server:, tool:)
+      doc = load_file(hook_config_path, @discovery.fetch("session_start_config_format"))
+      return false if doc.nil?
+
+      groups = dig_path(doc, @discovery.fetch("session_start_hooks_path"))
+      Array(groups).any? do |group|
+        next false unless group.is_a?(Hash)
+
+        Array(group["hooks"]).any? do |handler|
+          handler.is_a?(Hash) && handler["type"] == "mcp_tool" &&
+            handler["server"] == server && handler["tool"] == tool
+        end
+      end
+    end
+
     # 本產品宣告的註冊 id（安裝與 doctor 都用這兩個）
     def own_mcp_id = @profile.dig("mcp_registration", "id")
     def own_hook_id = @profile.dig("session_start_registration", "id")
@@ -148,6 +165,9 @@ module OMOS
         handlers = [group] if handlers.empty? && group.is_a?(Hash) && group.key?("command")
         handlers.each_with_index.map do |handler, hi|
           next unless handler.is_a?(Hash)
+          # mcp_tool 是 Codex 的可信 identity bridge，不是既有 command-hook
+          # registration contract 的一部分；由 doctor 另外檢查存在性與 trust。
+          next if handler["type"] == "mcp_tool"
 
           ref = command_ref_of(handler)
           { "id" => hook_id_for(ref, gi, hi), "event" => "SessionStart", "command_ref" => ref }

@@ -182,6 +182,7 @@ module OMOS
         [[hooks.SessionStart.hooks]]
         type = "command"
         command = #{hook_invocation.to_json}
+        #{codex_bind_hook_block}
         #{END_MARK}
       TOML
     end
@@ -189,6 +190,24 @@ module OMOS
     # hook 無法帶 env，authority input 只能進命令列。設定檔本身就是信任邊界。
     def hook_invocation
       "#{@hook_command} --host #{@host.inspect} --runtime-scope-mode #{@env.fetch("OMOS_RUNTIME_SCOPE_MODE")}"
+    end
+
+    # Codex 的 session identity 不在 process env，而在 SessionStart mcp_tool request
+    # 的 `_meta.threadId`。command handler 先落 SessionState，mcp_tool handler 再用
+    # Host 注入的 threadId 建立 binding；模型即使自行呼叫也無法指定另一個 threadId。
+    def codex_bind_hook_block
+      return "" unless @host == "Codex"
+
+      tool = Contract.spec.dig("personal_memory_host_binding_v1", "bootstrap_contract",
+                               "native_session_id_source", "Codex", "bind_tool_name")
+      <<~TOML.rstrip
+
+        [[hooks.SessionStart.hooks]]
+        type = "mcp_tool"
+        server = #{@config.own_mcp_id.to_json}
+        tool = #{tool.to_json}
+        input = {}
+      TOML
     end
 
     def write_block(path, format, block)

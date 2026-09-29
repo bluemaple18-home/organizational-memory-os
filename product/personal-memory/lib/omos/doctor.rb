@@ -201,11 +201,22 @@ module OMOS
       # 因此「寫得對」與「真的會被叫起來」還差一次真人實測。
       hook = snapshot["session_start_hooks"].find { |h| h["id"] == config.own_hook_id }
       results << if hook.nil?
-                   bad("#{tag(host)}_session_start_hook_present", "SessionStart hook 未寫入")
+                   bad("#{tag(host)}_session_start_hook_present", "SessionStart command hook 未寫入")
                  else
                    warn_("#{tag(host)}_session_start_hook_present",
-                         "已依官方 schema 寫入；尚未由真 Host 實際觸發過")
+                         "command hook 已寫入；Host 是否已觸發由 runtime/trust 檢查另行判定")
                  end
+
+      if host == "Codex"
+        results << codex_cli_identity_check
+        bind_tool = Contract.spec.dig("personal_memory_host_binding_v1", "bootstrap_contract",
+                                      "native_session_id_source", "Codex", "bind_tool_name")
+        bind_present = config.session_start_mcp_tool_present?(server: config.own_mcp_id, tool: bind_tool)
+        results << (bind_present ?
+                    ok("codex_session_bind_hook_present", "#{config.own_mcp_id}/#{bind_tool}") :
+                    bad("codex_session_bind_hook_present", "SessionStart mcp_tool identity bridge 未寫入"))
+        results << codex_hook_trust_check(config, profile) if bind_present
+      end
 
       # 漂移判定委派切片 2 既有 evaluator（含 command_ref 對不上的情況）
       drift = config.own_registration_problem
@@ -217,6 +228,101 @@ module OMOS
       results
     rescue HostConfig::DiscoveryError => e
       [bad("#{tag(host)}_config_file", e.message[0, 120])]
+    end
+
+    def codex_cli_identity_check
+      codex = ENV["OMOS_CODEX_BIN"] || executable_on_path("codex")
+      return warn_("codex_cli_identity", "找不到 codex CLI；無法記錄 binary/version") if codex.nil?
+
+      out, err, status = Open3.capture3(codex, "--version")
+      version = (out.lines + err.lines).map(&:strip).find { |line| line.start_with?("codex-cli ") }
+      return warn_("codex_cli_identity", "#{codex} 無法取得版本") unless status.success? && version
+
+      resolved = begin
+        File.realpath(codex)
+      rescue StandardError
+        codex
+      end
+      detail = resolved == codex ? "#{codex} | #{version}" : "#{codex} -> #{resolved} | #{version}"
+      ok("codex_cli_identity", detail)
+    rescue StandardError => e
+      warn_("codex_cli_identity", "版本觀測失敗：#{e.class}: #{e.message.to_s[0, 80]}")
+    end
+
+    def codex_hook_trust_check(config, profile)
+      codex = ENV["OMOS_CODEX_BIN"] || executable_on_path("codex")
+      return warn_("codex_session_hook_trust", "找不到 codex CLI，無法觀測 hook trust") if codex.nil?
+
+      payload = codex_hooks_list(codex)
+      hooks = Array(payload.dig("result", "data")).flat_map { |entry| Array(entry["hooks"]) }
+      source = File.expand_path(config.hook_config_path)
+      command_ref = profile.dig("session_start_registration", "command_ref")
+      expected_command = @installer.command_map.find do |cmd, ref|
+        ref == command_ref && cmd.include?("--host")
+      end&.first
+      bind_tool = Contract.spec.dig("personal_memory_host_binding_v1", "bootstrap_contract",
+                                    "native_session_id_source", "Codex", "bind_tool_name")
+
+      command_hook = hooks.find do |hook|
+        hook["handlerType"] == "command" && File.expand_path(hook["sourcePath"].to_s) == source &&
+          hook["command"] == expected_command
+      end
+      bind_hook = hooks.find do |hook|
+        hook["handlerType"] == "mcpTool" && File.expand_path(hook["sourcePath"].to_s) == source &&
+          hook["server"] == config.own_mcp_id && hook["tool"] == bind_tool
+      end
+      return warn_("codex_session_hook_trust", "Codex hooks/list 看不到本產品兩個 SessionStart handler") if command_hook.nil? || bind_hook.nil?
+
+      statuses = { "command" => command_hook["trustStatus"], "mcp_tool" => bind_hook["trustStatus"] }
+      return ok("codex_session_hook_trust", "command + mcp_tool 均 trusted") if statuses.values.all? { |v| v == "trusted" }
+
+      warn_("codex_session_hook_trust", "尚未 trusted：#{statuses.map { |k, v| "#{k}=#{v || "unknown"}" }.join(", ")}")
+    rescue Timeout::Error
+      warn_("codex_session_hook_trust", "codex hooks/list 逾時，trust 狀態無法觀測")
+    rescue StandardError => e
+      warn_("codex_session_hook_trust", "trust 狀態無法觀測：#{e.class}: #{e.message.to_s[0, 80]}")
+    end
+
+    def executable_on_path(name)
+      ENV.fetch("PATH", "").split(File::PATH_SEPARATOR).each do |dir|
+        path = File.join(dir, name)
+        return path if File.file?(path) && File.executable?(path)
+      end
+      nil
+    end
+
+    def codex_hooks_list(codex)
+      env = { "HOME" => @home, "CODEX_HOME" => File.join(@home, ".codex") }
+      Timeout.timeout(5) do
+        Open3.popen3(env, codex, "app-server", "--stdio") do |stdin, stdout, _stderr, wait_thr|
+          write_rpc(stdin, 1, "initialize",
+                    { "clientInfo" => { "name" => "omos-doctor", "version" => "1" },
+                      "capabilities" => { "experimentalApi" => true } })
+          read_rpc(stdout, 1)
+          stdin.puts(JSON.generate({ "method" => "initialized", "params" => {} }))
+          stdin.flush
+          write_rpc(stdin, 2, "hooks/list", { "cwds" => [@cwd] })
+          response = read_rpc(stdout, 2)
+          stdin.close
+          wait_thr.join(1)
+          response
+        end
+      end
+    end
+
+    def write_rpc(io, id, method, params)
+      io.puts(JSON.generate({ "id" => id, "method" => method, "params" => params }))
+      io.flush
+    end
+
+    def read_rpc(io, id)
+      loop do
+        line = io.gets
+        raise EOFError, "codex app-server 提前關閉" if line.nil?
+
+        parsed = JSON.parse(line)
+        return parsed if parsed["id"] == id
+      end
     end
 
     # 更高優先序的同名註冊＝遮蔽。判定用切片 2 的 precedence_problem，

@@ -1,16 +1,30 @@
 ---
 id: EMEM11B-CODEX-CROSS-HOST-20260920
-status: BLOCKED_UPSTREAM_IDENTITY_CHANNEL
-trigger: UPSTREAM_ONLY
+status: ACCEPTED_GO_20260929
+trigger: SATISFIED_20260929_EVIDENCE_CORRECTION
 jira: NOT_CREATED
 parent_card: CARD-EMEM11-PERSONAL-MEMORY-RUNTIME-HOST-BINDING-V1-20260918
 scope_decision: .work/CARD-EMEM11-SCOPE-FREEZE-20260920.md
 type: mvp-product-capability
-priority: DEFERRED
+priority: CLOSED
 authority: organizational-memory-os
 ---
 
 # EMEM-11b｜Codex Host 與 Cross-host Same-store 驗收
+
+> **2026-09-29：ACCEPTED_GO。** 重新量測確認原 blocker 的證據前提錯誤：
+> codex-cli 0.153.2 與 0.158.0-alpha.2.1 在 SessionStart hook 經 trust gate
+> 標成 trusted 後，都會真的送出 `tools/call`，且 `params._meta.threadId` 與同一次
+> command hook 的 `stdin.session_id` 完全相同。舊量測把 untrusted hook 沒執行
+> 誤判成「上游沒有 identity channel」。
+>
+> 已完成：Codex 重新納入 `supported_hosts_v1`；MCP server 新增只讀 Host 注入
+> `_meta.threadId` 的 bind seam；installer 寫 command + mcp_tool SessionStart；doctor
+> 分開檢查 bind handler 與 hook trust；cross-host same-store 雙向驗收已加入 3b。
+> 證據：`.work/evidence/EMEM11B-CODEX-CROSS-HOST-UNBLOCK-20260929.md`。
+>
+> 下文保留 2026-09-20 當時建立本卡的歷史背景；其中「沒有 tools/call／沒有
+> identity channel」已被 2026-09-29 的重測推翻，不再代表現況。
 
 > **這張卡現在不排、不做、不派工。** 它存在的唯一目的，是讓 EMEM-11 v1 收斂時
 > 被移出去的能力需求**留下紀錄而不是蒸發**。解除條件由上游觸發（見下），在那

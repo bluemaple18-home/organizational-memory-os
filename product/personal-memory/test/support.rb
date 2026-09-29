@@ -193,8 +193,10 @@ module Support
     end
 
     # 回傳 [原始 response, 解析後的 tool 內容]
-    def call_tool(name, args)
-      res = rpc("tools/call", { "name" => name, "arguments" => args })
+    def call_tool(name, args, meta: nil)
+      params = { "name" => name, "arguments" => args }
+      params["_meta"] = meta unless meta.nil?
+      res = rpc("tools/call", params)
       text = res&.dig("result", "content", 0, "text")
       [res, text && (begin
         JSON.parse(text)

@@ -11,6 +11,13 @@ jira: SSP-295_FULL_PRODUCT_PILOT 前置
 
 # EMEM-11 切片 3 — Owner 範圍裁決（Codex host 能力與契約衝突）
 
+> **2026-09-29 superseded-by-evidence：** 本裁決在 2026-09-20 當時的 probe
+> 證據下成立；之後重測發現 probe 漏掉 Codex hook trust gate。0.153.2 與
+> 0.158.0-alpha.2.1 在 trusted SessionStart 下都會送 `tools/call`，且
+> `_meta.threadId == command hook session_id`。因此本文件保留為歷史決策記錄，
+> 但「Codex 沒有可信 identity channel／應維持 blocked」的現況結論已被
+> `.work/CARD-EMEM11B-CODEX-CROSS-HOST-20260920.md` 與 2026-09-29 evidence receipt 取代。
+
 👉 [假設與目標確認]
 - 目標：repair-02 的 correctness 已由 reviewer 定點 GO（P0=0 / P1=0 / P2=0）。
   剩下的唯一 P1 是**產品範圍矛盾**，那不是 CC 能自己收的，做成可以用字母

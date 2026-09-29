@@ -2100,21 +2100,9 @@ personal_memory_runtime:
     second writer. Any surface outside the enumeration -- including anything in
     forbidden_access_surfaces -- is rejected outright rather than downgraded.
   supported_hosts_v1:
+    - Codex
     - Claude Code
-  blocked_hosts_v1:
-    # Owner 範圍裁決 2026-09-20（.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md，
-    # 簽 FP-1 A / FP-2 C / FP-3 A）：v1 的 delivery scope 收斂為 Claude Code。
-    # 這不是把 Codex 從契約詞彙裡刪掉——host profile 與既有實證全部保留，
-    # 解除條件達成後重新納入 supported_hosts_v1。
-    Codex:
-      reason: BLOCKED_UPSTREAM_IDENTITY_CHANNEL
-      evidence_ref: >-
-        personal_memory_host_binding_v1.bootstrap_contract.native_session_id_source.Codex
-      unblock_condition: >-
-        上游提供可由 MCP server 獨立取得、且模型無法自報的 native session
-        identity channel；屆時重新納入 supported_hosts_v1，並補齊真人實測與
-        Codex ↔ Claude Code 的 cross-host same-store 驗收。
-      follow_up_card: CARD-EMEM11B-CODEX-CROSS-HOST-20260920
+  blocked_hosts_v1: {}
   supported_hosts_rule: >-
     supported_hosts_v1 must be a subset of runtime_policy.optional_executors.
     Declaring a host this repository's executor vocabulary does not know is a
@@ -2296,6 +2284,7 @@ personal_memory_host_binding_v1:
         #       [[hooks.<Event>]]            MatcherGroup（matcher 可省）
         #       [[hooks.<Event>.hooks]]      HookHandlerConfig[]
         #       type = "command" / command / timeout / async / ...
+        #       type = "mcp_tool" / server / tool / input / ...
         #     ——**沒有 id 欄位**，也**沒有 env 欄位**。
         #   binary 內列出的事件含 SessionStart（先前誤判為「無證據」，已更正）。
         registration_shape:
@@ -2454,40 +2443,27 @@ personal_memory_host_binding_v1:
           在 Claude Code 啟動的子程序環境中實測存在，值為 UUID；
           hook 與 MCP server 同為其子程序，因此兩端可取得同一個 id。
       Codex:
-        mechanism: UNAVAILABLE
-        runtime_capability: BLOCKED
+        mechanism: MCP_REQUEST_META
+        meta_field: threadId
+        bind_tool_name: personal_memory_bind_session
+        runtime_capability: DELIVERED
         evidence: >-
-          codex-cli 0.153.2 端到端實測（一次 codex exec，以 -c 覆寫注入探針 MCP
-          server 與 mcp_tool 型 SessionStart hook）：
-          (1) MCP server 為 per-session 單一進程，模型用的就是它；
-          (2) 該進程可見的 CODEX_* / SESSION_* / MCP_* 環境變數為空集合，
-              取不到任何 native session 身分；
-          (3) 整個 session 期間該 server 只收到 initialize、
-              notifications/initialized 與 tools/list，**沒有任何 tools/call**
-              ——mcp_tool 型 SessionStart hook 並未叫到它；
-          (4) 唯一帶 _meta 的是 tools/list，沒有任何可用來分辨
-              「hook 呼叫」與「模型呼叫」的標記。
-          這與官方文件「SessionStart 可能發生在 MCP server ready 之前，
-          且 server/tool 不可用時不會阻止 session」一致：session 照常進行，
-          bind 從未發生。因此即使把 bind tool 宣告進 tools/list 讓 hook 叫得到，
-          模型也會同時看見該 tool，而 server 無從分辨來源——authority 隔離
-          不成立。
+          2026-09-29 以隔離 CODEX_HOME 對 codex-cli 0.158.0-alpha.2.1 與
+          0.153.2 重跑端到端探針。兩版在 SessionStart handlers 經 Codex trust
+          gate 標成 trusted 後，都會真的呼叫 mcp_tool：server 收到 tools/call，
+          params._meta.threadId 與同一次 command SessionStart stdin.session_id 完全相同。
+          MCP process 的 CODEX_* / SESSION_* / MCP_* env 仍為空；可信 identity
+          channel 是 Host 注入的 request metadata，不是 process env。2026-09-20
+          「沒有 tools/call／沒有 identity channel」的結論漏掉 hook trust gate，
+          因此撤銷。
         decision: >-
-          **Codex 的 Personal Memory 能力一律 fail closed**
-          （MCP_NATIVE_SESSION_ID_UNAVAILABLE），不得退回 cwd 或任何代理鍵猜測，
-          也不另造第三套 session registry。等上游提供可信的 native session
-          identity channel 再重新納入。
-        scope_note: >-
-          本區塊只記錄「runtime 能力」的事實。當初刻意不在此處收斂
-          supported_hosts_v1，因為那是 Owner 的產品範圍裁決。**該裁決已於
-          2026-09-20 作成**（.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md，
-          簽 FP-1 A / FP-2 C / FP-3 A）：v1 收斂為 Claude Code，Codex 移入
-          personal_memory_runtime.blocked_hosts_v1，理由
-          BLOCKED_UPSTREAM_IDENTITY_CHANNEL。因此 Codex 現在是在契約邊界就被
-          拒絕（bootstrap 產不出 binding，回 HBV1_HOST_BLOCKED_UPSTREAM；
-          繞過 bootstrap 的 binding 則由 Runtime 授權閘以
-          PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST 擋下），而不是宣稱
-          支援後才在 session identity 這一層 fail closed。
+          Codex 以 command SessionStart 先落 (host, session_id, cwd) SessionState，
+          再由同一個 trusted SessionStart group 的 mcp_tool request 以 Host 注入的
+          _meta.threadId 建立 HostSessionBinding。threadId 不接受 tool arguments、cwd
+          或 state-file 最近值推測；缺 metadata 或對不到同 session state 一律 fail closed。
+        trust_requirement: >-
+          Codex user hook 必須經 Host trust gate 成為 trusted；doctor 必須把
+          untrusted / modified / 無法觀測分開回報，不得再解讀成 upstream 不支援。
     host_native_stdin_fields:
       # 切片 3 repair-01：真 Host 交給 SessionStart hook 的 stdin 欄位。
       # 先前實作期待 host / native_session_id / project_ref / runtime_scope_mode，

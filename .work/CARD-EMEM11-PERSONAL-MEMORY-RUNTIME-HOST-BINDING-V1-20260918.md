@@ -18,11 +18,18 @@ blocks:
 packaging: CARD-EMEM11-STANDALONE-PACKAGING-IMPLEMENTATION-20260921（ALL_SLICES_ACCEPTED_GO，Slice C repair-01 @ d652bee）
 scope_decision: .work/CARD-EMEM11-SCOPE-FREEZE-20260920.md
 supported_hosts_v1:
+  - Codex
   - Claude Code
 follow_up:
-  - CARD-EMEM11B-CODEX-CROSS-HOST-20260920
+  - CARD-EMEM11B-CODEX-CROSS-HOST-20260920（ACCEPTED_GO_20260929）
 ---
 
+> **2026-09-29 證據更正／Codex 解封**：trusted SessionStart 的 mcp_tool
+> request 會帶 Host 注入的 `_meta.threadId`；0.153.2 與 0.158.0-alpha.2.1
+> 都已實測，且值與 command hook 的 `session_id` 相同。Codex 已重新納入
+> `supported_hosts_v1`，cross-host follow-up 已 ACCEPTED_GO。9/20 以下裁決保留
+> 作為當時證據下的歷史決定，不再代表目前 delivery scope。
+>
 > **Owner 範圍裁決 2026-09-20（FP-1 A／FP-2 C／FP-3 A）**：v1 交付範圍為
 > **Claude Code 單一 Host**。Codex 為 known-but-not-delivered
 > （`BLOCKED_UPSTREAM_IDENTITY_CHANNEL`）：契約仍認識它、設定面（install／
@@ -65,22 +72,17 @@ SSP-323 已封的是 Personal Memory Core：
 EMEM-11 補的是第一版正式產品的 **local runtime + host integration layer**：
 把已驗收的 Personal Memory contract 變成 Host 可以在每個受支援專案中穩定使用的本機能力。
 
-v1 正式交付範圍（`supported_hosts_v1`，Owner 裁決 2026-09-20 收斂）：
+v1 正式交付範圍（2026-09-29 evidence correction 後）：
 
 ```text
+OpenAI Codex
 Anthropic Claude Code
 ```
 
-已知但**本版不交付**（`blocked_hosts_v1`）：
-
-```text
-OpenAI Codex — BLOCKED_UPSTREAM_IDENTITY_CHANNEL
-```
-
-Codex 仍是契約認識的 Host：host profile、設定探索、install／uninstall／shadow／
-health 的評估全部保留，但它產不出 `HostSessionBinding`（`HBV1_HOST_BLOCKED_UPSTREAM`）、
-Runtime 授權閘也不收它的 binding、installer 預設不交付它。解除條件與原本的
-cross-host 驗收見 `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`。
+`blocked_hosts_v1` 目前為空。Codex 以 trusted SessionStart 的 command hook 先落
+SessionState，再由同 group 的 mcp_tool request `_meta.threadId` 建立
+`HostSessionBinding`；缺 trust、缺 metadata、或對不到 session state 都 fail closed。
+雙向 cross-host same-store 驗收見 `CARD-EMEM11B-CODEX-CROSS-HOST-20260920`。
 
 其他 AI Host（ChatGPT app / Gemini / 其他）一律不列 v1 compatibility promise，不建立假抽象。
 

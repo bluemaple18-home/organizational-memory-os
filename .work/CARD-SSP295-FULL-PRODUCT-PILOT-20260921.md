@@ -43,8 +43,9 @@ authority: organizational-memory-os
   submission package，且不存在 reverse-access path**。
 - **SSP-323 §Pilot binding**：必須用**真人 ＋ 既有 AI 平台**驗證該卡，
   而非只靠 synthetic schema fixture。
-- **EMEM-11 範圍裁決（Owner 2026-09-20）**：v1 為 **Claude Code 單一 Host**。
-  Codex 是 known-but-not-delivered，pilot **不涵蓋** cross-host。
+- **EMEM-11 2026-09-29 evidence correction**：Codex trusted SessionStart
+  `_meta.threadId` identity path 已驗證並重新納入 `supported_hosts_v1`；原 9/20
+  單 Host 裁決保留為歷史記錄，pilot 可包含 Codex／cross-host。
 
 ## 2.1 Pilot observability 前置
 
@@ -59,7 +60,7 @@ receipt 與 Friday-trigger observation；由使用者人工貼回 receipt。**�
 |---|---|---|
 | runtime qualification 判準（原 clean-macOS 矩陣） | `READY_TO_IMPLEMENT`（2026-09-21 Owner 改判準） | `CARD-EMEM11-CLEAN-MACOS-QUALIFICATION-20260921` |
 | doctor session-hook 證據 | `BACKLOG_NOT_SCHEDULED` | `CARD-DOCTOR-SESSION-HOOK-EVIDENCE-20260920` |
-| Codex cross-host | `BLOCKED_UPSTREAM_IDENTITY_CHANNEL` | `CARD-EMEM11B-CODEX-CROSS-HOST-20260920` |
+| Codex cross-host | `ACCEPTED_GO_20260929` | `CARD-EMEM11B-CODEX-CROSS-HOST-20260920` |
 
 三者皆**不在** Owner 收斂後的 normative DoD 內，故不阻擋本卡。doctor 目前在
 乾淨環境回 `18 OK / 2 WARN / 0 FAIL`，兩個 WARN 是「本機無法觀測」而非失敗。

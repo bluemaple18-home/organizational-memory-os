@@ -6,9 +6,9 @@
 #                     保留非本產品設定與個人資料；中途失敗必須完全復原。
 #   B Doctor 與失敗診斷 讀實際設定、實際啟動目標、實際開 store；
 #                     「設定存在」「程序能啟動」「Store 能用」是三種不同結果。
-#   C 並行 session 與跨專案  真的同時跑兩個 MCP 進程對同一個 store 往返
-#                     （Codex 目前無官方 native session id 管道，一律 fail
-#                     closed，見 3b；這裡改測同 Host 兩個並行 session）；
+#   C 並行 session 與跨專案  真的同時跑兩個 MCP 進程對同一個 store 往返；
+#                     Codex 的 MCP_REQUEST_META identity path 由 3b 專門驗，
+#                     這裡保留同 Host 並行 session 的競態覆蓋；
 #                     切換專案不得擴權；retry／重啟不得產生第二筆。
 #
 # 全程不碰使用者的正式設定——所有操作都在 Dir.mktmpdir 的假 HOME 內。
@@ -51,12 +51,11 @@ Dir.mktmpdir("omos-3c-a") do |dir|
         OMOS::Contract.supported_hosts.all? do |h|
           OMOS::HostConfig.new(h, home: home, command_map: inst.command_map).own_registration_problem.nil?
         end)
-  # repair-03 P2：v1 的 delivery scope 只有 Claude Code，預設安裝不得再往
-  # blocked host 寫一套必定不能使用的 MCP + hook。
   codex_cfg_after_install = File.read(File.join(home, ".codex/config.toml"))
-  C.check("install 預設不碰 blocked host（Codex 設定位元組不變）",
+  C.check("install 預設交付 Codex command + mcp_tool SessionStart bridge",
         "#{before[:codex].bytesize}→#{codex_cfg_after_install.bytesize}",
-        codex_cfg_after_install == before[:codex])
+        codex_cfg_after_install.include?('type = "mcp_tool"') &&
+          codex_cfg_after_install.include?('tool = "personal_memory_bind_session"'))
   C.check("receipt 只記錄已交付 Host", inst.receipt["hosts"].keys.inspect,
         inst.receipt["hosts"].keys == OMOS::Contract.supported_hosts)
   C.check("install 保留使用者註解與他人 mcp", "",
@@ -79,8 +78,9 @@ Dir.mktmpdir("omos-3c-a") do |dir|
         OMOS::Contract.supported_hosts.all? do |h|
           OMOS::HostConfig.new(h, home: home, command_map: inst.command_map).own_registration_problem.nil?
         end)
-  C.check("upgrade 同樣不會把 blocked host 補裝回去", "",
-        File.read(File.join(home, ".codex/config.toml")) == before[:codex])
+  codex_cfg_after_upgrade = File.read(File.join(home, ".codex/config.toml"))
+  C.check("upgrade 保持單一 Codex bind hook，不重複追加", "",
+        codex_cfg_after_upgrade.scan('tool = "personal_memory_bind_session"').size == 1)
   db = SQLite3::Database.new(store)
   survived = db.get_first_value("SELECT COUNT(*) FROM memory_rows")
   db.close
@@ -98,9 +98,7 @@ Dir.mktmpdir("omos-3c-a") do |dir|
   #
   # 這一項回答 review 的核心質疑：post-write 複驗只能證明「我讀得回我寫的」，
   # 不能證明 Host 接受。這裡把假 HOME 交給實際安裝的 codex CLI 去解析。
-  # repair-03 P2：Codex 已非預設安裝對象，這裡**明確指名**才裝——保留「我們
-  # 寫出的形狀真的被 Host 解析得了」這項實證（EMEM-11b 解除時還要用），同時
-  # 不讓它偷偷變回預設交付。
+  # 用真的 codex CLI 解析隔離 HOME 裡的註冊，避免只做產品端自我一致。
   if system("command -v codex >/dev/null 2>&1")
     OMOS::Installer.new(home: home, store_path: store).install(hosts: ["Codex"])
     out, _err, st = Open3.capture3({ "HOME" => home }, "codex", "mcp", "get", "omos.personal-memory")
@@ -112,15 +110,13 @@ Dir.mktmpdir("omos-3c-a") do |dir|
     # uninstall 依 receipt 的 hosts 清理——receipt 這時記的是 ["Codex"]，
     # 所以殘件清得掉。這正是「先前版本曾裝過 Codex」的回收路徑。
     OMOS::Installer.new(home: home, store_path: store).uninstall
-    C.check("uninstall 依 receipt 清掉明確指名安裝的 blocked host，位元組復原", "",
+    C.check("uninstall 依 receipt 清掉明確指名的 Codex 安裝，位元組復原", "",
             File.read(File.join(home, ".codex/config.toml")) == before[:codex])
   else
     C.check("真的 codex CLI 解析我們寫出的 MCP 註冊", "本機無 codex CLI，略過", true)
   end
 
-  # 中途失敗必須完全復原。跨 Host 原子性要有兩個 Host 才驗得出來，而預設
-  # 交付只剩一個，所以這裡明確指名兩個 Host——驗的是 installer 的回復機制，
-  # 不是「Codex 是交付對象」。
+  # 中途失敗必須完全復原；現在預設雙 Host，直接驗跨 Host 原子回退。
   pre_fail = Support::FakeHome.read_all(home)
   code = begin
     inst.install(hosts: OMOS::HostConfig.hosts, fail_after: "Codex")
@@ -174,9 +170,9 @@ Dir.mktmpdir("omos-3c-a-hook-identity") do |dir|
   # 這一項本來就是既有已知 WARN（見 3b：形狀寫對了，但尚未由真 Host 觸發過），
   # collision 不該把它拖成 FAIL（=「以為 hook 沒寫入」，其實是把本產品的 hook
   # 和第三方那組搞混、比對不到自己）。
-  C.check("doctor 在 collision-adjacent 第三方 hook 存在下仍認得出本產品自己的 hook（維持既有 WARN，不退化成 FAIL）",
+  C.check("doctor 在 collision-adjacent 第三方 hook 存在下仍認得出本產品自己的 hook（維持 WARN，不退化成 FAIL）",
         "#{doctor_with_collision.status}: #{doctor_with_collision.detail}",
-        doctor_with_collision.status == "WARN" && doctor_with_collision.detail.include?("已依官方 schema 寫入"))
+        doctor_with_collision.status == "WARN" && doctor_with_collision.detail.include?("command hook 已寫入"))
 end
 
 # --- Slice A：activation substrate（固定 launcher → current → versions/<id>）---
@@ -1023,9 +1019,11 @@ Dir.mktmpdir("omos-3c-b") do |dir|
   post_warn = post.select { |r| r.status == "WARN" }
   C.check("安裝後無任何 FAIL",
         "#{post.count(&:ok?)} OK / #{post_warn.size} WARN / #{post_fail.size} FAIL", post_fail.empty?)
-  C.check("WARN 只出現在「無法觀測／未經 Host 驗證」這兩類，且照實回報",
+  C.check("WARN 只出現在 Host trigger／trust／Codex shadow 可觀測性，且照實回報",
         post_warn.map(&:id).sort.inspect,
-        post_warn.map(&:id).sort == ["claude_code_session_start_hook_present", "codex_not_delivered"])
+        post_warn.map(&:id).sort == ["claude_code_session_start_hook_present",
+                                     "codex_no_shadow", "codex_session_hook_trust",
+                                     "codex_session_start_hook_present"])
 
   # 被同名專案設定遮蔽 → 必須明確失敗
   File.write(File.join(proj, ".mcp.json"),
@@ -1086,12 +1084,10 @@ end
 # C 同一 Host 的兩個並行 session（同 cwd）與跨專案
 # ===========================================================================
 #
-# repair-02 之前這裡是「Codex 寫、Claude Code 讀」的跨 Host 測試。Codex 目前
-# 沒有官方管道讓 MCP server 獨立得知 native session id，一律 fail closed
-# （見 3b「Codex 目前無可信 native session 管道」），因此跨 Host 的 MCP 讀寫
-# 現在只能由一個 Host 示範。改用兩個**並行的 Claude Code session**、**同一個
-# cwd**——這正是 repair-02 P1-1 要修的情境（cwd 不是 session identity，同
-# cwd 的兩個並行 session 不得互相覆蓋或誤讀對方的 binding）。
+# repair-02 時這裡由跨 Host 改成兩個並行 Claude Code session，用來專門覆蓋
+# 「cwd 不是 session identity」的競態。2026-09-29 Codex 已解封，但這組仍保留
+# 原本的並行 session 風險覆蓋；真正的 Codex ↔ Claude Code 雙向 same-store
+# acceptance 在 3b 以兩種 Host identity path 明確驗證。
 C.group = "C"
 Dir.mktmpdir("omos-3c-c") do |dir|
   home = File.join(dir, "home")

@@ -38,19 +38,12 @@ Dir.mktmpdir("omos-3b") do |dir|
   )
   C.check("SessionStart 產出 binding", binding["effective_scope"], binding["effective_scope"] == "SELF_ONLY")
 
-  # Owner 範圍裁決 2026-09-20：v1 只交付 Claude Code。Codex 仍是契約認識的
-  # Host（設定面照常評估，見本檔後段的設定探索段落），但產不出 binding——
-  # 而且錯誤碼必須是「認識但未交付」，不是「不認識這個 Host」。
-  blocked = begin
-    OMOS::SessionStart.produce(host: "Codex", native_session_id: "codex-session-3b",
-                               cwd: File.join(dir, "projA"), project_ref: "urn:omos:project:a",
-                               runtime_scope_mode: "EMPLOYEE_PRIVATE")
-    nil
-  rescue OMOS::SessionStart::Refused => e
-    e.code
-  end
-  C.check("Codex 為 known-but-not-delivered，SessionStart 產不出 binding", blocked.to_s,
-          blocked == "HBV1_HOST_BLOCKED_UPSTREAM")
+  codex_binding = OMOS::SessionStart.produce(
+    host: "Codex", native_session_id: "codex-session-3b", cwd: File.join(dir, "projA"),
+    project_ref: "urn:omos:project:a", runtime_scope_mode: "EMPLOYEE_PRIVATE"
+  )
+  C.check("Codex 重新納入 delivered host，SessionStart 可產 binding",
+          codex_binding["executor_ref"].to_s, codex_binding["executor_ref"] == "Codex")
 
   unknown = begin
     OMOS::SessionStart.produce(host: "DeepSeek Harness", native_session_id: "s", cwd: dir,
@@ -74,10 +67,8 @@ Dir.mktmpdir("omos-3b") do |dir|
 
   # --- 真的跑 SessionStart hook（真 Host 的 stdin 形狀），再 spawn MCP server ---
   #
-  # repair-02：MCP server 的 binding 需要獨立得知 native session id，目前只有
-  # Claude Code 有官方管道（PROCESS_ENV）；Codex 一律 fail closed
-  # （MCP_NATIVE_SESSION_ID_UNAVAILABLE，見本檔案後段獨立驗證）。這裡的
-  # 「MCP 真的能寫能讀」happy path 因此改用 Claude Code。
+  # Claude Code 的既有 PROCESS_ENV happy path 保留；Codex 的 MCP_REQUEST_META
+  # 路徑在後段以真 JSON-RPC `_meta.threadId` 另外驗。
   state_dir = File.join(dir, "state")
   proj = File.join(dir, "projA")
   FileUtils.mkdir_p(proj)
@@ -155,29 +146,102 @@ Dir.mktmpdir("omos-3b") do |dir|
           lone_res.is_a?(Hash) ? lone_res["code"] : lone_res.to_s,
           lone_res.is_a?(Hash) && lone_res["code"] == "MCP_NO_SESSION_RECORD")
 
-  # repair-02 的產品裁決：Codex 目前沒有官方管道讓 MCP server 獨立得知
-  # native session id，因此一律 fail closed，不退回 cwd 或任何代理鍵猜測。
-  # 三個 tool 都要驗，不能只驗 read——establish_binding! 是連線層級一次性判定，
-  # 但這是「目前的實作事實」，不是「不用驗」的理由。
-  codex_client = Support::MCPClient.new(store, host: "Codex", cwd: proj, state_dir: state_dir)
-  codex_read = codex_client.read
+  # Codex：command SessionStart 先落 state；MCP server 啟動後仍 fail closed，
+  # 直到 trusted SessionStart mcp_tool call 帶 Host 注入的 `_meta.threadId`。
+  codex_sid = "codex-session-3b"
+  codex_hook_out, _codex_hook_err, codex_hook_st = Support.run_session_start(
+    host: "Codex", session_id: codex_sid, cwd: proj, state_dir: state_dir
+  )
+  C.check("Codex command SessionStart 先落可信 session state",
+          "exit=#{codex_hook_st.exitstatus}", codex_hook_st.success? && codex_hook_out.include?("hookSpecificOutput"))
+
+  codex_client = Support::MCPClient.new(store, host: "Codex", cwd: proj, state_dir: state_dir,
+                                        handshake: false)
+  codex_init = codex_client.rpc("initialize", { "protocolVersion" => "2024-11-05",
+                                                 "capabilities" => {},
+                                                 "clientInfo" => { "name" => "Codex", "version" => "0" } })
+  codex_client.notify("notifications/initialized")
+  C.check("Codex MCP initialize 握手", codex_init&.dig("result", "serverInfo", "name").to_s,
+          codex_init&.dig("result", "serverInfo", "name") == "omos-personal-memory")
+
+  codex_tools = codex_client.rpc("tools/list")
+  codex_names = (codex_tools&.dig("result", "tools") || []).map { |t| t["name"] }.sort
+  C.check("Codex 額外暴露 SessionStart bind tool", codex_names.inspect,
+          codex_names == %w[personal_memory_bind_session personal_memory_closeout personal_memory_read personal_memory_write])
+
+  pre_bind = codex_client.read
+  C.check("Codex bind 前 read fail closed", pre_bind.is_a?(Hash) ? pre_bind["code"] : pre_bind.to_s,
+          pre_bind.is_a?(Hash) && pre_bind["code"] == "MCP_HOST_BIND_REQUIRED")
+
+  _, missing_meta = codex_client.call_tool("personal_memory_bind_session", {})
+  C.check("Codex bind 缺 Host request metadata 明確拒絕",
+          missing_meta.is_a?(Hash) ? missing_meta["code"] : missing_meta.to_s,
+          missing_meta.is_a?(Hash) && missing_meta["code"] == "MCP_REQUEST_THREAD_ID_MISSING")
+
+  # 這條是整張 EMEM-11b 的核心威脅：**模型不得自報 session 身分**。
+  # 9/20 擋下 Codex 的理由就是「server 無從分辨呼叫來源」；現在的隔離靠的是
+  # bind tool 的 input_schema 為空——模型連一個可以塞 session id 的欄位都沒有，
+  # threadId 只能來自 Host 注入的 `_meta`。
+  #
+  # 反證：若日後有人為了方便在 schema 加一個 threadId 參數，或讓 call 去讀
+  # arguments，這條會轉紅。
+  bind_schema = (codex_tools&.dig("result", "tools") || [])
+                .find { |t| t["name"] == "personal_memory_bind_session" }
+                &.dig("inputSchema")
+  C.check("bind tool 不接受任何參數（模型沒有地方可以塞 session id）",
+          bind_schema.inspect,
+          bind_schema.is_a?(Hash) &&
+          (bind_schema["properties"] || {}).empty? &&
+          (bind_schema["required"] || []).empty?)
+
+  _, self_reported = codex_client.call_tool("personal_memory_bind_session",
+                                            { "threadId" => codex_sid,
+                                              "session_id" => codex_sid })
+  C.check("模型把 threadId 塞進 arguments 不會被採信（仍要求 Host 注入的 _meta）",
+          self_reported.is_a?(Hash) ? self_reported["code"] : self_reported.to_s,
+          self_reported.is_a?(Hash) && self_reported["code"] == "MCP_REQUEST_THREAD_ID_MISSING")
+
+  _, forged = codex_client.call_tool("personal_memory_bind_session",
+                                     { "threadId" => codex_sid },
+                                     meta: { "threadId" => "codex-session-does-not-exist" })
+  C.check("arguments 不得覆寫 Host 注入的 _meta.threadId",
+          forged.is_a?(Hash) ? forged["code"] : forged.to_s,
+          forged.is_a?(Hash) && forged["code"] == "MCP_NO_SESSION_RECORD")
+
+  _, wrong_meta = codex_client.call_tool("personal_memory_bind_session", {},
+                                          meta: { "threadId" => "codex-session-does-not-exist" })
+  C.check("Codex bind 的 threadId 找不到同 session state 時 fail closed",
+          wrong_meta.is_a?(Hash) ? wrong_meta["code"] : wrong_meta.to_s,
+          wrong_meta.is_a?(Hash) && wrong_meta["code"] == "MCP_NO_SESSION_RECORD")
+
+  _, bound = codex_client.call_tool("personal_memory_bind_session", {},
+                                     meta: { "threadId" => codex_sid })
+  C.check("Codex 以 Host 注入 _meta.threadId 建立 binding",
+          bound.is_a?(Hash) ? bound["status"] : bound.to_s,
+          bound.is_a?(Hash) && bound["status"] == "BOUND" && bound["executor_ref"] == "Codex")
+
+  codex_link = "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000bb"
   _, codex_write = codex_client.call_tool("personal_memory_write",
                                           { "kind" => "MemorySupportLink",
-                                            "resource" => F.link_body(
-                                              "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000bb",
-                                              R1), "idempotency_key" => "k-codex-write" })
-  codex_closeout = codex_client.closeout(F.closeout(
-                                            "urn:omos:personal-memory:review-period:2026-W37",
-                                            "urn:omos:personal-memory:candidate:01900000-0000-7000-8000-0000000000cc",
-                                            "COMPLETE", "SCHEDULED"
-                                          ))
+                                            "resource" => F.link_body(codex_link, R1),
+                                            "idempotency_key" => "k-codex-write" })
+  codex_read = codex_client.read
   codex_client.close
-  codex_all_refused = [codex_read, codex_write, codex_closeout].all? do |r|
-    r.is_a?(Hash) && r["status"] == "REFUSED" && r["code"] == "MCP_NATIVE_SESSION_ID_UNAVAILABLE"
-  end
-  C.check("Codex 目前無可信 native session 管道，read/write/closeout 三個 tool 全部 fail closed",
-          [codex_read, codex_write, codex_closeout].map { |r| r.is_a?(Hash) ? r["code"] : r.to_s }.inspect,
-          codex_all_refused)
+  C.check("Codex bind 後可經同一 Runtime 寫入",
+          codex_write.is_a?(Hash) ? codex_write["status"] : codex_write.to_s,
+          codex_write.is_a?(Hash) && codex_write["status"] == "WROTE")
+  C.check("Codex bind 後可讀回自己寫入的 same-store 資料",
+          codex_read.is_a?(Array) ? codex_read.size : codex_read.to_s,
+          codex_read.is_a?(Array) && codex_read.any? { |r| r["row_id"] == codex_link })
+  C.check("cross-host：Codex 可讀到 Claude Code 先前寫入", "",
+          codex_read.is_a?(Array) && codex_read.any? { |r| r["row_id"] == L1 })
+
+  claude_again = Support::MCPClient.new(store, host: "Claude Code", cwd: proj, state_dir: state_dir,
+                                        session_id: sid)
+  claude_after_codex = claude_again.read
+  claude_again.close
+  C.check("cross-host：Claude Code 重連後可讀到 Codex 寫入", "",
+          claude_after_codex.is_a?(Array) && claude_after_codex.any? { |r| r["row_id"] == codex_link })
 
   # Runtime 層的保證（不依賴 tool schema）：MCP surface 少了 binding 必須以
   # 契約錯誤碼拒絕。
@@ -192,32 +256,15 @@ Dir.mktmpdir("omos-3b") do |dir|
   C.check("Runtime 層：MCP surface 無 binding 被拒", runtime_missing.to_s,
         runtime_missing == "PMR_MCP_OPERATION_MISSING_HOST_BINDING")
 
-  # repair-03 P1-1 的回歸測試：blocked host 不得繞過 bootstrap 直接被 Runtime
-  # 授權。這裡刻意**不經 SessionStart.produce**，手工遞一份逐欄合法的 Codex
-  # binding 給 Runtime——形狀完全正確，只有「這一版沒交付這個 Host」一項不對。
-  # 先前 Runtime 的授權閘與純形狀檢查共用同一份 bindings（認 known_hosts），
-  # 這份 binding 會被放行（reviewer 實測 runtime_read=ALLOWED）。
-  forged_codex_binding = {
-    "executor_ref" => "Codex", "executor_session_ref" => "codex-forged-001",
+  # Codex 解封後，Runtime 授權集合與 bootstrap delivery 集合重新一致。
+  codex_runtime_binding = {
+    "executor_ref" => "Codex", "executor_session_ref" => "codex-probe-001",
     "cwd" => proj, "project_ref" => "urn:omos:project:a", "effective_scope" => "SELF_ONLY"
   }
-  blocked_at_runtime = begin
-    rt_probe.read_rows(surface: OMOS::Runtime::SURFACES[:mcp], binding: forged_codex_binding)
-    nil
-  rescue OMOS::Runtime::Rejected => e
-    e.code
-  end
+  codex_runtime_problem = OMOS::Contract.binding_problem(codex_runtime_binding)
   rt_probe.store.close
-  C.check("Runtime 層：blocked host 的合法形狀 binding 仍被拒（不得繞過 bootstrap）",
-          blocked_at_runtime.to_s,
-          blocked_at_runtime == "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST")
-
-  # 對照組：同一條路徑，已交付的 Host 必須通得過，否則上面那條是因為別的原因綠的。
-  delivered_binding = forged_codex_binding.merge("executor_ref" => "Claude Code",
-                                                 "executor_session_ref" => "claude-probe-001")
-  delivered_ok = OMOS::Contract.binding_problem(delivered_binding)
-  C.check("對照組：已交付 Host 的同形狀 binding 通過 Runtime 授權", delivered_ok.inspect,
-          delivered_ok.nil?)
+  C.check("Runtime 層：Codex 合法 binding 已重新納入授權集合", codex_runtime_problem.inspect,
+          codex_runtime_problem.nil?)
 
   # --- 以獨立連線直接查資料庫確認（不信 server 的自我回報）---
   db = SQLite3::Database.new(store)
@@ -243,13 +290,14 @@ Dir.mktmpdir("omos-3b") do |dir|
     rewritten += 1
   end
   codex_log_problem = OMOS::Contract.runtime_log_problem(codex_log)
-  C.check("blocked host 的 journal 被事後 oracle 拒絕（與 Runtime 授權同一組 host set）",
+  C.check("Codex journal 已被事後 oracle 接受（與 Runtime 授權同一組 host set）",
           "改寫 #{rewritten} 筆 binding → #{codex_log_problem.inspect}",
-          rewritten.positive? &&
-          codex_log_problem == "PMR_HOST_BINDING_EXECUTOR_NOT_SUPPORTED_HOST")
+          rewritten.positive? && codex_log_problem.nil?)
 
-  C.check("獨立連線查資料表：合法那筆真的落地", landed.inspect, landed == [L1])
-  C.check("被拒絕的那筆完全沒落地", landed.size, landed.size == 1)
+  C.check("獨立連線查資料表：Claude + Codex 兩筆合法寫入都落地", landed.inspect,
+          landed == [L1, codex_link])
+  rejected_id = "urn:omos:personal-memory:support-link:01900000-0000-7000-8000-0000000000b9"
+  C.check("被拒絕的治理負例完全沒落地", landed.inspect, !landed.include?(rejected_id))
   C.check("journal 記錄的 surface 為 LOCAL_STDIO_MCP", surfaces.inspect, surfaces == ["LOCAL_STDIO_MCP"])
 
   # --- CLI 與 MCP 共用同一個 store、同一套治理 ---

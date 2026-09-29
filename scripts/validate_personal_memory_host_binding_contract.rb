@@ -22,10 +22,10 @@ HELPER_PATH = File.join(__dir__, "lib/personal_memory_host_binding.rb")
 HB = PersonalMemoryHostBinding
 HB_PATH = File.join(__dir__, "lib/personal_memory_host_binding.rb")
 EXPECTED_V1_HOSTS = ["Codex", "Claude Code"].freeze
-# Owner 範圍裁決 2026-09-20（.work/CARD-EMEM11-SCOPE-FREEZE-20260920.md）：
-# v1 交得出來的只有 Claude Code；Codex 保留 profile 但標記 blocked。
-EXPECTED_SUPPORTED_HOSTS = ["Claude Code"].freeze
-EXPECTED_BLOCKED_HOSTS = ["Codex"].freeze
+# 2026-09-29 重測確認 Codex trusted SessionStart mcp_tool request 提供
+# Host 注入的 _meta.threadId；Codex 重新納入 v1 delivery。
+EXPECTED_SUPPORTED_HOSTS = ["Codex", "Claude Code"].freeze
+EXPECTED_BLOCKED_HOSTS = [].freeze
 EXPECTED_INVARIANTS = %w[
   GLOBAL_HARNESS_NE_GLOBAL_MEMORY_VISIBILITY
   PROJECT_CONTEXT_MAY_NARROW_BUT_NOT_WIDEN_MEMORY_ACCESS
@@ -72,9 +72,9 @@ assert(sorted_set(contract.fetch("invariants", [])) == sorted_set(EXPECTED_INVAR
 assert(sorted_set(profiles.keys) == sorted_set(EXPECTED_V1_HOSTS),
        "v1 host_profiles 必須恰為 Codex + Claude Code", failures)
 assert(sorted_set(runtime_hosts) == sorted_set(EXPECTED_SUPPORTED_HOSTS),
-       "Owner 裁決後 supported_hosts_v1 必須恰為 Claude Code", failures)
+       "supported_hosts_v1 必須恰為 Codex + Claude Code", failures)
 assert(sorted_set(blocked_hosts.keys) == sorted_set(EXPECTED_BLOCKED_HOSTS),
-       "blocked_hosts_v1 必須恰為 Codex", failures)
+       "Codex 解封後 blocked_hosts_v1 必須為空", failures)
 assert((sorted_set(runtime_hosts) & sorted_set(blocked_hosts.keys)).empty?,
        "同一個 host 不得同時是 supported 與 blocked", failures)
 assert(host_set_bound?(runtime_hosts, blocked_hosts.keys, profiles),
@@ -242,16 +242,7 @@ assert(sorted_set(bases.keys) == sorted_set(%w[CODEX CLAUDE]), "fixtures 必須�
 bases.each do |name, run|
   actual = HB.scenario_failure(run, BINDINGS)
   observed_codes << actual
-  if name == "CODEX"
-    # Owner 裁決 2026-09-20：Codex 仍是 known host——設定面、install／uninstall、
-    # shadow、health 全部照評估，所以這個 base 必須一路走到最後一關才被擋，
-    # 而且擋的理由必須精確是「認識但這一版沒交付」，不是「不認識這個 Host」。
-    assert(actual == "HBV1_HOST_BLOCKED_UPSTREAM",
-           "CODEX base 必須在 bootstrap 最後一關回 HBV1_HOST_BLOCKED_UPSTREAM，實際 #{actual.inspect}",
-           failures)
-  else
-    assert(actual.nil?, "#{name} base 必須通過，實際 #{actual.inspect}", failures)
-  end
+  assert(actual.nil?, "#{name} base 必須通過，實際 #{actual.inspect}", failures)
 end
 
 fixtures.fetch("positive_cases", []).each do |test_case|
@@ -306,6 +297,15 @@ assert(code == "HBV1_VISIBILITY_READERS_NOT_ARRAY", "default_readers drift probe
 # install/uninstall codes，都必須由 fixture 或上面三個 drift probe 真正回傳過。
 literal_codes = File.read(HELPER_PATH).scan(/HBV1_[A-Z0-9_]+/).to_set
 # repair-01 把 install/uninstall 的插值出口拆成字面碼之後，原本手列的
+# Codex 目前已交付，但 blocked-host gate 仍是通用能力；用 synthetic delivery
+# 收窄證明這個 return site 仍可達，避免為了當前 host 集合把防線刪掉。
+synthetic_blocked = deep_dup(BINDINGS)
+synthetic_blocked[:delivered_hosts] = ["Claude Code"]
+blocked_code = HB.scenario_failure(bases.fetch("CODEX"), synthetic_blocked)
+observed_codes << blocked_code
+assert(blocked_code == "HBV1_HOST_BLOCKED_UPSTREAM",
+       "synthetic blocked Codex 必須回 HBV1_HOST_BLOCKED_UPSTREAM", failures)
+
 # dynamic_codes 已完全被 literal_codes 涵蓋（實測差集為空）——留著就是第二份
 # 會漂移的清單，故移除。
 missing_guard_codes = literal_codes - observed_codes
