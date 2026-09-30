@@ -77,4 +77,29 @@ if [ -z "$OMOS_RUBY" ]; then
   exit 78
 fi
 
+# --- Gatekeeper 隔離的前置檢查（必須在 Ruby 載入原生擴充之前）-------------
+#
+# 這包是透過網路／通訊軟體傳遞的，macOS 會替裡面的檔案加上
+# com.apple.quarantine。vendored 的原生擴充沒有 Apple 簽章，帶著隔離標記時
+# 載入會被系統政策擋下——實測症狀是**停在載入 sqlite3 超過一分鐘沒反應**，
+# 使用者完全無從判斷發生什麼事。
+#
+# 這個檢查在這裡而不在 Ruby 裡，理由與版本解析相同：等進到 Ruby，
+# `require "bundler/setup"` 已經先去載那些擴充了，來不及。
+#
+# 檢查便宜（只看第一個 .bundle），而且只在真的有 xattr 指令時進行。
+if command -v xattr >/dev/null 2>&1; then
+  omos_probe=$(find "$OMOS_ROOT/vendor" -name '*.bundle' -type f 2>/dev/null | head -1)
+  if [ -n "$omos_probe" ] && xattr "$omos_probe" 2>/dev/null | grep -q "com.apple.quarantine"; then
+    echo "[omos-personal-memory] INSTALL_SOURCE_QUARANTINED" >&2
+    echo "  macOS 把這包標記為「從網路下載」，原生模組因此無法載入。" >&2
+    echo "  先執行這一行解除，再重跑剛才的指令：" >&2
+    echo "" >&2
+    echo "    xattr -dr com.apple.quarantine \"$OMOS_ROOT\"" >&2
+    echo "" >&2
+    echo "  （安裝時複製到 ~/.omos 的那一份會由 install 自己清掉，不必另外處理。）" >&2
+    exit 78
+  fi
+fi
+
 export OMOS_RUBY OMOS_ROOT

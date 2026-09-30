@@ -273,6 +273,30 @@ module OMOS
 
     # --- artifact materialize（stage → hash → rename）---------------------
 
+    # `cp_r(preserve: true)` 會把 com.apple.quarantine 一起複製過來，於是
+    # 使用者明明已經清過解壓出來的資料夾，`~/.omos` 底下那一份仍然帶著標記
+    # ——每次開 Host session 都會再跳一次系統對話框。**這是回報次數最多的
+    # 問題**（CARD-INSTALL-FLOW-SIMPLIFY-20260930 §2.1）。
+    #
+    # 這不是繞過 Gatekeeper：來源資料夾的隔離仍然要使用者自己解除
+    # （解除前 bin/pinned-ruby.sh 就會 fail closed，根本走不到這裡）。
+    # 本產品只是不讓自己的複製動作把已經解除的標記又帶回去，
+    # 而且**只清自己剛寫出去的 staging 目錄**，不碰其他任何路徑。
+    #
+    # xattr 不存在、或清除失敗，都不讓 install 失敗——那會把一個「體驗問題」
+    # 升級成「裝不起來」。清不掉時使用者仍可用 INSTALL.md 的手動那一行補救。
+    def strip_quarantine!(stage)
+      return unless RbConfig::CONFIG["host_os"].include?("darwin")
+
+      xattr = %w[/usr/bin/xattr].find { |c| File.executable?(c) }
+      return if xattr.nil?
+
+      system(xattr, "-dr", "com.apple.quarantine", stage,
+             out: File::NULL, err: File::NULL)
+    rescue StandardError
+      nil
+    end
+
     # 回傳 artifact id。若同內容的版本已存在就直接重用——install 因此是
     # idempotent 的，重裝不會每次長出一個新目錄。
     def materialize_artifact
@@ -287,6 +311,7 @@ module OMOS
           FileUtils.cp_r(src, File.join(stage, entry), preserve: true)
         end
         materialize_governance(stage)
+        strip_quarantine!(stage)
 
         id = Artifact.identity(stage)
         target = File.join(versions_dir, id)

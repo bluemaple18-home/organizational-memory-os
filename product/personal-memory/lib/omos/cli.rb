@@ -128,6 +128,7 @@ module OMOS
         o.on("--owner REF") { |v| opts[:owner] = v }
         o.on("--tenant ID") { |v| opts[:tenant] = v }
         o.on("--notify") { opts[:notify] = true }
+        o.on("--report") { opts[:report] = true }
         o.on("--scheduled-trigger") { opts[:scheduled_trigger] = true }
         o.on("--anchor-hour H", Integer) { |v| opts[:anchor_hour] = v }
         o.on("--anchor-weekday D", Integer) { |v| opts[:anchor_weekday] = v }
@@ -576,7 +577,18 @@ module OMOS
       else
         out.puts "  身分:    尚未設定（import 時再補 --owner/--tenant，或重跑 install 帶上）"
       end
-      out.puts "接著執行 `omos-personal-memory doctor` 確認。"
+      # 下一步用可直接貼的形狀印出來，不要讓人回去翻文件。
+      #
+      # `schedule install` 刻意**不**併進 install 的交易
+      # （CARD-INSTALL-FLOW-SIMPLIFY-20260930 §3.4）：launchd 生命週期已 freeze，
+      # 併進來會擴大 install 的 blast radius，而那條路徑修過四輪才穩。
+      exe = File.join(inst.product_root, "exe/omos-personal-memory")
+      out.puts
+      out.puts "接著依序："
+      out.puts "  1. 每週提醒（選用）  #{exe} schedule install"
+      out.puts "  2. 完全結束並重開 #{result[:hosts].join("／")}"
+      out.puts "     （Codex 會問要不要信任 SessionStart hook，請選同意）" if result[:hosts].include?("Codex")
+      out.puts "  3. 產生回報          #{exe} doctor --report"
       0
     end
 
@@ -599,6 +611,29 @@ module OMOS
       0
     end
 
+    # `doctor --report`：把 INSTALL.md 第 9 步那 6 行 shell 片段收成一個旗標。
+    #
+    # **不新增任何資料來源。** 每個欄位都是既有的值：作業系統與 CPU 來自
+    # RbConfig／uname，ruby 路徑是 pinned-ruby.sh 解析出來的那一個，
+    # hosts 讀 install receipt，統計就是上面剛印完的那份 results。
+    # 使用者貼錯一行就拿不到回報，是實測發生過的事。
+    def print_report(home, results, warned, failed, out)
+      receipt_path = Installer.new(home: home, store_path: nil).receipt_path
+      hosts = begin
+        JSON.parse(File.read(receipt_path))["hosts"].keys.join(", ")
+      rescue StandardError
+        "（尚未安裝）"
+      end
+      out.puts
+      out.puts "----- 以下整段複製回傳 -----"
+      out.puts "macOS:   #{`sw_vers -productVersion 2>/dev/null`.strip} (#{RbConfig::CONFIG["host_cpu"]})"
+      out.puts "ruby:    #{ENV["OMOS_RUBY"] || RbConfig.ruby} (#{RUBY_VERSION}, ABI #{VersionGuard.current_abi})"
+      out.puts "hosts:   #{hosts}"
+      out.puts "doctor:  #{results.count(&:ok?)} OK / #{warned.size} WARN / #{failed.size} FAIL"
+      (warned + failed).each { |r| out.puts "  #{r.status} #{r.id}  #{r.detail}" }
+      out.puts "----- 到這裡為止 -----"
+    end
+
     def cmd_doctor(opts, out)
       home = opts[:home] || Dir.home
       results = Doctor.new(home: home, store_path: opts[:store]).run
@@ -609,6 +644,7 @@ module OMOS
       out.puts
       out.puts "doctor: #{results.count(&:ok?)} OK / #{warned.size} WARN / #{failed.size} FAIL"
       out.puts "  WARN = 這一項在這台機器上無法觀測，不等於健康也不等於失敗。" unless warned.empty?
+      print_report(home, results, warned, failed, out) if opts[:report]
       failed.empty? ? 0 : 1
     end
 

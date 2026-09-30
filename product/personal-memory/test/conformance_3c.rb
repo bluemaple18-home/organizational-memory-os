@@ -3890,4 +3890,92 @@ Dir.mktmpdir("omos-3c-a-abi") do |_dir|
   C.group = nil
 end
 
+# --- 安裝流程化簡（CARD-INSTALL-FLOW-SIMPLIFY-20260930）-------------------
+#
+# 這包是透過網路／通訊軟體傳遞的，macOS 會把 com.apple.quarantine 加在裡面
+# 每個檔案上。vendored 原生擴充沒有 Apple 簽章，帶著標記載入會被系統政策擋。
+# 實測回報最多的問題是：使用者清了解壓出來的資料夾，但 `~/.omos` 底下那一份
+# 仍然帶著標記——因為 `cp_r(preserve: true)` 把它一起複製過去了。
+Dir.mktmpdir("omos-3c-a-quarantine") do |dir|
+  C.group = "A"
+  next C.group = nil unless RbConfig::CONFIG["host_os"].include?("darwin") &&
+                            File.executable?("/usr/bin/xattr")
+
+  # 自備一份 product source，種上 quarantine——不能動真的 ARTIFACT_ROOT。
+  src = File.join(dir, "src")
+  FileUtils.mkdir_p(src)
+  OMOS::Installer::PAYLOAD_ENTRIES.each do |entry|
+    from = File.join(OMOS::Contract::ARTIFACT_ROOT, entry)
+    FileUtils.cp_r(from, File.join(src, entry), preserve: true) if File.exist?(from)
+  end
+  FileUtils.cp_r(File.join(OMOS::Contract::ARTIFACT_ROOT, "governance"),
+                 File.join(src, "governance"), preserve: true)
+  probe = Dir[File.join(src, "vendor/**/*.bundle")].first
+  system("/usr/bin/xattr", "-w", "com.apple.quarantine",
+         "0081;00000000;Safari;", probe, out: File::NULL, err: File::NULL)
+  seeded = `/usr/bin/xattr #{probe.shellescape} 2>/dev/null`.include?("quarantine")
+  C.check("前提：來源的 .bundle 確實被種上 quarantine", seeded.to_s, seeded)
+
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "q.db")
+  OMOS::Installer.new(home: home, product_root: src, store_path: store).install
+
+  installed = Dir[File.join(home, ".omos/personal-memory/versions/*/vendor/**/*.bundle")]
+  C.check("前提：安裝確實把原生擴充複製過去了", installed.size.to_s, !installed.empty?)
+  still = installed.select do |f|
+    `/usr/bin/xattr #{f.shellescape} 2>/dev/null`.include?("com.apple.quarantine")
+  end
+  C.check("install 複製到 ~/.omos 的那一份不得帶 quarantine",
+          "#{still.size}/#{installed.size}", still.empty?)
+
+  # **範圍必須是 stage 本身**，不得是 home 或任何 process 級別推導出來的路徑。
+  #
+  # 這一條刻意用「檢查原始碼」而不是「跑跑看」：把範圍改成 `File.expand_path("~")`
+  # 的變異，在測試裡會真的去清**執行者的家目錄**——`Installer.new(home:)` 只改
+  # 物件參數，不改 process 的 ENV["HOME"]。用執行來證明這件事，代價是實際造成
+  # 一次無法還原的污染（2026-09-30 實際發生過）。
+  xattr_calls = File.readlines(File.join(OMOS::Contract::ARTIFACT_ROOT, "lib/omos/installer.rb"))
+                    .grep(/system\(xattr/).map(&:strip)
+  C.check("installer 只有一個 xattr 呼叫點，且對象寫死為 stage",
+          xattr_calls.inspect,
+          xattr_calls == ['system(xattr, "-dr", "com.apple.quarantine", stage,'])
+
+  # 只清自己寫出去的東西——使用者既有檔案的 xattr 不得被動到。
+  bystander = File.join(home, "使用者的檔案.txt")
+  File.write(bystander, "不要動我\n")
+  system("/usr/bin/xattr", "-w", "com.apple.quarantine", "0081;0;Safari;", bystander,
+         out: File::NULL, err: File::NULL)
+  OMOS::Installer.new(home: home, product_root: src, store_path: store).install
+  C.check("install 不得清掉 ~/.omos 以外檔案的 xattr",
+          `/usr/bin/xattr #{bystander.shellescape} 2>/dev/null`.strip,
+          `/usr/bin/xattr #{bystander.shellescape} 2>/dev/null`.include?("quarantine"))
+
+  # 來源仍被隔離時，入口必須**當場說清楚**，不得卡住或靜默繼續。
+  # 這個檢查在 shell wrapper 裡，因為等進到 Ruby，bundler/setup 已經先去載
+  # 那些擴充了——實測症狀就是「停在載入 sqlite3 超過一分鐘沒反應」。
+  out, err, st = Open3.capture3({ "HOME" => home },
+                                File.join(src, "exe/omos-personal-memory"),
+                                "doctor", "--home", home)
+  C.check("來源帶 quarantine 時入口 fail closed 並給出修法",
+          "exit=#{st.exitstatus} #{err.lines.first.to_s.strip[0, 60]}",
+          st.exitstatus == 78 && err.include?("INSTALL_SOURCE_QUARANTINED") &&
+          err.include?("xattr -dr com.apple.quarantine") && out.strip.empty?)
+
+  system("/usr/bin/xattr", "-dr", "com.apple.quarantine", src,
+         out: File::NULL, err: File::NULL)
+  # 鑑別力：清乾淨後同一個指令不再被閘門擋下。
+  # 這裡**不**斷言 doctor 的 exit code——doctor 會因為別的原因（例如 store
+  # 路徑不同）回非零，那與隔離無關，拿它當判準就會量到別的東西。
+  out2, err2, st2 = Open3.capture3({ "HOME" => home },
+                                   File.join(src, "exe/omos-personal-memory"),
+                                   "doctor", "--home", home)
+  C.check("鑑別力：來源清乾淨之後同一個指令不再被閘門擋下",
+          "exit=#{st2.exitstatus} gate=#{err2.include?("INSTALL_SOURCE_QUARANTINED")}",
+          st2.exitstatus != 78 && !err2.include?("INSTALL_SOURCE_QUARANTINED") &&
+          out2.include?("ruby_version"))
+
+  C.group = nil
+end
+
 C.report!
