@@ -97,6 +97,21 @@ module OMOS
     # 真正呼叫 launchctl 的預設實作。測試注入替身，**不得**在 conformance 裡
     # 把 job 載進使用者真正的 session——那是會留在機器上的外部副作用。
     def launchctl(*args)
+      # **conformance 必須注入替身**——這條規則本來只寫在下面的註解裡，靠人
+      # 遵守。2026-10-01 的 review 證明那不夠：新加的 setup 測試用 fake HOME
+      # 跑完整流程，plist 路徑跟著 --home 走，但 bootstrap 的 domain 永遠是
+      # gui/<uid>，也就是**執行者真實的 session**。症狀是同一份測試在不同機器
+      # 上跑出不同分數（454 vs 455），而且會在真人 session 留下 job。
+      #
+      # 同一個根因（測試透過 process 級狀態逃出沙箱）在這個專案已經出現第二次
+      # （第一次是 xattr 變異讀到真實 ENV["HOME"]），所以把規則變成機器強制：
+      # 測試環境設 OMOS_CONFORMANCE=1，這裡就當場失敗，不讓它碰到真的 launchd。
+      if ENV["OMOS_CONFORMANCE"]
+        raise Failed.new("SCHEDULE_REAL_LAUNCHCTL_IN_CONFORMANCE",
+                         "conformance 不得呼叫真的 launchctl（args=#{args.inspect}）。" \
+                         "請注入 launchctl: 替身，或改用 --no-schedule。")
+      end
+
       out, err, st = Open3.capture3("/bin/launchctl", *args)
       { ok: st.success?, status: st.exitstatus, out: out, err: err }
     end

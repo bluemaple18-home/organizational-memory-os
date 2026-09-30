@@ -3986,26 +3986,67 @@ Dir.mktmpdir("omos-3c-a-setup") do |dir|
   C.group = "A"
   exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
   owner = Support::Fixtures::EMP
+  # **子行程一律帶 --no-schedule。**
+  #
+  # 2026-10-01 review 抓到：plist 路徑跟著 --home 走，但 bootstrap 的 domain
+  # 永遠是 gui/<uid>，也就是執行者**真實的 session**。所以「用 fake HOME 跑完整
+  # setup」其實會去動真人的 launchd，症狀是同一份測試在不同機器上跑出不同分數。
+  # 現在 Support 會設 OMOS_CONFORMANCE，真的 launchctl 被呼叫就當場 raise；
+  # 這裡再用 --no-schedule 把它從路徑上拿掉，兩層都不依賴人記得。
   run = lambda do |home, *args|
     Open3.capture3({ "HOME" => home }, exe, "setup", "--home", home,
-                   "--owner", owner, "--tenant", "t-acme", *args)
+                   "--owner", owner, "--tenant", "t-acme", "--no-schedule", *args)
   end
 
-  # (1) 三段依序，且結果與分別執行相同
+  # (1) 三段依序，exit 0
   h1 = File.join(dir, "h1")
   Support::FakeHome.seed(h1)
   o1, _e1, s1 = run.call(h1)
   C.check("setup 依序印出三段", o1.scan(/===== \d\/3 [^=]+=====/).size.to_s,
           o1.include?("1/3") && o1.include?("2/3") && o1.include?("3/3") &&
           o1.index("1/3") < o1.index("2/3") && o1.index("2/3") < o1.index("3/3"))
-  C.check("setup 成功時 exit 0 且三件事都做了", "exit=#{s1.exitstatus}",
+  C.check("setup 成功時 exit 0 且安裝與回報都做了", "exit=#{s1.exitstatus}",
           s1.exitstatus.zero? && o1.include?("INSTALLED") &&
-          o1.include?("SCHEDULE_INSTALLED") && o1.include?("以下整段複製回傳"))
+          o1.include?("以下整段複製回傳"))
 
-  # (2) 沒裝過排程時 remove 回 NOT_INSTALLED，**不得**讓 setup 失敗
-  C.check("未裝過排程時的 NOT_INSTALLED 不得讓 setup 失敗",
-          "#{o1.include?("SCHEDULE_NOT_REMOVED")} exit=#{s1.exitstatus}",
-          o1.include?("SCHEDULE_NOT_REMOVED") && s1.exitstatus.zero?)
+  # (2) 機器強制：conformance 下呼叫真的 launchctl 必須當場失敗
+  #
+  # 這條守的是**規則本身**。schedule.rb 的註解一直寫著「conformance 必須注入
+  # 替身」，但那是靠人遵守——review 證明不夠。反證：把 OMOS_CONFORMANCE 的
+  # 檢查拿掉，這條轉紅。
+  raised = begin
+    OMOS::Schedule.launchctl("print", "gui/0")
+    false
+  rescue OMOS::Schedule::Failed => e
+    e.code == "SCHEDULE_REAL_LAUNCHCTL_IN_CONFORMANCE"
+  end
+  C.check("conformance 下不得呼叫真的 launchctl（機器強制，不靠人遵守）",
+          raised.to_s, raised)
+  C.check("前提：Support 確實設了 OMOS_CONFORMANCE",
+          ENV["OMOS_CONFORMANCE"].inspect, ENV["OMOS_CONFORMANCE"] == "1")
+
+  # 這道 guard 的反證**只能看原始碼，不能用執行**。
+  #
+  # 「把 guard 關掉再跑整套」本身就是一次真實副作用——2026-10-01 實際做過一次，
+  # 結果在真人 gui/<uid> 留下 job。要證明拿掉它會被抓到，就斷言它的形狀。
+  lc_body = File.read(File.join(OMOS::Contract::ARTIFACT_ROOT, "lib/omos/schedule.rb"))
+                [/def launchctl\(\*args\).*?\n    end\n/m].to_s
+  guard_line = lc_body.index('ENV["OMOS_CONFORMANCE"]')
+  capture_line = lc_body.index("Open3.capture3")
+  C.check("Schedule.launchctl 必須在呼叫外部指令**之前**檢查 OMOS_CONFORMANCE",
+          "guard@#{guard_line} capture@#{capture_line}",
+          !guard_line.nil? && !capture_line.nil? && guard_line < capture_line &&
+          lc_body.include?("SCHEDULE_REAL_LAUNCHCTL_IN_CONFORMANCE"))
+
+  # setup 的 doctor 發生在重開與批准 Codex hook **之前**，必須講清楚，
+  # 否則使用者會把它當成最終回報，批准之後就再也沒有複驗。
+  h_hint = File.join(dir, "h-hint")
+  Support::FakeHome.seed(h_hint)
+  o_hint, = run.call(h_hint)
+  C.check("setup 必須說明這份 doctor 是重開之前的，並指出要再跑一次",
+          o_hint.lines.grep(/重開之前/).first.to_s.strip[0, 40],
+          o_hint.include?("重開之前") && o_hint.include?("那一份才是要回傳的") &&
+          o_hint.include?("doctor --report"))
 
   # (3) install 失敗 → 立即停止，不得繼續跑排程或 doctor
   #
@@ -4033,7 +4074,10 @@ Dir.mktmpdir("omos-3c-a-setup") do |dir|
   FileUtils.rm_rf(File.join(h5, "Library/LaunchAgents"))
   FileUtils.mkdir_p(File.join(h5, "Library"))
   File.write(File.join(h5, "Library/LaunchAgents"), "我不是目錄\n")
-  o6, e6, s6 = run.call(h5)
+  # 這一格要**真的走排程分支**，所以不帶 --no-schedule。
+  # 它在寫 plist 時就失敗，不會走到 launchctl，因此不違反上面那條。
+  o6, e6, s6 = Open3.capture3({ "HOME" => h5 }, exe, "setup", "--home", h5,
+                              "--owner", owner, "--tenant", "t-acme")
   C.check("排程失敗時 install 的結果保留，且仍繼續跑 doctor",
           "exit=#{s6.exitstatus} install=#{o6.include?("INSTALLED")} doctor=#{o6.include?("3/3")}",
           o6.include?("INSTALLED") && o6.include?("3/3") &&
@@ -4042,11 +4086,39 @@ Dir.mktmpdir("omos-3c-a-setup") do |dir|
           e6.lines.grep(/SCHEDULE_FAILED/).first.to_s.strip[0, 60],
           e6.include?("SCHEDULE_FAILED") && e6.include?("安裝本身已經成功") &&
           e6.include?("schedule install"))
+  # P1（2026-10-01 review）：cmd_schedule 自己的 rescue 會把 Schedule::Failed
+  # 轉成 return 2，setup 修正前完全沒看這個回傳值，於是「提醒沒裝上」顯示成
+  # exit 0。不回滾安裝、但也不得宣稱整體成功。
+  C.check("排程失敗時 setup 不得回 0（裝好了但沒完整）",
+          "exit=#{s6.exitstatus}",
+          s6.exitstatus == 3 && o6.include?("SETUP_INCOMPLETE"))
   C.check("排程失敗不得回滾 install（receipt 仍在、身分仍在）",
           File.file?(File.join(h5, ".omos/personal-memory/install-receipt.json")).to_s,
           File.file?(File.join(h5, ".omos/personal-memory/install-receipt.json")) &&
           JSON.parse(File.read(File.join(h5, ".omos/personal-memory/install-receipt.json")))
               .dig("personal_identity", "employee_owner_ref") == owner)
+
+  # (3c) **`cmd_schedule` 回非零**這條路也要測。
+  #
+  # (3b) 走的是「plist 寫不進去 → 丟例外」那條；但 review 指出的 P1 是另一條：
+  # `cmd_schedule` 自己的 rescue 把 Schedule::Failed 轉成 `return 2`，setup
+  # 修正前完全沒看這個回傳值。兩條路都要有測試，否則改掉其中一個判斷不會轉紅。
+  #
+  # 觸發方式：在 conformance 下**不帶** --no-schedule。remove 沒有 plist 會
+  # 直接回 NOT_INSTALLED（不碰 launchctl），接著 install 寫完 plist 去呼叫
+  # launchctl，被機器強制擋下 → Schedule::Failed → cmd_schedule 回 2。
+  h6 = File.join(dir, "h6")
+  Support::FakeHome.seed(h6)
+  o7, e7, s7 = Open3.capture3({ "HOME" => h6 }, exe, "setup", "--home", h6,
+                              "--owner", owner, "--tenant", "t-acme")
+  C.check("cmd_schedule 回非零時 setup 必須認得（不得吃成 exit 0）",
+          "exit=#{s7.exitstatus} incomplete=#{o7.include?("SETUP_INCOMPLETE")}",
+          s7.exitstatus == 3 && o7.include?("SETUP_INCOMPLETE") &&
+          e7.include?("SCHEDULE_FAILED"))
+  C.check("這條路上 install 的結果仍然保留、doctor 仍然跑完",
+          "install=#{o7.include?("INSTALLED")} doctor=#{o7.include?("3/3")}",
+          o7.include?("INSTALLED") && o7.include?("3/3") &&
+          File.file?(File.join(h6, ".omos/personal-memory/install-receipt.json")))
 
   # (4) --no-schedule 完全不碰 launchd
   h3 = File.join(dir, "h3")

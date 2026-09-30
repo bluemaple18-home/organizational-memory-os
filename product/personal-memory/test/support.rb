@@ -10,6 +10,15 @@ require "json"
 require "open3"
 require "fileutils"
 
+# conformance 一律不得碰到真的 launchd／真人 session。
+#
+# 這一行不只是宣告：OMOS::Schedule.launchctl 看到它就會當場 raise，
+# 所以任何忘了注入替身的測試會**立刻轉紅**，而不是安靜地在執行者的
+# gui/<uid> 裡 bootstrap 一個指向 tmpdir 的 job（2026-10-01 review 實際抓到）。
+#
+# 子行程也吃得到——測試若透過 exe/ 入口跑完整流程，這個變數會被繼承。
+ENV["OMOS_CONFORMANCE"] = "1"
+
 module Support
   # --- 假時間 ---------------------------------------------------------
   #

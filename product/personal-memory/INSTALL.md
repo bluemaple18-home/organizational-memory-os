@@ -56,8 +56,15 @@ xattr -dr com.apple.quarantine ~/OMOS-Personal-Memory
 ~/OMOS-Personal-Memory/exe/omos-personal-memory setup --owner urn:omos:employee:你的英文名 --tenant t-clickforce
 ```
 
-`setup` 會依序做完安裝、每週提醒、檢查與回報，最後印出一段可以直接貼回去的
-摘要。跑完**完全結束 AI 工具再重開**（Codex 會問要不要信任 hook，請選同意）。
+`setup` 會依序做完安裝、每週提醒、檢查與回報。跑完**完全結束 AI 工具再重開**
+（Codex 會問要不要信任 hook，請選同意），然後**再跑一次**：
+
+```
+~/OMOS-Personal-Memory/exe/omos-personal-memory doctor --report
+```
+
+**這一份才是要貼回去的。** `setup` 那次的 doctor 發生在重開與批准之前，
+一定會顯示 Codex hook 還沒 trusted。
 
 不要每週提醒就加 `--no-schedule`。
 
@@ -96,10 +103,12 @@ xattr -dr com.apple.quarantine ~/OMOS-Personal-Memory
     INSTALLED
       hosts:   Codex, Claude Code
 
-> **不要照抄別人的名字。** `--owner` 是你在這套系統裡的身分，抄成別人的，
+> > **不要照抄別人的名字。** `--owner` 是你在這套系統裡的身分，抄成別人的，
 > 你匯入的東西會掛在別人名下。只要設一次，之後升級會自動沿用。
 >
-> 只列出一個 host 也不一定是壞的——你沒裝的那個 AI 工具本來就不會被接上。
+> **兩個 host 一定都會列出來**，即使你只用其中一個。本產品目前不偵測你裝了
+> 哪些工具，而是照契約把兩邊的設定都寫好；沒用到的那份就放著不動，不影響
+> 你任何東西。
 
 ### 4. 每週提醒（選用，但建議做）
 
@@ -133,7 +142,11 @@ App 結束，不是關掉視窗**——綁定是在 session 啟動時建立的�
 
     ~/OMOS-Personal-Memory/exe/omos-personal-memory doctor --report
 
-（用 `setup` 的話這一步已經自動跑過了。）
+**`setup` 已經跑過一次了，但那是重開之前的。**
+
+`setup` 的 doctor 發生在你重開 AI 工具、批准 Codex hook **之前**，所以它一定
+會顯示 `codex_session_hook_trust` 還沒 trusted。**做完第 5 步之後再跑一次
+上面這行**，那一份才是最終回報。
 
 把 `----- 以下整段複製回傳 -----` 到 `----- 到這裡為止 -----` 之間整段貼回去：
 

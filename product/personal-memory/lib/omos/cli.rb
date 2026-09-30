@@ -653,6 +653,7 @@ module OMOS
       code = cmd_install(opts, out, err)
       return code unless code.zero?
 
+      schedule_failed = false
       if opts[:no_schedule]
         out.puts
         out.puts "===== 2/3 每週提醒 =====（--no-schedule，略過）"
@@ -660,11 +661,16 @@ module OMOS
         out.puts
         out.puts "===== 2/3 每週提醒 ====="
         begin
-          # 先 remove 再 install：沒裝過時 remove 回 NOT_INSTALLED，是正常的。
+          # 先 remove 再 install：沒裝過時 remove 回 NOT_INSTALLED，是正常的，
+          # 所以只看 install 的結果。
           cmd_schedule(path, ["remove"], opts, out, err)
-          cmd_schedule(path, ["install"], opts, out, err)
+          schedule_failed = !cmd_schedule(path, ["install"], opts, out, err).zero?
         rescue StandardError => e
-          err.puts "SCHEDULE_FAILED: #{e.class}: #{e.message.to_s[0, 120]}"
+          err.puts "#{e.class}: #{e.message.to_s[0, 120]}"
+          schedule_failed = true
+        end
+        if schedule_failed
+          err.puts "SCHEDULE_FAILED"
           err.puts "  安裝本身已經成功，只是每週提醒沒裝上。"
           err.puts "  之後可單獨重試： omos-personal-memory schedule install"
         end
@@ -672,7 +678,28 @@ module OMOS
 
       out.puts
       out.puts "===== 3/3 檢查與回報 ====="
-      cmd_doctor(opts.merge(report: true), out)
+      doctor_code = cmd_doctor(opts.merge(report: true), out)
+      # 這一份 doctor 發生在**重開 Host、批准 Codex hook trust 之前**，所以
+      # 一定會看到 codex_session_hook_trust 還沒 trusted。不講清楚的話，使用者
+      # 會把這份當成最終回報，而批准之後就再也沒有複驗（2026-10-01 review P2）。
+      out.puts
+      out.puts "※ 上面這份是**重開之前**的檢查。請先完全結束並重開 AI 工具"
+      out.puts "  （Codex 會問要不要信任 SessionStart hook，請選同意），"
+      out.puts "  然後再跑一次下面這行，**那一份才是要回傳的**："
+      out.puts "    #{File.join(Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")} doctor --report"
+
+      # 排程失敗**不回滾安裝**，但也**不得宣稱整體成功**。
+      #
+      # 修正前這裡直接回 doctor 的碼，而 cmd_schedule 的失敗早就被它自己的
+      # rescue 轉成 return 2 吃掉了——於是「提醒沒裝上」會顯示成 exit 0
+      # （2026-10-01 review P1）。分開回報：3 = 裝好了但沒完整。
+      if schedule_failed
+        out.puts
+        out.puts "SETUP_INCOMPLETE：安裝與檢查都完成了，但每週提醒沒裝上（見上面的 SCHEDULE_FAILED）。"
+        return 3
+      end
+
+      doctor_code
     end
 
     def cmd_doctor(opts, out)

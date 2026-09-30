@@ -1,7 +1,7 @@
 ---
 id: INSTALL-SETUP-ONELINER-20260930
 jira: 尚無對應 ticket，需補開一張並回填此欄
-status: DONE（2026-09-30，驗收 13／14 全項 PASS）
+status: DONE（2026-10-01，repair-01 後驗收 13／14 全項 PASS）
 tier: T0
 parent: INSTALL-FLOW-SIMPLIFY-20260930
 ---
@@ -131,3 +131,75 @@ S1／S2 第一輪是綠的：
 
 **驗收 14 三項全 PASS，彈窗 0 次**：`exit=78`、0 秒、`~/.omos` 未建立；
 解除後 3 秒跑完；安裝出來 10 個 `.bundle` 帶隔離 0 個。
+
+---
+
+## 6. repair-01（2026-10-01）
+
+外部 review 在 `a33e5fc` 上找到 P1×2、P2×2，**全部成立**，四點皆已收。
+
+| # | 問題 | 修法 | 反證 |
+|---|---|---|---|
+| P1-1 | `cmd_schedule` 自己的 rescue 把 `Schedule::Failed` 轉成 `return 2`，`setup` 完全沒看回傳值 → 「提醒沒裝上」顯示成 exit 0 | `setup` 檢查回傳值，失敗時印 `SETUP_INCOMPLETE` 並回 **exit 3**；**不回滾安裝、仍跑完 doctor** | R1／R2b RED |
+| P1-2 | 新增的 setup 測試用 fake HOME 跑完整流程，但 `domain` 永遠是 `gui/<uid>`，實際會動到真人 launchd | 見 §6.1 | R3b RED |
+| P2-1 | `setup` 的 doctor 跑在重開與批准 Codex hook **之前**，而 INSTALL.md 又說「已經自動跑過了」→ 批准後沒有最終複驗 | `setup` 結尾明講這份是重開之前的，並印出要再跑的那一行；INSTALL.md 同步改 | R4b RED |
+| P2-2 | 「只裝一個工具時 hosts 只列一個」**是假的**——`Contract.supported_hosts` 是固定契約，空白 home 實測仍列兩個、還會建 `~/.codex/config.toml` | 刪掉那句，改成說實話：不偵測、照契約兩邊都寫、沒用到的放著不動 | 事實已查證 |
+
+### 6.0 P1-1 還有第二條路沒覆蓋
+
+review 指的是「`cmd_schedule` 回 2」，但卡上原本的 (3b) 走的是另一條
+（plist 寫不進去 → 丟例外）。**兩條都要有測試**，否則改掉其中一個判斷不會
+轉紅。新增 (3c)：在 conformance 下不帶 `--no-schedule`，`remove` 先回
+`NOT_INSTALLED`（不碰 launchctl），`install` 寫完 plist 去呼叫 launchctl 被
+機器強制擋下 → `Schedule::Failed` → `cmd_schedule` 回 2。
+
+### 6.1 P1-2：把規則變成機器強制
+
+`schedule.rb` 的註解一直寫著「conformance 必須注入替身」，但那是靠人遵守。
+現在：
+
+- `test/support.rb` 頂端設 `ENV["OMOS_CONFORMANCE"] = "1"`（子行程繼承）。
+- `Schedule.launchctl` 第一件事就是檢查它，有設就 raise
+  `SCHEDULE_REAL_LAUNCHCTL_IN_CONFORMANCE`。
+- setup 的子行程測試一律帶 `--no-schedule`。
+
+兩層都不依賴人記得。
+
+### 6.2 同一個根因第三次，改結構
+
+三次都是「測試／變異透過 process 級狀態逃出沙箱」：
+
+1. 變異把 `xattr -dr` 範圍改成 `File.expand_path("~")` 並實際執行 → 在 Owner
+   家目錄遞迴清除，無法還原。
+2. setup 測試用 fake HOME 但 `gui/<uid>` 是真的 → 留下 job，症狀是不同機器
+   跑出不同分數（454 vs 455），外部 review 才抓到。
+3. **為了反證 §6.1 那道 guard，把 guard 關掉再跑整套** → 又留下一個 job
+   （`state = not running`，已 `bootout`，`~/Library/LaunchAgents` 無 plist）。
+
+依「同一 blocker 第 3 次失敗即停」改結構，新增硬規則：
+
+> **安全 guard 的反證一律用原始碼斷言，不得用執行。**
+> 「把 guard 關掉再跑整套」本身就是一次真實副作用。
+
+落地成一條測試：斷言 `Schedule.launchctl` 的 `OMOS_CONFORMANCE` 檢查必須在
+`Open3.capture3` **之前**。把 guard 挪到後面就轉紅，而執行時仍受保護（R3b）。
+
+### 6.3 最終驗證
+
+```text
+最終 ZIP  SHA-256  6df5fa8953945b387c81eeafccb67f2cf43c8821ec264b40ca07b01ae15ebc33
+
+3a 26/26  ·  3b 46/46  ·  3c 461/461  ·  40/40 validators  ·  diff --check clean
+真人 launchd 殘留 0
+```
+
+**驗收 13 七項全 PASS**：store 逐位元組不變、身分保留、origin 保留、
+evidence 不變、匯入的還在、`artifact_id` 與乾淨安裝一致（`5d4f0607aa624d16…`）、
+`~/.omos` 無 quarantine 殘留。
+
+**驗收 14 三項全 PASS**：`exit=78`、0 秒、`~/.omos` 未建立；解除後 3 秒跑完；
+安裝出來 10 個 `.bundle` 帶隔離 0 個。彈窗 0 次。
+
+> 驗收 13／14 一律帶 `--no-schedule`：沙箱 home 的 plist 路徑雖然被 `--home`
+> 導走，但 `bootstrap` 的 domain 是執行者真實的 session。排程路徑由
+> conformance 以注入替身覆蓋，真 launchd 的驗收在 Slice B 驗收 8 已完成。
