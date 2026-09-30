@@ -1,7 +1,7 @@
 ---
 id: INSTALL-SETUP-ONELINER-20260930
 jira: 尚無對應 ticket，需補開一張並回填此欄
-status: DONE（2026-10-01，repair-01 後驗收 13／14 全項 PASS）
+status: DONE（2026-10-01，repair-01 取得 GO）
 tier: T0
 parent: INSTALL-FLOW-SIMPLIFY-20260930
 ---
@@ -203,3 +203,49 @@ evidence 不變、匯入的還在、`artifact_id` 與乾淨安裝一致（`5d4f0
 > 驗收 13／14 一律帶 `--no-schedule`：沙箱 home 的 plist 路徑雖然被 `--home`
 > 導走，但 `bootstrap` 的 domain 是執行者真實的 session。排程路徑由
 > conformance 以注入替身覆蓋，真 launchd 的驗收在 Slice B 驗收 8 已完成。
+
+---
+
+## 7. re-review 結果（2026-10-01）：**GO**
+
+四點全部關閉，沒有新的 P0/P1。reviewer 自行重跑
+`3a 26/26 · 3b 46/46 · 3c 461/461 · diff --check clean`，並確認真人 `gui/501`
+無 OMOS job 殘留、真人 LaunchAgents 無 plist。
+
+- **P1-1 CLOSED**。另行模擬 `cmd_schedule → 2`：現在 `rc=3`，舊語意為 `rc=0`。
+- **P1-2 CLOSED**。反證採交付方要求的**純原始碼 mutation**（刪除 guard／移到
+  `capture3` 之後），兩者都讓 source-order assertion 轉紅，**沒有執行危險
+  mutation**——這正是 §6.2 新規則想要的形狀。
+- **P2-1 核心已關閉**。reviewer 另指出一句措辭過絕對：「一定會顯示 untrusted」
+  在「升級且 trust 仍有效」時未必成立。非阻塞，但**已一併改掉**（見 §7.1）。
+- **P2-2 選擇成立**。目前契約就是固定交付 Codex＋Claude Code；在 repair 卡裡
+  加 host presence detection 反而是新行為與新失敗面，另開卡再評估。
+
+13／14 用 `--no-schedule` 的取捨也獲確認：它們驗的是 upgrade／quarantine
+delivery path，真 launchd lifecycle 已有獨立驗收；把真 `gui/<uid>` 塞回沙箱
+交付驗收等於重新引入剛修掉的副作用。
+
+### 7.1 GO 後的措辭修正與重打包
+
+改了 INSTALL.md 一句話（第一次安裝會顯示 untrusted；升級時若先前已批准可能
+已是 `OK`）。這會破壞「交付包逐檔等於 repo 產品目錄」這個不變量，所以**沒有
+讓它漂移**，而是重打包並重跑 13／14：
+
+```text
+最終 ZIP  SHA-256  9ac0766f8f10684fab153ecf007811364271c52de4021a8d863fa9adad482650
+（取代 GO 時驗的 6df5fa89…；差異只有 INSTALL.md 的一句話）
+
+驗收 13：store 不變、origin 保留、身分保留、匯入的還在、無 quarantine 殘留、
+        artifact_id 與乾淨安裝一致 —— 全 PASS
+驗收 14：exit=78／gate 命中／~/.omos 未建立；解除後 23 OK / 4 WARN / 0 FAIL；
+        安裝出來 10 個 .bundle 帶隔離 0 個 —— 全 PASS
+launchd 殘留 0
+```
+
+## 8. 移交給後續卡的殘留
+
+1. **host presence detection**（P2-2 的另一種解法）——目前刻意不做，
+   要做需另開卡評估新的失敗面。
+2. **每週關帳的 UX**：`review done` 目前要打完整 candidate URN，而
+   `review due` 只印前 8 碼，使用者連複製都沒得複製。已提出三項改法
+   （短 id、`--period` 預設當期、`--all <分類>`），待 Owner 決定是否開卡。

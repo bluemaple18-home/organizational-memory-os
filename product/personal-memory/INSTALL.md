@@ -64,7 +64,8 @@ xattr -dr com.apple.quarantine ~/OMOS-Personal-Memory
 ```
 
 **這一份才是要貼回去的。** `setup` 那次的 doctor 發生在重開與批准之前，
-一定會顯示 Codex hook 還沒 trusted。
+所以第一次安裝時會顯示 Codex hook 還沒 trusted。（升級時如果你之前已經批准過，
+它可能就已經是 `OK` —— 那也正常，還是要以重開後那一份為準。）
 
 不要每週提醒就加 `--no-schedule`。
 
