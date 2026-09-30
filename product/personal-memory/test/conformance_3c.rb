@@ -3978,4 +3978,110 @@ Dir.mktmpdir("omos-3c-a-quarantine") do |dir|
   C.group = nil
 end
 
+# --- setup：把安裝收成一條指令（CARD-INSTALL-SETUP-ONELINER-20260930）-----
+#
+# `setup` 只是**排序器**，不是新的交易邊界。三段各自照實回報：
+# install 失敗即停；排程失敗時 install 的結果保留、繼續跑 doctor。
+Dir.mktmpdir("omos-3c-a-setup") do |dir|
+  C.group = "A"
+  exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
+  owner = Support::Fixtures::EMP
+  run = lambda do |home, *args|
+    Open3.capture3({ "HOME" => home }, exe, "setup", "--home", home,
+                   "--owner", owner, "--tenant", "t-acme", *args)
+  end
+
+  # (1) 三段依序，且結果與分別執行相同
+  h1 = File.join(dir, "h1")
+  Support::FakeHome.seed(h1)
+  o1, _e1, s1 = run.call(h1)
+  C.check("setup 依序印出三段", o1.scan(/===== \d\/3 [^=]+=====/).size.to_s,
+          o1.include?("1/3") && o1.include?("2/3") && o1.include?("3/3") &&
+          o1.index("1/3") < o1.index("2/3") && o1.index("2/3") < o1.index("3/3"))
+  C.check("setup 成功時 exit 0 且三件事都做了", "exit=#{s1.exitstatus}",
+          s1.exitstatus.zero? && o1.include?("INSTALLED") &&
+          o1.include?("SCHEDULE_INSTALLED") && o1.include?("以下整段複製回傳"))
+
+  # (2) 沒裝過排程時 remove 回 NOT_INSTALLED，**不得**讓 setup 失敗
+  C.check("未裝過排程時的 NOT_INSTALLED 不得讓 setup 失敗",
+          "#{o1.include?("SCHEDULE_NOT_REMOVED")} exit=#{s1.exitstatus}",
+          o1.include?("SCHEDULE_NOT_REMOVED") && s1.exitstatus.zero?)
+
+  # (3) install 失敗 → 立即停止，不得繼續跑排程或 doctor
+  #
+  # 用**使用者最可能打錯的那個形狀**觸發：忘了 URN 前綴，只打名字。
+  # 修正前 install 會安靜收下它，直到第一次 import 才爆——那時人已經不記得
+  # 安裝時打了什麼。規則沿用既有的 Inbox::OWNER_REF，不另寫一份。
+  h2 = File.join(dir, "h2")
+  Support::FakeHome.seed(h2)
+  o2, _e2, s2 = Open3.capture3({ "HOME" => h2 }, exe, "setup", "--home", h2,
+                               "--owner", "wen", "--tenant", "t-acme")
+  C.check("install 失敗時 setup 立即停止（不跑排程、不跑 doctor）",
+          "exit=#{s2.exitstatus} sched=#{o2.include?("2/3")} doctor=#{o2.include?("3/3")}",
+          !s2.exitstatus.zero? && !o2.include?("2/3") && !o2.include?("3/3"))
+  C.check("install 失敗時不得留下 LaunchAgent",
+          Dir[File.join(h2, "Library/LaunchAgents/*")].inspect,
+          Dir[File.join(h2, "Library/LaunchAgents/com.omos*")].empty?)
+
+  # (3b) **排程失敗時 install 的結果必須保留，而且要繼續跑 doctor。**
+  #
+  # 這是 §2.1「不合併交易」的核心：launchd 生命週期已 freeze，不得因為排程沒
+  # 裝成功就把已完成的安裝一起回滾。
+  # 觸發方式：把 LaunchAgents 這個「目錄」做成一個**檔案**，plist 就寫不進去。
+  h5 = File.join(dir, "h5")
+  Support::FakeHome.seed(h5)
+  FileUtils.rm_rf(File.join(h5, "Library/LaunchAgents"))
+  FileUtils.mkdir_p(File.join(h5, "Library"))
+  File.write(File.join(h5, "Library/LaunchAgents"), "我不是目錄\n")
+  o6, e6, s6 = run.call(h5)
+  C.check("排程失敗時 install 的結果保留，且仍繼續跑 doctor",
+          "exit=#{s6.exitstatus} install=#{o6.include?("INSTALLED")} doctor=#{o6.include?("3/3")}",
+          o6.include?("INSTALLED") && o6.include?("3/3") &&
+          o6.include?("以下整段複製回傳"))
+  C.check("排程失敗要照實說，並給出單獨重試的指令",
+          e6.lines.grep(/SCHEDULE_FAILED/).first.to_s.strip[0, 60],
+          e6.include?("SCHEDULE_FAILED") && e6.include?("安裝本身已經成功") &&
+          e6.include?("schedule install"))
+  C.check("排程失敗不得回滾 install（receipt 仍在、身分仍在）",
+          File.file?(File.join(h5, ".omos/personal-memory/install-receipt.json")).to_s,
+          File.file?(File.join(h5, ".omos/personal-memory/install-receipt.json")) &&
+          JSON.parse(File.read(File.join(h5, ".omos/personal-memory/install-receipt.json")))
+              .dig("personal_identity", "employee_owner_ref") == owner)
+
+  # (4) --no-schedule 完全不碰 launchd
+  h3 = File.join(dir, "h3")
+  Support::FakeHome.seed(h3)
+  o3, _e3, s3 = run.call(h3, "--no-schedule")
+  C.check("--no-schedule 時完全不碰 launchd",
+          "exit=#{s3.exitstatus} plist=#{Dir[File.join(h3, "Library/LaunchAgents/com.omos*")].size}",
+          s3.exitstatus.zero? && Dir[File.join(h3, "Library/LaunchAgents/com.omos*")].empty? &&
+          o3.include?("略過") && o3.include?("以下整段複製回傳"))
+
+  # (5) **不得**新增 tenant 預設值或 owner 簡寫——那會變成第二種身分表達方式
+  #
+  # 反證：幫 --tenant 加預設值、或讓 --owner 接受簡寫，這條會轉紅。
+  h4 = File.join(dir, "h4")
+  Support::FakeHome.seed(h4)
+  _o4, e4, s4 = Open3.capture3({ "HOME" => h4 }, exe, "setup", "--home", h4,
+                               "--owner", owner)
+  C.check("setup 不得自帶 --tenant 預設值",
+          "exit=#{s4.exitstatus} #{e4.lines.first.to_s.strip[0, 40]}",
+          !s4.exitstatus.zero?)
+  _o5, _e5, s5 = Open3.capture3({ "HOME" => h4 }, exe, "setup", "--home", h4,
+                                "--owner", "wen", "--tenant", "t-acme")
+  C.check("setup 不得接受簡寫的 owner（身分只有一種表達方式）",
+          "exit=#{s5.exitstatus}", !s5.exitstatus.zero?)
+
+  # (6) setup 是排序器，不得自己實作第二份安裝邏輯
+  cli = File.read(File.join(OMOS::Contract::ARTIFACT_ROOT, "lib/omos/cli.rb"))
+  body = cli[/def cmd_setup.*?\n    end\n/m].to_s
+  C.check("cmd_setup 只呼叫既有指令，不自己實作安裝／排程",
+          body.scan(/cmd_\w+|Installer|Schedule\./).uniq.inspect,
+          !body.empty? &&
+          (body.scan(/cmd_(\w+)/).flatten.uniq - ["setup"]).sort == %w[doctor install schedule] &&
+          !body.match?(/Installer\.new|Schedule\.install|Schedule\.remove/))
+
+  C.group = nil
+end
+
 C.report!

@@ -85,6 +85,7 @@ module OMOS
       when "closeout" then cmd_closeout(store_path, opts, out)
       when "journal"  then cmd_journal(store_path, out)
       when "install"   then cmd_install(opts, out, err)
+      when "setup"     then cmd_setup(store_path, opts, out, err)
       when "uninstall" then cmd_uninstall(opts, out, err)
       when "rollback"  then cmd_rollback(opts, out)
       when "doctor"    then cmd_doctor(opts, out)
@@ -129,6 +130,7 @@ module OMOS
         o.on("--tenant ID") { |v| opts[:tenant] = v }
         o.on("--notify") { opts[:notify] = true }
         o.on("--report") { opts[:report] = true }
+        o.on("--no-schedule") { opts[:no_schedule] = true }
         o.on("--scheduled-trigger") { opts[:scheduled_trigger] = true }
         o.on("--anchor-hour H", Integer) { |v| opts[:anchor_hour] = v }
         o.on("--anchor-weekday D", Integer) { |v| opts[:anchor_weekday] = v }
@@ -632,6 +634,45 @@ module OMOS
       out.puts "doctor:  #{results.count(&:ok?)} OK / #{warned.size} WARN / #{failed.size} FAIL"
       (warned + failed).each { |r| out.puts "  #{r.status} #{r.id}  #{r.detail}" }
       out.puts "----- 到這裡為止 -----"
+    end
+
+    # `setup`：把安裝收成一條指令。
+    #
+    # **只是排序器，不是新的交易邊界**（CARD-INSTALL-SETUP-ONELINER-20260930）。
+    # 三段各自照實回報：
+    #
+    #   install 失敗 → 立即停止回非零，不碰排程與 doctor。
+    #   排程失敗    → install 的結果**保留**，照實說，然後**繼續**跑 doctor。
+    #                 launchd 生命週期已 freeze，不得因為排程沒裝成功就把
+    #                 已完成的安裝一起回滾。
+    def cmd_setup(path, opts, out, err)
+      out.puts "===== 1/3 安裝 ====="
+      # 安裝失敗的主路徑是 `Installer::Failed`，由 `run` 的 rescue 接住並印出
+      # 「已從備份還原，未留下半套安裝」——例外會直接穿過這裡，所以後面兩段
+      # 不會跑到。這一行守的是**不丟例外**的非零回傳（例如參數錯誤）。
+      code = cmd_install(opts, out, err)
+      return code unless code.zero?
+
+      if opts[:no_schedule]
+        out.puts
+        out.puts "===== 2/3 每週提醒 =====（--no-schedule，略過）"
+      else
+        out.puts
+        out.puts "===== 2/3 每週提醒 ====="
+        begin
+          # 先 remove 再 install：沒裝過時 remove 回 NOT_INSTALLED，是正常的。
+          cmd_schedule(path, ["remove"], opts, out, err)
+          cmd_schedule(path, ["install"], opts, out, err)
+        rescue StandardError => e
+          err.puts "SCHEDULE_FAILED: #{e.class}: #{e.message.to_s[0, 120]}"
+          err.puts "  安裝本身已經成功，只是每週提醒沒裝上。"
+          err.puts "  之後可單獨重試： omos-personal-memory schedule install"
+        end
+      end
+
+      out.puts
+      out.puts "===== 3/3 檢查與回報 ====="
+      cmd_doctor(opts.merge(report: true), out)
     end
 
     def cmd_doctor(opts, out)

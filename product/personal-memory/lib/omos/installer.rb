@@ -24,6 +24,8 @@ require_relative "host_config"
 require_relative "host_config_writer"
 require_relative "runtime"
 
+require "omos/inbox"
+
 module OMOS
   class Installer
     class Failed < StandardError
@@ -506,12 +508,28 @@ module OMOS
       previous && previous["personal_identity"]
     end
 
+    # 形狀在 install 當場就驗，不留到 import 才爆。
+    #
+    # CARD-INSTALL-SETUP-ONELINER-20260930 的實測：交付指令是「整段貼、只改
+    # 名字那一格」，所以**打錯名字**是最可能發生的錯。修正前 install 會安靜
+    # 收下 `--owner wen`（少了 URN 前綴）或任何字串，直到使用者第一次 import
+    # 才出現看似無關的錯誤——那時他已經不記得安裝時打了什麼。
+    #
+    # 規則**沿用既有的** Inbox::OWNER_REF／TENANT_ID，不另寫一份。
     def normalized_identity(identity)
       owner = identity[:employee_owner_ref] || identity["employee_owner_ref"]
       tenant = identity[:tenant_id] || identity["tenant_id"]
       raise Failed, "INSTALL_IDENTITY_INCOMPLETE" if blank?(owner) || blank?(tenant)
 
-      { "employee_owner_ref" => owner.strip, "tenant_id" => tenant.strip }
+      owner = owner.strip
+      tenant = tenant.strip
+      unless Inbox::OWNER_REF.match?(owner)
+        raise Failed, "INSTALL_OWNER_REF_MALFORMED: #{owner.inspect}（應為 " \
+                      "urn:omos:employee:<你的名字> 這種形狀）"
+      end
+      raise Failed, "INSTALL_TENANT_ID_MALFORMED: #{tenant.inspect}" unless Inbox::TENANT_ID.match?(tenant)
+
+      { "employee_owner_ref" => owner, "tenant_id" => tenant }
     end
 
     def blank?(v) = !v.is_a?(String) || v.strip.empty?

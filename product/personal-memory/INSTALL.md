@@ -44,7 +44,28 @@
 
 ---
 
-## 安裝（六步）
+## 安裝（一段貼完）
+
+把 `OMOS-Personal-Memory.zip` 存到家目錄，然後整段貼給你的 AI 助理，
+**只改 `你的英文名` 那一格**：
+
+```
+rm -rf ~/OMOS-Personal-Memory
+unzip -q ~/OMOS-Personal-Memory.zip -d ~
+xattr -dr com.apple.quarantine ~/OMOS-Personal-Memory
+~/OMOS-Personal-Memory/exe/omos-personal-memory setup --owner urn:omos:employee:你的英文名 --tenant t-clickforce
+```
+
+`setup` 會依序做完安裝、每週提醒、檢查與回報，最後印出一段可以直接貼回去的
+摘要。跑完**完全結束 AI 工具再重開**（Codex 會問要不要信任 hook，請選同意）。
+
+不要每週提醒就加 `--no-schedule`。
+
+> **名字打錯會當場失敗**並告訴你正確形狀，不會安靜收下。
+
+以下是同一件事拆開來的說明，出問題時對照用。
+
+## 安裝（拆開來看）
 
 ### 1. 解壓到家目錄
 
@@ -111,6 +132,8 @@ App 結束，不是關掉視窗**——綁定是在 session 啟動時建立的�
 ### 6. 回報（請一定要做）
 
     ~/OMOS-Personal-Memory/exe/omos-personal-memory doctor --report
+
+（用 `setup` 的話這一步已經自動跑過了。）
 
 把 `----- 以下整段複製回傳 -----` 到 `----- 到這裡為止 -----` 之間整段貼回去：
 
@@ -233,18 +256,15 @@ Finder 會打開，裡面每個資料夾的名字就是那份內容的指紋。�
 **先把舊資料夾整個刪掉，再解壓新版**——不要直接解壓覆蓋，也不要用
 `cp -R`／`rsync`。
 
+**升級和新裝用同一段指令**，`setup` 會處理兩種情況：
+
     rm -rf ~/OMOS-Personal-Memory
-    # 然後解壓新版 zip 到家目錄
+    unzip -q ~/OMOS-Personal-Memory.zip -d ~
     xattr -dr com.apple.quarantine ~/OMOS-Personal-Memory
-    ~/OMOS-Personal-Memory/exe/omos-personal-memory install
-    ~/OMOS-Personal-Memory/exe/omos-personal-memory doctor --report
+    ~/OMOS-Personal-Memory/exe/omos-personal-memory setup --owner urn:omos:employee:你的英文名 --tenant t-clickforce
 
-升級**不要**再帶 `--owner` / `--tenant`，原本設好的身分會自動沿用。
-
-排程如果本來就裝了，升級後跑一次確認它指到新版：
-
-    ~/OMOS-Personal-Memory/exe/omos-personal-memory schedule remove
-    ~/OMOS-Personal-Memory/exe/omos-personal-memory schedule install
+填**同一個**名字，資料不會動（實測：store 逐位元組不變、匯入的東西還在）。
+排程也會重裝一次，確保指到新版。
 
 然後完全結束 Claude Code（以及 Codex）再重開。
 
