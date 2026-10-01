@@ -72,15 +72,19 @@ Dir.mktmpdir("omos-3b") do |dir|
   state_dir = File.join(dir, "state")
   proj = File.join(dir, "projA")
   FileUtils.mkdir_p(proj)
+  # hook 會讀 `~/.omos`，所以一定要把 HOME 導到沙箱——否則會動到執行者的
+  # 真實家目錄（實際發生過）。
+  hook_home = File.join(dir, "hook-home")
+  FileUtils.mkdir_p(hook_home)
   sid = "claude-session-3b"
   hook_out, _hook_err, hook_st = Support.run_session_start(
-    host: "Claude Code", session_id: sid, cwd: proj, state_dir: state_dir
+    host: "Claude Code", session_id: sid, cwd: proj, state_dir: state_dir, home: hook_home
   )
   C.check("SessionStart hook 吃真 Host stdin 並成功", "exit=#{hook_st.exitstatus}",
           hook_st.success? && hook_out.include?("hookSpecificOutput"))
 
   no_sid_out, no_sid_err, no_sid_st = Support.run_session_start(
-    host: "Claude Code", session_id: "", cwd: proj, state_dir: state_dir
+    host: "Claude Code", session_id: "", cwd: proj, state_dir: state_dir, home: hook_home
   )
   C.check("stdin 缺 session_id 時 hook 明確拒絕", (no_sid_err + no_sid_out).strip[0, 40],
           !no_sid_st.success? && (no_sid_err + no_sid_out).include?("MISSING_HOST_SESSION_ID"))
@@ -150,7 +154,7 @@ Dir.mktmpdir("omos-3b") do |dir|
   # 直到 trusted SessionStart mcp_tool call 帶 Host 注入的 `_meta.threadId`。
   codex_sid = "codex-session-3b"
   codex_hook_out, _codex_hook_err, codex_hook_st = Support.run_session_start(
-    host: "Codex", session_id: codex_sid, cwd: proj, state_dir: state_dir
+    host: "Codex", session_id: codex_sid, cwd: proj, state_dir: state_dir, home: hook_home
   )
   C.check("Codex command SessionStart 先落可信 session state",
           "exit=#{codex_hook_st.exitstatus}", codex_hook_st.success? && codex_hook_out.include?("hookSpecificOutput"))

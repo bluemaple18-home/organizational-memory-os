@@ -150,11 +150,22 @@ module Support
 
   module_function
 
-  def run_session_start(host:, session_id:, cwd:, state_dir:, scope_mode: "EMPLOYEE_PRIVATE",
-                        source: "startup")
+  # `home:` 一定要能注入。hook 會用 `File.expand_path("~/.omos/…")` 讀
+  # install receipt 與 store——那是 **process 級別**的路徑，`--home` 之類的
+  # 參數攔不住它。不傳 HOME 的話測試會去讀執行者真實的家目錄。
+  # `home:` 是**必填**，不給預設值。
+  #
+  # hook 會用 `File.expand_path("~/.omos/…")` 讀 install receipt 與 store，
+  # 那是 **process 級別**的路徑，`--home` 之類的參數攔不住。實際發生過：
+  # 這支原本沒有 home 參數，於是測試把執行者真實家目錄的 `~/.omos` 建了出來
+  # （45 KB 空 store ＋ 25 筆 journal）。設成必填，忘了傳會在呼叫當下就炸，
+  # 不會安靜地跑到別人的家目錄去。
+  def run_session_start(host:, session_id:, cwd:, state_dir:, home:,
+                        scope_mode: "EMPLOYEE_PRIVATE", source: "startup")
     payload = JSON.generate({ "session_id" => session_id, "cwd" => cwd,
                               "hook_event_name" => "SessionStart", "source" => source })
-    out, err, st = Open3.capture3({ "OMOS_SESSION_STATE_DIR" => state_dir },
+    env = { "OMOS_SESSION_STATE_DIR" => state_dir, "HOME" => home }
+    out, err, st = Open3.capture3(env,
                                   HOOK_EXE, "--host", host, "--runtime-scope-mode", scope_mode,
                                   stdin_data: payload)
     [out, err, st]

@@ -216,6 +216,7 @@ module OMOS
                     ok("codex_session_bind_hook_present", "#{config.own_mcp_id}/#{bind_tool}") :
                     bad("codex_session_bind_hook_present", "SessionStart mcp_tool identity bridge 未寫入"))
         results << codex_hook_trust_check(config, profile) if bind_present
+        results << codex_context_injection_check
       end
 
       # 漂移判定委派切片 2 既有 evaluator（含 command_ref 對不上的情況）
@@ -247,6 +248,24 @@ module OMOS
       ok("codex_cli_identity", detail)
     rescue StandardError => e
       warn_("codex_cli_identity", "版本觀測失敗：#{e.class}: #{e.message.to_s[0, 80]}")
+    end
+
+    # 每週回顧的 AI 訪問靠 SessionStart 的 `hookSpecificOutput.additionalContext`
+    # 把「本週還沒回顧」送到模型眼前（CARD-WEEKLY-REVIEW-INTERVIEW-20261001）。
+    #
+    # Codex 支援這個欄位是**實測過的**：binary 有 `additionalContextLimit`
+    # 這個 hook 設定欄位，0.153.2 與 0.158.0 都有。但 binary 裡同時有
+    # 「this event cannot emit additionalContext」這條錯誤路徑，代表有事件
+    # 白名單，而**靜態字串看不出 SessionStart 在不在裡面**。
+    #
+    # 產品也沒有辦法從外面觀測「模型到底有沒有收到那段 context」。
+    # 所以照實回報 WARN——不得因為「欄位存在」就宣稱注入成功
+    # （驗收 6：不支援時不得顯示健康）。
+    def codex_context_injection_check
+      warn_("codex_context_injection",
+            "Codex 消費 additionalContext 已實測（hook 設定有 additionalContextLimit），" \
+            "但 SessionStart 是否在可 emit 的事件白名單內無法從外部觀測；" \
+            "若回顧提示沒出現在 Codex，請改用「做這週的回顧」主動開口")
     end
 
     def codex_hook_trust_check(config, profile)

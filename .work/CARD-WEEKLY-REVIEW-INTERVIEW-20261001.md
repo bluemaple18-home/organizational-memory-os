@@ -1,7 +1,7 @@
 ---
 id: WEEKLY-REVIEW-INTERVIEW-20261001
 jira: 尚無對應 ticket，需補開一張並回填此欄
-status: READY_TO_IMPLEMENT
+status: DONE（2026-10-01；驗收 4 拆出 4b 另卡）
 tier: T1
 parent: SSP295-FULL-PRODUCT-PILOT-20260921
 ---
@@ -97,3 +97,87 @@ AI 自己讀完、自己標完、自己關帳的話，週期帳上那個 `v` 就
 - **do_not_absorb**：不吸收 promotion／上傳、不吸收 host presence detection、
   不吸收 `review done` 的 CLI 化簡（短 id／預設週期那三項另議，且優先度降低
   ——使用者本來就不該打那些指令）。
+
+---
+
+## 6. 實作結果（2026-10-01）
+
+### 6.1 逐條對驗收
+
+| # | 驗收 | 結果 |
+|---|---|---|
+| 1 | 有未完成週期才提，沒有就不多嘴 | **PASS**。兩格分開驗：「還沒有任何週期」與「週期存在但都完成了」。只驗前者會因為「根本沒有週期」而假綠（反證 I1b RED） |
+| 2 | 注入不含任何知識內容 | **PASS**。檔名／原文／`candidate` ref 都擋掉（反證 I2 RED） |
+| 3 | Skill 說得出五個步驟 | **PASS**。`skills/weekly-review/SKILL.md` |
+| 4a | 關帳歸屬可辨識 | **PASS**。`history` 的 `committed_by` 分得出 `LOCAL_CLI` 與 `LOCAL_STDIO_MCP` |
+| 4b | 機械性禁止 AI 自行關帳 | **未完成，另卡**。見 §6.3 |
+| 5 | Skill 不取得新 authority | **PASS**。純 `.md`、無權限宣告、MCP 工具清單未變 |
+| 6 | Codex 不支援時照實回報 | **PASS**。`doctor` 新增 `codex_context_injection` WARN |
+| 7 | 既有保證不變 | **PASS**。3a 26/26、3b 46/46、3c 484/484、40/40 validators |
+
+### 6.2 觸發用的是既有接縫，沒有新增任何註冊
+
+`lib/omos/entry/session_start.rb` 本來就在送
+`hookSpecificOutput.additionalContext`（只說「已綁定此 session」）。本卡只在
+有未完成週期時多帶一句：
+
+```
+本週（2026-W39）的回顧尚未完成，2 筆待處理；另有 2026-W38 未補。
+使用者沒有主動提起時，請先問他要不要現在做這週的回顧。
+```
+
+**沒有動 host binding 契約、沒有第三種 host registration。** Skill 放在交付包
+的 `skills/` 並加進 `PAYLOAD_ENTRIES`（AI 得在已安裝的路徑讀得到，否則使用者
+刪掉解壓資料夾之後 Skill 就不見了）。Skill 的自動安裝／host discovery UX 另卡。
+
+提示是 **best-effort**：store 讀不到、receipt 不存在，一律當成「沒有待辦」，
+不讓一個提示把使用者的 session 弄不起來（反證 I3b RED）。
+
+### 6.3 驗收 4 為什麼拆
+
+`personal_memory_closeout` 在 AI 的工具清單裡，收一個完整的 `closeout`
+object，呼叫時只檢查有 binding——**沒有任何同意關卡**。產品擋不住。
+
+而「同意旗標」是假的保護：任何 `user_confirmed: true` 都是 AI 自己填的，
+與本專案「身分不可自報」直接衝突（EMEM-11b 當初擋掉 Codex 半個月就是這條）。
+
+依「驗收條文不可改寫成現在測得到的那件事」拆成：
+
+- **4a**（本卡完成）：讓它**看得見**。`operation_journal` 本來就記 surface，
+  但 `closeouts` 表沒這欄位，所以 history 看不出差別。現在 `history` 讀回
+  journal 對上去，多一個 `committed_by`——**不新增欄位、不新增表**。
+- **4b**（另卡 `CARD-HUMAN-ONLY-CLOSEOUT-AUTHORITY-20261001`，`RESEARCH_ONLY`）：
+  研究真正不可由模型偽造的人類授權 seam。本輪**不改 MCP tool surface**。
+
+Skill 裡「AI 不得自行關帳」保留為**行為規則**，並明寫現況是
+「**有稽核、沒有機械性禁止**」——文件不得宣稱產品會阻止（反證有測試守）。
+
+### 6.4 Codex 的實測結論
+
+翻 codex-cli binary 確認：
+
+- `additionalContext`（30 處）、`hookSpecificOutput`（8 處）、`hookEventName`
+  （14 處）都在，hook 設定有 `additionalContextLimit` 欄位 → **Codex 確實消費
+  這個欄位**。
+- **0.153.2 與 0.158.0 都有**（`additionalContext=30`），所以不需要升級 Codex。
+- 但 binary 同時有 `this event cannot emit additionalContext` 的錯誤路徑，
+  代表有事件白名單，而**靜態字串看不出 SessionStart 在不在裡面**；產品也無法
+  從外部觀測模型到底收到了沒。
+
+所以 `doctor` 回 WARN 並指出 fallback（「做這週的回顧」主動開口），
+**不因為「欄位存在」就宣稱注入成功**。既有的 WARN 封閉清單一併更新，
+附上為什麼這一項只能是 WARN。
+
+### 6.5 過程中修掉的兩個假綠與一次污染
+
+- **I1**：「沒待辦不多嘴」原本可能只是因為 expected_periods 是空的而通過。
+  補「週期存在且都完成」那一格才算數。
+- **I5**：`File.file?(store)` 的早退看起來是多餘的防禦。實測發現
+  `Runtime.open` 對不存在的路徑**會建出一個 45 KB 的空 db**——沒有這個早退，
+  還沒安裝的人每開一次 session 就多一個資料庫。補測試釘住（I5c RED）。
+- **污染**：`Support.run_session_start` 原本沒有 `home:` 參數，而 hook 會用
+  `File.expand_path("~/.omos/…")` 讀 receipt 與 store——那是 process 級別的
+  路徑，參數攔不住。結果在 Owner 真實家目錄建出了 `~/.omos`（45 KB 空 store
+  ＋ 25 筆 journal，無 receipt、無知識資料）。已經 Owner 同意後刪除，
+  並把 `home:` 改成**必填**，五個舊呼叫點全部補上沙箱 home——忘了傳會在呼叫
+  當下就炸，不會安靜跑到別人家目錄。

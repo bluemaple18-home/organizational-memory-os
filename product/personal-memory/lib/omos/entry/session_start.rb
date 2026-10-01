@@ -25,6 +25,8 @@ require "omos/runtime_profile"
 OMOS::RuntimeProfile.assert_supported!
 require "omos/session_start"
 require "omos/session_state"
+require "omos/installer"
+require "omos/review_ledger"
 require "json"
 require "optparse"
 
@@ -66,9 +68,47 @@ end
 # 落地可信事實，供 MCP server 讀回；模型不經手。
 OMOS::SessionState.record!(host: opts[:host], session_id: session_id, cwd: cwd, source: source)
 
+# 待辦提示（CARD-WEEKLY-REVIEW-INTERVIEW-20261001）。
+#
+# 只帶**週次與筆數**，不帶任何知識內容——與 review receipt 同一條界線。
+# 沒有欠著的週期就完全不提。
+#
+# **這是 best-effort，不得讓 binding 失敗**：session 綁定是這支 hook 的本職，
+# 提示只是附加。store 沒建立、被鎖住、receipt 讀不到，一律當成「沒有待辦」，
+# 不讓一個提示把使用者的 session 弄不起來。
+def omos_pending_note
+  receipt = File.expand_path(OMOS::Installer::RECEIPT_PATH)
+  return nil unless File.file?(receipt)
+
+  origin = JSON.parse(File.read(receipt))["weekly_review_origin_at"]
+  return nil if origin.nil?
+
+  store = File.expand_path(OMOS::Installer::DEFAULT_STORE)
+  return nil unless File.file?(store)
+
+  runtime = OMOS::Runtime.open(store)
+  out = OMOS::ReviewLedger.outstanding(runtime, origin,
+                                       surface: OMOS::Runtime::SURFACES[:cli])
+  return nil if out.nil?
+
+  parts = []
+  if out[:current_is_missing]
+    parts << "本週（#{out[:current_period]}）的回顧尚未完成，#{out[:current_due_count]} 筆待處理"
+  end
+  parts << "另有 #{out[:overdue_periods].join("、")} 未補" unless out[:overdue_periods].empty?
+  return nil if parts.empty?
+
+  "#{parts.join("；")}。使用者沒有主動提起時，請先問他要不要現在做這週的回顧。"
+rescue StandardError
+  nil
+end
+
+context = "omos-personal-memory 已綁定此 session（effective_scope=" \
+          "#{binding_out["effective_scope"]}）。寫入一律經 Runtime 治理層。"
+note = omos_pending_note
+context = "#{context}\n#{note}" unless note.nil?
+
 puts JSON.generate({ "hookSpecificOutput" => {
                        "hookEventName" => payload["hook_event_name"] || "SessionStart",
-                       "additionalContext" =>
-                         "omos-personal-memory 已綁定此 session（effective_scope=" \
-                         "#{binding_out["effective_scope"]}）。寫入一律經 Runtime 治理層。"
+                       "additionalContext" => context
                      } })

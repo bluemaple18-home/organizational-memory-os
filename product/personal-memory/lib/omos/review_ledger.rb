@@ -156,6 +156,57 @@ module OMOS
                              anchor_hour: anchor_hour, anchor_weekday: anchor_weekday)
     end
 
+    # ---- 關帳是誰提交的 -------------------------------------------------
+    #
+    # CARD-WEEKLY-REVIEW-INTERVIEW-20261001 驗收 4：AI 不得自行替使用者關帳。
+    #
+    # **產品擋不住這件事**——`personal_memory_closeout` 這個 MCP 工具 AI 拿得到，
+    # 它可以自己送一份 payload 關掉這週。要機械性阻止，得改 MCP tool surface，
+    # 那需要 Owner 另外裁決（見卡片 §6.2 的拆分）。
+    #
+    # 本卡能做到的是**讓它看得見**：`operation_journal` 本來就記了 surface
+    # （`LOCAL_CLI` 還是 `LOCAL_STDIO_MCP`），但 `closeouts` 表沒有這個欄位，
+    # 所以 `review history` 與 `receipt` 看不出差別。這支把既有 journal 讀回來
+    # 對上去——**不新增欄位、不新增表**。
+    def closeout_surfaces(runtime, period_id)
+      runtime.store.journal
+             .select { |row| row[2] == "CLOSEOUT_COMMIT" }
+             .select do |row|
+               payload = begin
+                 JSON.parse(row[5].to_s)
+               rescue JSON::ParserError
+                 {}
+               end
+               payload["review_period_id"] == period_id
+             end
+             .map { |row| row[1] }
+    end
+
+    # ---- 待辦摘要（給 SessionStart 注入用）-------------------------------
+    #
+    # CARD-WEEKLY-REVIEW-INTERVIEW-20261001：AI 要主動開口，就得先知道有沒有
+    # 欠著的回顧。這支**只回週次與筆數，不回任何知識內容**——與 review receipt
+    # 同一條界線（§4 驗收 2）。
+    #
+    # 沒有欠著的週期時回 nil，呼叫端就什麼都不說（驗收 1：不得多嘴）。
+    def outstanding(runtime, origin_at, now: Time.now, surface: Runtime::SURFACES[:cli],
+                    anchor_hour: ReviewQueue::DEFAULT_ANCHOR_HOUR,
+                    anchor_weekday: ReviewQueue::FRIDAY)
+      rows = history(runtime, origin_at, now: now, anchor_hour: anchor_hour,
+                                         anchor_weekday: anchor_weekday)
+      missing = rows.select { |r| r["status"] == "MISSING" }
+      return nil if missing.empty?
+
+      current = ReviewQueue.period_for(now, anchor_hour: anchor_hour,
+                                            anchor_weekday: anchor_weekday)
+      due = ReviewQueue.due(runtime, now: now, surface: surface,
+                                     anchor_hour: anchor_hour, anchor_weekday: anchor_weekday)
+      { current_period: current[:id].split(":").last,
+        current_due_count: due[:items].size,
+        current_is_missing: missing.any? { |r| r["period_ref"] == current[:id] },
+        overdue_periods: missing.map { |r| r["period"] } - [current[:id].split(":").last] }
+    end
+
     # ---- closeout payload builder ---------------------------------------
     #
     # 只組 payload，合法性一律交既有 evaluator。本檔**不**重寫 SKIPPED／
@@ -299,7 +350,10 @@ module OMOS
           "status" => terminal ? terminal["final_status"] : "MISSING",
           "attempts" => entries.size,
           "phase" => phase_of(now, period).to_s.upcase,
-          "closed_at" => terminal && terminal["actual_closeout_at"] }
+          "closed_at" => terminal && terminal["actual_closeout_at"],
+          # 驗收 4：讓「誰關的」看得見。`LOCAL_STDIO_MCP` 代表是 AI 經 MCP
+          # 提交的，`LOCAL_CLI` 代表是使用者自己下指令。
+          "committed_by" => closeout_surfaces(runtime, period[:id]) }
       end
     end
   end

@@ -1019,11 +1019,25 @@ Dir.mktmpdir("omos-3c-b") do |dir|
   post_warn = post.select { |r| r.status == "WARN" }
   C.check("安裝後無任何 FAIL",
         "#{post.count(&:ok?)} OK / #{post_warn.size} WARN / #{post_fail.size} FAIL", post_fail.empty?)
-  C.check("WARN 只出現在 Host trigger／trust／Codex shadow 可觀測性，且照實回報",
+  # 封閉清單：WARN 只能出現在**真的無法從外部觀測**的項目上。
+  # 新增 WARN 必須同時更新這裡，才不會有人靜默把一個「其實驗得出來的東西」
+  # 降級成 WARN。
+  #
+  # codex_context_injection（CARD-WEEKLY-REVIEW-INTERVIEW-20261001 驗收 6）：
+  # Codex 消費 additionalContext 已實測（binary 有 additionalContextLimit，
+  # 0.153.2 與 0.158.0 都有），但 binary 同時有「this event cannot emit
+  # additionalContext」的錯誤路徑，而靜態字串看不出 SessionStart 在不在白名單；
+  # 產品也無法從外面觀測模型到底收到了沒。所以照實 WARN。
+  C.check("WARN 只出現在 Host trigger／trust／Codex shadow／context 注入可觀測性",
         post_warn.map(&:id).sort.inspect,
         post_warn.map(&:id).sort == ["claude_code_session_start_hook_present",
-                                     "codex_no_shadow", "codex_session_hook_trust",
+                                     "codex_context_injection", "codex_no_shadow",
+                                     "codex_session_hook_trust",
                                      "codex_session_start_hook_present"])
+  C.check("codex_context_injection 不得宣稱注入成功，必須說出無法觀測",
+          post_warn.find { |r| r.id == "codex_context_injection" }&.detail.to_s[0, 50],
+          post_warn.find { |r| r.id == "codex_context_injection" }
+                   &.detail.to_s.include?("無法從外部觀測"))
 
   # 被同名專案設定遮蔽 → 必須明確失敗
   File.write(File.join(proj, ".mcp.json"),
@@ -1105,9 +1119,9 @@ Dir.mktmpdir("omos-3c-c") do |dir|
   # MCP server 自己從 env + session 記錄建構。
   state_dir = File.join(dir, "state")
   _o1, _e1, st1 = Support.run_session_start(host: "Claude Code", session_id: "claude-c1",
-                                            cwd: proj_a, state_dir: state_dir)
+                                            cwd: proj_a, state_dir: state_dir, home: home)
   _o2, _e2, st2 = Support.run_session_start(host: "Claude Code", session_id: "claude-c2",
-                                            cwd: proj_a, state_dir: state_dir)
+                                            cwd: proj_a, state_dir: state_dir, home: home)
   C.check("兩個並行 session 的 SessionStart hook 都成功", "#{st1.exitstatus}/#{st2.exitstatus}",
           st1.success? && st2.success?)
 
@@ -4153,6 +4167,222 @@ Dir.mktmpdir("omos-3c-a-setup") do |dir|
           (body.scan(/cmd_(\w+)/).flatten.uniq - ["setup"]).sort == %w[doctor install schedule] &&
           !body.match?(/Installer\.new|Schedule\.install|Schedule\.remove/))
 
+  C.group = nil
+end
+
+# --- 每週回顧訪問｜SessionStart 注入待辦（CARD-WEEKLY-REVIEW-INTERVIEW）----
+#
+# Owner 選 B：AI 主動開口。沿用 hook 既有的 additionalContext 接縫，
+# 有未完成週期時多帶一句。**只帶週次與筆數，不帶任何知識內容。**
+Dir.mktmpdir("omos-3c-a-interview") do |dir|
+  C.group = "A"
+  require "omos/review_ledger"
+  home = File.join(dir, "home")
+  state = File.join(dir, "state")
+  Support::FakeHome.seed(home)
+  FileUtils.mkdir_p(state)
+  exe = File.join(OMOS::Contract::ARTIFACT_ROOT, "exe/omos-personal-memory")
+  owner = Support::Fixtures::EMP
+  Open3.capture3({ "HOME" => home }, exe, "install", "--home", home,
+                 "--owner", owner, "--tenant", "t-acme")
+  ctx = lambda do |sid|
+    out, = Support.run_session_start(host: "Claude Code", session_id: sid, cwd: dir,
+                                     state_dir: state, home: home)
+    JSON.parse(out).dig("hookSpecificOutput", "additionalContext").to_s
+  end
+
+  # 驗收 1：沒有未完成週期時**不得多嘴**
+  #
+  # 剛裝完時 expected_periods 可能根本是空的，那樣這條會因為「沒有週期」而過，
+  # 不是因為「週期都完成了」。所以要兩格都驗。
+  quiet = ctx.call("s-quiet")
+  C.check("剛裝完（還沒有任何週期）時不提回顧", quiet[0, 40],
+          quiet.include?("已綁定此 session") && !quiet.include?("回顧"))
+
+  # 造出待辦：匯入 3 筆（本期 anchor 之前），並把 origin 往前推三週
+  store = File.join(home, ".omos/personal-memory/personal.db")
+  rt = OMOS::Runtime.open(store)
+  anchor = Time.parse(OMOS::ReviewQueue.period_for(Time.now)[:scheduled_anchor_at])
+  3.times do |i|
+    f = File.join(dir, "n#{i}.md")
+    File.write(f, "# 筆記 #{i}\n\n這是不該外流的內容 SECRET#{i}。\n")
+    OMOS::Inbox.import(rt, store, f, memory_kind: "DECISION", owner_ref: owner,
+                                     tenant_id: "t-acme",
+                                     surface: OMOS::Runtime::SURFACES[:cli],
+                                     now: anchor - 3600 * (i + 1))
+  end
+  rt.store.close
+  receipt_path = File.join(home, ".omos/personal-memory/install-receipt.json")
+  receipt = JSON.parse(File.read(receipt_path))
+  receipt["weekly_review_origin_at"] = (Time.now - (21 * 86_400)).utc.iso8601
+  File.write(receipt_path, JSON.pretty_generate(receipt))
+
+  noisy = ctx.call("s-noisy")
+  C.check("有待辦時 SessionStart 講得出哪一期、幾筆、還欠哪幾週",
+          noisy.lines.last.to_s.strip[0, 60],
+          noisy.include?("回顧尚未完成") && noisy.include?("3 筆待處理") &&
+          noisy.match?(/另有 20\d\d-W\d\d/) && noisy.include?("請先問他"))
+
+  # 驗收 2：**不得帶任何知識內容**——與 review receipt 同一條界線
+  leaked = %w[SECRET0 SECRET1 SECRET2 n0.md n1.md n2.md 筆記 candidate urn:omos]
+           .select { |t| noisy.include?(t) }
+  C.check("注入的內容不得含任何知識內容（檔名／原文／candidate ref）",
+          leaked.inspect, leaked.empty?)
+
+  # SessionStart 是**純讀**：還沒安裝的人開 session，不得被憑空造出一個 store。
+  #
+  # 實測：`OMOS::Runtime.open` 對不存在的路徑會直接建出一個 45 KB 的空 db。
+  # 所以 `File.file?(store)` 的早退不是多餘的防禦，它在擋這個副作用——
+  # 沒有它的話，每開一次 session 就多一個資料庫。
+  # 要驗的是「receipt 在、store 不在」——receipt 不在的話會先被它自己的早退
+  # 擋掉，打不到 store 這一段。這種狀態真的會發生：裝過之後 store 被移走或刪掉。
+  bare = File.join(dir, "bare-home")
+  Support::FakeHome.seed(bare)
+  FileUtils.mkdir_p(File.join(bare, ".omos/personal-memory"))
+  FileUtils.cp(File.join(home, ".omos/personal-memory/install-receipt.json"),
+               File.join(bare, ".omos/personal-memory/install-receipt.json"))
+  bare_out, = Support.run_session_start(host: "Claude Code", session_id: "s-bare",
+                                        cwd: dir, state_dir: state, home: bare)
+  C.check("receipt 在但 store 不在時，SessionStart 不得建出 store",
+          Dir[File.join(bare, ".omos/**/*.db")].inspect,
+          Dir[File.join(bare, ".omos/**/*.db")].empty? &&
+          JSON.parse(bare_out).dig("hookSpecificOutput", "additionalContext")
+              .to_s.include?("已綁定此 session"))
+
+  # 驗收 1 的另一格：**週期存在而且都完成了**，同樣不得多嘴。
+  # 這一格才證明得出「不是因為沒有週期才安靜」。
+  rt2 = OMOS::Runtime.open(store)
+  OMOS::ReviewLedger.history(rt2, receipt["weekly_review_origin_at"]).each do |row|
+    next unless row["status"] == "MISSING"
+
+    period = OMOS::ReviewLedger.period_from_iso_week(row["period"])
+    due = OMOS::ReviewQueue.due_for(rt2, period, surface: OMOS::Runtime::SURFACES[:cli])
+    payload = OMOS::ReviewLedger.build_done(
+      rt2, period, due[:items].to_h { |i| [i["candidate_id"], "UNSEEN"] },
+      surface: OMOS::Runtime::SURFACES[:cli]
+    )
+    rt2.commit_closeout(closeout: payload, surface: OMOS::Runtime::SURFACES[:cli])
+  end
+  rt2.store.close
+  all_done = ctx.call("s-alldone")
+  C.check("週期都完成了（而不是沒有週期）時也不提回顧",
+          all_done.lines.size.to_s,
+          all_done.include?("已綁定此 session") && !all_done.include?("回顧"))
+
+  # best-effort：store **讀不到**時不得讓 binding 失敗。
+  #
+  # 這裡故意用「存在但不可讀」而不是「不存在」——不存在會走 File.file? 的
+  # 早退，證明不了 rescue 有沒有在守。
+  File.chmod(0o000, store)
+  degraded = begin
+    out, _e, st = Support.run_session_start(host: "Claude Code", session_id: "s-degraded",
+                                            cwd: dir, state_dir: state, home: home)
+    [JSON.parse(out).dig("hookSpecificOutput", "additionalContext").to_s, st.success?]
+  rescue StandardError => e
+    ["#{e.class}", false]
+  end
+  File.chmod(0o644, store)
+  C.check("store 存在但讀不到時提示靜默消失，但 binding 仍然成功",
+          "ok=#{degraded[1]} #{degraded[0][0, 30]}",
+          degraded[1] && degraded[0].include?("已綁定此 session") &&
+          !degraded[0].include?("回顧"))
+
+  C.group = nil
+end
+
+# --- 每週回顧訪問｜Skill 本體與關帳歸屬（驗收 3／4／5）--------------------
+Dir.mktmpdir("omos-3c-a-skill") do |dir|
+  C.group = "A"
+  require "omos/review_ledger"
+  root = OMOS::Contract::ARTIFACT_ROOT
+  skill_path = File.join(root, "skills/weekly-review/SKILL.md")
+
+  # 驗收 3：Skill 存在，而且說得出 §3.2 的五個步驟
+  C.check("Skill 檔案存在於交付包", skill_path.sub("#{root}/", ""), File.file?(skill_path))
+  skill = File.read(skill_path)
+  steps = ["先全部讀完", "自己完成比對", "用人話講出這週的樣子",
+           "只問需要人判斷的", "等使用者同意，才關帳"]
+  missing_steps = steps.reject { |t| skill.include?(t) }
+  C.check("Skill 寫得出五個步驟（先消化再開口）", missing_steps.inspect, missing_steps.empty?)
+  C.check("Skill 把四個比對分類標成「AI 自己判斷」",
+          %w[UNCHANGED NEW_EVIDENCE MATERIALLY_CHANGED CONTRADICTED]
+            .reject { |c| skill.include?(c) }.inspect,
+          %w[UNCHANGED NEW_EVIDENCE MATERIALLY_CHANGED CONTRADICTED].all? { |c| skill.include?(c) })
+
+  # 驗收 4 的文字面：Skill 必須明文禁止自行關帳，而且要說出**為什麼**
+  C.check("Skill 明文禁止 AI 自行關帳，並說明理由",
+          skill.lines.grep(/不得自行關帳/).first.to_s.strip,
+          skill.include?("你不得自行關帳") &&
+          skill.include?("personal_memory_closeout") &&
+          skill.include?("一定要等使用者明確同意"))
+  C.check("Skill 禁止 AI 代替使用者判斷 NEEDS_ORG_FOLLOWUP",
+          skill.include?("NEEDS_ORG_FOLLOWUP").to_s,
+          skill.match?(/不得.*代替使用者判斷/) && skill.include?("NEEDS_ORG_FOLLOWUP"))
+  C.check("Skill 說清楚目前沒有上傳，不得宣稱已送出",
+          skill.include?("目前沒有上傳").to_s,
+          skill.include?("目前沒有上傳") && skill.include?("NO_PROMOTION") &&
+          skill.include?("不要告訴使用者"))
+
+  # 驗收 4b：Skill **不得宣稱 AI 已被機械性禁止關帳**。
+  #
+  # 現況是「有稽核、沒有強制」。文件誠實說出這一點很重要——如果寫成
+  # 「產品會阻止你」，下一個讀的人（人或模型）會以為有保護，於是不再小心。
+  C.check("Skill 說清楚有 audit、但沒有 mechanical enforcement",
+          skill.lines.grep(/沒有程式在擋|沒有機械性禁止/).first.to_s.strip[0, 40],
+          skill.include?("沒有程式在擋") && skill.include?("沒有機械性禁止") &&
+          skill.include?("committed_by") && skill.include?("LOCAL_STDIO_MCP"))
+  C.check("Skill 不得宣稱產品會阻止 AI 關帳",
+          skill.scan(/產品.{0,6}(?:會|能)阻止/).inspect,
+          !skill.match?(/產品.{0,6}(?:會|能)阻止/) &&
+          skill.include?("無法**阻止") || skill.include?("無法阻止"))
+
+  # 驗收 5：Skill **不取得新的 authority**
+  C.check("Skill 自己宣告不授予新權限", skill.include?("不授予任何新權限").to_s,
+          skill.include?("不授予任何新權限"))
+  C.check("Skill 是純文字，不含可執行碼或權限宣告",
+          File.extname(skill_path),
+          File.extname(skill_path) == ".md" &&
+          !skill.match?(/^\s*(permissions|allowed-tools|authority)\s*:/i))
+  # MCP 工具清單不得因為加了 Skill 而變多
+  tools = File.read(File.join(root, "lib/omos/mcp_server.rb"))[/TOOLS = \[[^\]]*\]/].to_s
+  C.check("加 Skill 沒有擴張 MCP 工具清單", tools,
+          tools == "TOOLS = [ReadTool, WriteTool, CloseoutTool]")
+
+  # Skill 要跟著裝進 ~/.omos，否則刪掉解壓資料夾之後就不見了
+  C.check("skills 在 PAYLOAD_ENTRIES 裡（會跟著安裝）",
+          OMOS::Installer::PAYLOAD_ENTRIES.inspect,
+          OMOS::Installer::PAYLOAD_ENTRIES.include?("skills"))
+  home = File.join(dir, "home")
+  Support::FakeHome.seed(home)
+  store = File.join(dir, "s.db")
+  OMOS::Installer.new(home: home, store_path: store).install
+  installed = Dir[File.join(home, ".omos/personal-memory/versions/*/skills/weekly-review/SKILL.md")]
+  C.check("安裝後在 ~/.omos 讀得到 Skill", installed.size.to_s, installed.size == 1)
+
+  # 驗收 4 的機械面：**關帳是誰提交的看得見**。
+  #
+  # 產品擋不住 AI 自行關帳（personal_memory_closeout 它拿得到），所以本卡做到的
+  # 是讓它可被辨識——surface 本來就記在 operation_journal，只是沒攤到 history。
+  rt = OMOS::Runtime.open(store)
+  owner = Support::Fixtures::EMP
+  period = OMOS::ReviewQueue.period_for(Time.now)
+  cli_payload = OMOS::ReviewLedger.build_done(rt, period, {},
+                                              surface: OMOS::Runtime::SURFACES[:cli])
+  rt.commit_closeout(closeout: cli_payload, surface: OMOS::Runtime::SURFACES[:cli])
+  origin = (Time.now - (14 * 86_400)).utc.iso8601
+  rows = OMOS::ReviewLedger.history(rt, origin)
+  closed = rows.find { |r| r["status"] != "MISSING" }
+  open_row = rows.find { |r| r["status"] == "MISSING" }
+  C.check("history 攤得出關帳是哪個 surface 提交的",
+          closed && closed["committed_by"].inspect,
+          !closed.nil? && closed["committed_by"] == ["LOCAL_CLI"])
+  C.check("還沒關帳的週期 committed_by 為空",
+          open_row && open_row["committed_by"].inspect,
+          !open_row.nil? && open_row["committed_by"] == [])
+  C.check("committed_by 分得出 CLI 與 MCP（兩個值不同）",
+          [OMOS::Runtime::SURFACES[:cli], OMOS::Runtime::SURFACES[:mcp]].inspect,
+          OMOS::Runtime::SURFACES[:cli] != OMOS::Runtime::SURFACES[:mcp])
+  rt.store.close
   C.group = nil
 end
 

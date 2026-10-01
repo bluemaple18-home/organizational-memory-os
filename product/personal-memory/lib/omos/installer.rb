@@ -91,8 +91,11 @@ module OMOS
     # native-dependencies.json 是 Slice A 宣告的 production native dependency
     # manifest，Slice B 的 runtime profile guard 會消費它，因此必須隨 artifact
     # 一起配送（也因此被納入 artifact identity）。
+    # skills/ 要跟著裝進 ~/.omos——AI 得在**已安裝的**路徑讀得到方法文件，
+    # 否則使用者刪掉解壓資料夾之後 Skill 就不見了。
+    # 它是純文字、不授予任何權限（CARD-WEEKLY-REVIEW-INTERVIEW-20261001 §4-5）。
     PAYLOAD_ENTRIES = %w[lib exe bin vendor Gemfile Gemfile.lock .ruby-version .bundle
-                         native-dependencies.json runtime-profile.json].freeze
+                         native-dependencies.json runtime-profile.json skills].freeze
 
     def receipt
       return nil unless File.exist?(receipt_path)
