@@ -64,7 +64,8 @@ repo 的 fixture 形狀正確，直接通過，而且 `conformance_3a` 26/26 全
 
 ## 1. 切分原則
 
-1. **按寫入／讀取切**，不按功能切——這樣產品碼完全不重疊。
+1. **按寫入／讀取切**，不按功能切；產品碼仍有共同 seam，依 §4 以單一 writer
+   與 checkpoint 管理，不宣稱完全不重疊。
 2. **檔案所有權明確**，每個檔案只有一條線能改。
 3. **不設專職 reviewer**，改為**交付點互審**（Owner 的 token 預算限制）。
 4. **Recall 不在本輪**，它必須等 A 線封完才能做（否則讓可偽造的 Record 更易擴散）。
@@ -142,8 +143,8 @@ A2 要做的不是「刪掉一條正例」，而是：
 
 - 舊的偽造正例**明確退休**（不是消失）
 - 同一路徑改成命名清楚的 `expect_rejected` 負例
-- **另外增加**六條負例：Candidate 不存在／receipt 不存在／candidate 不符／
-  owner 不符／tenant 不符／receipt 重放／generic Record write
+- 同一路徑改成 `generic Record write` 具名負例，並**另外增加六條**：Candidate
+  不存在／receipt 不存在／candidate 不符／owner 不符／tenant 不符／receipt 重放
 
 **測試總數應維持或增加。** 若 runner 的計數機制仍造成下降，交付 receipt 必須列：
 
@@ -317,13 +318,33 @@ B1 等 checkpoint-2，B2 等 B1，B4 等 B2。
 > 沒有 trace preflight 不得開工。**
 
 每個工作項在卡片上要寫出它對應 `文件/待辦補充-個人知識庫Harness-20260830.md`
-EMEM-06 成功指標的哪一條，例如：
+EMEM-06 成功指標的哪一條。rev-2 的 preflight 對照如下：
 
 ```yaml
+A1:
+  traces_to: "一次 batch confirmation，但底層 Candidate acceptance 可追溯；Promotion 無法跳過 writer"
+A2:
+  traces_to: "一次 batch confirmation，但底層 Candidate acceptance 可追溯"
+A5:
+  traces_to: "一次 batch confirmation，但底層 Candidate acceptance 可追溯"
+A6:
+  traces_to: "一次 batch confirmation，但底層 Candidate acceptance 可追溯"
 A3:
   traces_to: "底層 Candidate acceptance 可追溯"
+A4:
+  traces_to: "底層 Candidate acceptance 可追溯；Promotion 無法跳過 writer"
+A-seam:
+  traces_to: "Personal permission 不洩漏"
 B1:
-  traces_to: "Recall 有 citation / freshness / gap notice（前置：讀得到內容）"
+  traces_to: "Personal permission 不洩漏；Recall 有 citation / freshness / gap notice（前置：讀得到內容）"
+B2:
+  traces_to: "Evidence 可追溯（建立 Evidence snapshot 與 PROPOSED Candidate 的產品入口）"
+B3:
+  traces_to: "Evidence 可追溯（capture/import 的 memory kind 必須與契約一致）"
+B4:
+  traces_to: "Weekly Grill 先整合再動態追問；UNCHANGED 不重送，material change 才 revision/update"
+B5:
+  traces_to: "Weekly Grill 的 Knowledge Recovery / Discovery 與 batch confirmation 必須可由人讀懂"
 ```
 
 **沒有 trace 的工作項不得進入施工** —— 那表示它不是在補原始缺口，
