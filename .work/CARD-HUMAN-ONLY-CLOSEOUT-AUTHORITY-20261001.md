@@ -1,7 +1,7 @@
 ---
 id: HUMAN-ONLY-CLOSEOUT-AUTHORITY-20261001
 jira: 尚無對應 ticket，需補開一張並回填此欄
-status: RESEARCH_ONLY_NEEDS_OWNER_DECISION
+status: RESEARCH_ONLY｜裁決已下（A/B Reject · D=audit fallback · C probe 完成 · E 首選）
 tier: T3
 parent: WEEKLY-REVIEW-INTERVIEW-20261001
 ---
@@ -77,3 +77,127 @@ D 不假裝有保護，而是讓缺乏保護的情況**可被發現**，與本�
 1. 選 A／B／C／D 或其他。
 2. 若選 D，公司端對帳是否納入 `CARD-SSP295-PILOT-OBSERVABILITY` 的
    `P1_CANDIDATE` 規則（那張卡目前的 receipt 欄位不含 `committed_by`）。
+
+---
+
+## 6. Owner 裁決（2026-10-01）
+
+> **A = Reject；B = Reject；D = 保留 audit/fallback（不算 4b）；
+> C = 立即做 bounded probe；E = 目前 4b 的首選實作方向。**
+>
+> §3.2 沒有誤判。
+>
+> **TTY 偵測、輸入時序、滑鼠／鍵盤事件、frontmost app 都不要採** ——
+> 它們只能當 observation，不能當 authority。
+
+主卡 `8156050` 維持完成；本卡保持 `RESEARCH_ONLY`，下一步只補 C probe ＋
+E feasibility，**還不要改產品**。
+
+### 6.1 Owner 補的事實更正
+
+本卡 §3 原本寫「兩個 Host 都沒有人類互動訊號」——**過時了**。
+兩邊現在都有 `UserPromptSubmit` hook（Codex 給 session_id／turn_id／prompt，
+Claude Code 給 session_id／prompt_id／prompt），也都有 MCP 的使用者互動／
+elicitation 路徑（Codex app-server 的 `mcpServer/elicitation/request`、
+Claude Code 會在 MCP server 要求輸入時開互動 dialog）。
+
+但那**不等於**取得了不可偽造的人類同意——見下面的 probe。
+
+## 7. C 的 bounded probe（本輪完成）
+
+方法：靜態檢查 codex-cli 0.158.0 的 binary 字串，以及本機
+`~/.claude/cache/changelog.md`。**沒有改動任何產品碼。**
+
+### 7.1 Q1：UserPromptSubmit 的呼叫有沒有 server 端可驗、模型無法製造的 provenance？
+
+**目前的答案：沒有找到。**
+
+Codex binary 確認存在這些 hook 輸出 wire 型別：
+
+```
+PreToolUseHookSpecificOutputWire       PostToolUseHookSpecificOutputWire
+SessionStartHookSpecificOutputWire     SubagentStartHookSpecificOutputWire
+UserPromptSubmitHookSpecificOutputWire PermissionRequestHookSpecificOutputWire
+```
+
+也有 `turn_id`／`turnId`／`codex_turn_source`／`turn_trigger` 這些 turn 層級的
+欄位。但這些是**Host 告訴我們「這是哪一個 turn」**，不是「這個 turn 是人類
+發起的，而且他同意了這件具體的事」。
+`UserPromptSubmit` 會在有 prompt 被送出時觸發——它證明「有東西送了 prompt」，
+不證明「人類同意關掉 2026-W39 這一期」。
+
+### 7.2 Q2：MCP elicitation 的 accept，server 能不能分辨真人 UI 與程式化 accept？
+
+**答案：不能。** 這一條有決定性證據。
+
+本機 `~/.claude/cache/changelog.md`：
+
+```
+5454: Added new `Elicitation` and `ElicitationResult` hooks to intercept and
+      override responses before they're sent back
+  42: Fixed {"decision":"block"} returned by Elicitation and ElicitationResult
+      hooks being ignored; it now declines the MCP elicitation
+```
+
+hook 可以**攔截並覆寫** elicitation 的回應，而 hook 就是設定檔裡的一行指令
+——AI 能跑 shell 就能寫、能改。所以 MCP server 收到的 accept 無法分辨來源。
+
+Codex 端也有 `decisionSource` 這個欄位，但它記的是哪一條決策路徑，不是
+「人類有沒有真的按下去」；而且同樣在 AI 可觸及的設定域內。
+
+### 7.3 Probe 結論
+
+**C 正式淘汰。** 不是「等上游」，是**上游提供的互動事件本身就可被程式化
+回覆**，所以它永遠無法承載不可偽造的人類授權。不要再把 C 列為待觀察。
+
+## 8. E 的 feasibility（本輪初步）
+
+### 8.1 Owner 的方案
+
+在 macOS Secure Enclave 建一把**不可匯出**的 signing key，私鑰設成需要
+Touch ID／生物辨識才能使用；每次 closeout 對 `period + dispositions + nonce`
+簽章，CLI 與 MCP 兩條路都必須帶同一份簽章才准 terminal closeout。
+
+AI 可以用 bash **叫出**確認視窗，但**產不出合法簽章**——authority boundary
+因此真正移出「AI 與人共用的 shell」。
+
+### 8.2 初步查到的事（支持 E 可行）
+
+Codex binary 裡**已經有生物辨識簽章的形狀**：
+
+```
+credentialId · signature · algorithm · publicKey · proof
+credentialMissing · biometricsUnavailable · providerUnavailable · userCancelled
+biometricInfo · biometrics · promptHash
+```
+
+旁邊是 `pairingCode`／`manualPairingCode`／`deviceType`／`installationId`，
+所以它很可能是用在**裝置配對／remote control 授權**，不是 per-action 同意。
+
+**意義**：E 要的原語在這個平台上是成熟的、而且同類產品已經在用。
+不是我們要發明一個新機制。
+
+### 8.3 還沒回答的（下一輪要查）
+
+1. Codex／Claude Code 有沒有把這個簽章能力**暴露給第三方 MCP server**？
+   初步看是沒有（它服務於自己的 auth flow），那 E 就需要我們自己的
+   native helper。
+2. native helper 的體積與 lifecycle：建 key、換機、備份、key 遺失時的復原，
+   以及「沒有 Touch ID 的 Mac」怎麼辦（降級到什麼？降級會不會打回原點？）
+3. 交付包目前是純 Ruby ＋ vendored gem。加一個 native helper 會動到
+   `native-dependencies.json` 與 `runtime-profile.json` 的 qualification，
+   以及 Gatekeeper 簽章（現在是靠使用者 `xattr` 解隔離——**一個未簽章的
+   native helper 會讓那個問題變嚴重**）。
+4. 這是 **macOS-specific**。目前交付範圍就是 macOS，但要寫清楚它讓產品
+   更難離開 macOS。
+
+### 8.4 明確不採（Owner 裁決）
+
+TTY 偵測、輸入時序、滑鼠／鍵盤事件、frontmost app。
+它們只能當 observation，不能當 authority——AI 都能模擬。
+
+## 9. 下一輪的範圍
+
+仍然 `RESEARCH_ONLY`：補完 §8.3 的四個問題，產出 E 的實作提案
+（含體積、lifecycle、降級路徑、對 Gatekeeper 與 qualification 的影響），
+**然後才由 Owner 決定要不要開實作卡。**
