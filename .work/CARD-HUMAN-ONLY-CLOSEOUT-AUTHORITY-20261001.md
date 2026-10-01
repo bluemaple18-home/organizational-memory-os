@@ -38,6 +38,20 @@ AI 的工具清單裡，`input_schema` 收一個完整的 `closeout` object，�
 **AI 自己填的**。那與本專案的核心原則（身分不可自報）直接衝突，也與
 `EMEM-11b` 當初擋掉 Codex 半個月的理由是同一條——**沒有可信來源的宣稱不是證據**。
 
+## 2.1 新發現：AI 走 CLI 的話稽核分不出來
+
+`runtime.rb` 的 `authorize!` 要求 `LOCAL_CLI` surface 的 `binding` 為 nil——
+也就是 CLI 路徑**不需要 MCP binding**。而 AI 在兩個 Host 裡都能跑 shell。
+
+實測：用 bash 跑 `review done` 關帳，`committed_by` 記成 `["LOCAL_CLI"]`，
+**與使用者自己下指令完全相同**。
+
+所以 4a 的稽核只攔得住「AI 用 MCP 工具」那一條路。主卡把 4a 描述為
+「讓它看得見」**說法過強**，實際是「看得見 MCP 那一條」。這也直接否定了
+下面的選項 A 與 B——它們都在同一個信任域裡擋同一個行為者。
+
+詳見 `.work/handoff/HUMAN-ONLY-CLOSEOUT-AUTHORITY-RESEARCH-20261001.md`。
+
 ## 3. 待研究的選項（不預先裁決）
 
 | | 做法 | 疑慮 |
